@@ -20,8 +20,10 @@ export class EmergencyMinerMission extends Mission {
 
     roleCall() {
         if (Game.time % 100 === 1) {
-            this.memory.emergencySituation = (!this.room.storage || this.room.storage.store.energy < 100)
-                && this.room.getAltBattery() === undefined;
+            let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
+                (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
+
+            this.memory.emergencySituation = !energyAvailable;
         }
         if (Game.time % 10 === 0 && this.memory.emergencySituation) {
             console.log("ATTN: Emergency miner being spawned in", this.opName);
@@ -52,5 +54,14 @@ export class EmergencyMinerMission extends Mission {
         miner.memory.donatesEnergy = true;
         miner.memory.scavanger = RESOURCE_ENERGY;
         miner.harvest(closest);
+    }
+
+    private findMinersBySources() {
+        for (let source of this.room.find<Source>(FIND_SOURCES)) {
+            if (source.pos.findInRange(FIND_MY_CREEPS, 1).length > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
