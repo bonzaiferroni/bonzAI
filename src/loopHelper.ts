@@ -14,6 +14,7 @@ import {DemolishOperation} from "./DemolishOperation";
 import {TransportOperation} from "./TransportOperation";
 import {RaidOperation} from "./RaidOperation";
 export var loopHelper = {
+
     initEmpire: function(): Empire {
         // gather flag data, instantiate operations
         let empire = new Empire();
@@ -22,6 +23,7 @@ export var loopHelper = {
         return empire;
     },
     /// <summary>loop through flags and construct operation objects, return operation array sorted by priority</summary>
+
     getOperations: function(empire: Empire): Operation[] {
         let operationTypes: any = {
             conquest: ConquestOperation,
@@ -62,6 +64,7 @@ export var loopHelper = {
 
         return _.sortBy(operationList, (operation: Operation) => operation.priority);
     },
+
     initMemory: function() {
         _.defaultsDeep(Memory, {
             stats: {},

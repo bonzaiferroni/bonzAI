@@ -24,7 +24,8 @@ export class Empire {
     surpluses: StructureTerminal[] = [];
 
     constructor() {
-        _.defaultsDeep(Memory.empire, { allyForts: [], allySwaps: [], tradeIndex: 0, activeNukes: [] });
+        if (!Memory.empire) Memory.empire = {};
+        _.defaults(Memory.empire, { allyForts: [], allySwaps: [], tradeIndex: 0, activeNukes: [] });
         this.memory = Memory.empire;
     }
 
