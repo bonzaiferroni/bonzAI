@@ -1,0 +1,19 @@
+{
+  "name": "kittenClub",
+  "version": "1.0.0",
+  "description": "ThunderKittens Screeps Team framework",
+  "main": "Gruntfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bonzaiferroni/kittenClub.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-screeps": "^1.2.1"
+  }
+}
