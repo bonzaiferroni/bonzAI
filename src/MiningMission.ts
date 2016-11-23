@@ -13,7 +13,17 @@ export class MiningMission extends Mission {
     analysis: TransportAnalysis;
     needsEnergyTransport: boolean;
     positionsAvailable: number;
-    storage: StructureStorage;
+    storage: {
+        pos: RoomPosition
+        store: StoreDefinition
+    };
+
+    memory: {
+        potencyPerMiner: number;
+        positionsAvailable: number;
+        transportAnalysis: TransportAnalysis;
+        distanceToStorage: number;
+    };
 
     /**
      * General-purpose energy mining, uses a nested TransportMission to transfer energy
@@ -32,28 +42,7 @@ export class MiningMission extends Mission {
         if (!this.hasVision) return;
 
         this.distanceToSpawn = this.findDistanceToSpawn(this.source.pos);
-
-        if (!this.memory.potencyPerMiner) this.memory.potencyPerMiner = 2;
-
-        // figure out what storage to use
-        let destination = Game.flags[this.opName + "_sourceDestination"];
-        if (destination) {
-            let structure = destination.pos.lookFor(LOOK_STRUCTURES)[0] as StructureStorage;
-            if (structure) {
-                this.storage = structure;
-            }
-        }
-
-        if (!this.storage) {
-            if ((this.opType === "fort" || this.opType === "conquest")) {
-                if (this.room.storage && this.room.storage.my) {
-                    this.storage = this.flag.room.storage;
-                }
-            }
-            else {
-                this.storage = this.getStorage(this.source.pos);
-            }
-        }
+        this.storage = this.findMinerStorage();
 
         if (!this.memory.positionsAvailable) { this.memory.positionsAvailable = this.source.pos.openAdjacentSpots(true).length; }
         this.positionsAvailable = this.memory.positionsAvailable;
@@ -71,6 +60,7 @@ export class MiningMission extends Mission {
 
     roleCall() {
         // below a certain amount of maxSpawnEnergy, BootstrapMission will harvest energy
+        if (!this.memory.potencyPerMiner) this.memory.potencyPerMiner = 2;
         let maxMiners = this.needsEnergyTransport ? 1 : Math.min(Math.ceil(5 / this.memory.potencyPerMiner), this.positionsAvailable);
         if (maxMiners > 1) {
             this.container = undefined;
@@ -156,42 +146,44 @@ export class MiningMission extends Mission {
     }
 
     private getMinerBody(): string[] {
+        let body;
         if (this.needsEnergyTransport) {
-            let carry;
-            let work = Math.ceil((Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / 2);
-            if (this.container) {
-                // extra work part to repair container and not fall behind
-                work++;
-                // no need for a lot of carry, just one for container repair
-                carry = 1;
-            }
-            else {
-                // tries to have the same amount of storage as a cart will have, if there is not enough spawn energy
-                // to support that, it will just make the carry as big as it can make it while staying under the limit
-                carry = Math.min(this.analysis.carryCount,
-                    Math.floor((this.spawnGroup.maxSpawnEnergy - (work * 100 + Math.ceil(work / 2) * 50)) / 50));
-            }
-            if (this.opType === "keeper") work++;
+
+            let work = Math.ceil((Math.max(this.source.energyCapacity,
+                    SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);
+            if (this.opType === "keeper") { work++; }
+            if (this.container) { work++; }
+
             let move = Math.ceil(work / 2);
-            if (this.waypoints) {
-                move = work;
+            if (this.waypoints) { move = work; } // waypoints often mean offroad travel
+
+            let carry;
+            if (this.container) { carry = 1; }
+            else {
+                let workCost = work * BODYPART_COST[WORK];
+                let moveCost = move * BODYPART_COST[MOVE];
+                let remainingSpawnEnergy = this.spawnGroup.maxSpawnEnergy - (workCost + moveCost);
+                carry = Math.min(this.analysis.carryCount, Math.floor(remainingSpawnEnergy / BODYPART_COST[CARRY]));
             }
-            return this.workerBody(work, carry, move);
+
+            body = this.workerBody(work, carry, move);
         }
+
+        // doesn't have a structure to delivery energy to
         else {
-            let body;
             if (this.spawnGroup.maxSpawnEnergy < 400) {
                 body = this.workerBody(2, 1, 1);
             }
             else {
-                body = this.bodyRatio(1, 1, 1, 1, 5);
+                body = this.bodyRatio(1, 1, .5, 1, 5);
             }
-            this.memory.potencyPerMiner = _.filter(body, (part: string) => part === WORK).length;
             if (this.spawnGroup.maxSpawnEnergy >= 1300 && this.container) {
                 body = body.concat([WORK, MOVE]);
             }
-            return body;
+
         }
+        this.memory.potencyPerMiner = _.filter(body, (part: string) => part === WORK).length;
+        return body;
     }
 
     private runTransportAnalysis() {
@@ -254,6 +246,26 @@ export class MiningMission extends Mission {
         }
         else {
             cart.blindMoveTo(this.storage);
+        }
+    }
+
+    private findMinerStorage(): {store: StoreDefinition, pos: RoomPosition} {
+        let destination = Game.flags[this.opName + "_sourceDestination"];
+        if (destination) {
+            let structure = destination.pos.lookFor(LOOK_STRUCTURES)[0] as StructureStorage;
+            if (structure) {
+                return structure;
+            }
+        }
+        else {
+            if ((this.opType === "fort" || this.opType === "conquest")) {
+                if (this.room.storage && this.room.storage.my) {
+                    return this.flag.room.storage;
+                }
+            }
+            else {
+                return this.getStorage(this.source.pos);
+            }
         }
     }
 }
