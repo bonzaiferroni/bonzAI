@@ -56,7 +56,7 @@ export class GeologyMission extends Mission {
         && (!this.room.controller || this.room.controller.level >= 6) ? 1 : 0;
 
         let geoBody = () => {
-            if (this.opType === "fort") {
+            if (this.room.controller && this.room.controller.my) {
                 return this.memory.bestBody;
             }
             else {

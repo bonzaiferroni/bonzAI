@@ -72,7 +72,7 @@ export class PaverMission extends Mission {
         let target = paver.rememberStructure(findRoad, forget);
         if (!target) {
             let repairing = false;
-            if (this.opType === "fort") {
+            if (this.room.controller && this.room.controller.my) {
                 repairing = this.repairContainers(paver);
             }
             if (!repairing) {

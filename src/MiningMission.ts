@@ -258,7 +258,7 @@ export class MiningMission extends Mission {
             }
         }
         else {
-            if ((this.opType === "fort" || this.opType === "conquest")) {
+            if (this.room.controller && this.room.controller.my) {
                 if (this.room.storage && this.room.storage.my) {
                     return this.flag.room.storage;
                 }
