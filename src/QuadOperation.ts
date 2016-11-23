@@ -1,6 +1,5 @@
 import {Operation} from "./Operation";
 import {Empire} from "./Empire";
-
 import {BuildMission} from "./BuildMission";
 import {EmergencyMinerMission} from "./EmergencyMission";
 import {GeologyMission} from "./GeologyMission";
@@ -9,7 +8,6 @@ import {LinkMiningMission} from "./LinkMiningMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
 import {NightsWatchMission} from "./NightsWatchMission";
 import {MiningMission} from "./MiningMission";
-import {ObserverMission} from "./ObserverMission";
 import {PaverMission} from "./PaverMission";
 import {PowerMission} from "./PowerMission";
 import {RefillMission} from "./RefillMission";
@@ -18,7 +16,7 @@ import {UpgradeMission} from "./UpgradeMission";
 
 import {OperationPriority, NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 
-export class FortOperation extends Operation {
+export class QuadOperation extends Operation {
 
     /**
      * Manages the activities of an owned room, assumes bonzaiferroni's build spec

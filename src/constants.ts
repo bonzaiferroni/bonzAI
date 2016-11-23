@@ -27,7 +27,7 @@ export const KCLUBBERS = ["bonzaiferroni"];
 
 export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 
-export enum OperationPriority { Emergency, FortOperation, VeryHigh, High, Medium, Low, VeryLow }
+export enum OperationPriority { Emergency, OwnedRoom, VeryHigh, High, Medium, Low, VeryLow }
 
 // these are the constants that govern your energy balance
 // rooms below this will try to pull energy...
