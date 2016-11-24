@@ -29,7 +29,14 @@ export class PaverMission extends Mission {
         if (needPaver) {
             max = 1;
         }
-        let body = () => { return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency); };
+        let body = () => {
+            if (this.spawnGroup.maxSpawnEnergy <= 550) {
+                return this.bodyRatio(1,3, 1, 1);
+            }
+            else {
+                return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);
+            }
+        };
         this.pavers = this.headCount(this.name, body, max, {prespawn: 10} );
     }
 
