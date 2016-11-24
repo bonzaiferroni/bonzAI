@@ -15,8 +15,20 @@ import {TerminalNetworkMission} from "./TerminalNetworkMission";
 import {UpgradeMission} from "./UpgradeMission";
 
 import {OperationPriority, NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
+import {helper} from "./helper";
 
 export class QuadOperation extends Operation {
+
+    memory: {
+        powerMining: boolean
+        noMason: boolean
+        masonPotency: number
+        builderPotency: number
+        wallBoost: boolean
+        mason: { activateBoost: boolean }
+        network: { scanData: { roomNames: string[]} }
+        centerPoint: {x: number, y: number }
+    };
 
     /**
      * Manages the activities of an owned room, assumes bonzaiferroni's build spec
@@ -33,6 +45,7 @@ export class QuadOperation extends Operation {
 
     initOperation() {
         if (this.flag.room) {
+
             // initOperation FortOperation variables
             this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
             this.empire.register(this.flag.room);
@@ -65,7 +78,7 @@ export class QuadOperation extends Operation {
                 if (this.flag.room.controller.level === 8 && this.flag.room.storage) {
                     let link = source.findMemoStructure(STRUCTURE_LINK, 2) as StructureLink;
                     if (link) {
-                        this.addMission(new LinkMiningMission(this, "linkMiner" + i, source, link));
+                        this.addMission(new LinkMiningMission(this, "miner" + i, source, link));
                         continue;
                     }
                 }
@@ -97,6 +110,9 @@ export class QuadOperation extends Operation {
 
             // repair roads
             this.addMission(new PaverMission(this));
+
+
+            this.autoLayout();
         }
     }
 
@@ -156,5 +172,78 @@ export class QuadOperation extends Operation {
         this.memory.network.scanData.roomNames.push(roomName);
         this.empire.addAllyForts([roomName]);
         return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
+    }
+
+    layoutDeltas = {
+        [STRUCTURE_SPAWN]: [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}],
+        [STRUCTURE_TOWER]: [
+            {x: 1, y: -1}, {x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}],
+        [STRUCTURE_EXTENSION]: [
+            {x: 3, y: -1}, {x: 2, y: -2}, {x: 1, y: -3}, {x: 3, y: -2}, {x: 2, y: -3},
+            {x: 0, y: -4}, {x: -1, y: -3}, {x: -2, y: -2}, {x: -3, y: -1}, {x: -3, y: -2},
+            {x: -2, y: -3}, {x: 0, y: -4}, {x: 4, y: 0}, {x: -4, y: 0}, {x: -3, y: 1},
+            {x: -1, y: 1}, {x: 2, y: 2}, {x: 3, y: 1}, {x: 4, y: -2}, {x: 3, y: -3},
+            {x: 2, y: -4}, {x: -3, y: -3}, {x: -4, y: -2}, {x: 5, y: -3}, {x: 4, y: -4},
+            {x: 3, y: -5}, {x: -3, y: -5}, {x: -4, y: -4}, {x: -5, y: -3}, {x: 3, y: 2},
+            {x: 3, y: 3}, {x: 4, y: 2}, {x: 3, y: 5}, {x: 4, y: 4}, {x: 5, y: 3},
+            {x: 5, y: 1}, {x: 5, y: 0}, {x: 5, y: -1}, {x: 5, y: -4}, {x: 5, y: -5},
+            {x: 4, y: -5}, {x: 1, y: -5}, {x: 0, y: -5}, {x: -1, y: -5}, {x: -4, y: -5},
+            {x: -5, y: -5}, {x: -5, y: -4}, {x: -5, y: -1}, {x: -5, y: 0}, {x: -5, y: 1},
+            {x: 4, y: 5}, {x: 5, y: 4}, {x: -6, y: 2}, {x: -6, y: -2}, {x: -2, y: -6},
+            {x: 2, y: -6}, {x: 6, y: -2}, {x: 6, y: 2}, {x: 2, y: 3}, {x: 3, y: -1}, ],
+        [STRUCTURE_STORAGE]: [{x: 0, y: 4}],
+        [STRUCTURE_TERMINAL]: [{x: 0, y: 2}],
+        [STRUCTURE_NUKER]: [{x: 0, y: 6}],
+        [STRUCTURE_POWER_SPAWN]: [{x: 2, y: 2}],
+        [STRUCTURE_LAB]: [
+            {x: -2, y: 4}, {x: -3, y: 3}, {x: -4, y: 2}, {x: -3, y: 4}, {x: -4, y: 4},
+            {x: -5, y: 3}, {x: -2, y: 3}, {x: -3, y: 2}, {x: -4, y: 5}, {x: -5, y: 4}]
+    };
+
+    private autoLayout() {
+        if (this.memory.centerPoint) {
+            for (let structureType in this.layoutDeltas) {
+                let allowedCount = CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
+                let constructionCount = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES,
+                    {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
+                let count = this.flag.room.findStructures(structureType).length + constructionCount;
+                if (count < allowedCount) {
+                    this.findNextConstruction(structureType, this.memory.centerPoint, allowedCount - count)
+                }
+            }
+        }
+    }
+
+    private findNextConstruction(structureType: string, centerPoint: {x: number, y: number}, amountNeeded: number) {
+        let amountOrdered = 0;
+
+        for (let coord of this.layoutDeltas[structureType]) {
+            let position = this.coordToPosition(coord, centerPoint);
+            if (!position) {
+                console.log("step 1: didn't find that pos");
+                return;
+            }
+            let hasStructure = position.lookForStructure(structureType) !== null;
+            if (hasStructure) continue;
+            let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES);
+            if (hasConstruction) continue;
+
+            let outcome = position.createConstructionSite(structureType);
+            if (outcome === OK) {
+                amountOrdered++;
+            }
+            else {
+                console.log(`bad construction placement: ${outcome}`);
+            }
+
+            if (amountOrdered === amountNeeded) {
+                console.log("finished placing construction for: " + structureType);
+            }
+        }
+    }
+
+    private coordToPosition(coord: {x: number; y: number}, centerPoint: {x: number; y: number}) {
+        console.log(coord, centerPoint);
+        return new RoomPosition(coord.x - centerPoint.x, coord.y - centerPoint.y, this.flag.room.name);
     }
 }
