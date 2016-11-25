@@ -15,7 +15,10 @@ import {TerminalNetworkMission} from "./TerminalNetworkMission";
 import {UpgradeMission} from "./UpgradeMission";
 
 import {OperationPriority, NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
-import {helper} from "./helper";
+import {Coord} from "./interfaces";
+
+const QUAD_RADIUS = 6;
+const REPAIR_INTERVAL = 4;
 
 export class QuadOperation extends Operation {
 
@@ -28,6 +31,9 @@ export class QuadOperation extends Operation {
         mason: { activateBoost: boolean }
         network: { scanData: { roomNames: string[]} }
         centerPoint: {x: number, y: number }
+        rotation: number
+        repairIndex: number
+        temporaryPlacement: {[level: number]: boolean}
     };
 
     /**
@@ -89,11 +95,6 @@ export class QuadOperation extends Operation {
             let allowBuilderSpawn = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0;
             this.addMission(new BuildMission(this, "builder", this.calcBuilderPotency(), allowBuilderSpawn));
 
-            // build walls
-            if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-                this.addMission(new BuildMission(this, "mason", this.calcMasonPotency()));
-            }
-
             // use link array near storage to fire energy at controller link (pre-rcl8)
             if (this.flag.room.storage) {
                 this.addMission(new LinkNetworkMission(this));
@@ -113,6 +114,7 @@ export class QuadOperation extends Operation {
 
 
             this.autoLayout();
+            this.repairWall();
         }
     }
 
@@ -181,69 +183,159 @@ export class QuadOperation extends Operation {
         [STRUCTURE_EXTENSION]: [
             {x: 3, y: -1}, {x: 2, y: -2}, {x: 1, y: -3}, {x: 3, y: -2}, {x: 2, y: -3},
             {x: 0, y: -4}, {x: -1, y: -3}, {x: -2, y: -2}, {x: -3, y: -1}, {x: -3, y: -2},
-            {x: -2, y: -3}, {x: 0, y: -4}, {x: 4, y: 0}, {x: -4, y: 0}, {x: -3, y: 1},
-            {x: -1, y: 1}, {x: 2, y: 2}, {x: 3, y: 1}, {x: 4, y: -2}, {x: 3, y: -3},
-            {x: 2, y: -4}, {x: -3, y: -3}, {x: -4, y: -2}, {x: 5, y: -3}, {x: 4, y: -4},
-            {x: 3, y: -5}, {x: -3, y: -5}, {x: -4, y: -4}, {x: -5, y: -3}, {x: 3, y: 2},
-            {x: 3, y: 3}, {x: 4, y: 2}, {x: 3, y: 5}, {x: 4, y: 4}, {x: 5, y: 3},
-            {x: 5, y: 1}, {x: 5, y: 0}, {x: 5, y: -1}, {x: 5, y: -4}, {x: 5, y: -5},
-            {x: 4, y: -5}, {x: 1, y: -5}, {x: 0, y: -5}, {x: -1, y: -5}, {x: -4, y: -5},
-            {x: -5, y: -5}, {x: -5, y: -4}, {x: -5, y: -1}, {x: -5, y: 0}, {x: -5, y: 1},
-            {x: 4, y: 5}, {x: 5, y: 4}, {x: -6, y: 2}, {x: -6, y: -2}, {x: -2, y: -6},
-            {x: 2, y: -6}, {x: 6, y: -2}, {x: 6, y: 2}, {x: 2, y: 3}, {x: 3, y: -1}, ],
+            {x: -2, y: -3}, {x: -2, y: -4}, {x: 4, y: 0}, {x: -4, y: 0}, {x: -3, y: 1},
+            {x: -1, y: 1}, {x: 3, y: 1}, {x: 4, y: -2}, {x: 3, y: -3}, {x: 2, y: -4},
+            {x: -3, y: -3}, {x: -4, y: -2}, {x: 5, y: -3}, {x: 4, y: -4}, {x: 3, y: -5},
+            {x: -3, y: -5}, {x: -4, y: -4}, {x: -5, y: -3}, {x: 3, y: 2}, {x: 3, y: 3},
+            {x: 4, y: 2}, {x: 3, y: 5}, {x: 4, y: 4}, {x: 5, y: 3}, {x: 5, y: 1},
+            {x: 5, y: 0}, {x: 5, y: -1}, {x: 5, y: -4}, {x: 5, y: -5}, {x: 4, y: -5},
+            {x: 1, y: -5}, {x: 0, y: -5}, {x: -1, y: -5}, {x: -4, y: -5}, {x: -5, y: -5},
+            {x: -5, y: -4}, {x: -5, y: -1}, {x: -5, y: 0}, {x: -5, y: 1}, {x: 4, y: 5},
+            {x: 5, y: 4}, {x: 5, y: 5}, {x: -6, y: 2}, {x: -6, y: -2}, {x: -2, y: -6},
+            {x: 2, y: 2}, {x: 2, y: -6}, {x: 6, y: -2}, {x: 6, y: 2}, {x: 2, y: 3}, ],
         [STRUCTURE_STORAGE]: [{x: 0, y: 4}],
         [STRUCTURE_TERMINAL]: [{x: 0, y: 2}],
         [STRUCTURE_NUKER]: [{x: 0, y: 6}],
-        [STRUCTURE_POWER_SPAWN]: [{x: 2, y: 2}],
+        [STRUCTURE_POWER_SPAWN]: [{x: -2, y: 2}],
         [STRUCTURE_LAB]: [
             {x: -2, y: 4}, {x: -3, y: 3}, {x: -4, y: 2}, {x: -3, y: 4}, {x: -4, y: 4},
             {x: -5, y: 3}, {x: -2, y: 3}, {x: -3, y: 2}, {x: -4, y: 5}, {x: -5, y: 4}]
     };
 
     private autoLayout() {
-        if (this.memory.centerPoint) {
+        if (this.memory.centerPoint && this.memory.rotation !== undefined) {
+            let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
             for (let structureType in this.layoutDeltas) {
                 let allowedCount = CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
-                let constructionCount = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES,
+                let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, QUAD_RADIUS,
                     {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
-                let count = this.flag.room.findStructures(structureType).length + constructionCount;
+                let count = _.filter(this.flag.room.findStructures(structureType),
+                        (s: Structure) => { return centerPosition.inRangeTo(s, QUAD_RADIUS)}).length + constructionCount;
                 if (count < allowedCount) {
-                    this.findNextConstruction(structureType, this.memory.centerPoint, allowedCount - count)
+                    this.findNextConstruction(structureType, allowedCount - count)
                 }
             }
+
+            this.temporaryPlacement(this.flag.room.controller.level);
         }
     }
 
-    private findNextConstruction(structureType: string, centerPoint: {x: number, y: number}, amountNeeded: number) {
+    private findNextConstruction(structureType: string, amountNeeded: number) {
         let amountOrdered = 0;
 
         for (let coord of this.layoutDeltas[structureType]) {
-            let position = this.coordToPosition(coord, centerPoint);
+            let position = this.coordToPosition(coord);
             if (!position) {
-                console.log("step 1: didn't find that pos");
+                console.log(`LAYOUT: bad position, is centerPoint misplaced? (${this.name})`);
                 return;
             }
-            let hasStructure = position.lookForStructure(structureType) !== null;
+            let hasStructure = position.lookForStructure(structureType);
             if (hasStructure) continue;
-            let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES);
+            let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
             if (hasConstruction) continue;
 
             let outcome = position.createConstructionSite(structureType);
             if (outcome === OK) {
+                console.log(`LAYOUT: placing ${structureType} at ${position} (${this.name})`);
                 amountOrdered++;
             }
             else {
-                console.log(`bad construction placement: ${outcome}`);
+                console.log(`bad construction placement: ${outcome}, ${structureType} (${this.name})`, coord.x, coord.y);
             }
 
             if (amountOrdered === amountNeeded) {
-                console.log("finished placing construction for: " + structureType);
+                console.log(`LAYOUT: finished placing construction for: ${structureType} (${this.name})`);
+                break;
             }
         }
     }
 
-    private coordToPosition(coord: {x: number; y: number}, centerPoint: {x: number; y: number}) {
-        console.log(coord, centerPoint);
-        return new RoomPosition(coord.x - centerPoint.x, coord.y - centerPoint.y, this.flag.room.name);
+    private coordToPosition(coord: Coord) {
+        let centerPoint = this.memory.centerPoint;
+        let rotation = this.memory.rotation;
+
+        let xRotation = 1;
+        let yRotation = 1;
+        if (rotation === 1) {
+            yRotation = -1;
+        }
+        else if (rotation === 2) {
+            xRotation = -1;
+            yRotation = -1;
+        }
+        else if (rotation === 3) {
+            xRotation = -1;
+        }
+        return new RoomPosition(centerPoint.x + coord.x * xRotation, centerPoint.y + coord.y * yRotation, this.flag.room.name);
+    }
+
+    private repairWall() {
+        if (Game.time % REPAIR_INTERVAL !== 0) return;
+
+        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
+        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
+        if (towers.length === 0 || ramparts.length === 0) return;
+
+        let rampart = _(ramparts).sortBy("hits").head();
+
+        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
+    }
+
+    private temporaryPlacement(level: number) {
+        if (!this.memory.temporaryPlacement) this.memory.temporaryPlacement = {};
+        if (!this.memory.temporaryPlacement[level]) {
+
+            let actions: {actionType: string, structureType: string, coord: Coord}[] = [];
+
+            // containers
+            if (level === 2) {
+                actions.push({actionType: "place", structureType: STRUCTURE_CONTAINER, coord: {x: -1, y: 5}});
+            }
+            if (level === 5) {
+                actions.push({actionType: "remove", structureType: STRUCTURE_CONTAINER, coord: {x: -1, y: 5}});
+            }
+
+            // links
+            if (level === 5) {
+                actions.push({actionType: "place", structureType: STRUCTURE_LINK, coord: {x: 2, y: 2}});
+            }
+            if (level === 6) {
+                actions.push({actionType: "place", structureType: STRUCTURE_LINK, coord: {x: 2, y: 3}});
+            }
+            if (level === 7) {
+                actions.push({actionType: "place", structureType: STRUCTURE_LINK, coord: {x: 2, y: 4}});
+            }
+            if (level === 8) {
+                actions.push({actionType: "remove", structureType: STRUCTURE_LINK, coord: {x: 2, y: 3}});
+                actions.push({actionType: "remove", structureType: STRUCTURE_LINK, coord: {x: 2, y: 4}});
+            }
+
+            for (let action of actions) {
+                let outcome;
+                let position = this.coordToPosition(action.coord);
+                if (action.actionType === "place") {
+                    outcome = position.createConstructionSite(action.structureType);
+                }
+                else {
+                    let structure = position.lookForStructure(action.structureType);
+                    if (structure) {
+                        outcome = structure.destroy();
+                    }
+                    else {
+                        outcome = "noStructure";
+                    }
+                }
+
+                if (outcome === OK) {
+                    console.log(`LAYOUT: ${action}d temporary ${action.structureType} (${this.name}, level: ${level})`)
+                }
+                else {
+                    console.log(`LAYOUT: problem with temp placement, please follow up in ${this.name}`);
+                    console.log(`tried to ${action} ${action.structureType} at level ${level}, outcome: ${outcome}`);
+                }
+            }
+
+            this.memory.temporaryPlacement[level] = true;
+        }
     }
 }

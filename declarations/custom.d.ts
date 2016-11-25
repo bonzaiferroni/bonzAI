@@ -19,11 +19,11 @@ interface Room {
     getAltBattery(roomObject?: RoomObject): StructureContainer | Creep;
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
-    coords: Coords;
+    coords: RoomCoord;
     roomType: number;
 }
 
-interface Coords {
+interface RoomCoord {
     x: number;
     y: number;
     xDir: string;

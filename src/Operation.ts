@@ -51,14 +51,7 @@ export abstract class Operation {
             console.log("error caught in initOperation phase, operation:", this.name);
             console.log(e.stack);
         }
-    }
-    abstract initOperation();
 
-    /**
-     * Init Missions phase - Iterate through missions and call mission.initMission()
-     */
-
-    initMissions() {
         for (let missionName in this.missions) {
             try {
                 this.missions[missionName].initMission();
@@ -69,6 +62,7 @@ export abstract class Operation {
             }
         }
     }
+    abstract initOperation();
 
     /**
      * RoleCall Phase - Iterate through missions and call mission.roleCall()

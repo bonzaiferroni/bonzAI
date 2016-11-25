@@ -8,32 +8,31 @@ initPrototypes();
 
 module.exports.loop = function () {
     Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {}, activeLabCount: 0 };
+
+    // Init phase - Information is gathered about the game state and game objects instantiated
     profiler.start("init");
-    // just an empty object for now, eventually have data and functions related to your entire empire
     let empire = loopHelper.initEmpire();
-    // loop through flags and construct operation objects, return operation array sorted by priority
     let operations = loopHelper.getOperations(empire);
-    // initOperation is used for finding a spawn and other variables necessary to inform spawning/roleCall
     for (let operation of operations) operation.init();
-    // initOperation is used for finding a spawn and other variables necessary to inform spawning/roleCall
-    for (let operation of operations) operation.initMissions();
     profiler.end("init");
-    // see which creeps are already spawned and spawn more if necessary
+
+    // RoleCall phase - Find creeps belonging to missions and spawn any additional needed.
     profiler.start("roleCall");
     for (let operation of operations) operation.roleCall();
     profiler.end("roleCall");
-    // execute functions on operation structures (terminals, labs, towers, etc) and creeps (harvest, moveTo, etc.)
+
+    // Actions phase - Actions that change the game state are executed in this phase.
     profiler.start("actions");
     for (let operation of operations) operation.actions();
     profiler.end("actions");
-    // invalidate cache during invalidation period
+
+    // Finalize phase - Code that needs to run post-actions phase
     for (let operation of operations) operation.invalidateCache();
     profiler.start("finalize");
-    // finalize up any remaining processes that need to called after creep actions
     for (let operation of operations) operation.finalize();
     profiler.end("finalize");
 
-    // utilities
+    // post-operation actions and utilities
     profiler.start("postOperations");
     try { empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
     try { loopHelper.scavangeResources(); } catch (e) { console.log("error scavanging:\n", e.stack); }
