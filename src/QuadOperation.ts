@@ -322,19 +322,19 @@ export class QuadOperation extends Operation {
         let centerPoint = this.memory.centerPoint;
         let rotation = this.memory.rotation;
 
-        let xCoord = centerPoint.x;
-        let yCoord = centerPoint.y;
+        let xCoord = coord.x;
+        let yCoord = coord.y;
         if (rotation === 1) {
-            xCoord = -centerPoint.y;
-            yCoord = centerPoint.x;
+            xCoord = -coord.y;
+            yCoord = coord.x;
         }
         else if (rotation === 2) {
-            xCoord = -centerPoint.y;
-            yCoord = -centerPoint.x;
+            xCoord = -coord.y;
+            yCoord = -coord.x;
         }
         else if (rotation === 3) {
-            xCoord = centerPoint.x;
-            yCoord = -centerPoint.y;
+            xCoord = coord.x;
+            yCoord = -coord.y;
         }
         return new RoomPosition(centerPoint.x + xCoord, centerPoint.y + yCoord, this.flag.room.name);
     }
