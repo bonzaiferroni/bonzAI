@@ -271,7 +271,7 @@ export class QuadOperation extends Operation {
                     allowedCount = CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
                 }
                 else {
-                    allowedCount = this.nonControllerStructures[structureType]
+                    allowedCount = this.nonControllerStructures[structureType][this.flag.room.controller.level];
                 }
 
                 let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, QUAD_RADIUS,
@@ -322,19 +322,21 @@ export class QuadOperation extends Operation {
         let centerPoint = this.memory.centerPoint;
         let rotation = this.memory.rotation;
 
-        let xRotation = 1;
-        let yRotation = 1;
+        let xCoord = centerPoint.x;
+        let yCoord = centerPoint.y;
         if (rotation === 1) {
-            yRotation = -1;
+            xCoord = -centerPoint.y;
+            yCoord = centerPoint.x;
         }
         else if (rotation === 2) {
-            xRotation = -1;
-            yRotation = -1;
+            xCoord = -centerPoint.y;
+            yCoord = -centerPoint.x;
         }
         else if (rotation === 3) {
-            xRotation = -1;
+            xCoord = centerPoint.x;
+            yCoord = -centerPoint.y;
         }
-        return new RoomPosition(centerPoint.x + coord.x * xRotation, centerPoint.y + coord.y * yRotation, this.flag.room.name);
+        return new RoomPosition(centerPoint.x + xCoord, centerPoint.y + yCoord, this.flag.room.name);
     }
 
     private repairWall() {
