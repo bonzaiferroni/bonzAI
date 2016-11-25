@@ -9,6 +9,7 @@ run `npm install` to setup grunt for pushing code up.
 - Well-balanced resource economy
 - Effective raiding and defense
 - All game decisions made by AI rather than user
+- As a long term goal, decision-making that changes based on the results of previous decisions, resulting in novel behavior
 
 ## Overview of framework
 
