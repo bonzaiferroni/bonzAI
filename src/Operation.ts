@@ -194,7 +194,12 @@ export abstract class Operation {
         }
     }
 
-    setSpawnRoom(roomName, portalTravel = false) {
+    setSpawnRoom(roomName: string | Operation, portalTravel = false) {
+
+        if (roomName instanceof Operation) {
+            roomName = roomName.flag.room.name;
+        }
+
         if (!this.empire.getSpawnGroup(roomName)) {
             return "SPAWN: that room doesn't appear to host a valid spawnGroup";
         }
