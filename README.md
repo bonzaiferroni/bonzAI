@@ -106,9 +106,15 @@ The following is a summary of the Operations/missions you can find in this repos
 - Infrastructure
   - PaverMission: Keep roads repaired
   - TerminalNetworkMission: Trade resources with other rooms and with ally rooms
-- UpgradeMission: Upgrade controllers
-- MiningMission: Conducts mining activities relative to a single energy source
-- LinkMiningMission: Uses a link to fire energy mined from a source to a storage in an owned-room.
-- EmergencyMiningMission: 
-- GeologyMission: Like MiningMission, but manages a Mineral source
-- RefillMission: Refill spawns and extensions with energy
+  - LinkNetworkMission: Send resources around an owned-room
+  - BuildMission: Build structures in an owned-room
+  - RemoteBuildMission: Build structures in a non-owned-room
+  - RefillMission: Refill spawns and extensions with energy
+  - IgorMission: Manage labs and special resource use 
+- Resource gathering
+  - MiningMission: Conducts energy mining activities relative to a single energy source
+  - LinkMiningMission: Uses a link to fire energy mined from a source to a storage in an owned-room.
+  - EmergencyMiningMission: Builds miners small enough to resume energy in a room that has suffered some critical failure
+  - GeologyMission: Like MiningMission, but manages a Mineral source
+- Progress
+  - UpgradeMission: Upgrade controllers
