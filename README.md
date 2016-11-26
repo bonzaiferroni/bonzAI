@@ -57,7 +57,7 @@ initOperation() {
 
 #### Data persistent across game ticks
 
-New Operation and Mission objects are instantiated each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent data can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
+Operation and Mission objects are instantiated from scratch each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent data can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
 
 #### Operation phase functions 
 
@@ -103,15 +103,12 @@ The following is a summary of the Operations/missions you can find in this repos
 - Defense
   - BodyguardMission: Protect creeps working in non-owned rooms from invaders
   - EnhancedBodyguardMission: Protect creeps from boosted invaders in SK-rooms and cores
-  
 - Infrastructure
   - PaverMission: Keep roads repaired
   - TerminalNetworkMission: Trade resources with other rooms and with ally rooms
-  
 - UpgradeMission: Upgrade controllers
 - MiningMission: Conducts mining activities relative to a single energy source
 - LinkMiningMission: Uses a link to fire energy mined from a source to a storage in an owned-room.
 - EmergencyMiningMission: 
 - GeologyMission: Like MiningMission, but manages a Mineral source
 - RefillMission: Refill spawns and extensions with energy
--
