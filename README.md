@@ -36,54 +36,11 @@ The archictecture of the framework is readily observed by looking at main.ts and
 
 Each phase is executed completely for each operation before moving on to the next phase. This allows you to assume, for example, that every `initOperation()` and `initMission()` function has been executed before any `roleCall()` function is executed.
 
-#### Spawn order
+Additional framework topics:
 
-For operations that use the same SpawnGroup, `operation.priority` determines which operation will have its creeps spawned first.
-
-Within operations, spawn order for each missions is determined by the order in which they are added to the operation. Take the following `initOperation()` function:
-
-```
-initOperation() {
-
-  // creeps for upgrading controller, these will spawn first as they appear sooner in the function
-  let boostUpgraders = this.flag.room.controller.level < 8;
-  this.addMission(new UpgradeMission(this, boostUpgraders)); 
-
-  // these will only begin to spawn after the creeps in UpgradeMission are fully spawned
-  this.addMission(new PaverMission(this)); 
-  
-}
-```
-
-#### Data persistent across game ticks
-
-Operation and Mission objects are instantiated from scratch each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent data can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
-
-#### Operation phase functions 
-
-The execution of phase functions follows the pattern demonstrated in the `Operation.init()` function below:
-
-```
-init() {
-    try { this.initOperation(); }
-    catch (e) {
-        console.log("error caught in initOperation phase, operation:", this.name);
-        console.log(e.stack);
-    }
-
-    for (let missionName in this.missions) {
-        try { this.missions[missionName].initMission(); }
-        catch (e) {
-            console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
-            console.log(e.stack);
-        }
-    }
-}
-
-abstract initOperation();
-```
-
-Missions are added to `operation.missions` within the `initOperation()` function (see code block above for example). Then, each `mission.initMission()` function gets executed in the order it was added. These are surrounded by try/catch blocks, so that when code fails it will fail gracefully. You needn't worry about errors in one mission causing other operations/missions to cease functioning.
+- [Spawn Order](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#spawn-order)
+- [Persistent data (memory)](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#persistent-data-memory)
+- [Phase functions](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#operation-phase-functions)
 
 ### Overview of AI implementation
 
