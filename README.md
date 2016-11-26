@@ -45,18 +45,19 @@ Within operations, spawn order for each missions is determined by the order in w
 ```
 initOperation() {
 
-  // upgrader controller
+  // creeps for upgrading controller, these will spawn first as they appear sooner in the function
   let boostUpgraders = this.flag.room.controller.level < 8;
-  this.addMission(new UpgradeMission(this, boostUpgraders)); // these will spawn first
+  this.addMission(new UpgradeMission(this, boostUpgraders)); 
 
-  // repair roads
-  this.addMission(new PaverMission(this)); // these will only begin to spawn after the creeps in UpgradeMission are fully spawned
+  // these will only begin to spawn after the creeps in UpgradeMission are fully spawned
+  this.addMission(new PaverMission(this)); 
   
 }
 ```
 
+#### Persistent memory
 
-New objects are instantiated each game tick, and whenever data can be efficiently gathered through the Game api, it is recommended that it be gathered fresh each tick. For everything else, persistent memory can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
+New Operation and Mission objects are instantiated each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent memory can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
 
 ### Overview of AI implementation
 
