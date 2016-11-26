@@ -34,6 +34,7 @@ export class QuadOperation extends Operation {
         rotation: number
         repairIndex: number
         temporaryPlacement: {[level: number]: boolean}
+        checkLayoutIndex: number
     };
 
     /**
@@ -111,7 +112,6 @@ export class QuadOperation extends Operation {
 
             // repair roads
             this.addMission(new PaverMission(this));
-
 
             this.autoLayout();
             this.repairWall();
@@ -209,7 +209,7 @@ export class QuadOperation extends Operation {
             {x: 1, y: 2}, {x: 2, y: 1},
 
             // x-pattern (n = 24)
-            {x: 4, y: 2}, {x: 5, y: -2}, {x: 4, y: -3},
+            {x: 4, y: -1}, {x: 5, y: -2}, {x: 4, y: -3},
             {x: 3, y: -4}, {x: 2, y: -5}, {x: 1, y: -4}, {x: -1, y: -4}, {x: -2, y: -5},
             {x: -3, y: -4}, {x: -4, y: -3}, {x: -5, y: -2}, {x: -4, y: -1}, {x: -4, y: 1},
             {x: -5, y: 2}, {x: -4, y: 3}, {x: -3, y: 4}, {x: -2, y: 5}, {x: -1, y: 4},
@@ -254,7 +254,7 @@ export class QuadOperation extends Operation {
 
     nonControllerStructures = {
         [STRUCTURE_RAMPART]: {
-            0: 0, 1: 0, 2: 0, 3: 49, 4: 49, 5: 49, 6: 49, 7: 49, 8: 49,
+            0: 0, 1: 0, 2: 0, 3: 0, 4: 49, 5: 49, 6: 49, 7: 49, 8: 49,
         },
         [STRUCTURE_ROAD]: {
             0: 0, 1: 12, 2: 12, 3: 12, 4: 36, 5: 36, 6: 36, 7: 69, 8: 69,
@@ -264,24 +264,29 @@ export class QuadOperation extends Operation {
     private autoLayout() {
         if (this.memory.centerPoint && this.memory.rotation !== undefined) {
             let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
-            for (let structureType in this.layoutDeltas) {
 
-                let allowedCount;
-                if (CONTROLLER_STRUCTURES[structureType]) {
-                    allowedCount = CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
-                }
-                else {
-                    allowedCount = this.nonControllerStructures[structureType][this.flag.room.controller.level];
-                }
+            if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= Object.keys(this.layoutDeltas).length) {
+                this.memory.checkLayoutIndex = 0;
+            }
 
-                let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, QUAD_RADIUS,
-                    {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
-                let count = _.filter(this.flag.room.findStructures(structureType),
-                        (s: Structure) => { return centerPosition.inRangeTo(s, QUAD_RADIUS)}).length + constructionCount;
+            let structureType = Object.keys(this.layoutDeltas)[this.memory.checkLayoutIndex++];
 
-                if (count < allowedCount) {
-                    this.findNextConstruction(structureType, allowedCount - count)
-                }
+            let allowedCount;
+            if (CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level] < 100) {
+                allowedCount = CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
+            }
+            else {
+                allowedCount = this.nonControllerStructures[structureType][this.flag.room.controller.level];
+            }
+
+            let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, QUAD_RADIUS,
+                {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
+            let count = _.filter(this.flag.room.findStructures(structureType),
+                    (s: Structure) => { return centerPosition.inRangeTo(s, QUAD_RADIUS)}).length + constructionCount;
+
+            if (count < allowedCount) {
+                console.log(structureType, allowedCount, count);
+                this.findNextConstruction(structureType, allowedCount - count)
             }
 
             this.temporaryPlacement(this.flag.room.controller.level);
@@ -333,8 +338,8 @@ export class QuadOperation extends Operation {
             yCoord = -coord.x;
         }
         else if (rotation === 3) {
-            xCoord = coord.x;
-            yCoord = -coord.y;
+            xCoord = coord.y;
+            yCoord = -coord.x;
         }
         return new RoomPosition(centerPoint.x + xCoord, centerPoint.y + yCoord, this.flag.room.name);
     }
