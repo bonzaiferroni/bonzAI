@@ -55,9 +55,9 @@ initOperation() {
 }
 ```
 
-#### Persistent memory
+#### Data persistent across game ticks
 
-New Operation and Mission objects are instantiated each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent memory can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
+New Operation and Mission objects are instantiated each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent data can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
 
 #### Operation phase functions 
 
@@ -83,7 +83,7 @@ init() {
 abstract initOperation();
 ```
 
-Missions are added to `operation.missions` init the `initOperation()` function. Then, each `mission.initMission()` function gets executed in the order it was added. These are surrounded by try/catch blocks, so that when code fails it will fail gracefully. You needn't worry about errors in one mission causing other operations/missions to cease functioning.
+Missions are added to `operation.missions` within the `initOperation()` function (see code block above for example). Then, each `mission.initMission()` function gets executed in the order it was added. These are surrounded by try/catch blocks, so that when code fails it will fail gracefully. You needn't worry about errors in one mission causing other operations/missions to cease functioning.
 
 ### Overview of AI implementation
 
