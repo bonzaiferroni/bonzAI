@@ -25,14 +25,38 @@ Files in this codebase can be neatly separated into two categories:
 2. Concrete classes that extend Operation and Mission that make up the **implementation** of game mechanics / creep behavior. Examples:
   - QuadOperation.ts (bootstrap missions for owned rooms)
   - MiningOpration.ts (bootstrap missions for remote harvesting)
-  - PaverMission (pave roads in any room)
-  - BodyguardMission (defend against invaders)
+  - PaverMission.ts (repair roads in any room)
+  - BodyguardMission.ts (defend against invaders)
 
 ### Overview of framework
 
 The archictecture of the framework is readily observed by looking at main.ts and the code contained within the game loop. Creep behavior is always defined in a mission, which also defines the spawning conditions and data-gathering necessary for that class of creeps. Operations are really just a collection of missions that get bootstrapped by placement of a flag in the screep world.
 
 ![framework overview](https://docs.google.com/drawings/d/e/2PACX-1vSkzFgLxP8KvcfnKCgeHYgEsPJpSlX2Q2yB03JKrm7UMcRI5Cwi2ZgKhOJ-7PamRqq8UiIgUk4xHJID/pub?w=960&h=720)
+
+Each phase is executed completely for each operation before moving on to the next phase. This allows you to assume, for example, that every `initOperation()` and `initMission()` function has been executed before any `roleCall()` function is executed.
+
+#### Spawn order
+
+For operations that use the same SpawnGroup, `operation.priority` determines which operation will have its creeps spawned first.
+
+Within operations, spawn order for each missions is determined by the order in which they are added to the operation. Take the following `initOperation()` function:
+
+```
+initOperation() {
+
+  // upgrader controller
+  let boostUpgraders = this.flag.room.controller.level < 8;
+  this.addMission(new UpgradeMission(this, boostUpgraders)); // these will spawn first
+
+  // repair roads
+  this.addMission(new PaverMission(this)); // these will only begin to spawn after the creeps in UpgradeMission are fully spawned
+  
+}
+```
+
+
+New objects are instantiated each game tick, and whenever data can be efficiently gathered through the Game api, it is recommended that it be gathered fresh each tick. For everything else, persistent memory can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
 
 ### Overview of AI implementation
 
