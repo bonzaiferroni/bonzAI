@@ -59,6 +59,32 @@ initOperation() {
 
 New Operation and Mission objects are instantiated each game tick. Whenever possible, member variables are evaluated by accessing the Game object and its convience properties (i.e., `Game.structures`) . For everything else, persistent memory can be accessed for each Operation through the `operation.memory` and `mission.memory` properties, which are hosted on the flag that is being used to bootstrap the operation.
 
+#### Operation phase functions 
+
+The execution of phase functions follows the pattern demonstrated in the `Operation.init()` function below:
+
+```
+init() {
+    try { this.initOperation(); }
+    catch (e) {
+        console.log("error caught in initOperation phase, operation:", this.name);
+        console.log(e.stack);
+    }
+
+    for (let missionName in this.missions) {
+        try { this.missions[missionName].initMission(); }
+        catch (e) {
+            console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
+            console.log(e.stack);
+        }
+    }
+}
+
+abstract initOperation();
+```
+
+Missions are added to `operation.missions` init the `initOperation()` function. Then, each `mission.initMission()` function gets executed in the order it was added. These are surrounded by try/catch blocks, so that when code fails it will fail gracefully. You needn't worry about errors in one mission causing other operations/missions to cease functioning.
+
 ### Overview of AI implementation
 
 This repository includes all the missions/operations that make up the bonzaiferroni AI. Players looking to write a completely original AI can simply take the framework and write their own concrete classes that extend Operation and Mission. 
