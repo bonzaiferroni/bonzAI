@@ -22,7 +22,7 @@ Files in this codebase can be neatly separated into two categories:
   - SpawnGroup.ts
   - main.ts
   - loopHelper.ts
-2. Concrete classes that extend Operation and Mission that make up the **implementation** of game mechanics / creep behavior. Examples:
+2. Concrete classes that extend Operation and Mission and make up the **implementation** of game mechanics / creep behavior. Examples:
   - QuadOperation.ts (bootstrap missions for owned rooms)
   - MiningOpration.ts (bootstrap missions for remote harvesting)
   - PaverMission.ts (repair roads in any room)
@@ -88,3 +88,30 @@ Missions are added to `operation.missions` within the `initOperation()` function
 ### Overview of AI implementation
 
 This repository includes all the missions/operations that make up the bonzaiferroni AI. Players looking to write a completely original AI can simply take the framework and write their own concrete classes that extend Operation and Mission. 
+
+The following is a summary of the Operations/missions you can find in this repository:
+
+#### Operations
+
+- QuadOperation: Manages all missions relative to an owned room, including upgrading, tower defense, spawn refilling, and more
+- MiningOperation: Remote harvesting in non-SK rooms
+- KeeperOperation: Remote harvesting in SK rooms
+- ConquestOperation: Spawn creeps to be used to settle a new owned-room.
+
+#### Missions
+
+- Defense
+  - BodyguardMission: Protect creeps working in non-owned rooms from invaders
+  - EnhancedBodyguardMission: Protect creeps from boosted invaders in SK-rooms and cores
+  
+- Infrastructure
+  - PaverMission: Keep roads repaired
+  - TerminalNetworkMission: Trade resources with other rooms and with ally rooms
+  
+- UpgradeMission: Upgrade controllers
+- MiningMission: Conducts mining activities relative to a single energy source
+- LinkMiningMission: Uses a link to fire energy mined from a source to a storage in an owned-room.
+- EmergencyMiningMission: 
+- GeologyMission: Like MiningMission, but manages a Mineral source
+- RefillMission: Refill spawns and extensions with energy
+-
