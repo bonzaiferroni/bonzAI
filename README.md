@@ -15,7 +15,7 @@ run `npm install` to setup grunt for pushing code up.
 
 Files in this codebase can be neatly separated into two categories: 
 
-1. Abstract classes that that make up the **framework**, currently just Operation and Mission along with the supporting concrete classes SpawnGroup and Empire
+1. Abstract classes that that make up the **framework**, currently just Operation and Mission along with the supporting classes SpawnGroup and Empire
 2. Concrete classes that extend Operation and Mission and make up the **implementation** of game mechanics / creep behavior.
 
 ### Overview of framework
