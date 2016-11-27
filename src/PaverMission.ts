@@ -110,7 +110,7 @@ export class PaverMission extends Mission {
     private repairContainers(paver: Creep): boolean {
         let disrepairedContainer = paver.rememberStructure(() => {
             return _(this.room.findStructures(STRUCTURE_CONTAINER))
-                .filter((c: StructureContainer) => {return c.hits < c.hitsMax * .9
+                .filter((c: StructureContainer) => {return c.hits < c.hitsMax * .5
                     && !c.pos.isNearTo(c.room.find<Mineral>(FIND_MINERALS)[0])})
                 .head() as StructureContainer;
         }, (s: Structure) => {
