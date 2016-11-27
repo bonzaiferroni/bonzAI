@@ -19,17 +19,10 @@ export class EmergencyMinerMission extends Mission {
     }
 
     roleCall() {
-        if (Game.time % 100 === 1) {
-            let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
-                (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
-
-            this.memory.emergencySituation = !energyAvailable;
-        }
-        if (Game.time % 10 === 0 && this.memory.emergencySituation) {
-            console.log("ATTN: Emergency miner being spawned in", this.opName);
-        }
+        let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
+            (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
         let body = () => this.workerBody(2, 1, 1);
-        let maxEmergencyMiners = this.memory.emergencySituation ? 1 : 0;
+        let maxEmergencyMiners = energyAvailable ? 0 : 1;
         this.emergencyMiners = this.headCount("emergencyMiner", body, maxEmergencyMiners);
     }
 
@@ -58,10 +51,11 @@ export class EmergencyMinerMission extends Mission {
 
     private findMinersBySources() {
         for (let source of this.room.find<Source>(FIND_SOURCES)) {
-            if (source.pos.findInRange(FIND_MY_CREEPS, 1).length > 0) {
+            if (source.pos.findInRange(FIND_MY_CREEPS, 1, (c: Creep) => c.partCount(WORK) > 0).length > 0) {
                 return true;
             }
         }
+        console.log("ATTN: Emergency miner being spawned in", this.opName);
         return false;
     }
 }
