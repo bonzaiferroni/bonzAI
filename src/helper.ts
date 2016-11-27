@@ -217,7 +217,7 @@ export var helper = {
         return costs;
     },
 
-    findRelativeRoomName(room: Room, xDelta, yDelta): string {
+    findRelativeRoomName(room: Room, xDelta: number, yDelta: number): string {
         if (!room) return;
 
         let xDir = room.coords.xDir;

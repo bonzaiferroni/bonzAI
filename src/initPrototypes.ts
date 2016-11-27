@@ -954,7 +954,7 @@ export function initPrototypes() {
         }
     };
 
-    Creep.prototype.avoidSK = function(destination: RoomObject, opts?: any): number {
+    Creep.prototype.avoidSK = function(destination: {pos: RoomPosition}, opts?: any): number {
         let costCall = (roomName: string, costs: CostMatrix) => {
             if (roomName === this.room.name) {
                 this.room.find(FIND_HOSTILE_CREEPS).forEach(function(keeper: Creep) {

@@ -68,7 +68,7 @@ interface Creep {
     rememberStructure(findStructure: () => Structure, forget: (structure: Structure) => boolean): Structure;
     isNearExit(range: number): boolean;
     travelByWaypoint(flag: Flag[]): number;
-    avoidSK(destination: RoomObject, opts?: any): number;
+    avoidSK(destination: {pos: RoomPosition}, opts?: any): number;
     partCount(partType: string): number;
     store: StoreDefinition;
     storeCapacity: number;

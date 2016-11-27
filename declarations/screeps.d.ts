@@ -1010,7 +1010,9 @@ interface LookAtResult {
     terrain?: string;
 }
 interface LookAtResultMatrix {
-    [coord: number]: LookAtResultMatrix | LookAtResult[];
+    [xCoord: number]: {
+        [yCoord: number]: LookAtResult;
+    }
 }
 interface FindPathOpts {
     /**
