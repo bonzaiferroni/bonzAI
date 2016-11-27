@@ -130,7 +130,8 @@ export class ScoutOperation extends Operation {
                     sourceData.push({pos: source.pos, amount: Math.min(SOURCE_ENERGY_CAPACITY, source.energyCapacity) })
                 }
                 if (allSourcesReasonable) {
-                    progress.sourceData.concat(sourceData);
+                    console.log(`found ${sourceData.length} reasonable sources in ${roomName}`);
+                    progress.sourceData = progress.sourceData.concat(sourceData);
                 }
                 _.pull(progress.roomsInRange, roomName);
             }
@@ -149,8 +150,8 @@ export class ScoutOperation extends Operation {
             return false;
         }
 
-        this.memory.walkaboutProgress = undefined;
         this.memory.sourceData = progress.sourceData;
+        this.memory.walkaboutProgress = undefined;
         return true;
     }
 
