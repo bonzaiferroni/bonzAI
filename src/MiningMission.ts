@@ -257,15 +257,14 @@ export class MiningMission extends Mission {
                 return structure;
             }
         }
+
+        if (this.room.controller && this.room.controller.my) {
+            if (this.room.storage && this.room.storage.my) {
+                return this.flag.room.storage;
+            }
+        }
         else {
-            if (this.room.controller && this.room.controller.my) {
-                if (this.room.storage && this.room.storage.my) {
-                    return this.flag.room.storage;
-                }
-            }
-            else {
-                return this.getStorage(this.source.pos);
-            }
+            return this.getStorage(this.source.pos);
         }
     }
 }
