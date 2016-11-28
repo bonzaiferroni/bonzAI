@@ -1,6 +1,6 @@
 import {Empire} from "./Empire";
 import {NightsWatchMission} from "./NightsWatchMission";
-import {OperationPriority, NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
+import {OperationPriority} from "./constants";
 import {Coord} from "./interfaces";
 import {ControllerOperation} from "./ControllerOperation";
 
@@ -41,9 +41,16 @@ export class QuadOperation extends ControllerOperation {
         this.addMission(new NightsWatchMission(this));
     }
 
-    finalizeOperation() {
-    }
-    invalidateOperationCache() {
+    protected repairWalls() {
+        if (Game.time % REPAIR_INTERVAL !== 0) return;
+
+        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
+        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
+        if (towers.length === 0 || ramparts.length === 0) return;
+
+        let rampart = _(ramparts).sortBy("hits").head();
+
+        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
     }
 
     protected allowedCount(structureType: string, level: number): number {
@@ -68,18 +75,6 @@ export class QuadOperation extends ControllerOperation {
             // do not autobuild the rest (extractor, containers, links, etc.)
             return 0;
         }
-    }
-
-    protected repairWalls() {
-        if (Game.time % REPAIR_INTERVAL !== 0) return;
-
-        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
-        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
-        if (towers.length === 0 || ramparts.length === 0) return;
-
-        let rampart = _(ramparts).sortBy("hits").head();
-
-        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
     }
 
     protected temporaryPlacement(level: number) {
