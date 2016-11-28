@@ -1,18 +1,18 @@
 import {Operation} from "./Operation";
 import {Empire} from "./Empire";
 import {OperationPriority} from "./constants";
+import {Coord} from "./interfaces";
 import {helper} from "./helper";
 
-const BUCKET_MAX = 10000;
+const FULL_BUCKET = 9500;
+interface SeedSelection {seedType: string, origin: Coord, rotation: number, energyPerDistance: number}
 
 export class ScoutOperation extends Operation {
 
     memory: {
         foundSeeds: boolean
         seedScan: {
-            indexX: number
-            indexY: number
-            seedCount: number
+            [seedType: string]: Coord[]
         }
         didWalkabout: boolean
         walkaboutProgress: {
@@ -20,6 +20,12 @@ export class ScoutOperation extends Operation {
             sourceData: {pos: RoomPosition, amount: number}[]
         }
         sourceData: {pos: RoomPosition, amount: number}[]
+        seedSelectData: {
+            index: number
+            rotation: number
+            best: SeedSelection
+        }
+        seedSelection: SeedSelection
     };
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
@@ -45,54 +51,83 @@ export class ScoutOperation extends Operation {
 
     private autoLayout() {
         if (!this.memory.foundSeeds) {
-            this.memory.foundSeeds = this.findSeeds();
+            if (!this.memory.seedScan) this.memory.seedScan = {};
+            if (!this.memory.seedScan["quad"]) {
+                this.findSeeds("quad");
+            }
+            else if (!this.memory.seedScan["flex"]) {
+                this.findSeeds("flex");
+            }
         }
 
         if (!this.memory.didWalkabout) {
             this.memory.didWalkabout = this.doWalkabout();
         }
-    }
 
-    private findSeeds() {
-        if (!this.memory.seedScan) {
-            this.memory.seedScan = {
-                indexX: 7,
-                indexY: 7,
-                seedCount: 0,
+        let readyForSelection = this.memory.foundSeeds && this.memory.didWalkabout;
+        if (readyForSelection && !this.memory.seedSelection) {
+            if (this.memory.seedScan["quad"].length > 0) {
+                this.memory.seedSelection = this.selectSeed("quad", this.memory.seedScan["quad"]);
+            }
+            else if (this.memory.seedScan["flex"].length > 0) {
+                this.memory.seedSelection = this.selectSeed("flex", this.memory.seedScan["flex"]);
             }
         }
+    }
 
-        let seedScan = this.memory.seedScan;
+    private findSeeds(seedType: string) {
 
-        while (seedScan.indexX <= 42 && Game.cpu.bucket === BUCKET_MAX) {
-            while (seedScan.indexY <= 42 && Game.cpu.bucket === BUCKET_MAX) {
+        let radius;
+        let wallMargin;
+        let taper;
+        if (seedType === "quad") {
+            radius = 6;
+            wallMargin = 0;
+            taper = 1;
+        }
+        else if (seedType === "flex") {
+            radius = 4;
+            wallMargin = 1;
+            taper = 4;
+        }
+
+        let requiredWallOffset = 2;
+        let totalMargin = requiredWallOffset + radius + wallMargin;
+        if (!this.memory.seedScan[seedType]) {
+            console.log(`AUTO: initiating seed scan: ${seedType}`);
+            this.memory.seedScan[seedType] = [];
+        }
+
+        let indexX = totalMargin;
+        while (indexX <= 49 - totalMargin) {
+            let indexY = totalMargin;
+            while (indexY <= 49 - totalMargin) {
                 let area = this.flag.room.lookForAtArea(LOOK_TERRAIN,
-                    seedScan.indexY - 4, seedScan.indexX - 4, seedScan.indexY + 4, seedScan.indexX + 4) as LookAtResultMatrix;
+                    indexY - radius, indexX - radius, indexY + radius, indexX + radius) as LookAtResultMatrix;
 
-                let foundSeed = this.checkArea(seedScan.indexX, seedScan.indexY, area);
+                let foundSeed = this.checkArea(indexX, indexY, radius, taper, area);
                 if (foundSeed) {
-                    let position = new RoomPosition(seedScan.indexX, seedScan.indexY, this.flag.room.name);
-                    position.createFlag(`seed${seedScan.seedCount++}`, COLOR_GREY);
+                    this.memory.seedScan[seedType].push({x: indexX, y: indexY});
                 }
-                seedScan.indexY++;
+                indexY++;
             }
-            seedScan.indexX++
+            indexX++;
         }
 
-        if (seedScan.indexX > 42 && seedScan.indexY > 42) {
-            console.log(`found ${seedScan.seedCount} seeds`);
-            delete this.memory.seedScan;
-            return true;
-        }
-        else {
-            return false;
+        console.log(`found ${this.memory.seedScan[seedType].length} ${seedType} seeds`);
+        if (this.memory.seedScan[seedType].length > 0) {
+            this.memory.seedScan[seedType] = _.sortBy(this.memory.seedScan[seedType], (c: Coord) => {
+                // sort by distance to controller
+                return this.flag.room.controller.pos.getRangeTo(new RoomPosition(c.x, c.y, this.flag.room.name));
+            });
+            this.memory.foundSeeds = true;
         }
     }
 
-    private checkArea(xOrigin: number, yOrigin: number, area: LookAtResultMatrix) {
-        for (let xDelta = -4; xDelta <= 4; xDelta++) {
-            for (let yDelta = -4; yDelta <= 4; yDelta++) {
-                if (Math.abs(xDelta) + Math.abs(yDelta) > 4) continue;
+    private checkArea(xOrigin: number, yOrigin: number, radius: number, taper: number, area: LookAtResultMatrix) {
+        for (let xDelta = -radius; xDelta <= radius; xDelta++) {
+            for (let yDelta = -radius; yDelta <= radius; yDelta++) {
+                if (Math.abs(xDelta) + Math.abs(yDelta) > radius * 2 - taper) continue;
                 if (area[yOrigin + yDelta][xOrigin + xDelta][0] === "wall") {
                     console.log(`x: ${xOrigin} y: ${yOrigin} disqualified due to wall at ${xOrigin + xDelta}, ${yOrigin + yDelta}`);
                     return false;
@@ -191,5 +226,110 @@ export class ScoutOperation extends Operation {
         else {
             return ret.path.length <= 80;
         }
+    }
+
+    debugSeeds(seedType: string, show: boolean) {
+        if (show) {
+            let flag = Game.flags[`${this.name}_${seedType}_0`];
+            if (flag) return `first remove flags: ${this.name}.debugSeeds("${seedType}", false)`;
+            if (!this.memory.seedScan || !this.memory.seedScan[seedType]) {
+                return `there is no data for ${seedType}`;
+            }
+
+            for (let i = 0; i < this.memory.seedScan[seedType].length; i++) {
+                let coord = this.memory.seedScan[seedType][i];
+                new RoomPosition(coord.x, coord.y, this.flag.room.name).createFlag(`${this.name}_${seedType}_${i}`, COLOR_GREY);
+            }
+        }
+        else {
+            for (let i = 0; i < 2500; i++) {
+                let flag = Game.flags[`${this.name}_${seedType}_${i}`];
+                if (flag) flag.remove();
+                else break;
+            }
+        }
+    }
+
+    private selectSeed(seedType: string, seeds: Coord[]): SeedSelection {
+        let storageDelta;
+        if (seedType === "quad") {
+            storageDelta = {x: 0, y: 4}
+        }
+        else if (seedType === "flex") {
+            storageDelta = {x: 0, y: -3}
+        }
+        else {
+            console.log("unrecognized seed type");
+            return;
+        }
+
+        if (!this.memory.seedSelectData) {
+            this.memory.seedSelectData = {
+                index: 0,
+                rotation: 0,
+                best: { seedType: seedType, origin: undefined, rotation: undefined, energyPerDistance: 0 }
+            }
+        }
+
+        let data = this.memory.seedSelectData;
+        if (data.rotation > 3) {
+            data.index++;
+            data.rotation = 0;
+        }
+
+        if (data.index >= seeds.length) {
+            if (data.best.origin) {
+                console.log(`${this.name} determined best seed, ${data.best.seedType} at ${data.best.origin.x},${data.best.origin.y} with rotation ${data.rotation}`);
+                this.memory.seedSelectData = undefined;
+                return data.best;
+            }
+            else {
+                console.log(`unable to find suitable seed selection in ${this.name}`);
+            }
+        }
+
+        let storagePosition = this.coordToPosition(storageDelta, seeds[data.index], data.rotation);
+        let energyPerDistance = 0;
+        for (let sourceDatum of this.memory.sourceData) {
+            let sourcePosition = helper.deserializeRoomPosition(sourceDatum.pos);
+            let ret = PathFinder.search(storagePosition, [{pos: sourcePosition, range: 1}], {
+                swampCost: 1,
+                maxOps: 4000,
+            });
+
+            let pathLength = 100;
+            if (!ret.incomplete) {
+                pathLength = Math.max(ret.path.length, 50);
+            }
+
+            energyPerDistance += sourceDatum.amount / pathLength;
+        }
+
+        if (energyPerDistance > data.best.energyPerDistance) {
+            console.log(`${this.name} found better seed, energyPerDistance: ${energyPerDistance}`);
+            data.best = { seedType: seedType, origin: seeds[data.index], rotation: data.rotation,
+                energyPerDistance: energyPerDistance}
+        }
+
+        // update rotation for next tick
+        data.rotation++
+    }
+
+    private coordToPosition(coord: Coord, origin: Coord, rotation: number) {
+        let xCoord = coord.x;
+        let yCoord = coord.y;
+        if (rotation === 1) {
+            xCoord = -coord.y;
+            yCoord = coord.x;
+        }
+        else if (rotation === 2) {
+            xCoord = -coord.y;
+            yCoord = -coord.x;
+        }
+        else if (rotation === 3) {
+            xCoord = coord.y;
+            yCoord = -coord.x;
+        }
+        return new RoomPosition(origin.x + xCoord, origin.y + yCoord, this.flag.room.name);
     }
 }
