@@ -43,7 +43,7 @@ export const ENERGYSINK_THRESHOLD = 450000;
 export const SWAP_RESERVE = 950000;
 
 export const MINERALS_RAW = ["H", "O", "Z", "U", "K", "L", "X"];
-export const PRODUCT_LIST = ["XUH2O", "XLHO2", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XLH2O"];
+export const PRODUCT_LIST = ["XUH2O", "XLHO2", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XLH2O", "XGH2O"];
 export const TRADE_RESOURCES = PRODUCT_LIST.concat(MINERALS_RAW).concat([RESOURCE_POWER, RESOURCE_ENERGY]);
 export const TRADE_MAX_DISTANCE = 6;
 export const TRADE_ENERGY_AMOUNT = 10000;
