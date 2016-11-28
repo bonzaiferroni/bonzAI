@@ -3,6 +3,7 @@ import {Empire} from "./Empire";
 import {OperationPriority} from "./constants";
 import {Coord} from "./interfaces";
 import {helper} from "./helper";
+import {ScoutMission} from "./ScoutMission";
 
 const FULL_BUCKET = 9500;
 interface SeedSelection {seedType: string, origin: Coord, rotation: number, energyPerDistance: number}
@@ -35,11 +36,14 @@ export class ScoutOperation extends Operation {
 
     initOperation() {
 
-        if (!this.flag.room) return;
         this.spawnGroup = this.getRemoteSpawnGroup();
         if (!this.spawnGroup) return;
+        this.addMission(new ScoutMission(this));
+        if (!this.flag.room) return;
 
         this.autoLayout();
+
+
     }
 
     finalizeOperation() {
