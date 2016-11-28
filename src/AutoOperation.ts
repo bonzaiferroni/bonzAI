@@ -139,6 +139,14 @@ export class ScoutOperation extends Operation {
             }
         }
 
+        // check source proximity
+        let originPosition = new RoomPosition(xOrigin, yOrigin, this.flag.room.name);
+        for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
+            if (originPosition.inRangeTo(source, radius + 2)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
