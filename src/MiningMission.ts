@@ -258,7 +258,7 @@ export class MiningMission extends Mission {
             }
         }
 
-        if (this.room.controller && this.room.controller.my) {
+        if (this.spawnGroup.room === this.room) {
             if (this.room.storage && this.room.storage.my) {
                 return this.flag.room.storage;
             }
