@@ -17,18 +17,11 @@ import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 export abstract class ControllerOperation extends Operation {
 
     protected abstract addDefense();
-    protected abstract temporaryPlacement(controllerLevel: number);
     protected abstract repairWalls();
     protected abstract findStructureCount(structureType: string): number;
-
-    allowedCount: {
-        [structureType: string]: {
-            [controllerLevel: number]: number
-        }
-    };
-    layoutMap: {
-        [structureType: string]: Coord[]
-    };
+    protected abstract allowedCount(structureType: string, level: number): number;
+    protected abstract layoutCoords(structureType: string): Coord[];
+    protected abstract temporaryPlacement(controllerLevel: number);
 
     initOperation() {
 
@@ -158,38 +151,32 @@ export abstract class ControllerOperation extends Operation {
     }
 
     private autoLayout() {
-        if (this.memory.centerPoint && this.memory.rotation !== undefined) {
-            let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
+        if (!this.memory.centerPoint || this.memory.rotation === undefined) return;
 
-            if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= Object.keys(this.layoutMap).length) {
-                this.memory.checkLayoutIndex = 0;
-            }
+        let structureTypes = Object.keys(CONSTRUCTION_COST);
 
-            let structureType = Object.keys(this.layoutMap)[this.memory.checkLayoutIndex++];
-
-            let allowedCount;
-            if (CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level] < 100) {
-                allowedCount = CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
-            }
-            else {
-                allowedCount = this.allowedCount[structureType][this.flag.room.controller.level];
-            }
-
-            let count = this.findStructureCount(structureType);
-
-            if (count < allowedCount) {
-                console.log(structureType, allowedCount, count);
-                this.findNextConstruction(structureType, allowedCount - count)
-            }
-
-            this.temporaryPlacement(this.flag.room.controller.level);
+        if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= structureTypes.length) {
+            this.memory.checkLayoutIndex = 0;
         }
+        let structureType = structureTypes[this.memory.checkLayoutIndex++];
+
+        let allowedCount = this.allowedCount(structureType, this.flag.room.controller.level);
+        let count = this.findStructureCount(structureType);
+
+        if (count < allowedCount) {
+            console.log(structureType, allowedCount, count);
+            this.findNextConstruction(structureType, allowedCount - count)
+        }
+
+        this.temporaryPlacement(this.flag.room.controller.level);
     }
 
     private findNextConstruction(structureType: string, amountNeeded: number) {
         let amountOrdered = 0;
 
-        for (let coord of this.layoutMap[structureType]) {
+        let coords = this.layoutCoords(structureType);
+
+        for (let coord of coords) {
             let position = this.coordToPosition(coord);
             if (!position) {
                 console.log(`LAYOUT: bad position, is centerPoint misplaced? (${this.name})`);
