@@ -9,21 +9,6 @@ const REPAIR_INTERVAL = 4;
 
 export class QuadOperation extends ControllerOperation {
 
-    memory: {
-        powerMining: boolean
-        noMason: boolean
-        masonPotency: number
-        builderPotency: number
-        wallBoost: boolean
-        mason: { activateBoost: boolean }
-        network: { scanData: { roomNames: string[]} }
-        centerPoint: {x: number, y: number }
-        rotation: number
-        repairIndex: number
-        temporaryPlacement: {[level: number]: boolean}
-        checkLayoutIndex: number
-    };
-
     /**
      * Manages the activities of an owned room, assumes bonzaiferroni's build spec
      * @param flag

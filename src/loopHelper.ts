@@ -15,6 +15,7 @@ import {TransportOperation} from "./TransportOperation";
 import {RaidOperation} from "./RaidOperation";
 import {QuadOperation} from "./QuadOperation";
 import {ScoutOperation} from "./AutoOperation";
+import {FlexOperation} from "./FlexOperation";
 export var loopHelper = {
 
     initEmpire: function(): Empire {
@@ -37,7 +38,8 @@ export var loopHelper = {
             demolish: DemolishOperation,
             raid: RaidOperation,
             quad: QuadOperation,
-            auto: ScoutOperation
+            auto: ScoutOperation,
+            flex: FlexOperation,
         };
 
         // gather flag data, instantiate operations

@@ -16,6 +16,22 @@ import {Coord} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 export abstract class ControllerOperation extends Operation {
 
+    memory: {
+        powerMining: boolean
+        noMason: boolean
+        masonPotency: number
+        builderPotency: number
+        wallBoost: boolean
+        mason: { activateBoost: boolean }
+        network: { scanData: { roomNames: string[]} }
+        centerPoint: {x: number, y: number }
+        rotation: number
+        repairIndex: number
+        temporaryPlacement: {[level: number]: boolean}
+        checkLayoutIndex: number
+        flexLayoutMap: {[structureType: string]: Coord[]}
+    };
+
     protected abstract addDefense();
     protected abstract repairWalls();
     protected abstract findStructureCount(structureType: string): number;
