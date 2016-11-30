@@ -258,13 +258,13 @@ export class MiningMission extends Mission {
             }
         }
 
-        if (this.spawnGroup.room === this.room) {
+        if (this.opType === "mining" || this.opType === "keeper") {
+            return this.getStorage(this.source.pos);
+        }
+        else {
             if (this.room.storage && this.room.storage.my) {
                 return this.flag.room.storage;
             }
-        }
-        else {
-            return this.getStorage(this.source.pos);
         }
     }
 }
