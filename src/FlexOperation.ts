@@ -5,8 +5,6 @@ import {OperationPriority} from "./constants";
 import {Empire} from "./Empire";
 import {BuildMission} from "./BuildMission";
 
-const WALL_ALLOWANCE = 1;
-
 export class FlexOperation extends ControllerOperation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
@@ -28,60 +26,45 @@ export class FlexOperation extends ControllerOperation {
         if (!this.memory.flexLayoutMap) {
             this.buildFlexLayoutMap()
         }
-
-        return 0;
-
-        /*
-        let allowedCount = this.findAllowedCount();
-
-        if (allowedCount[structureType]) {
-            // override amounts that aren't really limited
-            return allowedCount[structureType][level]
+        if (structureType === STRUCTURE_ROAD && level < 4) {
+            return 29;
         }
-        else if (this.layoutMap[structureType]) {
-            // build max structures for all others included in layout map
-            return CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
-        }
-        else {
-            // do not autobuild the rest (extractor, containers, links, etc.)
-            return 0;
-        }
-        */
+
+        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length)
     }
 
     protected findStructureCount(structureType: string): number {
-        return 0;
+        let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
+
+        let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, this.memory.flexRadius,
+            {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
+        let count = _.filter(this.flag.room.findStructures(structureType),
+                (s: Structure) => { return centerPosition.inRangeTo(s, this.memory.flexRadius)}).length + constructionCount;
+
+        return count;
     }
 
     protected layoutCoords(structureType: string): Coord[] {
-        return [];
-
-        /*
-        if (this.memory.flexLayoutMap[structureType]) {
-            return this.memory.flexLayoutMap[structureType];
+        if (this.layoutMap[structureType]) {
+            return this.layoutMap[structureType]
         }
-        else if (this.layoutMap[structureType]) {
-            return this.layoutMap[structureType];
+        else if (this.memory.flexLayoutMap[structureType]) {
+            return this.memory.flexLayoutMap[structureType];
         }
         else {
             return [];
         }
-        */
     }
 
     protected temporaryPlacement(controllerLevel: number) {
     }
 
-    private findAllowedCount() {
-        let totalWallCount = this.layoutCoords(STRUCTURE_WALL).length;
-    }
-
     layoutMap = {
         [STRUCTURE_STORAGE]: [{x: 0, y: -3}],
         [STRUCTURE_TERMINAL]: [{x: -2, y: -1}],
-        [STRUCTURE_SPAWN]: [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: -3}],
+        [STRUCTURE_SPAWN]: [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: 3}],
         [STRUCTURE_NUKER]: [{x: 3, y: 0}],
-        [STRUCTURE_POWER_SPAWN]: [{x: 0, y: -3}],
+        [STRUCTURE_POWER_SPAWN]: [{x: -3, y: 0}],
         [STRUCTURE_LAB]: [
             {x: 1, y: 0}, {x: 2, y: 1}, {x: 0, y: 1},
             {x: 1, y: 2}, {x: 2, y: 0}, {x: 0, y: 2},
@@ -96,103 +79,153 @@ export class FlexOperation extends ControllerOperation {
         // ramparts
         // constructedWall
 
-        let map = new PositionMap();
+        let map = new PositionMap(this.flag.room.name, this.memory.centerPoint, this.memory.rotation);
         this.addFixedStructuresToMap(map);
 
-        // place stems
-        let xBoundaryReached;
-        let yBoundaryReached;
+        // place structures and roads
         let towersRemaining = 6;
         let extensionsRemaining = 60;
         let observersRemaining = 1;
         let radius = 0;
-        while (towersRemaining + observersRemaining + extensionsRemaining > 0) {
+        let recheckCoords = [];
+        let iterations = 0;
+
+        while (towersRemaining + observersRemaining + extensionsRemaining > 0 && iterations < 100) {
+            iterations++;
+
             for (let xDelta = -radius; xDelta <= radius; xDelta++) {
                 let x = this.memory.centerPoint.x + xDelta;
-                if (x < 3 || x > 46) {
-                    if (xBoundaryReached === undefined) {
-                        xBoundaryReached = xDelta;
-                    }
-                    continue;
-                }
+                if (x < 3 || x > 46) { continue; }
 
                 for (let yDelta = -radius; yDelta <= radius; yDelta++) {
                     // only consider points on perimeter of gradually expanding square
                     if (Math.abs(yDelta) !== radius && Math.abs(xDelta) !== radius) continue;
 
                     let y = this.memory.centerPoint.y + yDelta;
-                    if (y < 3 || y > 46) {
-                        if (yBoundaryReached === undefined) {
-                            yBoundaryReached = yDelta;
-                        }
-                        continue;
-                    }
-
-                    // already being used
-                    if (map.checkIfUsed(x, y)) continue;
+                    if (y < 3 || y > 46) { continue; }
 
                     let position = new RoomPosition(x, y, this.flag.room.name);
                     if (position.lookFor(LOOK_TERRAIN)[0] === "wall") continue;
 
-                    let foundStructurePos = false;
-                    let combinedDeviance = Math.abs(xDelta) + Math.abs(yDelta);
-                    if (combinedDeviance % 2 !== 0 ) {
-                        foundStructurePos = true;
-                    }
-                    else if (x % 2 === 0 && combinedDeviance % 4 !== 0) {
-                        foundStructurePos = true;
-                    }
+                    let isRoadCoord = this.checkValidRoadCoord(xDelta, yDelta);
 
-                    if (foundStructurePos) {
+                    if (isRoadCoord) {
+                        let success = map.add(xDelta, yDelta, STRUCTURE_ROAD);
+                        if (!success) recheckCoords.push({x: xDelta, y: yDelta});
+                    }
+                    else {
                         if (towersRemaining > 0) {
-                            map.add(x, y, STRUCTURE_TOWER);
-                            towersRemaining--;
+                            let success = map.add(xDelta, yDelta, STRUCTURE_TOWER);
+                            if (success) towersRemaining--;
+                            else recheckCoords.push({x: xDelta, y: yDelta});
                         }
                         else if (extensionsRemaining > 0) {
-                            map.add(x, y, STRUCTURE_EXTENSION);
-                            extensionsRemaining--;
+                            let success = map.add(xDelta, yDelta, STRUCTURE_EXTENSION);
+                            if (success) extensionsRemaining--;
+                            else recheckCoords.push({x: xDelta, y: yDelta});
                         }
                         else if (observersRemaining > 0) {
-                            map.add(x, y, STRUCTURE_OBSERVER);
-                            observersRemaining--;
+                            let success = map.add(xDelta, yDelta, STRUCTURE_OBSERVER);
+                            if (success) observersRemaining--;
+                            else recheckCoords.push({x: xDelta, y: yDelta});
                         }
                         else {
                             // do nothing
                         }
                     }
+                }
+            }
+
+            for (let i = 0; i < recheckCoords.length; i++) {
+                let coord = recheckCoords[i];
+
+                let isRoadCoord = this.checkValidRoadCoord(coord.x, coord.y);
+                if (isRoadCoord) {
+                    let success = map.add(coord.x, coord.y, STRUCTURE_ROAD);
+                    if (success) i = -1; // start over
+                }
+                else {
+                    if (towersRemaining > 0) {
+                        let success = map.add(coord.x, coord.y, STRUCTURE_TOWER);
+                        if (success) towersRemaining--;
+                    }
+                    else if (extensionsRemaining > 0) {
+                        let success = map.add(coord.x, coord.y, STRUCTURE_EXTENSION);
+                        if (success) extensionsRemaining--;
+                    }
+                    else if (observersRemaining > 0) {
+                        let success = map.add(coord.x, coord.y, STRUCTURE_OBSERVER);
+                        if (success) observersRemaining--;
+                    }
                     else {
-                        map.add(x, y, STRUCTURE_ROAD);
+                        // do nothing
                     }
                 }
             }
+
             radius++;
         }
 
-        for (let x in map.map) {
-            for (let y in map.map[x]) {
-                let structureType = map.map[x][y];
-                let position = new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.flag.room.name);
-                let color = COLOR_GREY;
-                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN || structureType === STRUCTURE_STORAGE) {
-                    color = COLOR_YELLOW;
+        // push edge by 1 to make room for walls
+        let leftWall = map.leftMost - 1;
+        let rightWall = map.rightMost + 1;
+        let topWall = map.topMost - 1;
+        let bottomWall = map.bottomMost + 1;
+        let wallPositions: RoomPosition[] = [];
+
+        for (let xDelta = leftWall; xDelta <= rightWall; xDelta++) {
+
+            for (let yDelta = topWall; yDelta <= bottomWall; yDelta++) {
+                let x = this.memory.centerPoint.x + xDelta;
+                let y = this.memory.centerPoint.y + yDelta;
+
+                let position = new RoomPosition(x, y, this.flag.room.name);
+                if (position.lookFor(LOOK_TERRAIN)[0] === "wall") continue;
+
+                let wallType;
+                if ((xDelta === leftWall || xDelta === rightWall) &&
+                    (yDelta === topWall || yDelta === bottomWall)) {
+                    wallType = STRUCTURE_RAMPART;
                 }
-                else if (structureType === STRUCTURE_TOWER || structureType === STRUCTURE_LAB) {
-                    color = COLOR_CYAN;
+                else if (xDelta === leftWall || xDelta === rightWall ||
+                    yDelta === topWall || yDelta === bottomWall) {
+                    let combinedDeviance = Math.abs(xDelta) + Math.abs(yDelta);
+                    if (combinedDeviance % 2 === 0) {
+                        wallType = STRUCTURE_RAMPART;
+                    }
+                    else {
+                        wallType = STRUCTURE_WALL;
+                    }
                 }
-                else if (structureType === STRUCTURE_POWER_SPAWN) {
-                    color = COLOR_RED;
+
+                if (!wallType) continue;
+
+                let success = map.add(xDelta, yDelta, wallType);
+                if (!success) {
+                    if (position.isNearTo(position.findClosestByRange(wallPositions))){
+                        success = map.add(xDelta, yDelta, wallType, false);
+                    }
                 }
-                else if (structureType === STRUCTURE_OBSERVER) {
-                    color = COLOR_GREEN;
+
+                if (success) {
+                    wallPositions.push(position);
+                    // start over to fill in contiguous walls
+                    xDelta = leftWall - 1;
+                    yDelta = topWall;
+                    break;
                 }
-                position.createFlag("layout_" + x + y + structureType, color);
             }
         }
+        console.log("bottomost", bottomWall, "radius", radius);
 
-        this.memory.flexLayoutMap = {};
+        this.debugMap(map);
 
-        // place walls
+        if (iterations === 100) {
+            console.log("WARNING: layout process entered endless loop, life is terrible, give up all hope");
+        }
 
+        this.memory.flexLayoutMap = this.generateCoords(map);
+        this.memory.flexRadius = radius + 1;
     }
 
     private addFixedStructuresToMap(map: PositionMap) {
@@ -211,18 +244,128 @@ export class FlexOperation extends ControllerOperation {
         for (let structureType in this.layoutMap) {
             let coords = this.layoutMap[structureType];
             for (let coord of coords) {
-                let position = this.coordToPosition(coord);
-                map.add(position.x, position.y, structureType);
+                map.add(coord.x, coord.y, structureType, false);
             }
         }
+    }
+
+    private checkValidRoadCoord(xDelta: number, yDelta: number): boolean {
+        // creates the 5-cluster pattern for extensions/roads that you can see in my rooms
+        let combinedDeviance = Math.abs(xDelta) + Math.abs(yDelta);
+        if (combinedDeviance % 2 !== 0 ) {
+            return false;
+        }
+        else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    private debugMap(map: PositionMap) {
+        for (let x in map.map) {
+            for (let y in map.map[x]) {
+                let structureType = map.map[x][y];
+                let position = new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.flag.room.name);
+                let color = COLOR_WHITE;
+                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
+                    || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
+                    color = COLOR_YELLOW;
+                }
+                else if (structureType === STRUCTURE_TOWER) {
+                    color = COLOR_BLUE;
+                }
+                else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
+                    color = COLOR_CYAN;
+                }
+                else if (structureType === STRUCTURE_POWER_SPAWN) {
+                    color = COLOR_RED;
+                }
+                else if (structureType === STRUCTURE_OBSERVER) {
+                    color = COLOR_BROWN;
+                }
+                else if (structureType === STRUCTURE_ROAD) {
+                    color = COLOR_GREY;
+                }
+                else if (structureType === STRUCTURE_RAMPART) {
+                    color = COLOR_GREEN;
+                }
+                position.createFlag("layout_" + x + y + structureType, color);
+            }
+        }
+    }
+
+    private generateCoords(map: PositionMap) {
+        let roomPositions = {};
+
+        for (let x in map.map) {
+            for (let y in map.map[x]) {
+                let structureType = map.map[x][y];
+                if (structureType !== STRUCTURE_ROAD && _.includes(Object.keys(this.layoutMap), structureType)) continue;
+                if (!roomPositions[structureType]) roomPositions[structureType] = [];
+                roomPositions[structureType].push(new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.flag.room.name));
+            }
+        }
+
+        let flexLayoutMap = {};
+        let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
+        for (let structureType in roomPositions) {
+            let sortedByDistance = _.sortBy(roomPositions[structureType], (pos: RoomPosition) => pos.getRangeTo(centerPosition) );
+            flexLayoutMap[structureType] = [];
+            for (let position of sortedByDistance) {
+                let coord = this.positionToCoord(position);
+                flexLayoutMap[structureType].push(coord);
+            }
+        }
+
+        return flexLayoutMap;
     }
 }
 
 class PositionMap {
+    leftMost = 0;
+    rightMost = 0;
+    topMost = 0;
+    bottomMost = 0;
+
+    centerPoint: Coord;
+    rotation: number;
+
+    roomName: string;
     map: {[x: number]: {[y: number]: string }} = {};
-    add(x: number, y: number, structureType: string) {
-        if (!this.map[x]) this.map[x] = {};
-        this.map[x][y] = structureType;
+    roadPositions: RoomPosition[] = [];
+
+    constructor(roomName: string, centerPoint: Coord, rotation: number) {
+        this.roomName = roomName;
+        this.centerPoint = centerPoint;
+        this.rotation = rotation;
+    }
+
+    add(xDelta: number, yDelta: number, structureType: string, checkAdjacentRoad = true): boolean {
+        let x = this.centerPoint.x + xDelta;
+        let y = this.centerPoint.y + yDelta;
+        let alreadyUsed = this.checkIfUsed(x, y);
+        if (alreadyUsed) return false;
+
+        let position = new RoomPosition(x, y, this.roomName);
+        if (!checkAdjacentRoad || position.isNearTo(position.findClosestByRange<RoomPosition>(this.roadPositions))) {
+            if (!this.map[x]) this.map[x] = {};
+            this.map[x][y] = structureType;
+            if (structureType === STRUCTURE_ROAD) {
+                this.roadPositions.push(position);
+            }
+
+            if (xDelta < this.leftMost) { this.leftMost = xDelta; }
+            if (xDelta > this.rightMost) { this.rightMost = xDelta; }
+            if (yDelta < this.topMost) { this.topMost = yDelta; }
+            if (yDelta > this.bottomMost) { this.bottomMost = yDelta; }
+
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     checkIfUsed(x: number, y: number): boolean {
         return this.map[x] !== undefined && this.map[x][y] !== undefined;

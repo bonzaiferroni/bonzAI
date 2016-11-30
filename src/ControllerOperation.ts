@@ -30,6 +30,7 @@ export abstract class ControllerOperation extends Operation {
         temporaryPlacement: {[level: number]: boolean}
         checkLayoutIndex: number
         flexLayoutMap: {[structureType: string]: Coord[]}
+        flexRadius: number;
     };
 
     protected abstract addDefense();
@@ -238,6 +239,26 @@ export abstract class ControllerOperation extends Operation {
             yCoord = -coord.x;
         }
         return new RoomPosition(centerPoint.x + xCoord, centerPoint.y + yCoord, this.flag.room.name);
+    }
+
+    protected positionToCoord(pos: RoomPosition): Coord {
+        let centerPoint = this.memory.centerPoint;
+        let rotation = this.memory.rotation;
+
+        let xCoord = pos.x - centerPoint.x;
+        let yCoord = pos.y - centerPoint.y;
+        if (rotation === 0) {
+            return {x: xCoord, y: yCoord };
+        }
+        else if (rotation === 1) {
+            return {x: yCoord, y: -xCoord };
+        }
+        else if (rotation === 2) {
+            return {x: -xCoord, y: -yCoord };
+        }
+        else if (rotation === 3) {
+            return {x: -yCoord, y: xCoord};
+        }
     }
 
 }
