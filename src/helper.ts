@@ -1,5 +1,5 @@
 import {ALLIES} from "./constants";
-import {PowerFlagScan} from "./interfaces";
+import {PowerFlagScan, Coord} from "./interfaces";
 export var helper = {
     getStoredAmount(target: any, resourceType: string) {
         if (target instanceof Creep) {
@@ -260,6 +260,44 @@ export var helper = {
                 else line += value % 10;
             }
             console.log(line);
+        }
+    },
+
+    coordToPosition(coord: Coord, centerPosition: RoomPosition, rotation = 0) {
+        if (!(centerPosition instanceof RoomPosition)) {
+            centerPosition = this.deserializeRoomPosition(centerPosition);
+        }
+        let xCoord = coord.x;
+        let yCoord = coord.y;
+        if (rotation === 1) {
+            xCoord = -coord.y;
+            yCoord = coord.x;
+        }
+        else if (rotation === 2) {
+            xCoord = -coord.y;
+            yCoord = -coord.x;
+        }
+        else if (rotation === 3) {
+            xCoord = coord.y;
+            yCoord = -coord.x;
+        }
+        return new RoomPosition(centerPosition.x + xCoord, centerPosition.y + yCoord, centerPosition.roomName);
+    },
+
+    positionToCoord(pos: {x: number, y: number}, centerPoint: {x: number, y: number}, rotation = 0): Coord {
+        let xCoord = pos.x - centerPoint.x;
+        let yCoord = pos.y - centerPoint.y;
+        if (rotation === 0) {
+            return {x: xCoord, y: yCoord };
+        }
+        else if (rotation === 1) {
+            return {x: yCoord, y: -xCoord };
+        }
+        else if (rotation === 2) {
+            return {x: -xCoord, y: -yCoord };
+        }
+        else if (rotation === 3) {
+            return {x: -yCoord, y: xCoord};
         }
     }
 };

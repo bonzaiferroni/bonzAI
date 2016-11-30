@@ -1,7 +1,6 @@
 import {Operation} from "./Operation";
 import {EmergencyMinerMission} from "./EmergencyMission";
 import {RefillMission} from "./RefillMission";
-import {NightsWatchMission} from "./NightsWatchMission";
 import {PowerMission} from "./PowerMission";
 import {TerminalNetworkMission} from "./TerminalNetworkMission";
 import {IgorMission} from "./IgorMission";
@@ -14,6 +13,7 @@ import {UpgradeMission} from "./UpgradeMission";
 import {PaverMission} from "./PaverMission";
 import {Coord} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
+import {helper} from "./helper";
 export abstract class ControllerOperation extends Operation {
 
     memory: {
@@ -24,7 +24,8 @@ export abstract class ControllerOperation extends Operation {
         wallBoost: boolean
         mason: { activateBoost: boolean }
         network: { scanData: { roomNames: string[]} }
-        centerPoint: {x: number, y: number }
+        centerPosition: RoomPosition;
+        centerPoint: Coord;
         rotation: number
         repairIndex: number
         temporaryPlacement: {[level: number]: boolean}
@@ -168,7 +169,8 @@ export abstract class ControllerOperation extends Operation {
     }
 
     private autoLayout() {
-        if (!this.memory.centerPoint || this.memory.rotation === undefined) return;
+
+        if (!this.memory.centerPosition || this.memory.rotation === undefined) return;
 
         let structureTypes = Object.keys(CONSTRUCTION_COST);
 
@@ -194,7 +196,7 @@ export abstract class ControllerOperation extends Operation {
         let coords = this.layoutCoords(structureType);
 
         for (let coord of coords) {
-            let position = this.coordToPosition(coord);
+            let position = helper.coordToPosition(coord, this.memory.centerPosition);
             if (!position) {
                 console.log(`LAYOUT: bad position, is centerPoint misplaced? (${this.name})`);
                 return;
@@ -219,46 +221,4 @@ export abstract class ControllerOperation extends Operation {
             }
         }
     }
-
-    protected coordToPosition(coord: Coord) {
-        let centerPoint = this.memory.centerPoint;
-        let rotation = this.memory.rotation;
-
-        let xCoord = coord.x;
-        let yCoord = coord.y;
-        if (rotation === 1) {
-            xCoord = -coord.y;
-            yCoord = coord.x;
-        }
-        else if (rotation === 2) {
-            xCoord = -coord.y;
-            yCoord = -coord.x;
-        }
-        else if (rotation === 3) {
-            xCoord = coord.y;
-            yCoord = -coord.x;
-        }
-        return new RoomPosition(centerPoint.x + xCoord, centerPoint.y + yCoord, this.flag.room.name);
-    }
-
-    protected positionToCoord(pos: RoomPosition): Coord {
-        let centerPoint = this.memory.centerPoint;
-        let rotation = this.memory.rotation;
-
-        let xCoord = pos.x - centerPoint.x;
-        let yCoord = pos.y - centerPoint.y;
-        if (rotation === 0) {
-            return {x: xCoord, y: yCoord };
-        }
-        else if (rotation === 1) {
-            return {x: yCoord, y: -xCoord };
-        }
-        else if (rotation === 2) {
-            return {x: -xCoord, y: -yCoord };
-        }
-        else if (rotation === 3) {
-            return {x: -yCoord, y: xCoord};
-        }
-    }
-
 }

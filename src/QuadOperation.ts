@@ -3,6 +3,7 @@ import {NightsWatchMission} from "./NightsWatchMission";
 import {OperationPriority} from "./constants";
 import {Coord} from "./interfaces";
 import {ControllerOperation} from "./ControllerOperation";
+import {helper} from "./helper";
 
 const QUAD_RADIUS = 6;
 const REPAIR_INTERVAL = 4;
@@ -93,7 +94,7 @@ export class QuadOperation extends ControllerOperation {
 
             for (let action of actions) {
                 let outcome;
-                let position = this.coordToPosition(action.coord);
+                let position = helper.coordToPosition(action.coord, this.memory.centerPosition, this.memory.rotation);
                 if (action.actionType === "place") {
                     outcome = position.createConstructionSite(action.structureType);
                 }
@@ -121,7 +122,7 @@ export class QuadOperation extends ControllerOperation {
     }
 
     protected findStructureCount(structureType: string): number {
-        let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
+        let centerPosition = new RoomPosition(this.memory.centerPosition.x, this.memory.centerPosition.y, this.flag.room.name);
 
         let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, QUAD_RADIUS,
             {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
