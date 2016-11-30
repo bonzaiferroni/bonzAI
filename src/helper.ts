@@ -248,5 +248,18 @@ export var helper = {
             }
         }
         return matrix;
+    },
+
+    showMatrix(matrix: CostMatrix) {
+        // showMatrix
+        for (let y = 0; y < 50; y++) {
+            let line = "";
+            for (let x = 0; x < 50; x++) {
+                let value = matrix.get(x, y);
+                if (value === 0xff) line += "f";
+                else line += value % 10;
+            }
+            console.log(line);
+        }
     }
 };

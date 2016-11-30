@@ -4,6 +4,7 @@ import {NightsWatchMission} from "./NightsWatchMission";
 import {OperationPriority} from "./constants";
 import {Empire} from "./Empire";
 import {BuildMission} from "./BuildMission";
+import {helper} from "./helper";
 
 export class FlexOperation extends ControllerOperation {
 
@@ -26,6 +27,12 @@ export class FlexOperation extends ControllerOperation {
         if (!this.memory.flexLayoutMap) {
             this.buildFlexLayoutMap()
         }
+
+        if (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL) {
+            // currently not building due to ongoing layout modifications
+            return 0;
+        }
+
         if (structureType === STRUCTURE_ROAD && level < 4) {
             return 29;
         }
@@ -166,13 +173,9 @@ export class FlexOperation extends ControllerOperation {
             radius++;
         }
 
-        // push edge by 1 to make room for walls
-        let leftWall = map.leftMost - 1;
-        let rightWall = map.rightMost + 1;
-        let topWall = map.topMost - 1;
-        let bottomWall = map.bottomMost + 1;
-        let wallPositions: RoomPosition[] = [];
+        this.addWalls(map);
 
+        /*
         for (let xDelta = leftWall; xDelta <= rightWall; xDelta++) {
 
             for (let yDelta = topWall; yDelta <= bottomWall; yDelta++) {
@@ -217,6 +220,7 @@ export class FlexOperation extends ControllerOperation {
             }
         }
         console.log("bottomost", bottomWall, "radius", radius);
+        */
 
         this.debugMap(map);
 
@@ -320,6 +324,97 @@ export class FlexOperation extends ControllerOperation {
         }
 
         return flexLayoutMap;
+    }
+
+    private addWalls(map: PositionMap) {
+        // push edge by 1 to make room for walls
+        let leftWall = map.leftMost - 1;
+        let rightWall = map.rightMost + 1;
+        let topWall = map.topMost - 1;
+        let bottomWall = map.bottomMost + 1;
+        let allWallPositions: RoomPosition[] = [];
+        let validWallPositions: RoomPosition[] = [];
+
+        // mark off matrix, natural walls are impassible, all other tiles get 1
+        let exitPositions: RoomPosition[] = [];
+        let matrix = new PathFinder.CostMatrix();
+        let lastPositionWasExit = { left: false, right: false, top: false, bottom: false };
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                let currentBorder;
+                if (x === 0) currentBorder = "left";
+                else if (x === 49) currentBorder = "right";
+                else if (y === 0) currentBorder = "top";
+                else if (y === 49) currentBorder = "bottom";
+
+                let position = new RoomPosition(x, y, this.flag.room.name);
+                if (position.lookFor(LOOK_TERRAIN)[0] === "wall") {
+                    matrix.set(x, y, 0xff);
+                    if (currentBorder) {
+                        lastPositionWasExit[currentBorder] = false;
+                    }
+                }
+                else {
+                    matrix.set(x, y, 1);
+                    if (currentBorder) {
+                        if (!lastPositionWasExit[currentBorder]) {
+                            exitPositions.push(position);
+                        }
+                        lastPositionWasExit[currentBorder] = true;
+                    }
+                }
+            }
+        }
+
+        console.log(`LAYOUT: found ${exitPositions.length} exits to path from`);
+
+        // start with every wall position being valid around the border
+        for (let xDelta = leftWall; xDelta <= rightWall; xDelta++) {
+            for (let yDelta = topWall; yDelta <= bottomWall; yDelta++) {
+                if (xDelta !== leftWall && xDelta !== rightWall && yDelta !== topWall && yDelta !== bottomWall) continue;
+                let x = this.memory.centerPoint.x + xDelta;
+                let y = this.memory.centerPoint.y + yDelta;
+
+                let position = new RoomPosition(x, y, this.flag.room.name);
+                if (position.lookFor(LOOK_TERRAIN)[0] === "wall") continue;
+                allWallPositions.push(position);
+                matrix.set(x, y, 0xff);
+            }
+        }
+
+        // send theoretical invaders at the center from each exit and remove the walls that don't make a
+        // difference on whether they reach the center
+        let centerPosition = new RoomPosition(this.memory.centerPoint.x, this.memory.centerPoint.y, this.flag.room.name);
+        for (let wallPosition of allWallPositions) {
+            let breach = false;
+            matrix.set(wallPosition.x, wallPosition.y, 1);
+            for (let exitPosition of exitPositions) {
+                let ret = PathFinder.search(exitPosition, [{pos: centerPosition, range: 0}], {
+                    maxRooms: 1,
+                    roomCallback: (roomName: string): CostMatrix => {
+                        if (roomName === this.flag.room.name) {
+                            return matrix;
+                        }
+                    }});
+                if (!ret.incomplete && ret.path[ret.path.length - 1].inRangeTo(centerPosition, 0)) {
+                    breach = true;
+                    break;
+                }
+            }
+            if (breach) {
+                validWallPositions.push(wallPosition);
+                matrix.set(wallPosition.x, wallPosition.y, 0xff);
+            }
+            else {
+
+            }
+        }
+
+        for (let position of validWallPositions) {
+            let xDelta = position.x - this.memory.centerPoint.x;
+            let yDelta = position.y - this.memory.centerPoint.y;
+            map.add(xDelta, yDelta, STRUCTURE_RAMPART, false);
+        }
     }
 }
 

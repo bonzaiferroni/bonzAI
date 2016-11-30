@@ -15,9 +15,11 @@ export var consoleCommands = {
         })
     },
 
-    removeConstructionSites(roomName: string) {
+    removeConstructionSites(roomName: string, structureType?: string) {
         Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).forEach( (site: ConstructionSite) => {
-            site.remove()
+            if (!structureType || site.structureType === structureType) {
+                site.remove();
+            }
         })
     },
     removeFlags(substr: string) {
