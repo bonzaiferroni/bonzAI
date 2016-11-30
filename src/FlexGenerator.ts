@@ -310,6 +310,23 @@ export class FlexGenerator {
             return false;
         }
         else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
+            let position = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
+
+            // check for narrow passage due to natural walls
+            for (let i = 2; i <= 4; i += 2) {
+                let bothWalls = true;
+                for (let j = 0; j <= 2; j += 4) {
+                    let direction = i + j;
+                    let pos = position.getPositionAtDirection(direction);
+                    if (pos.lookFor(LOOK_TERRAIN)[0] !== "wall") {
+                        bothWalls = false;
+                        break;
+                    }
+                }
+                if (bothWalls) {
+                    return true;
+                }
+            }
             return false;
         }
         else {
