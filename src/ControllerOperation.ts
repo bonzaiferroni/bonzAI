@@ -40,6 +40,7 @@ export abstract class ControllerOperation extends Operation {
     protected abstract allowedCount(structureType: string, level: number): number;
     protected abstract layoutCoords(structureType: string): Coord[];
     protected abstract temporaryPlacement(controllerLevel: number);
+    protected abstract findCenterPositionFromSpawn(spawn: StructureSpawn);
 
     initOperation() {
 
@@ -170,7 +171,12 @@ export abstract class ControllerOperation extends Operation {
 
     private autoLayout() {
 
-        if (!this.memory.centerPosition || this.memory.rotation === undefined) return;
+        if (!this.memory.centerPosition || this.memory.rotation === undefined) {
+            let spawns = this.flag.room.find(FIND_MY_SPAWNS);
+            if (spawns.length === 1) {
+                // this.findCenterPositionFromSpawn(spawns[0]);
+            }
+        }
 
         let structureTypes = Object.keys(CONSTRUCTION_COST);
 
