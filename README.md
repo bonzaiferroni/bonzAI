@@ -59,7 +59,7 @@ The following is a summary of the Operations/missions you can find in this repos
 #### Operations
 
 - QuadOperation: Manages all missions relative to an owned room, including upgrading, tower defense, spawn refilling, and more
-- FlexOperation: All the functions of QuadOperation but provides
+- FlexOperation: All the functions of QuadOperation but uses a flexible layout that is compatible with a wider variety of rooms
 - MiningOperation: Remote harvesting in non-SK rooms
 - KeeperOperation: Remote harvesting in SK rooms
 - ConquestOperation: Spawn creeps to be used to settle a new owned-room.
