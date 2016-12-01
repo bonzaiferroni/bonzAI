@@ -32,7 +32,7 @@ export class SeedAnalysis {
 
         if (this.data.seedScan["flex"].length > 0) {
             if (spawn) {
-                let result = this.findBySpawn("quad", spawn);
+                let result = this.findBySpawn("flex", spawn);
                 if (result) return result;
             }
             else {
@@ -195,8 +195,8 @@ export class SeedAnalysis {
                 for (let rotation = 0; rotation <= 3; rotation++) {
                     let testPosition = helper.coordToPosition(coord, centerPosition, rotation);
                     if (spawn.pos.inRangeTo(testPosition, 0)) {
-                        console.log(`seed: ${JSON.stringify(seed)}, centerPos: ${centerPosition}, rotation: ${rotation}, 
-                        coord: ${JSON.stringify(coord)} testPos: ${testPosition}, spawnPos: ${spawn.pos}`);
+                        console.log(`seed: ${JSON.stringify(seed)}, centerPos: ${centerPosition}, rotation: ${rotation},` +
+                            `\ncoord: ${JSON.stringify(coord)} testPos: ${testPosition}, spawnPos: ${spawn.pos}`);
                         return { seedType: seedType, origin: seed, rotation: rotation, energyPerDistance: undefined }
                     }
                 }

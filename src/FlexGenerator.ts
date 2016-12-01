@@ -124,6 +124,8 @@ export class FlexGenerator {
         if (alreadyUsed) return;
 
         let position = new RoomPosition(x, y, this.roomName);
+        if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) return;
+        if (position.inRangeTo(Game.rooms[this.roomName].controller, 2)) return;
         if (position.isNearTo(position.findClosestByRange<RoomPosition>(this.roadPositions))) {
 
             let structureType = this.findStructureType(xDelta, yDelta);
