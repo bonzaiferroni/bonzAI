@@ -7,9 +7,9 @@ run `npm install` to setup grunt for pushing code up.
 
 Once you have the code pushed to a screeps server: 
 
-1. find a room and place a spawn (should be a room with a decent amount of space)
+1. Find a room and place a spawn
  * If it has trouble determining a layout based on your room/spawn placement, it will let you know in the console. Just try again, perhaps a room with more space and don't place the spawn too close to a source.
-2. place a flag with the name "quad_myBase"
+2. Place a flag with the name "quad_myBase"
 
 ## Goals of bonzAI
 - All game decisions made by AI rather than user
