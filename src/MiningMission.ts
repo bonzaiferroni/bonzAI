@@ -147,7 +147,7 @@ export class MiningMission extends Mission {
 
     private getMinerBody(): string[] {
         let body;
-        if (this.needsEnergyTransport) {
+        if (this.needsEnergyTransport && this.spawnGroup.maxSpawnEnergy >= 800) {
 
             let work = Math.ceil((Math.max(this.source.energyCapacity,
                     SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);

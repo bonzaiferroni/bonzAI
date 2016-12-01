@@ -124,7 +124,7 @@ interface StrangerReport {
 }
 
 interface StructureController {
-    getBattery(): StructureLink | StructureStorage | StructureContainer;
+    getBattery(structureType?: string): StructureLink | StructureStorage | StructureContainer;
     getUpgraderPositions(): RoomPosition[];
 }
 

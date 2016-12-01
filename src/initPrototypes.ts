@@ -1067,7 +1067,7 @@ export function initPrototypes() {
      * Looks for structure to be used as an energy holder for upgraders
      * @returns { StructureLink | StructureStorage | StructureContainer }
      */
-    StructureController.prototype.getBattery = function (): StructureLink | StructureStorage | StructureContainer {
+    StructureController.prototype.getBattery = function (structureType?: string): StructureLink | StructureStorage | StructureContainer {
         if (this.room.memory.controllerBatteryId) {
             let batt = Game.getObjectById(this.room.memory.controllerBatteryId) as StructureLink | StructureStorage | StructureContainer;
             if (batt) {
@@ -1080,8 +1080,17 @@ export function initPrototypes() {
         }
         else if (Game.time % 10 === 7) {
             let battery = _(this.pos.findInRange(FIND_STRUCTURES, 4))
-                .filter((structure: Structure) => { return (structure.structureType === STRUCTURE_CONTAINER ||
-                structure.structureType === STRUCTURE_STORAGE || structure.structureType === STRUCTURE_LINK);
+                .filter((structure: Structure) => {
+                if (structureType) {
+                    return structure.structureType === structureType;
+                }
+                else {
+                    if (structure.structureType === STRUCTURE_CONTAINER || structure.structureType === STRUCTURE_LINK) {
+                        let sourceInRange = structure.pos.findInRange(FIND_SOURCES, 2)[0];
+                        if (sourceInRange) return false;
+                        else return true;
+                    }
+                }
                 })
                 .head() as Terminal | Link | Container;
             if (battery) {

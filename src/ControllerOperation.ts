@@ -196,7 +196,7 @@ export abstract class ControllerOperation extends Operation {
         let coords = this.layoutCoords(structureType);
 
         for (let coord of coords) {
-            let position = helper.coordToPosition(coord, this.memory.centerPosition);
+            let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
             if (!position) {
                 console.log(`LAYOUT: bad position, is centerPoint misplaced? (${this.name})`);
                 return;

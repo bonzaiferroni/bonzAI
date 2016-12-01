@@ -28,19 +28,11 @@ export class FlexOperation extends ControllerOperation {
             this.buildFlexLayoutMap()
         }
 
-        return 0;
-        /*
-        if (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL) {
-            // currently not building due to ongoing layout modifications
+        if (level < 4 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
             return 0;
         }
 
-        if (structureType === STRUCTURE_ROAD && level < 4) {
-            return 29;
-        }
-
         return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length)
-        */
     }
 
     protected findStructureCount(structureType: string): number {

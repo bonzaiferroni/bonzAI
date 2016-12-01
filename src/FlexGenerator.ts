@@ -81,7 +81,7 @@ export class FlexGenerator {
         for (let structureType in this.coreStructureCoordinates) {
             let coords = this.coreStructureCoordinates[structureType];
             for (let coord of coords) {
-                let position = helper.coordToPosition(coord, this.centerPosition);
+                let position = helper.coordToPosition(coord, this.centerPosition, this.rotation);
                 this.addStructurePosition(position, structureType);
             }
         }
@@ -310,23 +310,18 @@ export class FlexGenerator {
             return false;
         }
         else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
-            let position = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
+            let pos = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
 
-            // check for narrow passage due to natural walls
-            for (let i = 2; i <= 4; i += 2) {
-                let bothWalls = true;
-                for (let j = 0; j <= 2; j += 4) {
-                    let direction = i + j;
-                    let pos = position.getPositionAtDirection(direction);
-                    if (pos.lookFor(LOOK_TERRAIN)[0] !== "wall") {
-                        bothWalls = false;
-                        break;
-                    }
-                }
-                if (bothWalls) {
-                    return true;
-                }
+            // check narrow passage due to natural walls
+            if (pos.getPositionAtDirection(2).lookFor(LOOK_TERRAIN)[0] === "wall"
+                && pos.getPositionAtDirection(6).lookFor(LOOK_TERRAIN)[0] === "wall") {
+                return true;
             }
+            else if (pos.getPositionAtDirection(4).lookFor(LOOK_TERRAIN)[0] === "wall"
+                && pos.getPositionAtDirection(8).lookFor(LOOK_TERRAIN)[0] === "wall") {
+                return true;
+            }
+
             return false;
         }
         else {
