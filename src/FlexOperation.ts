@@ -28,7 +28,7 @@ export class FlexOperation extends ControllerOperation {
             this.buildFlexLayoutMap()
         }
 
-        if (level < 4 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
+        if (level < 3 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
             return 0;
         }
 
