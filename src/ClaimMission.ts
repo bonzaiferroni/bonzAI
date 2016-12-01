@@ -12,7 +12,6 @@ export class ClaimMission extends Mission {
     initMission() {
         if (!this.hasVision) return; // early
         this.controller = this.room.controller;
-        this.waypoints = this.getFlagSet("_waypoints_", 10);
     }
 
     roleCall() {

@@ -1,11 +1,12 @@
 import {Operation} from "./Operation";
 import {Empire} from "./Empire";
 import {OperationPriority} from "./constants";
-import {Coord, SeedSelection, SeedData} from "./interfaces";
+import {SeedSelection, SeedData} from "./interfaces";
 import {ScoutMission} from "./ScoutMission";
 import {SeedAnalysis} from "./SeedAnalysis";
 
-const FULL_BUCKET = 9500;
+const MAX_SOURCE_DISTANCE = 100;
+const PATHFINDER_RANGE_ALLOWANCE = 20;
 
 export class AutoOperation extends Operation {
 
@@ -19,6 +20,15 @@ export class AutoOperation extends Operation {
         seedSelection: SeedSelection
         seedData: SeedData
     };
+
+    /**
+     * Experimental operation for making decisions about room layout. Eventually this will be a process that happens
+     * automatically and the code will be part of a Mission rather than Operation.
+     * @param flag
+     * @param name
+     * @param type
+     * @param empire
+     */
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
@@ -140,7 +150,7 @@ export class AutoOperation extends Operation {
     }
 
     private checkReasonablePathDistance(source: Source) {
-        let ret = PathFinder.search(source.pos, [{pos: new RoomPosition(25, 25, this.flag.room.name), range: 20 }], {
+        let ret = PathFinder.search(source.pos, [{pos: new RoomPosition(25, 25, this.flag.room.name), range: PATHFINDER_RANGE_ALLOWANCE }], {
             maxOps: 10000,
         });
         if (ret.incomplete) {
@@ -148,9 +158,16 @@ export class AutoOperation extends Operation {
             return false;
         }
         else {
-            return ret.path.length <= 80;
+            return ret.path.length <= MAX_SOURCE_DISTANCE - PATHFINDER_RANGE_ALLOWANCE;
         }
     }
+
+    /**
+     * Place flags to show which positions (seeds) are being used for further analysis
+     * @param seedType
+     * @param show
+     * @returns {string}
+     */
 
     debugSeeds(seedType: string, show: boolean) {
         if (show) {

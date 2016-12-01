@@ -8,7 +8,16 @@ export class DemolishMission extends Mission {
     demoFlags: Flag[] = [];
     demoStructures: Structure[] = [];
     potency: number;
-    private storeStructure: StructureContainer|StructureStorage|StructureTerminal;
+    storeStructure: StructureContainer|StructureStorage|StructureTerminal;
+
+    /**
+     * Spawn a demolisher when there are flags that match his pattern ("Flag + n"), he will visit those flags and remove the
+     * structures underneath. This pattern happens to be the default flag pattern used by the game UI, be careful
+     * @param operation
+     * @param potency
+     * @param storeStructure When a storeStructure is provided, it will spawn a scavanger to deliver energy
+     * @param allowSpawn
+     */
 
     constructor(operation: Operation, potency = 25,
                 storeStructure: StructureContainer|StructureStorage|StructureTerminal, allowSpawn = true) {

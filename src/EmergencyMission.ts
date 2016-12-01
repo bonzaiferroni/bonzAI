@@ -8,8 +8,8 @@ export class EmergencyMinerMission extends Mission {
      * Checks every 100 ticks if storage is full or a miner is present, if not spawns an emergency miner. Should come
      * first in FortOperation
      * @param operation
-     * @param spawnRefillMission
      */
+    
     constructor(operation: Operation) {
         super(operation, "emergencyMiner");
     }

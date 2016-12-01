@@ -13,6 +13,10 @@ import {NightsWatchMission} from "./NightsWatchMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
 import {BuildMission} from "./BuildMission";
 import {RefillMission} from "./RefillMission";
+
+const CONQUEST_MASON_POTENCY = 4;
+const CONQUEST_LOCAL_MIN_SPAWN_ENERGY = 1300;
+
 export class ConquestOperation extends Operation {
 
     /**
@@ -82,14 +86,14 @@ export class ConquestOperation extends Operation {
 
         // the following can be spawned locally
         let localSpawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
-        if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= 1300) {
+        if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= CONQUEST_LOCAL_MIN_SPAWN_ENERGY) {
             this.waypoints = undefined;
             this.spawnGroup = localSpawnGroup;
             this.addMission(new RefillMission(this, "spawnCart", 1, localSpawnGroup.extensions.concat(localSpawnGroup.spawns), 4, true));
 
             // build walls
             if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-                this.addMission(new BuildMission(this, "mason", 4));
+                this.addMission(new BuildMission(this, "mason", CONQUEST_MASON_POTENCY));
             }
         }
 

@@ -5,6 +5,21 @@ export class BodyguardMission extends Mission {
     defenders: Creep[];
     hostiles: Creep[];
 
+    memory: {
+        invaderProbable: boolean
+        invaderTrack: {
+            energyHarvested: number,
+            tickLastSeen: number,
+            energyPossible: number,
+        }
+    };
+
+    /**
+     * Remote defense for non-owned rooms. If boosted invaders are likely, use EnhancedBodyguardMission
+     * @param operation
+     * @param allowSpawn
+     */
+
     constructor(operation: Operation, allowSpawn = true) {
         super(operation, "defense", allowSpawn);
     }
@@ -93,9 +108,16 @@ export class BodyguardMission extends Mission {
         }
     }
 
+    /**
+     * Tracks energy harvested and pre-spawns a defender when an invader becomes likely
+     */
+
     public trackEnergyTillInvader() {
         if (!this.memory.invaderTrack) {
-            this.memory.invaderTrack = {energyHarvested: 0, tickLastSeen: Game.time, energyPossible: 0, log: []};
+            this.memory.invaderTrack = {
+                energyHarvested: 0,
+                tickLastSeen: Game.time,
+                energyPossible: 0 };
         }
 
         let memory = this.memory.invaderTrack;
@@ -129,7 +151,7 @@ export class BodyguardMission extends Mission {
             this.memory.invaderProbable = false;
         }
 
-        if (hostiles.length > 0 && Game.time - memory.tickLastSeen > 1500) {
+        if (hostiles.length > 0 && Game.time - memory.tickLastSeen > CREEP_LIFE_TIME) {
             // reset trackers
             memory.energyPossible = 0;
             memory.energyHarvested = 0;

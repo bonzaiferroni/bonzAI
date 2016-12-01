@@ -6,14 +6,12 @@ declare var emp: Empire;
 
 export var consoleCommands = {
 
-    sendFromAll(resourceType: string, amount: number, roomName: string) {
-        _.forEach(Game.rooms, (room: Room) => {
-            if (room.controller && room.controller.level > 6 && room.terminal && room.terminal.my) {
-                let outcome = room.terminal.send(resourceType, amount, roomName)
-                console.log(room.name, " sent ",amount," to ",roomName);
-            }
-        })
-    },
+    /**
+     * Remove construction sites from a room
+     * @param roomName
+     * @param leaveProgressStarted - leave sites already started
+     * @param structureType
+     */
 
     removeConstructionSites(roomName: string, leaveProgressStarted = true, structureType?: string) {
         Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).forEach( (site: ConstructionSite) => {
@@ -22,6 +20,16 @@ export var consoleCommands = {
             }
         })
     },
+    // shorthand
+    rc(roomName: string, leaveProgressStarted: boolean, structureType: string) {
+        this.removeConstructionSites(roomName, leaveProgressStarted, structureType);
+    },
+
+    /**
+     * Remove all flags that contain a substring in the name, good for wiping out a previously used operation
+     * @param substr
+     */
+
     removeFlags(substr: string) {
       _.forEach(Game.flags, (flag) => {
           if (_.includes(flag.name, substr) ) {
@@ -30,19 +38,41 @@ export var consoleCommands = {
           }
       });
     },
+    // shorthand
+    rf(substr: string) {
+        this.removeFlags(substr);
+    },
+
+    /**
+     * Displays all total raw minerals in every storage/terminal
+     */
+
     minv() {
         for (let mineralType of MINERALS_RAW) {
             console.log(mineralType + ":", emp.inventory[mineralType]);
         }
+
     },
+
+    /**
+     * Displays all final compounds in every storage/terminal
+     */
+
     pinv() {
         for (let mineralType of PRODUCT_LIST) {
             console.log(mineralType + ":", emp.inventory[mineralType]);
         }
     },
+
     testCode() {
         // test code
     },
+
+    /**
+     * remove most memory while leaving more important stuff intact, strongly not recommended unless you know what you are
+     * doing
+     */
+
     wipeMemory() {
         for (let flagName in Memory.flags) {
             let flag = Game.flags[flagName];
@@ -68,6 +98,12 @@ export var consoleCommands = {
             }
         }
     },
+
+    /**
+     * find which rooms contain a resource type in terminal
+     * @param resourceType
+     */
+
     findResource(resourceType: string) {
         for (let terminal of emp.terminals) {
             if (terminal.store[resourceType]) {
@@ -75,6 +111,16 @@ export var consoleCommands = {
             }
         }
     },
+
+
+    /**
+     * Empty resources from a terminal, will only try to send one resource each tick so this must be called repeatedly
+     * on multiple ticks with the same arguments to completely empty a terminal
+     * @param origin
+     * @param destination
+     * @returns {any}
+     */
+
     emptyTerminal(origin: string, destination: string) {
         let originTerminal = Game.rooms[origin].terminal;
         let outcome;
@@ -98,6 +144,14 @@ export var consoleCommands = {
         }
         return outcome;
     },
+
+    /**
+     * Changes the name of an operation, giving it a new flag. May result in some unintended consequences
+     * @param opName
+     * @param newOpName
+     * @returns {any}
+     */
+
     changeOpName(opName: string, newOpName: string) {
         let operation = global[opName] as Operation;
         if (!operation) return "you don't have an operation by that name";
@@ -113,6 +167,17 @@ export var consoleCommands = {
             return "error changing name: " + outcome;
         }
     },
+
+    /**
+     * Place an order for a resource to be sent to any room. Good for making one-time deals.
+     * @param resourceType
+     * @param amount
+     * @param roomName
+     * @param efficiency - the number of terminals that should send the resource per tick, use a lower number to only send
+     * from the nearest terminals
+     * @returns {any}
+     */
+
     order(resourceType: string, amount: number, roomName: string, efficiency = 10 ) {
         if (!(amount > 0)) {
             return "usage: order(resourceType, amount, roomName, efficiency?)";
@@ -129,5 +194,21 @@ export var consoleCommands = {
         Memory.resourceOrder[Game.time] = { resourceType: resourceType, amount: amount, roomName: roomName,
             efficiency: efficiency, amountSent: 0};
         return "TRADE: scheduling " + amount + " " + resourceType + " to be sent to " + roomName;
-    }
+    },
+
+    /**
+     * One-time send resource from all terminals to a specific room. For more control use cc.order()
+     * @param resourceType
+     * @param amount
+     * @param roomName
+     */
+
+    sendFromAll(resourceType: string, amount: number, roomName: string) {
+        _.forEach(Game.rooms, (room: Room) => {
+            if (room.controller && room.controller.level > 6 && room.terminal && room.terminal.my) {
+                let outcome = room.terminal.send(resourceType, amount, roomName)
+                console.log(room.name, " sent ",amount," to ",roomName);
+            }
+        })
+    },
 };

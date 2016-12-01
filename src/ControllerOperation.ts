@@ -15,6 +15,10 @@ import {Coord, SeedData} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 import {helper} from "./helper";
 import {SeedAnalysis} from "./SeedAnalysis";
+
+const SPAWNCART_BODYUNIT_LIMIT = 10;
+const GEO_SPAWN_COST = 5000;
+
 export abstract class ControllerOperation extends Operation {
 
     memory: {
@@ -58,7 +62,7 @@ export abstract class ControllerOperation extends Operation {
         let structures = this.flag.room.findStructures(STRUCTURE_EXTENSION)
             .concat(this.flag.room.find(FIND_MY_SPAWNS)) as Structure[];
         let maxCarts = this.flag.room.storage ? 1 : 2;
-        this.addMission(new RefillMission(this, "spawnCart", maxCarts, structures, 10, true));
+        this.addMission(new RefillMission(this, "spawnCart", maxCarts, structures, SPAWNCART_BODYUNIT_LIMIT, true));
 
         this.addDefense();
 
@@ -95,7 +99,7 @@ export abstract class ControllerOperation extends Operation {
             this.addMission(new LinkNetworkMission(this));
 
             let extractor = this.mineral.pos.lookFor<StructureExtractor>(LOOK_STRUCTURES)[0];
-            if (this.flag.room.energyCapacityAvailable > 5000 && extractor && extractor.my) {
+            if (this.flag.room.energyCapacityAvailable > GEO_SPAWN_COST && extractor && extractor.my) {
                 this.addMission(new GeologyMission(this));
             }
         }

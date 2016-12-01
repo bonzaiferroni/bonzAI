@@ -1,14 +1,24 @@
 import {Mission} from "./Mission";
 import {Operation} from "./Operation";
 import {helper} from "./helper";
+import {TransportAnalysis} from "./interfaces";
 export class BuildMission extends Mission {
 
     builders: Creep[];
     supplyCarts: Creep[];
     potency: number;
     sites: ConstructionSite[];
-
     walls: StructureRampart[];
+
+    memory: {
+        maxHitsToBuild: number
+        max: number
+        activateBoost: boolean
+        transportAnalysis: TransportAnalysis
+        rampartPos: RoomPosition
+        manualTargetId: string
+        manualTargetHits: number
+    };
 
     /**
      * Spawns a creep to build construction and repair walls. Construction will take priority over walls
@@ -212,8 +222,8 @@ export class BuildMission extends Mission {
             if (structures.length === 0) {
                 // increase maxHitsToBuild if there are walls/ramparts in room and re-call function
                 if (this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)).length > 0) {
+                    // TODO: seems to produce some pretty uneven walls, find out why
                     this.memory.maxHitsToBuild += Math.pow(10, Math.floor(Math.log(this.memory.maxHitsToBuild) / Math.log(10)));
-                    // console.log("Increasing wall height in", this.operation.name, "to", this.memory.maxHitsToBuild);
                     return this.findMasonTarget(builder);
                 }
                 // do nothing if there are no walls/ramparts in room
