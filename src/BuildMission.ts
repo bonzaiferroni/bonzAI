@@ -93,7 +93,7 @@ export class BuildMission extends Mission {
     }
 
     private builderActions(builder: Creep) {
-        let hasLoad = this.supplyCarts.length > 0 || this.hasLoad(builder);
+        let hasLoad = _.filter(this.supplyCarts, (c: Creep) => !c.spawning).length > 0 || this.hasLoad(builder);
         if (!hasLoad) {
             this.procureEnergy(builder);
             return;
