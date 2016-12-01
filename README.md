@@ -32,11 +32,13 @@ Files in this codebase can be neatly separated into two categories:
 
 Depending on whether you want to write code using this framework or just understand my own code so you can easily take down my rooms, it will help to know about the framework.
 
-The archictecture of the framework is best understood by looking at main.ts and the code within `module.exports.loop`. Creep behavior is always defined in a mission, which also defines the spawning conditions and data-gathering necessary for that class of creeps. Operations are really just a collection of missions that get bootstrapped by placement of a flag in the screep world.
+The archictecture of the framework is best understood by looking at main.ts and the code within `module.exports.loop`. The following figure shows how phases (init, roleCall, actions, finalize) are executed within the loop.
 
 ![framework overview](https://docs.google.com/drawings/d/e/2PACX-1vSkzFgLxP8KvcfnKCgeHYgEsPJpSlX2Q2yB03JKrm7UMcRI5Cwi2ZgKhOJ-7PamRqq8UiIgUk4xHJID/pub?w=960&h=720)
 
 Each phase is executed completely for each operation before moving on to the next phase. This allows you to assume, for example, that every `initOperation()` and `initMission()` function has been executed before any `roleCall()` function is executed.
+
+Creep behavior is always defined in a mission, which also defines the spawning conditions and data-gathering necessary for that class of creeps. Operations are really just a collection of missions that get bootstrapped by placement of a flag in the screep world.
 
 Additional framework topics:
 
@@ -45,6 +47,7 @@ Additional framework topics:
 - [Phase functions](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#operation-phase-functions)
 - SpawnGroup (coming soon)
 - Empire (coming soon)
+- Cache invalidation (coming soon)
 - Tutorial: Write a couple classes that extends Operation and Mission to do all the basic creep behavior (harvesting, building construction, etc.) (coming soon)
 
 ### Overview of AI implementation
