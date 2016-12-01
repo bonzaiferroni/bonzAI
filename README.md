@@ -1,26 +1,38 @@
-# bonzaiScreeps
+# bonzAI
 > The self-managing AI used by bonzaiferroni at screeps.com
 
 ## Installation
 Install [typescript](https://www.npmjs.com/package/typescript) and some system for compiling as you code (eg Webstorm)
 run `npm install` to setup grunt for pushing code up.
 
-## Goals of bonzaiScreeps
-- Well-balanced resource economy
-- Effective raiding and defense
+Once you have the code pushed to a screeps server: 
+
+1. find a room and place a spawn (should be a room with a decent amount of space)
+ * If it has trouble determining a layout based on your room/spawn placement, it will let you know in the console. Just try again, perhaps a room with more space and don't place the spawn too close to a source.
+2. place a flag with the name "quad_myBase"
+
+## Goals of bonzAI
 - All game decisions made by AI rather than user
 - As a long term goal, decision-making that changes based on the results of previous decisions and through random mutations, resulting in novel behavior
+
+## Current status on goals
+
+At the moment, rooms are still chosen manually, although I've begun the process that the AI will eventually use. This can currently be found in AutoOperation, which will analyze nearby sources and the room layout and choose the best place to start building structures.
+
+Roads are another reason why it functions poorly at the moment without manual intervention. I'm in the process of automating roads-to-sources.
 
 ## Overview
 
 Files in this codebase can be neatly separated into two categories: 
 
-1. Abstract classes that that make up the **framework**, currently just Operation and Mission along with the supporting classes SpawnGroup and Empire
-2. Concrete classes that extend Operation and Mission and make up the **implementation** of game mechanics / creep behavior.
+1. **Framework:** Abstract classes like Operation and Mission along with the supporting classes SpawnGroup and Empire
+2. **Implementation:** Concrete classes that extend Operation and Mission and make up the of game mechanics / creep behavior.
 
 ### Overview of framework
 
-The archictecture of the framework is readily observed by looking at main.ts and the code contained within the game loop. Creep behavior is always defined in a mission, which also defines the spawning conditions and data-gathering necessary for that class of creeps. Operations are really just a collection of missions that get bootstrapped by placement of a flag in the screep world.
+Depending on whether you want to write code using this framework or just understand my own code so you can easily take down my rooms, it will help to know about the framework.
+
+The archictecture of the framework is best understood by looking at main.ts and the code within `module.exports.loop`. Creep behavior is always defined in a mission, which also defines the spawning conditions and data-gathering necessary for that class of creeps. Operations are really just a collection of missions that get bootstrapped by placement of a flag in the screep world.
 
 ![framework overview](https://docs.google.com/drawings/d/e/2PACX-1vSkzFgLxP8KvcfnKCgeHYgEsPJpSlX2Q2yB03JKrm7UMcRI5Cwi2ZgKhOJ-7PamRqq8UiIgUk4xHJID/pub?w=960&h=720)
 
@@ -31,6 +43,9 @@ Additional framework topics:
 - [Spawn Order](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#spawn-order)
 - [Persistent data (memory)](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#persistent-data-memory)
 - [Phase functions](https://github.com/bonzaiferroni/bonzaiScreeps/wiki/Framework-Overview#operation-phase-functions)
+- SpawnGroup (coming soon)
+- Empire (coming soon)
+- Tutorial: Write a couple classes that extends Operation and Mission to do all the basic creep behavior (harvesting, building construction, etc.) (coming soon)
 
 ### Overview of AI implementation
 
@@ -41,6 +56,7 @@ The following is a summary of the Operations/missions you can find in this repos
 #### Operations
 
 - QuadOperation: Manages all missions relative to an owned room, including upgrading, tower defense, spawn refilling, and more
+- FlexOperation: All the functions of QuadOperation but provides
 - MiningOperation: Remote harvesting in non-SK rooms
 - KeeperOperation: Remote harvesting in SK rooms
 - ConquestOperation: Spawn creeps to be used to settle a new owned-room.
