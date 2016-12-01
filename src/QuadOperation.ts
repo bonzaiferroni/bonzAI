@@ -217,7 +217,4 @@ export class QuadOperation extends ControllerOperation {
             return [];
         }
     }
-
-    protected findCenterPositionFromSpawn(spawn: StructureSpawn) {
-    }
 }

@@ -6,28 +6,38 @@ export class SeedAnalysis {
     room: Room;
 
     constructor(room: Room, seedData: SeedData) {
-        this.data.sourceData;
+        this.data = seedData;
         this.room = room;
     }
 
-    run(): SeedSelection {
+    run(spawn?: StructureSpawn): SeedSelection {
 
         if (!this.data.seedScan["quad"]) {
             this.findSeeds("quad");
-            return;
         }
 
         if (this.data.seedScan["quad"].length > 0) {
-            return this.selectSeed("quad", this.data.seedScan["quad"]);
+            if (spawn) {
+                let result = this.findBySpawn("quad", spawn);
+                if (result) return result;
+            }
+            else {
+                return this.selectSeed("quad", this.data.seedScan["quad"]);
+            }
         }
 
         if (!this.data.seedScan["flex"]) {
             this.findSeeds("flex");
-            return;
         }
 
         if (this.data.seedScan["flex"].length > 0) {
-            return this.selectSeed("flex", this.data.seedScan["flex"]);
+            if (spawn) {
+                let result = this.findBySpawn("quad", spawn);
+                if (result) return result;
+            }
+            else {
+                return this.selectSeed("flex", this.data.seedScan["flex"]);
+            }
         }
 
         console.log(`No viable seeds in ${this.room.name}`)
@@ -167,5 +177,30 @@ export class SeedAnalysis {
 
         // update rotation for next tick
         data.rotation++
+    }
+
+    private findBySpawn(seedType: string, spawn: StructureSpawn): SeedSelection {
+        let spawnCoords: Coord[];
+        if (seedType === "quad") {
+            spawnCoords = [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}];
+        }
+        else { // seedType === "flex"
+            spawnCoords = [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: 3}];
+        }
+
+        let seeds = this.data.seedScan[seedType];
+        for (let seed of seeds) {
+            let centerPosition = new RoomPosition(seed.x, seed.y, this.room.name);
+            for (let coord of spawnCoords) {
+                for (let rotation = 0; rotation <= 3; rotation++) {
+                    let testPosition = helper.coordToPosition(coord, centerPosition, rotation);
+                    if (spawn.pos.inRangeTo(testPosition, 0)) {
+                        console.log(`seed: ${JSON.stringify(seed)}, centerPos: ${centerPosition}, rotation: ${rotation}, 
+                        coord: ${JSON.stringify(coord)} testPos: ${testPosition}, spawnPos: ${spawn.pos}`);
+                        return { seedType: seedType, origin: seed, rotation: rotation, energyPerDistance: undefined }
+                    }
+                }
+            }
+        }
     }
 }

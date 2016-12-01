@@ -274,8 +274,8 @@ export var helper = {
             yCoord = coord.x;
         }
         else if (rotation === 2) {
-            xCoord = -coord.y;
-            yCoord = -coord.x;
+            xCoord = -coord.x;
+            yCoord = -coord.y;
         }
         else if (rotation === 3) {
             xCoord = coord.y;

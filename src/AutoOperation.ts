@@ -7,7 +7,7 @@ import {SeedAnalysis} from "./SeedAnalysis";
 
 const FULL_BUCKET = 9500;
 
-export class ScoutOperation extends Operation {
+export class AutoOperation extends Operation {
 
     memory: {
         foundSeeds: boolean

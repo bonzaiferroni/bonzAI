@@ -68,7 +68,4 @@ export class FlexOperation extends ControllerOperation {
         this.memory.flexLayoutMap = map.generate(true);
         this.memory.flexRadius = map.radius + 1;
     }
-
-    protected findCenterPositionFromSpawn(spawn: StructureSpawn) {
-    }
 }

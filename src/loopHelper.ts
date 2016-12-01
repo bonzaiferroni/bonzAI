@@ -14,7 +14,7 @@ import {DemolishOperation} from "./DemolishOperation";
 import {TransportOperation} from "./TransportOperation";
 import {RaidOperation} from "./RaidOperation";
 import {QuadOperation} from "./QuadOperation";
-import {ScoutOperation} from "./AutoOperation";
+import {AutoOperation} from "./AutoOperation";
 import {FlexOperation} from "./FlexOperation";
 export var loopHelper = {
 
@@ -38,7 +38,7 @@ export var loopHelper = {
             demolish: DemolishOperation,
             raid: RaidOperation,
             quad: QuadOperation,
-            auto: ScoutOperation,
+            auto: AutoOperation,
             flex: FlexOperation,
         };
 

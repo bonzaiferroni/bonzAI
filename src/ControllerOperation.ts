@@ -11,9 +11,10 @@ import {LinkNetworkMission} from "./LinkNetworkMission";
 import {GeologyMission} from "./GeologyMission";
 import {UpgradeMission} from "./UpgradeMission";
 import {PaverMission} from "./PaverMission";
-import {Coord} from "./interfaces";
+import {Coord, SeedData} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 import {helper} from "./helper";
+import {SeedAnalysis} from "./SeedAnalysis";
 export abstract class ControllerOperation extends Operation {
 
     memory: {
@@ -32,6 +33,7 @@ export abstract class ControllerOperation extends Operation {
         checkLayoutIndex: number
         flexLayoutMap: {[structureType: string]: Coord[]}
         flexRadius: number;
+        seedData: SeedData;
     };
 
     protected abstract addDefense();
@@ -40,7 +42,6 @@ export abstract class ControllerOperation extends Operation {
     protected abstract allowedCount(structureType: string, level: number): number;
     protected abstract layoutCoords(structureType: string): Coord[];
     protected abstract temporaryPlacement(controllerLevel: number);
-    protected abstract findCenterPositionFromSpawn(spawn: StructureSpawn);
 
     initOperation() {
 
@@ -172,10 +173,11 @@ export abstract class ControllerOperation extends Operation {
     private autoLayout() {
 
         if (!this.memory.centerPosition || this.memory.rotation === undefined) {
-            let spawns = this.flag.room.find(FIND_MY_SPAWNS);
+            let spawns = this.flag.room.find<StructureSpawn>(FIND_MY_SPAWNS);
             if (spawns.length === 1) {
-                // this.findCenterPositionFromSpawn(spawns[0]);
+                this.findCenterPositionFromSpawn(spawns[0]);
             }
+            return;
         }
 
         let structureTypes = Object.keys(CONSTRUCTION_COST);
@@ -225,6 +227,43 @@ export abstract class ControllerOperation extends Operation {
                 console.log(`LAYOUT: finished placing construction for: ${structureType} (${this.name})`);
                 break;
             }
+        }
+    }
+
+    private findCenterPositionFromSpawn(spawn: StructureSpawn) {
+
+        if (!this.memory.seedData) {
+            let sourceData = [];
+            for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
+                sourceData.push({pos: source.pos, amount: 3000 })
+            }
+            this.memory.seedData = {
+                sourceData: sourceData,
+                seedScan: {},
+                seedSelectData: undefined
+            }
+        }
+
+        let analysis = new SeedAnalysis(this.flag.room, this.memory.seedData);
+        let results = analysis.run(spawn);
+        if (results) {
+            let centerPosition = new RoomPosition(results.origin.x, results.origin.y, this.flag.room.name);
+            if (results.seedType === this.type) {
+                console.log(`${this.name} found best seed of type ${results.seedType}, initiating auto-layout`);
+                this.memory.centerPosition = centerPosition;
+                this.memory.rotation = results.rotation;
+            }
+            else {
+                console.log(`${this.name} found best seed of another type, replacing operation`);
+                let flagName = `${results.seedType}_${this.name}`;
+                Memory.flags[flagName] = { centerPosition: centerPosition, rotation: results.rotation };
+                this.flag.pos.createFlag(flagName, COLOR_GREY);
+                this.flag.remove();
+            }
+            this.memory.seedData = undefined; // clean-up memory
+        }
+        else {
+            console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or room`);
         }
     }
 }
