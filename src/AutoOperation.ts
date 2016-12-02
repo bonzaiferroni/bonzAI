@@ -85,7 +85,8 @@ export class AutoOperation extends Operation {
             progress.roomsInRange = this.findRoomsToCheck(this.flag.room.name);
         }
 
-        for (let roomName of progress.roomsInRange) {
+        if (progress.roomsInRange.length > 0) {
+            let roomName = progress.roomsInRange[0];
             if (Game.rooms[roomName]) {
                 let sources = Game.rooms[roomName].find<Source>(FIND_SOURCES);
                 let sourceData = [];
