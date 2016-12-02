@@ -120,11 +120,6 @@ export function initCreepPrototype() {
                 if (!this.room.structureMatrix) {
                     let matrix = new PathFinder.CostMatrix();
                     helper.addStructuresToMatrix(matrix, this.room);
-                    if (this.controller && this.controller.my) {
-                        for (let rampart of this.room.findStructures(STRUCTURE_RAMPART)) {
-                            matrix.set(rampart.x, rampart.y, 1);
-                        }
-                    }
                     this.room.structureMatrix = matrix;
                 }
                 return this.room.structureMatrix;

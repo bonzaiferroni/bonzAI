@@ -3,6 +3,7 @@ import {TransportAnalysis, SpawnReservation, HeadCountOptions} from "./interface
 import {Empire} from "./Empire";
 import {SpawnGroup} from "./SpawnGroup";
 import {DESTINATION_REACHED} from "./constants";
+import {helper} from "./helper";
 export abstract class Mission {
 
     opName: string;
@@ -521,6 +522,60 @@ export abstract class Mission {
         if (!creep.memory.notifyDisabled) {
             creep.notifyWhenAttacked(false);
             creep.memory.notifyDisabled = true;
+        }
+    }
+
+    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
+
+        let ret = PathFinder.search(start.pos, [{pos: finish.pos, range: rangeAllowance}], {
+            plainCost: 2,
+            swampCost: 3,
+            maxOps: 4000,
+            roomCallback: (roomName: string): CostMatrix => {
+                let room = Game.rooms[roomName];
+                if (!room) return;
+
+                let matrix = new PathFinder.CostMatrix();
+                helper.addStructuresToMatrix(matrix, room);
+
+                // avoid container adjacency
+                let sources = room.find<Source>(FIND_SOURCES);
+                for (let source of sources) {
+                    let container = source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
+                    if (container) {
+                        helper.blockOffMatrix(matrix, container, 1, 10);
+                    }
+                }
+
+                // add construction sites too
+                let constructionSites = room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES);
+                for (let site of constructionSites) {
+                    if (site.structureType === STRUCTURE_ROAD) {
+                        matrix.set(site.pos.x, site.pos.y, 1);
+                    }
+                }
+
+                return matrix;
+            },
+        });
+
+        if (ret.incomplete) {
+            console.log(`pavePath got an incomplete path, please investigate (${this.opName})`);
+            return;
+        }
+
+        let foundIncompletePath = false;
+        for (let i = 0; i < ret.path.length; i++) {
+            let position = ret.path[i];
+            if (position.isNearExit(0)) continue;
+            let road = position.lookForStructure(STRUCTURE_ROAD);
+            if (road) continue;
+            let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
+            if (construction && construction.structureType === STRUCTURE_ROAD) continue;
+            position.createConstructionSite(STRUCTURE_ROAD);
+            foundIncompletePath = true;
+            console.log(`placed construction ${position}`);
+            break;
         }
     }
 }

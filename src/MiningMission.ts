@@ -2,6 +2,8 @@ import {Mission} from "./Mission";
 import {Operation} from "./Operation";
 import {TransportAnalysis} from "./interfaces";
 import {TICK_TRANSPORT_ANALYSIS} from "./constants";
+import {helper} from "./helper";
+import {profiler} from "./profiler";
 
 export class MiningMission extends Mission {
 
@@ -16,6 +18,7 @@ export class MiningMission extends Mission {
     storage: {
         pos: RoomPosition
         store: StoreDefinition
+        room: Room;
     };
 
     memory: {
@@ -48,6 +51,9 @@ export class MiningMission extends Mission {
         this.positionsAvailable = this.memory.positionsAvailable;
 
         this.container = this.source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
+        if (!this.container) {
+            this.placeContainer()
+        }
 
         this.needsEnergyTransport = this.storage !== undefined;
         if (this.needsEnergyTransport) {
@@ -91,6 +97,12 @@ export class MiningMission extends Mission {
                 this.cartActions(cart);
             }
         }
+
+        profiler.start("paver");
+        if (Math.random() < .95 && this.storage && this.container && this.storage.room.controller.level >= 4) {
+            this.pavePath(this.storage, this.container, 2);
+        }
+        profiler.end("paver");
     }
 
     private minerActions(miner: Creep) {
@@ -249,7 +261,7 @@ export class MiningMission extends Mission {
         }
     }
 
-    private findMinerStorage(): {store: StoreDefinition, pos: RoomPosition} {
+    private findMinerStorage(): {store: StoreDefinition, pos: RoomPosition, room: Room} {
         let destination = Game.flags[this.opName + "_sourceDestination"];
         if (destination) {
             let structure = destination.pos.lookFor(LOOK_STRUCTURES)[0] as StructureStorage;
@@ -266,5 +278,32 @@ export class MiningMission extends Mission {
                 return this.flag.room.storage;
             }
         }
+    }
+
+    private placeContainer() {
+        if (!this.storage) return;
+
+        let ret = PathFinder.search(this.source.pos, [{pos: this.storage.pos, range: 1}], {
+            maxOps: 4000,
+            swampCost: 2,
+            plainCost: 2,
+            roomCallback: (roomName: string): CostMatrix => {
+                let room = Game.rooms[roomName];
+                if (!room) return;
+
+                let matrix = new PathFinder.CostMatrix();
+                helper.addStructuresToMatrix(matrix, room);
+
+                return matrix;
+            }
+        });
+        if (ret.incomplete || ret.path.length === 0) {
+            console.log(`path used for container placement in ${this.opName} incomplete, please investigate`);
+        }
+
+        let position = ret.path[0];
+        if (position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) return;
+        console.log(`MINER: placed container in ${this.opName}`);
+        position.createConstructionSite(STRUCTURE_CONTAINER);
     }
 }

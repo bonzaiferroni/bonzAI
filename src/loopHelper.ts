@@ -84,8 +84,6 @@ export var loopHelper = {
             },
             profiler: {},
         });
-
-        if (!Memory.stats) Memory.stats = {};
     },
 
     scavangeResources: function() {

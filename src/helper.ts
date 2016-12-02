@@ -196,17 +196,21 @@ export var helper = {
         }
     },
 
-    blockOffMatrix(costs: CostMatrix, roomObject: RoomObject, range: number) {
+    blockOffMatrix(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
             for (let yDelta = -range; yDelta <= range; yDelta++) {
-                costs.set(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, 30);
+                costs.set(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, cost);
             }
         }
     },
 
     addStructuresToMatrix(costs: CostMatrix, room: Room): CostMatrix {
         room.find(FIND_STRUCTURES).forEach(function(structure: Structure) {
-            if (structure.structureType === STRUCTURE_ROAD) {
+            if (structure instanceof StructureRampart) {
+                if (!structure.my) {
+                    costs.set(structure.pos.x, structure.pos.y, 0xff);
+                }
+            } else if (structure instanceof StructureRoad) {
                 // Favor roads over plain tiles
                 costs.set(structure.pos.x, structure.pos.y, 1);
             } else if (structure.structureType !== STRUCTURE_CONTAINER) {

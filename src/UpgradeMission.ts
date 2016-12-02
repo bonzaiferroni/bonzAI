@@ -1,6 +1,7 @@
 import {Mission} from "./Mission";
 import {Operation} from "./Operation";
 import {RESERVE_AMOUNT} from "./constants";
+import {profiler} from "./profiler";
 export class UpgradeMission extends Mission {
 
     upgraders: Creep[];
@@ -138,6 +139,12 @@ export class UpgradeMission extends Mission {
                 this.supplyUpgrader(cart, lowest);
             }
         }
+
+        profiler.start("paver");
+        if (Math.random() < .95 && this.room.controller.level >= 4) {
+            this.pavePath({pos: this.spawnGroup.pos}, this.room.controller, 4);
+        }
+        profiler.end("paver");
     }
 
     finalizeMission() {
