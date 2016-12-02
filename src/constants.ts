@@ -23,7 +23,7 @@ export const ALLIES = {
     "Ashburnie": true,
 };
 
-export const KCLUBBERS = ["bonzaiferroni"];
+export const KCLUBBERS = ["bonzaiferroni", "taiga", "Reini", "Vervorris", "Jeb"];
 
 export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 
