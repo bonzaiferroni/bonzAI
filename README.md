@@ -19,8 +19,6 @@ Once you have the code pushed to a screeps server:
 
 At the moment, rooms are still chosen manually, although I've begun the process that the AI will eventually use. This can currently be found in AutoOperation, which will analyze nearby sources and the room layout and choose the best place to start building structures.
 
-Roads are another reason why it functions poorly at the moment without manual intervention. I'm in the process of automating roads-to-sources.
-
 ## Overview
 
 Files in this codebase can be neatly separated into two categories: 
