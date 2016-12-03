@@ -527,6 +527,8 @@ export abstract class Mission {
 
     protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
 
+        if (this.memory.paveTick - Game.time < 1000) return;
+
         let ret = PathFinder.search(start.pos, [{pos: finish.pos, range: rangeAllowance}], {
             plainCost: 2,
             swampCost: 3,
@@ -575,7 +577,9 @@ export abstract class Mission {
             position.createConstructionSite(STRUCTURE_ROAD);
             foundIncompletePath = true;
             console.log(`placed construction ${position}`);
-            break;
+            return;
         }
+
+        this.memory.paveTick = Game.time;
     }
 }
