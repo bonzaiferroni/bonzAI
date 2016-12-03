@@ -49,11 +49,12 @@ export class BuildMission extends Mission {
     }
 
     roleCall() {
+
+        let potency = this.potency;
+        if (this.room.storage && this.room.storage.store.energy < 50000) {
+            potency = 1;
+        }
         let builderBody = () => {
-            let potency = this.potency;
-            if (this.room.storage && this.room.storage.store.energy < 50000) {
-                potency = 1;
-            }
             return this.workerBody(potency, potency, potency / 2);
         };
         let maxBuilders = 1;
@@ -85,7 +86,7 @@ export class BuildMission extends Mission {
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
-        let analysis = this.analyzeTransport(20, this.potency * maxBuilders * 5);
+        let analysis = this.analyzeTransport(20, potency * maxBuilders * 5);
         this.supplyCarts = this.headCount(this.name + "Cart", () => analysis.body, analysis.cartsNeeded,
             {prespawn: analysis.distance, memory: cartMemory});
     }
