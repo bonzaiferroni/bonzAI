@@ -253,7 +253,7 @@ export function initRoomPositionPrototype() {
     /**
      *
      */
-    RoomPosition.prototype.walkablePath = function (pos: RoomPosition): RoomPosition[] {
+    RoomPosition.prototype.walkablePath = function (pos: RoomPosition, ignoreRoads = false): RoomPosition[] {
         let ret = PathFinder.search(this, { pos: pos, range: 1 }, {
             maxOps: 3000,
             plainCost: 2,
@@ -266,8 +266,18 @@ export function initRoomPositionPrototype() {
                         let costs = new PathFinder.CostMatrix();
                         let structures = room.find<Structure>(FIND_STRUCTURES);
                         for (let structure of structures) {
-                            if (structure.structureType === STRUCTURE_ROAD) {
-                                costs.set(structure.pos.x, structure.pos.y, 1);
+                            if (structure instanceof StructureRoad) {
+                                if (!ignoreRoads) {
+                                    costs.set(structure.pos.x, structure.pos.y, 1);
+                                }
+                            }
+                            else if (structure instanceof StructureRampart) {
+                                if (!structure.my) {
+                                    costs.set(structure.pos.x, structure.pos.y, 0xff);
+                                }
+                            }
+                            else if (structure.structureType !== STRUCTURE_CONTAINER) {
+                                costs.set(structure.pos.x, structure.pos.y, 0xff);
                             }
                         }
                         room.basicMatrix = costs;
@@ -285,8 +295,8 @@ export function initRoomPositionPrototype() {
         }
     };
 
-    RoomPosition.prototype.getPathDistanceTo = function(pos: RoomPosition): number {
-        let path = this.walkablePath(pos);
+    RoomPosition.prototype.getPathDistanceTo = function(pos: RoomPosition, ignoreRoads = false): number {
+        let path = this.walkablePath(pos, ignoreRoads);
         if (path) {
             return path.length;
         }

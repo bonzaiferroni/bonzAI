@@ -10,6 +10,7 @@ interface Game {
         mineralCount: { [mineralType: string]: number }
         labProcesses: { [resourceType: string]: number }
         activeLabCount: number;
+        placedRoad: boolean;
     };
 }
 
@@ -37,11 +38,11 @@ interface RoomPosition {
     getPositionAtDirection(direction: number, range?: number): RoomPosition;
     isPassible(ignoreCreeps?: boolean): boolean;
     lookForStructure(structureType: string): Structure;
-    walkablePath(pos: RoomPosition): RoomPosition[];
+    walkablePath(pos: RoomPosition, ignoreRoads?: boolean): RoomPosition[];
     findClosestByLongPath(roomObjects: {pos: RoomPosition}[]): {pos: RoomPosition};
     findClosestByRoomRange(roomObjects: {pos: RoomPosition}[]): {pos: RoomPosition};
     isNearExit(range: number): boolean;
-    getPathDistanceTo(pos: RoomPosition): number;
+    getPathDistanceTo(pos: RoomPosition, ignoreRoads?: boolean): number;
 }
 
 interface RoomObject {

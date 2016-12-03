@@ -99,7 +99,7 @@ export class MiningMission extends Mission {
         }
 
         profiler.start("paver");
-        if (Math.random() < .95 && this.storage && this.container && this.storage.room.controller.level >= 4) {
+        if (this.storage && this.container && this.storage.room.controller.level >= 4) {
             this.pavePath(this.storage, this.container, 2);
         }
         profiler.end("paver");
@@ -283,6 +283,8 @@ export class MiningMission extends Mission {
     private placeContainer() {
         if (!this.storage) return;
 
+        if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) return;
+
         let ret = PathFinder.search(this.source.pos, [{pos: this.storage.pos, range: 1}], {
             maxOps: 4000,
             swampCost: 2,
@@ -299,10 +301,10 @@ export class MiningMission extends Mission {
         });
         if (ret.incomplete || ret.path.length === 0) {
             console.log(`path used for container placement in ${this.opName} incomplete, please investigate`);
+            console.log(`${this.storage.pos}`)
         }
 
         let position = ret.path[0];
-        if (position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) return;
         console.log(`MINER: placed container in ${this.opName}`);
         position.createConstructionSite(STRUCTURE_CONTAINER);
     }

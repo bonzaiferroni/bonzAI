@@ -225,7 +225,7 @@ export abstract class ControllerOperation extends Operation {
                 console.log(`LAYOUT: placing ${structureType} at ${position} (${this.name})`);
             }
             else {
-                console.log(`LAYOUT: bad construction placement: ${outcome}, ${structureType}, ${position} (${this.name})`);
+                // console.log(`LAYOUT: bad construction placement: ${outcome}, ${structureType}, ${position} (${this.name})`);
             }
 
             return;

@@ -187,7 +187,7 @@ export abstract class Mission {
      * @returns {{body: string[], cartsNeeded: number}}
      */
     protected analyzeTransport(distance: number, load: number): TransportAnalysis {
-        if (!this.memory.transportAnalysis) {
+        if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load) {
             // this value is multiplied by 2.1 to account for travel both ways and a small amount of error for traffic/delays
             let bandwidthNeeded = distance * load * 2.1;
             // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100
@@ -526,6 +526,7 @@ export abstract class Mission {
     }
 
     protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
+        if (Game.cache.placedRoad) return;
         if (Object.keys(Game.constructionSites).length > 40) return;
         if (Game.time - this.memory.paveTick < 1000) return;
 
@@ -534,6 +535,12 @@ export abstract class Mission {
             swampCost: 3,
             maxOps: 4000,
             roomCallback: (roomName: string): CostMatrix => {
+                let roomCoords = helper.getRoomCoordinates(roomName);
+                if (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0) {
+                    let matrix = new PathFinder.CostMatrix();
+                    helper.blockOffExits(matrix);
+                    return matrix;
+                }
                 let room = Game.rooms[roomName];
                 if (!room) return;
 
@@ -566,16 +573,34 @@ export abstract class Mission {
             return;
         }
 
-        let foundIncompletePath = false;
         for (let i = 0; i < ret.path.length; i++) {
             let position = ret.path[i];
+            if (!Game.rooms[position.roomName]) return;
             if (position.isNearExit(0)) continue;
             let road = position.lookForStructure(STRUCTURE_ROAD);
             if (road) continue;
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (construction && construction.structureType === STRUCTURE_ROAD) continue;
+            if (i > 1 && !position.isNearExit(1)) {
+                let lastPosition = ret.path[i - 1];
+                let lastDirection = ret.path[i -2].getDirectionTo(lastPosition);
+                let currentDirection = lastPosition.getDirectionTo(position);
+                if (lastDirection % 2 === 0 && lastDirection !== currentDirection) {
+                    let testPosition = lastPosition.getPositionAtDirection(lastDirection);
+                    let finalPositionInRoom = _(ret.path).filter((p: RoomPosition) => p.roomName === position.roomName).last();
+                    let posRange = position.getPathDistanceTo(finalPositionInRoom, true);
+                    let testRange = testPosition.getPathDistanceTo(finalPositionInRoom, true);
+                    if (!testPosition.isNearExit(0) && testPosition.isPassible(true) && posRange === testRange) {
+                        testPosition.createConstructionSite(STRUCTURE_ROAD);
+                        Game.cache.placedRoad = true;
+                        console.log(`placed construction ${position} (straight road)`);
+                        console.log(`${position}, ${testPosition}, ${finalPositionInRoom}, ${posRange}, ${testRange}`);
+                        return;
+                    }
+                }
+            }
             position.createConstructionSite(STRUCTURE_ROAD);
-            foundIncompletePath = true;
+            Game.cache.placedRoad = true;
             console.log(`placed construction ${position}`);
             return;
         }
