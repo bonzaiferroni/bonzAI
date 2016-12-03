@@ -49,7 +49,13 @@ export class BuildMission extends Mission {
     }
 
     roleCall() {
-        let builderBody = () => this.workerBody(this.potency, this.potency, this.potency / 2);
+        let builderBody = () => {
+            let potency = this.potency;
+            if (this.room.storage && this.room.storage.store.energy < 50000) {
+                potency = 1;
+            }
+            return this.workerBody(potency, potency, potency / 2);
+        };
         let maxBuilders = 1;
 
         if (this.name === "mason" && this.room.hostiles.length > 0 && this.room.hostiles[0].owner.username !== "Invader") {
