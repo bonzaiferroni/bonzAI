@@ -46,7 +46,7 @@ export class NightsWatchMission extends Mission {
     }
 
     roleCall() {
-        let maxRefillers = this.emptyTowers.length > 0 ? 2 : 0;
+        let maxRefillers = this.emptyTowers.length > 0 ? 1 : 0;
 
         this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), maxRefillers);
 
