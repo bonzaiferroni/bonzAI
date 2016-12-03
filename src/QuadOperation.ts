@@ -128,9 +128,9 @@ export class QuadOperation extends ControllerOperation {
             {x: 5, y: 4}, {x: 5, y: 5}, {x: -6, y: 2}, {x: -6, y: -2}, {x: -2, y: -6},
             {x: 2, y: 4}, {x: 2, y: -6}, {x: 6, y: -2}, {x: 6, y: 2}, {x: 2, y: 3}, ],
         [STRUCTURE_STORAGE]: [{x: 0, y: 4}],
-        [STRUCTURE_TERMINAL]: [{x: 0, y: 2}],
+        [STRUCTURE_TERMINAL]: [{x: -2, y: 2}],
         [STRUCTURE_NUKER]: [{x: 0, y: 6}],
-        [STRUCTURE_POWER_SPAWN]: [{x: -2, y: 2}],
+        [STRUCTURE_POWER_SPAWN]: [{x: 0, y: 2}],
         [STRUCTURE_OBSERVER]: [{x: -5, y: 5}],
         [STRUCTURE_LAB]: [
             {x: -2, y: 4}, {x: -3, y: 3}, {x: -4, y: 2}, {x: -3, y: 5}, {x: -4, y: 4},
