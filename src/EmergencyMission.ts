@@ -9,7 +9,7 @@ export class EmergencyMinerMission extends Mission {
      * first in FortOperation
      * @param operation
      */
-    
+
     constructor(operation: Operation) {
         super(operation, "emergencyMiner");
     }
@@ -22,7 +22,7 @@ export class EmergencyMinerMission extends Mission {
         let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
             (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
         let body = () => this.workerBody(2, 1, 1);
-        let maxEmergencyMiners = energyAvailable ? 0 : 1;
+        let maxEmergencyMiners = energyAvailable ? 0 : 2;
         this.emergencyMiners = this.headCount("emergencyMiner", body, maxEmergencyMiners);
     }
 
