@@ -211,7 +211,7 @@ export abstract class ControllerOperation extends Operation {
         let allowedCount = this.allowedCount(structureType, controllerLevel);
 
         for (let i = 0; i < coords.length; i++) {
-            if (i > allowedCount) break;
+            if (i >= allowedCount) break;
 
             let coord = coords[i];
             let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
