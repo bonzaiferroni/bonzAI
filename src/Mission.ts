@@ -526,8 +526,8 @@ export abstract class Mission {
     }
 
     protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
-
-        if (this.memory.paveTick - Game.time < 1000) return;
+        if (Object.keys(Game.constructionSites).length > 40) return;
+        if (Game.time - this.memory.paveTick < 1000) return;
 
         let ret = PathFinder.search(start.pos, [{pos: finish.pos, range: rangeAllowance}], {
             plainCost: 2,

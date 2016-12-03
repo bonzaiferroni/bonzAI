@@ -15,7 +15,6 @@ import {Coord, SeedData} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 import {helper} from "./helper";
 import {SeedAnalysis} from "./SeedAnalysis";
-import {FlexGenerator} from "./FlexGenerator";
 
 const SPAWNCART_BODYUNIT_LIMIT = 10;
 const GEO_SPAWN_COST = 5000;
@@ -37,12 +36,13 @@ export abstract class ControllerOperation extends Operation {
         temporaryPlacement: {[level: number]: boolean}
         checkLayoutIndex: number
         layoutMap: {[structureType: string]: Coord[]}
-        radius: number;
+        radius: number
+        seedData: SeedData
+        lastChecked: {[structureType: string]: number }
 
         // deprecated values
         flexLayoutMap: {[structureType: string]: Coord[]}
-        flexRadius: number;
-        seedData: SeedData;
+        flexRadius: number
     };
 
     staticLayout: {[structureType: string]: Coord[]} = {};
@@ -195,28 +195,26 @@ export abstract class ControllerOperation extends Operation {
         }
         let structureType = structureTypes[this.memory.checkLayoutIndex++];
 
-        let allowedCount = this.allowedCount(structureType, this.flag.room.controller.level);
-        let count = this.findStructureCount(structureType);
-
-        if (count < allowedCount) {
-            console.log(structureType, allowedCount, count);
-            this.findNextConstruction(structureType, allowedCount - count)
-        }
-
+        this.fixedPlacement(structureType);
         this.temporaryPlacement(this.flag.room.controller.level);
     }
 
-    private findNextConstruction(structureType: string, amountNeeded: number) {
-        let amountOrdered = 0;
+    private fixedPlacement(structureType: string) {
+        let controllerLevel = this.flag.room.controller.level;
+        let constructionPriority = controllerLevel * 10;
+        if (Object.keys(Game.constructionSites).length > constructionPriority) return;
+        if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) return;
+        if (!this.memory.lastChecked) this.memory.lastChecked = {};
+        if (Game.time - this.memory.lastChecked[structureType] < 1000) return;
 
         let coords = this.layoutCoords(structureType);
+        let allowedCount = this.allowedCount(structureType, controllerLevel);
 
-        for (let coord of coords) {
+        for (let i = 0; i < coords.length; i++) {
+            if (i > allowedCount) break;
+
+            let coord = coords[i];
             let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-            if (!position) {
-                console.log(`LAYOUT: bad position, is centerPoint misplaced? (${this.name})`);
-                return;
-            }
             let hasStructure = position.lookForStructure(structureType);
             if (hasStructure) continue;
             let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
@@ -225,17 +223,15 @@ export abstract class ControllerOperation extends Operation {
             let outcome = position.createConstructionSite(structureType);
             if (outcome === OK) {
                 console.log(`LAYOUT: placing ${structureType} at ${position} (${this.name})`);
-                amountOrdered++;
             }
             else {
                 console.log(`LAYOUT: bad construction placement: ${outcome}, ${structureType}, ${position} (${this.name})`);
             }
 
-            if (amountOrdered === amountNeeded) {
-                console.log(`LAYOUT: finished placing construction for: ${structureType} (${this.name})`);
-                break;
-            }
+            return;
         }
+
+        this.memory.lastChecked[structureType] = Game.time;
     }
 
     private findCenterPositionFromSpawn(spawn: StructureSpawn) {
@@ -281,14 +277,6 @@ export abstract class ControllerOperation extends Operation {
         }
 
         return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length)
-    }
-
-    protected findStructureCount(structureType: string): number {
-        let constructionCount = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES,
-            {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
-        let count = this.flag.room.findStructures(structureType).length;
-
-        return count + constructionCount;
     }
 
     protected layoutCoords(structureType: string): Coord[] {
