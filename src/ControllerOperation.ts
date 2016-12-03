@@ -15,6 +15,7 @@ import {Coord, SeedData} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 import {helper} from "./helper";
 import {SeedAnalysis} from "./SeedAnalysis";
+import {FlexGenerator} from "./FlexGenerator";
 
 const SPAWNCART_BODYUNIT_LIMIT = 10;
 const GEO_SPAWN_COST = 5000;
@@ -35,16 +36,20 @@ export abstract class ControllerOperation extends Operation {
         repairIndex: number
         temporaryPlacement: {[level: number]: boolean}
         checkLayoutIndex: number
+        layoutMap: {[structureType: string]: Coord[]}
+        radius: number;
+
+        // deprecated values
         flexLayoutMap: {[structureType: string]: Coord[]}
         flexRadius: number;
         seedData: SeedData;
     };
 
+    staticLayout: {[structureType: string]: Coord[]} = {};
+
     protected abstract addDefense();
     protected abstract repairWalls();
-    protected abstract findStructureCount(structureType: string): number;
-    protected abstract allowedCount(structureType: string, level: number): number;
-    protected abstract layoutCoords(structureType: string): Coord[];
+    protected abstract initAutoLayout();
     protected abstract temporaryPlacement(controllerLevel: number);
 
     initOperation() {
@@ -176,14 +181,13 @@ export abstract class ControllerOperation extends Operation {
 
     private autoLayout() {
 
-        if (!this.memory.centerPosition || this.memory.rotation === undefined) {
-            let spawns = this.flag.room.find<StructureSpawn>(FIND_MY_SPAWNS);
-            if (spawns.length === 1) {
-                this.findCenterPositionFromSpawn(spawns[0]);
-            }
-            return;
-        }
+        this.initWithSpawn();
+        this.initAutoLayout();
+        this.buildLayout();
 
+    }
+
+    private buildLayout() {
         let structureTypes = Object.keys(CONSTRUCTION_COST);
 
         if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= structureTypes.length) {
@@ -268,6 +272,44 @@ export abstract class ControllerOperation extends Operation {
         }
         else {
             console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or room`);
+        }
+    }
+
+    protected allowedCount(structureType: string, level: number): number {
+        if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
+            return 0;
+        }
+
+        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length)
+    }
+
+    protected findStructureCount(structureType: string): number {
+        let constructionCount = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES,
+            {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
+        let count = this.flag.room.findStructures(structureType).length;
+
+        return count + constructionCount;
+    }
+
+    protected layoutCoords(structureType: string): Coord[] {
+        if (this.staticLayout[structureType]) {
+            return this.staticLayout[structureType]
+        }
+        else if (this.memory.layoutMap && this.memory.layoutMap[structureType]) {
+            return this.memory.layoutMap[structureType];
+        }
+        else {
+            return [];
+        }
+    }
+
+    private initWithSpawn() {
+        if (!this.memory.centerPosition || this.memory.rotation === undefined) {
+            let spawns = this.flag.room.find<StructureSpawn>(FIND_MY_SPAWNS);
+            if (spawns.length === 1) {
+                this.findCenterPositionFromSpawn(spawns[0]);
+            }
+            return;
         }
     }
 }

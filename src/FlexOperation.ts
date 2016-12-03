@@ -23,49 +23,24 @@ export class FlexOperation extends ControllerOperation {
         this.addMission(new NightsWatchMission(this));
     }
 
-    protected allowedCount(structureType: string, level: number): number {
-        if (!this.memory.flexLayoutMap) {
-            this.buildFlexLayoutMap()
-        }
-
-        if (level < 3 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
-            return 0;
-        }
-
-        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length)
-    }
-
-    protected findStructureCount(structureType: string): number {
-        let centerPosition = new RoomPosition(this.memory.centerPosition.x, this.memory.centerPosition.y, this.flag.room.name);
-
-        let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, this.memory.flexRadius,
-            {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
-        let count = _.filter(this.flag.room.findStructures(structureType),
-                (s: Structure) => { return centerPosition.inRangeTo(s, this.memory.flexRadius)}).length + constructionCount;
-
-        return count;
-    }
-
-    protected layoutCoords(structureType: string): Coord[] {
-        if (FlexGenerator.staticStructures[structureType]) {
-            return FlexGenerator.staticStructures[structureType]
-        }
-        else if (this.memory.flexLayoutMap[structureType]) {
-            return this.memory.flexLayoutMap[structureType];
-        }
-        else {
-            return [];
-        }
-    }
-
     protected temporaryPlacement(controllerLevel: number) {
     }
 
-    private buildFlexLayoutMap() {
+    protected initAutoLayout() {
+        this.staticLayout = FlexGenerator.staticStructures;
 
-        let map = new FlexGenerator(this.memory.centerPosition, this.memory.rotation);
+        if(!this.memory.layoutMap) {
 
-        this.memory.flexLayoutMap = map.generate(true);
-        this.memory.flexRadius = map.radius + 1;
+            if (this.memory.flexLayoutMap) {
+                // temporary patch for variable identifier change
+                this.memory.layoutMap = this.memory.flexLayoutMap;
+                this.memory.radius = this.memory.flexRadius;
+            }
+            else {
+                let map = new FlexGenerator(this.memory.centerPosition, this.memory.rotation);
+                this.memory.layoutMap = map.generate(true);
+                this.memory.radius = map.radius + 1;
+            }
+        }
     }
 }

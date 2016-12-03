@@ -28,6 +28,10 @@ export class QuadOperation extends ControllerOperation {
     }
 
     protected repairWalls() {
+        this.towerRepair();
+    }
+
+    protected towerRepair() {
         if (Game.time % REPAIR_INTERVAL !== 0) return;
 
         let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
@@ -39,27 +43,12 @@ export class QuadOperation extends ControllerOperation {
         rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
     }
 
-    protected allowedCount(structureType: string, level: number): number {
-        let allowedCount = {
-            [STRUCTURE_RAMPART]: {
-                0: 0, 1: 0, 2: 0, 3: 0, 4: 49, 5: 49, 6: 49, 7: 49, 8: 49,
-            },
-            [STRUCTURE_ROAD]: {
-                0: 0, 1: 12, 2: 12, 3: 12, 4: 36, 5: 36, 6: 36, 7: 69, 8: 69,
-            }
-        };
+    protected initAutoLayout() {
+        this.staticLayout = this.quadLayoutMap;
 
-        if (allowedCount[structureType]) {
-            // override amounts that aren't really limited
-            return allowedCount[structureType][level]
-        }
-        else if (this.layoutMap[structureType]) {
-            // build max structures for all others included in layout map
-            return CONTROLLER_STRUCTURES[structureType][this.flag.room.controller.level];
-        }
-        else {
-            // do not autobuild the rest (extractor, containers, links, etc.)
-            return 0;
+        if(!this.memory.layoutMap) {
+            this.memory.layoutMap = {};
+            this.memory.radius = QUAD_RADIUS;
         }
     }
 
@@ -121,18 +110,7 @@ export class QuadOperation extends ControllerOperation {
         }
     }
 
-    protected findStructureCount(structureType: string): number {
-        let centerPosition = new RoomPosition(this.memory.centerPosition.x, this.memory.centerPosition.y, this.flag.room.name);
-
-        let constructionCount = centerPosition.findInRange(FIND_MY_CONSTRUCTION_SITES, QUAD_RADIUS,
-            {filter: (c: ConstructionSite) => c.structureType === structureType}).length;
-        let count = _.filter(this.flag.room.findStructures(structureType),
-                (s: Structure) => { return centerPosition.inRangeTo(s, QUAD_RADIUS)}).length + constructionCount;
-
-        return count;
-    }
-
-    layoutMap = {
+    quadLayoutMap = {
         [STRUCTURE_SPAWN]: [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}],
         [STRUCTURE_TOWER]: [
             {x: 1, y: -1}, {x: -1, y: -1}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}],
@@ -207,14 +185,4 @@ export class QuadOperation extends ControllerOperation {
         ]
 
     };
-
-    protected layoutCoords(structureType: string): Coord[] {
-
-        if (this.layoutMap[structureType]) {
-            return this.layoutMap[structureType];
-        }
-        else {
-            return [];
-        }
-    }
 }
