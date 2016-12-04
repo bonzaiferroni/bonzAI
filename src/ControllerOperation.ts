@@ -48,7 +48,7 @@ export abstract class ControllerOperation extends Operation {
     staticLayout: {[structureType: string]: Coord[]} = {};
 
     protected abstract addDefense();
-    protected abstract repairWalls();
+    protected abstract repairStructures();
     protected abstract initAutoLayout();
     protected abstract temporaryPlacement(controllerLevel: number);
 
@@ -116,7 +116,7 @@ export abstract class ControllerOperation extends Operation {
         // repair roads
         this.addMission(new PaverMission(this));
 
-        this.repairWalls();
+        this.repairStructures();
     }
 
     finalizeOperation() {

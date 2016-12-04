@@ -7,9 +7,8 @@ import {GeologyMission} from "./GeologyMission";
 import {IgorMission} from "./IgorMission";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
-import {NightsWatchMission} from "./NightsWatchMission";
+import {DefenseMission} from "./DefenseMission";
 import {MiningMission} from "./MiningMission";
-import {ObserverMission} from "./ObserverMission";
 import {PaverMission} from "./PaverMission";
 import {PowerMission} from "./PowerMission";
 import {RefillMission} from "./RefillMission";
@@ -48,7 +47,7 @@ export class FortOperation extends Operation {
             let maxCarts = this.flag.room.storage ? 1 : 2;
             this.addMission(new RefillMission(this));
 
-            this.addMission(new NightsWatchMission(this));
+            this.addMission(new DefenseMission(this));
 
             if (this.memory.powerMining) {
                 this.addMission(new PowerMission(this));

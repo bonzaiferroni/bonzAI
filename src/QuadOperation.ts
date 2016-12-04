@@ -1,5 +1,5 @@
 import {Empire} from "./Empire";
-import {NightsWatchMission} from "./NightsWatchMission";
+import {DefenseMission} from "./DefenseMission";
 import {OperationPriority} from "./constants";
 import {Coord} from "./interfaces";
 import {ControllerOperation} from "./ControllerOperation";
@@ -24,10 +24,10 @@ export class QuadOperation extends ControllerOperation {
     }
 
     protected addDefense() {
-        this.addMission(new NightsWatchMission(this));
+        this.addMission(new DefenseMission(this));
     }
 
-    protected repairWalls() {
+    protected repairStructures() {
         this.towerRepair();
     }
 

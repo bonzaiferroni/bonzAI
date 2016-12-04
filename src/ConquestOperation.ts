@@ -9,7 +9,7 @@ import {PaverMission} from "./PaverMission";
 import {OperationPriority} from "./constants";
 import {TransportMission} from "./TransportMission";
 import {RemoteBuildMission} from "./RemoteBuildMission";
-import {NightsWatchMission} from "./NightsWatchMission";
+import {DefenseMission} from "./DefenseMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
 import {BuildMission} from "./BuildMission";
 import {RefillMission} from "./RefillMission";
@@ -109,7 +109,7 @@ export class ConquestOperation extends Operation {
         this.addMission(new PaverMission(this));
 
         // shoot towers and refill
-        this.addMission(new NightsWatchMission(this));
+        this.addMission(new DefenseMission(this));
     }
 
     finalizeOperation() {

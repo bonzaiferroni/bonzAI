@@ -1,6 +1,6 @@
 import {ControllerOperation} from "./ControllerOperation";
 import {Coord} from "./interfaces";
-import {NightsWatchMission} from "./NightsWatchMission";
+import {DefenseMission} from "./DefenseMission";
 import {OperationPriority} from "./constants";
 import {Empire} from "./Empire";
 import {BuildMission} from "./BuildMission";
@@ -13,14 +13,14 @@ export class FlexOperation extends ControllerOperation {
         this.priority = OperationPriority.OwnedRoom;
     }
 
-    protected repairWalls() {
+    protected repairStructures() {
         if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
             this.addMission(new BuildMission(this, "mason", this.calcMasonPotency()));
         }
     }
 
     protected addDefense() {
-        this.addMission(new NightsWatchMission(this));
+        this.addMission(new DefenseMission(this));
     }
 
     protected temporaryPlacement(controllerLevel: number) {
