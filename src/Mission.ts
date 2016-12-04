@@ -483,11 +483,31 @@ export abstract class Mission {
     }
 
     protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
-        if (Game.cache.placedRoad) return;
-        if (Object.keys(Game.constructionSites).length > 40) return;
         if (Game.time - this.memory.paveTick < 1000) return;
 
-        let ret = PathFinder.search(start.pos, [{pos: finish.pos, range: rangeAllowance}], {
+        let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
+
+        if (!path) {
+            console.log(`pavePath got an incomplete path, please investigate (${this.opName})`);
+            return;
+        }
+
+        let newConstructionPos = this.examinePavedPath(path);
+
+        if (newConstructionPos && Object.keys(Game.constructionSites).length < 40) {
+            if (!Game.cache.placedRoad) {
+                Game.cache.placedRoad = true;
+                console.log(`PAVER: placed road ${newConstructionPos} in ${this.opName}`);
+                newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
+            }
+        }
+        else {
+            this.memory.paveTick = Game.time;
+        }
+    }
+
+    private findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
+        let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
             plainCost: 2,
             swampCost: 3,
             maxOps: 4000,
@@ -525,13 +545,12 @@ export abstract class Mission {
             },
         });
 
-        if (ret.incomplete) {
-            console.log(`pavePath got an incomplete path, please investigate (${this.opName})`);
-            return;
-        }
+        if (!ret.incomplete) return ret.path;
+    }
 
-        for (let i = 0; i < ret.path.length; i++) {
-            let position = ret.path[i];
+    private examinePavedPath(path: RoomPosition[]) {
+        for (let i = 0; i < path.length; i++) {
+            let position = path[i];
             if (!Game.rooms[position.roomName]) return;
             if (position.isNearExit(0)) continue;
             let road = position.lookForStructure(STRUCTURE_ROAD);
@@ -539,29 +558,22 @@ export abstract class Mission {
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (construction && construction.structureType === STRUCTURE_ROAD) continue;
             if (i > 1 && !position.isNearExit(1)) {
-                let lastPosition = ret.path[i - 1];
-                let lastDirection = ret.path[i -2].getDirectionTo(lastPosition);
+                let lastPosition = path[i - 1];
+                let lastDirection = path[i -2].getDirectionTo(lastPosition);
                 let currentDirection = lastPosition.getDirectionTo(position);
                 if (lastDirection % 2 === 0 && lastDirection !== currentDirection) {
                     let testPosition = lastPosition.getPositionAtDirection(lastDirection);
-                    let finalPositionInRoom = _(ret.path).filter((p: RoomPosition) => p.roomName === position.roomName).last();
+                    let finalPositionInRoom = _(path).filter((p: RoomPosition) => p.roomName === position.roomName).last();
                     let posRange = position.getPathDistanceTo(finalPositionInRoom, true);
                     let testRange = testPosition.getPathDistanceTo(finalPositionInRoom, true);
                     if (!testPosition.isNearExit(0) && testPosition.isPassible(true) && posRange === testRange) {
-                        testPosition.createConstructionSite(STRUCTURE_ROAD);
-                        Game.cache.placedRoad = true;
-                        console.log(`placed construction ${position} (straight road)`);
-                        console.log(`${position}, ${testPosition}, ${finalPositionInRoom}, ${posRange}, ${testRange}`);
-                        return;
+                        if (testPosition.lookForStructure(STRUCTURE_ROAD) !== undefined) continue;
+                        console.log(`straightend road: ${testPosition} (changed from ${position})`);
+                        return testPosition;
                     }
                 }
             }
-            position.createConstructionSite(STRUCTURE_ROAD);
-            Game.cache.placedRoad = true;
-            console.log(`placed construction ${position}`);
-            return;
+            return position;
         }
-
-        this.memory.paveTick = Game.time;
     }
 }
