@@ -374,49 +374,6 @@ export abstract class Mission {
         }
     }
 
-    refillCartActions(cart: Creep, structures: Structure[], findLowest?: boolean) {
-
-        if (cart.room.name !== this.flag.pos.roomName) {
-            this.moveToFlag(cart);
-            return; // early
-        }
-
-        let hasLoad = this.hasLoad(cart);
-        if (!hasLoad) {
-            this.procureEnergy(cart, cart.pos.findClosestByRange(structures), true);
-            return;
-        }
-
-        let target;
-        if (findLowest) {
-            target = _.sortBy(structures, (structure: StructureTower | StructureSpawn | StructureExtension) => structure.energy)[0];
-        }
-        else {
-            target = cart.pos.findClosestByRange(structures) as StructureExtension | StructureSpawn;
-        }
-        if (!target) {
-            cart.memory.hasLoad = cart.carry.energy === cart.carryCapacity;
-            cart.yieldRoad(this.flag);
-            return;
-        }
-
-        // has target
-        if (!cart.pos.isNearTo(target)) {
-            cart.blindMoveTo(target);
-            return;
-        }
-
-        // is near to target
-        let outcome = cart.transfer(target, RESOURCE_ENERGY);
-        if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
-            structures = _.pull(structures, target);
-            target = cart.pos.findClosestByRange(structures) as StructureExtension | StructureSpawn;
-            if (target && !cart.pos.isNearTo(target)) {
-                cart.blindMoveTo(target);
-            }
-        }
-    }
-
     private findOrphans(roleName: string) {
         let creepNames = [];
         for (let creepName in Game.creeps) {
