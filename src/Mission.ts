@@ -232,12 +232,12 @@ export abstract class Mission {
                 if (outcome === OK) {
                     creep.memory.batteryId = undefined;
                     if (nextDestination) {
-                        creep.blindMoveTo(nextDestination);
+                        creep.blindMoveTo(nextDestination, {maxRooms: 1});
                     }
                 }
             }
             else {
-                creep.blindMoveTo(battery);
+                creep.blindMoveTo(battery, {maxRooms: 1});
             }
         }
         else {

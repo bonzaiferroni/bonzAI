@@ -64,11 +64,6 @@ export class RefillMission extends Mission {
 
     spawnCartActions(cart: Creep) {
 
-        if (cart.room.name !== this.flag.pos.roomName) {
-            this.moveToFlag(cart);
-            return; // early
-        }
-
         let hasLoad = this.hasLoad(cart);
         if (!hasLoad) {
             this.procureEnergy(cart, this.findNearestEmpty(cart), true);
@@ -84,7 +79,7 @@ export class RefillMission extends Mission {
 
         // has target
         if (!cart.pos.isNearTo(target)) {
-            cart.blindMoveTo(target);
+            cart.blindMoveTo(target, {maxRooms: 1});
             return;
         }
 
@@ -93,7 +88,7 @@ export class RefillMission extends Mission {
         if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
             target = this.findNearestEmpty(cart, target);
             if (target && !cart.pos.isNearTo(target)) {
-                cart.blindMoveTo(target);
+                cart.blindMoveTo(target, {maxRooms: 1});
             }
         }
     }
