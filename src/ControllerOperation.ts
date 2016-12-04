@@ -54,10 +54,12 @@ export abstract class ControllerOperation extends Operation {
 
     initOperation() {
 
+        this.autoLayout();
         if (!this.flag.room) return; // TODO: remote revival
 
         // initOperation FortOperation variables
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        if(!this.spawnGroup) return;
         this.empire.register(this.flag.room);
 
         // spawn emergency miner if needed
@@ -116,7 +118,6 @@ export abstract class ControllerOperation extends Operation {
         // repair roads
         this.addMission(new PaverMission(this));
 
-        this.autoLayout();
         this.repairWalls();
     }
 
@@ -182,6 +183,7 @@ export abstract class ControllerOperation extends Operation {
     private autoLayout() {
 
         this.initWithSpawn();
+        if (!this.memory.centerPosition || this.memory.rotation === undefined ) return;
         this.initAutoLayout();
         this.buildLayout();
 
