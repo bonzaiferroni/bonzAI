@@ -46,7 +46,7 @@ export class FortOperation extends Operation {
             let structures = this.flag.room.findStructures(STRUCTURE_EXTENSION)
                 .concat(this.flag.room.find(FIND_MY_SPAWNS)) as Structure[];
             let maxCarts = this.flag.room.storage ? 1 : 2;
-            this.addMission(new RefillMission(this, "spawnCart", maxCarts, structures, 10, true));
+            this.addMission(new RefillMission(this));
 
             this.addMission(new NightsWatchMission(this));
 

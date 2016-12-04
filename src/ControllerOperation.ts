@@ -66,10 +66,8 @@ export abstract class ControllerOperation extends Operation {
         this.addMission(new EmergencyMinerMission(this));
 
         // refill spawning energy - will spawn small spawnCart if needed
-        let structures = this.flag.room.findStructures(STRUCTURE_EXTENSION)
-            .concat(this.flag.room.find(FIND_MY_SPAWNS)) as Structure[];
-        let maxCarts = this.flag.room.storage ? 1 : 2;
-        this.addMission(new RefillMission(this, "spawnCart", maxCarts, structures, SPAWNCART_BODYUNIT_LIMIT, true));
+
+        this.addMission(new RefillMission(this));
 
         this.addDefense();
 

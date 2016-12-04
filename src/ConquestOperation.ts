@@ -89,7 +89,7 @@ export class ConquestOperation extends Operation {
         if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= CONQUEST_LOCAL_MIN_SPAWN_ENERGY) {
             this.waypoints = undefined;
             this.spawnGroup = localSpawnGroup;
-            this.addMission(new RefillMission(this, "spawnCart", 1, localSpawnGroup.extensions.concat(localSpawnGroup.spawns), 4, true));
+            this.addMission(new RefillMission(this));
 
             // build walls
             if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {

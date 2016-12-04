@@ -98,11 +98,9 @@ export class MiningMission extends Mission {
             }
         }
 
-        profiler.start("paver");
         if (this.storage && this.container && this.storage.room.controller.level >= 4) {
             this.pavePath(this.storage, this.container, 2);
         }
-        profiler.end("paver");
     }
 
     private minerActions(miner: Creep) {
