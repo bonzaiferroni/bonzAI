@@ -155,7 +155,7 @@ export class BuildMission extends Mission {
             }
         }
         else {
-            builder.blindMoveTo(closest);
+            builder.blindMoveTo(closest, {maxRooms: 1});
         }
     }
 
