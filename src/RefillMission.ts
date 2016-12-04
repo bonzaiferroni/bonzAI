@@ -1,11 +1,18 @@
 import {Mission} from "./Mission";
 import {Operation} from "./Operation";
+
+interface EnergyStructure extends Structure {
+    pos: RoomPosition
+    energy: number
+    energyCapacity: number
+}
+
 export class RefillMission extends Mission {
 
     carts: Creep[];
     emergencyCarts: Creep[];
     emergencyMode: boolean;
-    empties: StructureSpawn[];
+    empties: EnergyStructure[];
 
     memory: {
         cartsLastTick: number
@@ -51,10 +58,8 @@ export class RefillMission extends Mission {
 
     missionActions() {
 
-        if (this.emergencyMode) {
-            for (let cart of this.emergencyCarts) {
-                this.spawnCartActions(cart);
-            }
+        for (let cart of this.emergencyCarts) {
+            this.spawnCartActions(cart);
         }
 
         for (let cart of this.carts) {
@@ -98,11 +103,14 @@ export class RefillMission extends Mission {
     invalidateMissionCache() {
     }
 
-    findNearestEmpty(cart: Creep, pullTarget?: StructureSpawn | StructureExtension): StructureSpawn | StructureExtension {
+    findNearestEmpty(cart: Creep, pullTarget?: EnergyStructure): EnergyStructure {
         if (!this.empties) {
             this.empties = _.filter(this.spawnGroup.extensions.concat(this.spawnGroup.spawns), (s: StructureSpawn) => {
                 return s.energy < s.energyCapacity;
-            }) as StructureSpawn[];
+            }) as EnergyStructure[];
+            this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s: StructureTower) => {
+                return s.energy < s.energyCapacity * .2;
+            }) as EnergyStructure[]);
         }
 
         if (pullTarget) {
