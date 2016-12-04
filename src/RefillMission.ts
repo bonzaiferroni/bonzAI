@@ -109,7 +109,7 @@ export class RefillMission extends Mission {
                 return s.energy < s.energyCapacity;
             }) as EnergyStructure[];
             this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s: StructureTower) => {
-                return s.energy < s.energyCapacity * .2;
+                return s.energy < s.energyCapacity * .5;
             }) as EnergyStructure[]);
         }
 
