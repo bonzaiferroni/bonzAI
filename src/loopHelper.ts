@@ -9,7 +9,6 @@ import {
 import {KeeperOperation} from "./KeeperOperation";
 import {ConquestOperation} from "./ConquestOperation";
 import {consoleCommands} from "./consoleCommands";
-import {TrainingOperation} from "./TrainingOperation";
 import {DemolishOperation} from "./DemolishOperation";
 import {TransportOperation} from "./TransportOperation";
 import {RaidOperation} from "./RaidOperation";
@@ -34,7 +33,6 @@ export var loopHelper = {
             mining: MiningOperation,
             tran: TransportOperation,
             keeper: KeeperOperation,
-            training: TrainingOperation,
             demolish: DemolishOperation,
             raid: RaidOperation,
             quad: QuadOperation,
