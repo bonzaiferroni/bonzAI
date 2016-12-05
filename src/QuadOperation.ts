@@ -6,7 +6,6 @@ import {ControllerOperation} from "./ControllerOperation";
 import {helper} from "./helper";
 
 const QUAD_RADIUS = 6;
-const REPAIR_INTERVAL = 4;
 
 export class QuadOperation extends ControllerOperation {
 
@@ -25,22 +24,6 @@ export class QuadOperation extends ControllerOperation {
 
     protected addDefense() {
         this.addMission(new DefenseMission(this));
-    }
-
-    protected repairStructures() {
-        this.towerRepair();
-    }
-
-    protected towerRepair() {
-        if (Game.time % REPAIR_INTERVAL !== 0) return;
-
-        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
-        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
-        if (towers.length === 0 || ramparts.length === 0) return;
-
-        let rampart = _(ramparts).sortBy("hits").head();
-
-        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
     }
 
     protected initAutoLayout() {

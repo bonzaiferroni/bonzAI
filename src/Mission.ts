@@ -128,7 +128,7 @@ export abstract class Mission {
         if (spawnMemory.communityRoles[roleName]) {
             creep = Game.creeps[spawnMemory.communityRoles[roleName]];
             if (creep) {
-                if (creep.memory.employer === employerName || Game.time - creep.memory.lastTickEmployed > 1) {
+                if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed || Game.time - creep.memory.lastTickEmployed > 1)) {
                     creep.memory.employer = employerName;
                     creep.memory.lastTickEmployed = Game.time;
                     return creep;
@@ -594,7 +594,7 @@ export abstract class Mission {
                 hitsToRepair += road.hitsMax - road.hits;
                 // TODO: calculate how much "a whole lot" should be based on paver repair rate
                 const A_WHOLE_LOT = 1000000;
-                if (!this.memory.roadRepairIds && hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20) {
+                if (!this.memory.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20)) {
                     console.log(`PAVER: I'm being summoned in ${this.opName}`);
                     this.memory.roadRepairIds = repairIds;
                 }
@@ -631,13 +631,14 @@ export abstract class Mission {
         }
 
         let road = this.findRoadToRepair();
+
         if (!road) {
             console.log(`this is paver, checking out with ${paver.ticksToLive} ticks to live`);
-            // paver.suicide();
+            paver.idleOffRoad(this.room.controller);
             return;
         }
 
-        if (paver.pos.inRangeTo(road, 3)) {
+        if (paver.pos.inRangeTo(road, 3) && !paver.pos.isNearExit(0)) {
             paver.repair(road);
             paver.yieldRoad(road);
         }

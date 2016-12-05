@@ -7,6 +7,8 @@ export class UpgradeMission extends Mission {
     upgraders: Creep[];
     linkUpgraders: Creep[];
     supplyCarts: Creep[];
+    paver: Creep;
+
     battery: StructureContainer | StructureStorage | StructureLink;
     boost: boolean;
     allowUnboosted: boolean;
@@ -116,6 +118,10 @@ export class UpgradeMission extends Mission {
 
             this.upgraders = this.headCount("upgrader", upgraderBody, max, {prespawn: this.distanceToSpawn, memory: memory});
         }
+
+        if (this.memory.roadRepairIds) {
+            this.paver = this.spawnPaver();
+        }
     }
 
     missionActions() {
@@ -140,11 +146,13 @@ export class UpgradeMission extends Mission {
             }
         }
 
-        profiler.start("paver");
-        if (Math.random() < .95 && this.room.controller.level >= 4) {
+        if (this.paver) {
+            this.paverActions(this.paver);
+        }
+
+        if (this.room.controller.level >= 4) {
             this.pavePath({pos: this.spawnGroup.pos}, this.room.controller, 4);
         }
-        profiler.end("paver");
     }
 
     finalizeMission() {

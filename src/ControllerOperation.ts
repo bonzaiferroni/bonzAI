@@ -48,7 +48,6 @@ export abstract class ControllerOperation extends Operation {
     staticLayout: {[structureType: string]: Coord[]} = {};
 
     protected abstract addDefense();
-    protected abstract repairStructures();
     protected abstract initAutoLayout();
     protected abstract temporaryPlacement(controllerLevel: number);
 
@@ -113,10 +112,7 @@ export abstract class ControllerOperation extends Operation {
         let boostUpgraders = this.flag.room.controller.level < 8;
         this.addMission(new UpgradeMission(this, boostUpgraders));
 
-        // repair roads
-        this.addMission(new PaverMission(this));
-
-        this.repairStructures();
+        this.towerRepair();
     }
 
     finalizeOperation() {
@@ -299,5 +295,17 @@ export abstract class ControllerOperation extends Operation {
             }
             return;
         }
+    }
+
+    protected towerRepair() {
+        if (Game.time % 4 !== 0) return;
+
+        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
+        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
+        if (towers.length === 0 || ramparts.length === 0) return;
+
+        let rampart = _(ramparts).sortBy("hits").head();
+
+        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
     }
 }
