@@ -105,9 +105,12 @@ export abstract class Mission {
                 Memory.creeps[creepName] = undefined;
                 i--;
             }
+
+            // if (this.opName === "dingus5" && this.name === "igor") console.log(Game.time, creepName, creep ? creep.ticksToLive : "noCreep", count, this.memory.spawn[roleName])
         }
 
         if (this.allowSpawn && this.spawnGroup.isAvailable && (count < max) && (this.hasVision || options.blindSpawn)) {
+            // if (this.opName === "dingus5" && this.name === "igor") console.log("spawn", count);
             let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
@@ -549,12 +552,26 @@ export abstract class Mission {
     }
 
     private examinePavedPath(path: RoomPosition[]) {
+
+        let repairIds = [];
+        let hitsToRepair = 0;
+
         for (let i = 0; i < path.length; i++) {
             let position = path[i];
             if (!Game.rooms[position.roomName]) return;
             if (position.isNearExit(0)) continue;
             let road = position.lookForStructure(STRUCTURE_ROAD);
-            if (road) continue;
+            if (road) {
+                repairIds.push(road.id);
+                hitsToRepair += road.hitsMax - road.hits;
+                // TODO: calculate how much "a whole lot" should be based on paver repair rate
+                const A_WHOLE_LOT = 1000000;
+                if (!this.memory.roadRepairIds && hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20) {
+                    console.log(`PAVER: I'm being summoned in ${this.opName}`);
+                    this.memory.roadRepairIds = repairIds;
+                }
+                continue;
+            }
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (construction && construction.structureType === STRUCTURE_ROAD) continue;
             if (i > 1 && !position.isNearExit(1)) {

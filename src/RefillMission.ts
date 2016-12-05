@@ -78,7 +78,7 @@ export class RefillMission extends Mission {
         let target = this.findNearestEmpty(cart);
         if (!target) {
             cart.memory.hasLoad = cart.carry.energy === cart.carryCapacity;
-            cart.yieldRoad(this.flag);
+            cart.idleOffRoad(this.flag);
             return;
         }
 

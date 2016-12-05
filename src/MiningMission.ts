@@ -9,6 +9,7 @@ export class MiningMission extends Mission {
 
     miners: Creep[];
     minerCarts: Creep[];
+    pavers: Creep[];
 
     source: Source;
     container: StructureContainer;
@@ -26,6 +27,7 @@ export class MiningMission extends Mission {
         positionsAvailable: number;
         transportAnalysis: TransportAnalysis;
         distanceToStorage: number;
+        roadRepairIds: string[];
     };
 
     /**
@@ -78,6 +80,14 @@ export class MiningMission extends Mission {
 
         this.miners = this.headCount(this.name, getMinerBody, maxMiners, {prespawn: this.distanceToSpawn});
 
+        let maxPavers = 0;
+        if (this.memory.roadRepairIds) {
+            maxPavers = 1;
+        }
+
+        let paverBody = () => { return this.bodyRatio(1, 3, 1, 1, 5); };
+        this.pavers = this.headCount(this.name + "_paver", paverBody, maxPavers);
+
         if (!this.needsEnergyTransport) return;
 
         let maxCarts = _.sum(this.storage.store) < 950000 ? this.analysis.cartsNeeded : 0;
@@ -96,6 +106,10 @@ export class MiningMission extends Mission {
             for (let cart of this.minerCarts) {
                 this.cartActions(cart);
             }
+        }
+
+        for (let paver of this.pavers) {
+            this.paverActions(paver);
         }
 
         if (this.storage && this.container && this.storage.room.controller.level >= 4) {
@@ -305,5 +319,54 @@ export class MiningMission extends Mission {
         let position = ret.path[0];
         console.log(`MINER: placed container in ${this.opName}`);
         position.createConstructionSite(STRUCTURE_CONTAINER);
+    }
+
+    private paverActions(paver: Creep) {
+        let hasLoad = this.hasLoad(paver);
+        if (!hasLoad) {
+            this.procureEnergy(paver, this.findRoadToRepair());
+            return;
+        }
+
+        let road = this.findRoadToRepair();
+        if (!road) {
+            console.log(`this is paver, checking out with ${paver.ticksToLive} ticks to live`);
+            // paver.suicide();
+            return;
+        }
+
+        if (paver.pos.inRangeTo(road, 3)) {
+            paver.repair(road);
+            paver.yieldRoad(road);
+        }
+        else {
+            paver.blindMoveTo(road);
+        }
+
+        let creepsInRange = _.filter(paver.pos.findInRange(FIND_MY_CREEPS, 1), (c: Creep) => {
+            return c.carry.energy > 0 && c.partCount(WORK) === 0;
+        }) as Creep[];
+
+        if (creepsInRange.length > 0) {
+            creepsInRange[0].transfer(paver, RESOURCE_ENERGY);
+        }
+    }
+
+    private findRoadToRepair(): StructureRoad {
+        if (!this.memory.roadRepairIds) return;
+
+        let road = Game.getObjectById<StructureRoad>(this.memory.roadRepairIds[0]);
+        if (road && road.hits < road.hitsMax) {
+            return road;
+        }
+        else {
+            this.memory.roadRepairIds.shift();
+            if (this.memory.roadRepairIds.length > 0) {
+                return this.findRoadToRepair();
+            }
+            else {
+                this.memory.roadRepairIds = undefined;
+            }
+        }
     }
 }
