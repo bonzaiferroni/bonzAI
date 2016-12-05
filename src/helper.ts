@@ -240,15 +240,15 @@ export var helper = {
         return xDir + x + yDir + y;
     },
 
-    blockOffExits(matrix: CostMatrix): CostMatrix {
+    blockOffExits(matrix: CostMatrix, cost = 0xff): CostMatrix {
         for (let i = 0; i < 50; i += 49) {
             for (let j = 0; j < 50; j++) {
-                matrix.set(i, j, 0xff);
+                matrix.set(i, j, cost);
             }
         }
         for (let i = 0; i < 50; i++) {
             for (let j = 0; j < 50; j += 49) {
-                matrix.set(i, j, 0xff);
+                matrix.set(i, j, cost);
             }
         }
         return matrix;

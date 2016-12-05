@@ -119,7 +119,7 @@ export abstract class Mission {
         return roleArray;
     }
 
-    protected sharedCreep(roleName: string, getBody: () => string[]) {
+    protected spawnSharedCreep(roleName: string, getBody: () => string[]) {
         let spawnMemory = this.spawnGroup.spawns[0].memory;
         if (!spawnMemory.communityRoles) spawnMemory.communityRoles = {};
 
@@ -137,12 +137,12 @@ export abstract class Mission {
         }
 
         if (!creep && this.spawnGroup.isAvailable) {
-            let outcome = this.spawnGroup.spawn(getBody(), "community_" + roleName + Math.floor(Math.random() * 100), undefined, undefined);
+            let outcome = this.spawnGroup.spawn(getBody(), "community_" + roleName + "_" + Math.floor(Math.random() * 100), undefined, undefined);
             if (_.isString(outcome)) {
                 spawnMemory.communityRoles[roleName] = outcome;
             }
-            else {
-                console.log(`error spawning community ${roleName} in ${this.opName}`);
+            else if (Game.time % 10 !== 0 && outcome !== ERR_NOT_ENOUGH_RESOURCES) {
+                console.log(`error spawning community ${roleName} in ${this.opName} outcome: ${outcome}`);
             }
         }
     }
@@ -638,14 +638,24 @@ export abstract class Mission {
             return;
         }
 
+        let paving = false;
         if (paver.pos.inRangeTo(road, 3) && !paver.pos.isNearExit(0)) {
-            paver.repair(road);
-            if (road.hitsMax - road.hits > 2000) {
-                paver.yieldRoad(road, false);
+            paving = paver.repair(road) === OK;
+            let hitsLeftToRepair = road.hitsMax - road.hits;
+            if (hitsLeftToRepair > 10000) {
+                paver.yieldRoad(road, true);
+            }
+            else if (hitsLeftToRepair > 1500) {
+                paver.yieldRoad(road, false)
             }
         }
         else {
             paver.blindMoveTo(road);
+        }
+
+        if (!paving) {
+            road = paver.pos.lookForStructure(STRUCTURE_ROAD) as StructureRoad;
+            if (road && road.hits < road.hitsMax) paver.repair(road);
         }
 
         let creepsInRange = _.filter(paver.pos.findInRange(FIND_MY_CREEPS, 1), (c: Creep) => {
@@ -676,7 +686,7 @@ export abstract class Mission {
     }
 
     protected spawnPaver(): Creep {
-        let paverBody = () => { return this.bodyRatio(1, 3, 1, 1, 5); };
-        return this.sharedCreep("paver", paverBody);
+        let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
+        return this.spawnSharedCreep("paver", paverBody);
     }
 }
