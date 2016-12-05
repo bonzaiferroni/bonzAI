@@ -199,6 +199,7 @@ export var helper = {
     blockOffMatrix(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
             for (let yDelta = -range; yDelta <= range; yDelta++) {
+                if (Game.map.getTerrainAt(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, roomObject.room.name) === "wall") continue;
                 costs.set(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, cost);
             }
         }
@@ -219,6 +220,24 @@ export var helper = {
             }
         });
         return costs;
+    },
+
+    addTerrainToMatrix(matrix: CostMatrix, roomName: string): CostMatrix {
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                let terrain = Game.map.getTerrainAt(x, y, roomName);
+                if (terrain === "wall") {
+                    matrix.set(x, y, 0xff);
+                }
+                else if (terrain === "swamp") {
+                    matrix.set(x, y, 5);
+                }
+                else {
+                    matrix.set(x, y, 1);
+                }
+            }
+        }
+        return;
     },
 
     findRelativeRoomName(room: Room, xDelta: number, yDelta: number): string {

@@ -537,7 +537,7 @@ export abstract class Mission {
         }
     }
 
-    private findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
+    protected findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
         let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
             plainCost: 2,
             swampCost: 3,
@@ -554,6 +554,9 @@ export abstract class Mission {
 
                 let matrix = new PathFinder.CostMatrix();
                 helper.addStructuresToMatrix(matrix, room);
+
+                // avoid controller
+                helper.blockOffMatrix(matrix, room.controller, 3, 5);
 
                 // avoid container adjacency
                 let sources = room.find<Source>(FIND_SOURCES);

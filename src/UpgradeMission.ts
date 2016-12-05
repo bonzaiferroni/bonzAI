@@ -1,7 +1,8 @@
 import {Mission} from "./Mission";
 import {Operation} from "./Operation";
 import {RESERVE_AMOUNT} from "./constants";
-import {profiler} from "./profiler";
+import {helper} from "./helper";
+import {TransportAnalysis} from "./interfaces";
 export class UpgradeMission extends Mission {
 
     upgraders: Creep[];
@@ -12,6 +13,15 @@ export class UpgradeMission extends Mission {
     battery: StructureContainer | StructureStorage | StructureLink;
     boost: boolean;
     allowUnboosted: boolean;
+
+    memory: {
+        batteryPosition: RoomPosition
+        cartCount: number
+        maxUpgraders: number
+        max: number
+        roadRepairIds: string[]
+        transportAnalysis: TransportAnalysis
+    };
 
     /**
      * Controller upgrading. Will look for a suitable controller battery (StructureContainer, StructureStorage,
@@ -31,7 +41,7 @@ export class UpgradeMission extends Mission {
     initMission() {
         if (!this.memory.cartCount) { this.memory.cartCount = 0; }
         this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
-        this.battery = this.room.controller.getBattery();
+        this.battery = this.findControllerBattery()
     }
 
     roleCall() {
@@ -150,8 +160,8 @@ export class UpgradeMission extends Mission {
             this.paverActions(this.paver);
         }
 
-        if (this.room.controller.level >= 4) {
-            this.pavePath({pos: this.spawnGroup.pos}, this.room.controller, 4);
+        if (this.battery) {
+            this.pavePath({pos: this.spawnGroup.pos}, this.battery, 1);
         }
     }
 
@@ -234,6 +244,59 @@ export class UpgradeMission extends Mission {
         }
         else if (suppliedCreep.carry.energy < suppliedCreep.carryCapacity / 2 && outcome === OK) {
             this.procureEnergy(cart, suppliedCreep);
+        }
+    }
+
+    private findControllerBattery() {
+        let battery = this.room.controller.getBattery();
+
+        if (battery instanceof StructureContainer && this.room.controller.level >= 5) {
+            battery.destroy();
+            return;
+        }
+
+        if (!battery) {
+            let spawn = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            if (!spawn) return;
+            if (!this.memory.batteryPosition) {
+                this.memory.batteryPosition = this.findBatteryPosition(spawn);
+                if (!this.memory.batteryPosition) return;
+            }
+            let structureType = STRUCTURE_LINK;
+            if (this.room.controller.level < 5) {
+                structureType = STRUCTURE_CONTAINER;
+            }
+            let position = helper.deserializeRoomPosition(this.memory.batteryPosition);
+            if (position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) return;
+            let outcome = position.createConstructionSite(structureType);
+            console.log(`UPGRADE: placing battery in ${this.opName}, outcome: ${outcome}, ${position}`);
+        }
+
+        return battery
+    }
+
+    private findBatteryPosition(spawn: StructureSpawn): RoomPosition {
+        let path = this.findPavedPath(spawn.pos, this.room.controller.pos, 1);
+        let positionsInRange = this.room.controller.pos.findInRange(path, 3);
+        positionsInRange = _.sortBy(positionsInRange, (pos: RoomPosition) => pos.getRangeTo(spawn.pos));
+
+        let mostSpots = 0;
+        let bestPositionSoFar;
+        for (let position of positionsInRange) {
+            let openSpotCount = _.filter(position.openAdjacentSpots(true),
+                (pos: RoomPosition) => pos.getRangeTo(this.room.controller) <= 3).length;
+            if (openSpotCount >= 5) return position;
+            else if (openSpotCount > mostSpots) {
+                mostSpots = openSpotCount;
+                bestPositionSoFar = position;
+            }
+        }
+
+        if (bestPositionSoFar) {
+            return bestPositionSoFar;
+        }
+        else {
+            console.log(`couldn't find controller battery position in ${this.opName}`);
         }
     }
 }
