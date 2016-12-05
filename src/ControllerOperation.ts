@@ -10,7 +10,6 @@ import {BuildMission} from "./BuildMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
 import {GeologyMission} from "./GeologyMission";
 import {UpgradeMission} from "./UpgradeMission";
-import {PaverMission} from "./PaverMission";
 import {Coord, SeedData} from "./interfaces";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
 import {helper} from "./helper";
@@ -39,6 +38,7 @@ export abstract class ControllerOperation extends Operation {
         radius: number
         seedData: SeedData
         lastChecked: {[structureType: string]: number }
+        roadRepairIndex: number;
 
         // deprecated values
         flexLayoutMap: {[structureType: string]: Coord[]}
@@ -298,14 +298,31 @@ export abstract class ControllerOperation extends Operation {
     }
 
     protected towerRepair() {
-        if (Game.time % 4 !== 0) return;
+        if (Game.time % 4 === 0) {
+            // repair ramparts
+            let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
+            let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
+            if (towers.length === 0 || ramparts.length === 0) return;
 
-        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
-        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
-        if (towers.length === 0 || ramparts.length === 0) return;
+            let rampart = _(ramparts).sortBy("hits").head();
 
-        let rampart = _(ramparts).sortBy("hits").head();
+            rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
+        }
+        else if (Game.time % 4 === 2) {
+            // repair roads
+            let centerPosition = helper.deserializeRoomPosition(this.memory.centerPosition);
+            let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
+            let roadsInRange =  centerPosition.findInRange<StructureRoad>(this.flag.room.findStructures(STRUCTURE_ROAD) as StructureRoad[],
+                this.memory.radius);
+            if (this.memory.roadRepairIndex === undefined || this.memory.roadRepairIndex >= roadsInRange.length) {
+                this.memory.roadRepairIndex = 0;
+            }
 
-        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
+            let road = roadsInRange[this.memory.roadRepairIndex++];
+            if (road.hitsMax - road.hits >= 800) {
+                let tower = road.pos.findClosestByRange(towers) as StructureTower;
+                tower.repair(road);
+            }
+        }
     }
 }
