@@ -4,3 +4,4 @@
 /dist
 Gruntfile.js
 /.idea
+/src/sandbox.ts
