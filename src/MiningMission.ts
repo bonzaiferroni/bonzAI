@@ -69,7 +69,7 @@ export class MiningMission extends Mission {
         // below a certain amount of maxSpawnEnergy, BootstrapMission will harvest energy
         if (!this.memory.potencyPerMiner) this.memory.potencyPerMiner = 2;
         let maxMiners = this.needsEnergyTransport ? 1 : Math.min(Math.ceil(5 / this.memory.potencyPerMiner), this.positionsAvailable);
-        if (maxMiners > 1) {
+        if (maxMiners > 1 && this.spawnGroup.maxSpawnEnergy < 800) {
             this.container = undefined;
         }
 
@@ -166,7 +166,7 @@ export class MiningMission extends Mission {
 
     private getMinerBody(): string[] {
         let body;
-        if (this.needsEnergyTransport && this.spawnGroup.maxSpawnEnergy >= 800) {
+        if ((this.container || this.needsEnergyTransport) && this.spawnGroup.maxSpawnEnergy >= 800) {
 
             let work = Math.ceil((Math.max(this.source.energyCapacity,
                     SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);
