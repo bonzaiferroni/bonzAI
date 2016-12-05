@@ -260,12 +260,23 @@ export function initCreepPrototype() {
         if (offRoad) return OK;
 
         let positions = this.pos.openAdjacentSpots();
+        let swampPosition;
         for (let position of positions) {
-            if (position.lookFor(LOOK_STRUCTURES).length === 0 &&
-                (!this.room.storage || !this.room.storage.pos.inRangeTo(position, 1))) {
-                return this.move(this.pos.getDirectionTo(position));
+            if (position.lookFor(LOOK_STRUCTURES).length === 0) {
+                let terrain = position.lookFor(LOOK_TERRAIN)[0] as string;
+                if (terrain === "swamp") {
+                    swampPosition = position;
+                }
+                else {
+                    return this.move(this.pos.getDirectionTo(position));
+                }
             }
         }
+
+        if (swampPosition) {
+            return this.move(this.pos.getDirectionTo(swampPosition));
+        }
+
         return this.blindMoveTo(defaultPoint);
     };
 
@@ -275,9 +286,10 @@ export function initCreepPrototype() {
      * @param target - target for which you do not want to move out of range
      * @returns {number}
      */
-    Creep.prototype.yieldRoad = function(target: RoomObject): number  {
+    Creep.prototype.yieldRoad = function(target: RoomObject, allowSwamps = true): number  {
         let isOnRoad = this.pos.lookFor(LOOK_STRUCTURES).length > 0;
         if (isOnRoad) {
+            let swampPosition;
             // find movement options
             let direction = this.pos.getDirectionTo(target);
             for (let i = -2; i <= 2; i++) {
@@ -288,7 +300,14 @@ export function initCreepPrototype() {
                 if (position.lookFor(LOOK_STRUCTURES).length > 0) continue;
                 if (!position.isPassible()) continue;
                 if (position.isNearExit(0)) continue;
+                if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
+                    swampPosition = position;
+                    continue;
+                }
                 return this.move(relDirection);
+            }
+            if (swampPosition && allowSwamps) {
+                return this.move(this.pos.getDirectionTo(swampPosition));
             }
             return this.blindMoveTo(target);
         }

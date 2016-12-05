@@ -546,7 +546,7 @@ export abstract class Mission {
                 let roomCoords = helper.getRoomCoordinates(roomName);
                 if (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0) {
                     let matrix = new PathFinder.CostMatrix();
-                    helper.blockOffExits(matrix);
+                    helper.blockOffExits(matrix, 10);
                     return matrix;
                 }
                 let room = Game.rooms[roomName];
@@ -633,14 +633,16 @@ export abstract class Mission {
         let road = this.findRoadToRepair();
 
         if (!road) {
-            console.log(`this is paver, checking out with ${paver.ticksToLive} ticks to live`);
+            console.log(`this is ${this.opName} paver, checking out with ${paver.ticksToLive} ticks to live`);
             paver.idleOffRoad(this.room.controller);
             return;
         }
 
         if (paver.pos.inRangeTo(road, 3) && !paver.pos.isNearExit(0)) {
             paver.repair(road);
-            paver.yieldRoad(road);
+            if (road.hitsMax - road.hits > 2000) {
+                paver.yieldRoad(road, false);
+            }
         }
         else {
             paver.blindMoveTo(road);
