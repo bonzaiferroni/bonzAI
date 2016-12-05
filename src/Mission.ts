@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {TransportAnalysis, SpawnReservation, HeadCountOptions} from "./interfaces";
+import {TransportAnalysis, HeadCountOptions} from "./interfaces";
 import {Empire} from "./Empire";
 import {SpawnGroup} from "./SpawnGroup";
 import {DESTINATION_REACHED} from "./constants";
@@ -117,6 +117,34 @@ export abstract class Mission {
         }
 
         return roleArray;
+    }
+
+    protected sharedCreep(roleName: string, getBody: () => string[]) {
+        let spawnMemory = this.spawnGroup.spawns[0].memory;
+        if (!spawnMemory.communityRoles) spawnMemory.communityRoles = {};
+
+        let employerName = this.opName + this.name;
+        let creep;
+        if (spawnMemory.communityRoles[roleName]) {
+            creep = Game.creeps[spawnMemory.communityRoles[roleName]];
+            if (creep) {
+                if (creep.memory.employer === employerName || Game.time - creep.memory.lastTickEmployed > 1) {
+                    creep.memory.employer = employerName;
+                    creep.memory.lastTickEmployed = Game.time;
+                    return creep;
+                }
+            }
+        }
+
+        if (!creep && this.spawnGroup.isAvailable) {
+            let outcome = this.spawnGroup.spawn(getBody(), "community_" + roleName + Math.floor(Math.random() * 100), undefined, undefined);
+            if (_.isString(outcome)) {
+                spawnMemory.communityRoles[roleName] = outcome;
+            }
+            else {
+                console.log(`error spawning community ${roleName} in ${this.opName}`);
+            }
+        }
     }
 
     /**
@@ -592,5 +620,60 @@ export abstract class Mission {
             }
             return position;
         }
+    }
+
+    protected paverActions(paver: Creep) {
+
+        let hasLoad = this.hasLoad(paver);
+        if (!hasLoad) {
+            this.procureEnergy(paver, this.findRoadToRepair());
+            return;
+        }
+
+        let road = this.findRoadToRepair();
+        if (!road) {
+            console.log(`this is paver, checking out with ${paver.ticksToLive} ticks to live`);
+            // paver.suicide();
+            return;
+        }
+
+        if (paver.pos.inRangeTo(road, 3)) {
+            paver.repair(road);
+            paver.yieldRoad(road);
+        }
+        else {
+            paver.blindMoveTo(road);
+        }
+
+        let creepsInRange = _.filter(paver.pos.findInRange(FIND_MY_CREEPS, 1), (c: Creep) => {
+            return c.carry.energy > 0 && c.partCount(WORK) === 0;
+        }) as Creep[];
+
+        if (creepsInRange.length > 0) {
+            creepsInRange[0].transfer(paver, RESOURCE_ENERGY);
+        }
+    }
+
+    private findRoadToRepair(): StructureRoad {
+        if (!this.memory.roadRepairIds) return;
+
+        let road = Game.getObjectById<StructureRoad>(this.memory.roadRepairIds[0]);
+        if (road && road.hits < road.hitsMax) {
+            return road;
+        }
+        else {
+            this.memory.roadRepairIds.shift();
+            if (this.memory.roadRepairIds.length > 0) {
+                return this.findRoadToRepair();
+            }
+            else {
+                this.memory.roadRepairIds = undefined;
+            }
+        }
+    }
+
+    protected spawnPaver(): Creep {
+        let paverBody = () => { return this.bodyRatio(1, 3, 1, 1, 5); };
+        return this.sharedCreep("paver", paverBody);
     }
 }
