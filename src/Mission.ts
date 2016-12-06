@@ -433,6 +433,10 @@ export abstract class Mission {
             if (!boosted) return false;
             let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
+            if (options.moveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(0))) {
+                creep.avoidSK(this.flag);
+                return false;
+            }
             creep.memory.prep = true;
         }
         return true;
@@ -520,7 +524,7 @@ export abstract class Mission {
         let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
 
         if (!path) {
-            console.log(`pavePath got an incomplete path, please investigate (${this.opName})`);
+            console.log(`incomplete pavePath, please investigate (${this.opName}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
             return;
         }
 

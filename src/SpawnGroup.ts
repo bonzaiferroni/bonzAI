@@ -139,4 +139,8 @@ export class SpawnGroup {
         console.log("Average availability over the last 75000 ticks (each represents a period of 15000 ticks)");
         console.log(this.room.memory.spawnLog.longHistory);
     }
+
+    public averageAvailability(): number {
+        return _.last(this.room.memory.spawnLog.history) as number;
+    }
 }

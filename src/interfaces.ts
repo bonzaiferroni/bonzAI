@@ -40,6 +40,7 @@ export interface HeadCountOptions {
     blindSpawn?: boolean;
     reservation?: SpawnReservation;
     disableNotify?: boolean;
+    moveToRoom?: boolean;
 }
 
 export interface SpawnReservation {

@@ -12,6 +12,7 @@ export class UpgradeMission extends Mission {
     battery: StructureContainer | StructureStorage | StructureLink;
     boost: boolean;
     allowUnboosted: boolean;
+    remoteSpawning: boolean;
 
     memory: {
         batteryPosition: RoomPosition
@@ -40,7 +41,13 @@ export class UpgradeMission extends Mission {
 
     initMission() {
         if (!this.memory.cartCount) { this.memory.cartCount = 0; }
-        this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
+        if (this.spawnGroup.room !== this.room) {
+            this.remoteSpawning = true;
+            this.distanceToSpawn = Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name);
+        }
+        else {
+            this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
+        }
         this.battery = this.findControllerBattery()
     }
 
@@ -60,17 +67,28 @@ export class UpgradeMission extends Mission {
                 return this.bodyRatio(2, 1, 1, 1);
             }
 
+            if (this.remoteSpawning) {
+                potency = Math.min(potency, 23);
+                return this.workerBody(potency, 4, potency);
+            }
+
             return this.workerBody(potency, 4, Math.ceil(potency / 2));
         };
 
-        this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {prespawn: this.distanceToSpawn, memory: memory} );
+        this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
+            prespawn: this.distanceToSpawn,
+            memory: memory,
+            moveToRoom: true} );
 
         if (this.battery instanceof StructureContainer) {
             let analysis = this.analyzeTransport(25, potency);
-            this.batterySupplyCarts = this.headCount("upgraderCart", () => analysis.body, analysis.cartsNeeded, { prespawn: 25 });
+            this.batterySupplyCarts = this.headCount("upgraderCart", () => analysis.body, analysis.cartsNeeded, {
+                prespawn: this.distanceToSpawn,
+                moveToRoom: true
+            });
         }
 
-        if (this.memory.roadRepairIds) {
+        if (this.memory.roadRepairIds && !this.remoteSpawning) {
             this.paver = this.spawnPaver();
         }
     }
@@ -93,7 +111,13 @@ export class UpgradeMission extends Mission {
         }
 
         if (this.battery) {
-            this.pavePath({pos: this.spawnGroup.pos}, this.battery, 1, true);
+            let startingPosition: {pos: RoomPosition} = this.room.storage;
+            if (!startingPosition) {
+                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            }
+            if (startingPosition) {
+                this.pavePath(startingPosition, this.battery, 1, true);
+            }
         }
     }
 
@@ -240,7 +264,9 @@ export class UpgradeMission extends Mission {
         if (this.room.storage) {
             potency = Math.min(this.room.storage.store[RESOURCE_ENERGY] / 3000, potency);
         }
-
+        if (this.remoteSpawning) {
+            potency = 5;
+        }
         return Math.max(potency, 1);
     }
 
@@ -259,6 +285,7 @@ export class UpgradeMission extends Mission {
         if (this.opType === "conquest") max = 1;
         if (this.memory.max !== undefined) max = this.memory.max;
         if (this.room.controller.level === 8) max = 1;
+        if (this.remoteSpawning) max = 1;
         if (this.room.hostiles.length > 0) max = 0;
 
         return max
