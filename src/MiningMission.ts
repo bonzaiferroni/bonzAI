@@ -107,8 +107,14 @@ export class MiningMission extends Mission {
             this.paverActions(this.paver);
         }
 
-        if (this.storage && this.container && this.storage.room.controller.level >= 4) {
-            this.pavePath(this.storage, this.container, 2);
+        if (this.container) {
+            let startingPosition: {pos: RoomPosition} = this.room.storage;
+            if (!startingPosition) {
+                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            }
+            if (startingPosition) {
+                this.pavePath(startingPosition, this.container, 2, true);
+            }
         }
     }
 
@@ -288,11 +294,12 @@ export class MiningMission extends Mission {
     }
 
     private placeContainer() {
-        if (!this.storage) return;
+        let spawn = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;
+        if (!spawn) return;
 
         if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) return;
 
-        let ret = PathFinder.search(this.source.pos, [{pos: this.storage.pos, range: 1}], {
+        let ret = PathFinder.search(this.source.pos, [{pos: spawn.pos, range: 1}], {
             maxOps: 4000,
             swampCost: 2,
             plainCost: 2,
@@ -308,7 +315,6 @@ export class MiningMission extends Mission {
         });
         if (ret.incomplete || ret.path.length === 0) {
             console.log(`path used for container placement in ${this.opName} incomplete, please investigate`);
-            console.log(`${this.storage.pos}`)
         }
 
         let position = ret.path[0];
