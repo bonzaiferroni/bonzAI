@@ -6,9 +6,9 @@ export class BuildMission extends Mission {
 
     builders: Creep[];
     supplyCarts: Creep[];
-    potency: number;
     sites: ConstructionSite[];
     walls: StructureRampart[];
+    remoteSpawn: boolean;
 
     memory: {
         maxHitsToBuild: number
@@ -27,12 +27,15 @@ export class BuildMission extends Mission {
      * @param potency
      * @param allowSpawn
      */
-    constructor(operation: Operation, name: string, potency: number, allowSpawn: boolean = true) {
-        super(operation, name, allowSpawn);
-        this.potency = potency;
+    constructor(operation: Operation) {
+        super(operation, "builder");
     }
 
     initMission() {
+        if (this.room !== this.spawnGroup.room) {
+            this.remoteSpawn = true;
+        }
+
         if (Game.time % 10 === 5) {
             // this should be a little more cpu-friendly since it basically will only run in room that has construction
             let constructionSites = this.room.find(FIND_MY_CONSTRUCTION_SITES) as ConstructionSite[];
@@ -50,22 +53,19 @@ export class BuildMission extends Mission {
 
     roleCall() {
 
-        let potency = this.potency;
-        if (this.room.storage && this.room.storage.store.energy < 50000) {
-            potency = 1;
+        let maxBuilders = 0;
+        let potency = 0;
+        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
+            maxBuilders = 1;
+            potency = this.findBuilderPotency();
+            if (this.room.storage && this.room.storage.store.energy < 50000) {
+                potency = 1;
+            }
         }
+
         let builderBody = () => {
-            return this.workerBody(potency, potency, potency / 2);
+            return this.bodyRatio(1, 1, .5, 1, potency);
         };
-        let maxBuilders = 1;
-
-        if (this.name === "mason" && this.room.hostiles.length > 0 && this.room.hostiles[0].owner.username !== "Invader") {
-            maxBuilders = 2;
-        }
-
-        if (this.memory.max !== undefined) {
-            maxBuilders = this.memory.max;
-        }
 
         let builderMemory;
         if (this.memory.activateBoost) {
@@ -79,16 +79,15 @@ export class BuildMission extends Mission {
             builderMemory = { scavanger: RESOURCE_ENERGY };
         }
 
-        this.builders = this.headCount(this.name, builderBody, maxBuilders, {prespawn: 10, memory: builderMemory});
+        this.builders = this.headCount(this.name, builderBody, maxBuilders, {prespawn: 10, memory: builderMemory, moveToRoom: true});
         this.builders = _.sortBy(this.builders, (c: Creep) => c.carry.energy);
 
-        // I used the distance value 10 here because ~10 is the average distance to structures in the room
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
-        let analysis = this.analyzeTransport(20, potency * maxBuilders * 5);
+        let analysis = this.analyzeTransport(20, potency * 5);
         this.supplyCarts = this.headCount(this.name + "Cart", () => analysis.body, analysis.cartsNeeded,
-            {prespawn: analysis.distance, memory: cartMemory});
+            {prespawn: analysis.distance, memory: cartMemory, moveToRoom: true});
     }
 
     missionActions() {
@@ -265,5 +264,17 @@ export class BuildMission extends Mission {
         else {
             builder.blindMoveTo(builder.room.controller);
         }
+    }
+
+    private findBuilderPotency() {
+        let potency = 1;
+        if (this.room.storage) {
+            potency = Math.min(Math.floor(this.room.storage.store.energy / 7500), 10)
+        }
+        else {
+            potency = this.room.find(FIND_SOURCES).length * 2
+        }
+
+        return potency;
     }
 }
