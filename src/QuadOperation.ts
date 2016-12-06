@@ -1,6 +1,4 @@
-import {Empire} from "./Empire";
 import {DefenseMission} from "./DefenseMission";
-import {OperationPriority} from "./constants";
 import {Coord} from "./interfaces";
 import {ControllerOperation} from "./ControllerOperation";
 import {helper} from "./helper";
@@ -16,11 +14,6 @@ export class QuadOperation extends ControllerOperation {
      * @param type
      * @param empire
      */
-
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
-        this.priority = OperationPriority.OwnedRoom;
-    }
 
     protected addDefense() {
         this.addMission(new DefenseMission(this));
@@ -40,14 +33,6 @@ export class QuadOperation extends ControllerOperation {
         if (!this.memory.temporaryPlacement[level]) {
 
             let actions: {actionType: string, structureType: string, coord: Coord}[] = [];
-
-            // containers
-            if (level === 2) {
-                actions.push({actionType: "place", structureType: STRUCTURE_CONTAINER, coord: {x: -1, y: 5}});
-            }
-            if (level === 5) {
-                actions.push({actionType: "remove", structureType: STRUCTURE_CONTAINER, coord: {x: -1, y: 5}});
-            }
 
             // links
             if (level === 5) {
