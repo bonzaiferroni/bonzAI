@@ -1,17 +1,10 @@
 import {ControllerOperation} from "./ControllerOperation";
 import {Coord} from "./interfaces";
 import {DefenseMission} from "./DefenseMission";
-import {BuildMission} from "./BuildMission";
 import {FlexGenerator} from "./FlexGenerator";
 import {helper} from "./helper";
 
 export class FlexOperation extends ControllerOperation {
-
-    protected repairStructures() {
-        if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-            this.addMission(new BuildMission(this, "mason", this.calcMasonPotency()));
-        }
-    }
 
     protected addDefense() {
         this.addMission(new DefenseMission(this));

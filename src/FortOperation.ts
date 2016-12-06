@@ -74,13 +74,10 @@ export class FortOperation extends Operation {
             }
 
             // build construction
-            let allowBuilderSpawn = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0;
-            this.addMission(new BuildMission(this, "builder", this.calcBuilderPotency(), allowBuilderSpawn));
+            this.addMission(new BuildMission(this));
 
             // build walls
-            if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-                this.addMission(new BuildMission(this, "mason", this.calcMasonPotency()));
-            }
+            // TODO: make MasonMission
 
             // use link array near storage to fire energy at controller link (pre-rcl8)
             if (this.flag.room.storage) {
@@ -95,9 +92,6 @@ export class FortOperation extends Operation {
             // upgrader controller
             let boostUpgraders = this.flag.room.controller.level < 8;
             this.addMission(new UpgradeMission(this, boostUpgraders));
-
-            // repair roads
-            this.addMission(new PaverMission(this));
         }
     }
 

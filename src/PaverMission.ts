@@ -42,7 +42,7 @@ export class PaverMission extends Mission {
 
     missionActions() {
         for (let paver of this.pavers) {
-            this.paverActions(paver);
+            this.deprecatedPaverActions(paver);
         }
     }
 
@@ -52,7 +52,7 @@ export class PaverMission extends Mission {
         if (Math.random() < .01) this.memory.potency = undefined;
     }
 
-    private paverActions(paver: Creep) {
+    private deprecatedPaverActions(paver: Creep) {
 
         let fleeing = paver.fleeHostiles();
         if (fleeing) return; // early

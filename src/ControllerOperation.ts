@@ -11,14 +11,23 @@ import {LinkNetworkMission} from "./LinkNetworkMission";
 import {GeologyMission} from "./GeologyMission";
 import {UpgradeMission} from "./UpgradeMission";
 import {Coord, SeedData} from "./interfaces";
-import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "./constants";
+import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD, OperationPriority} from "./constants";
 import {helper} from "./helper";
 import {SeedAnalysis} from "./SeedAnalysis";
+import {SpawnGroup} from "./SpawnGroup";
+import {Empire} from "./Empire";
 
-const SPAWNCART_BODYUNIT_LIMIT = 10;
 const GEO_SPAWN_COST = 5000;
 
 export abstract class ControllerOperation extends Operation {
+
+    constructor(flag: Flag, name: string, type: string, empire: Empire) {
+        super(flag, name, type, empire);
+        this.priority = OperationPriority.OwnedRoom;
+        if (this.flag.room && this.flag.room.controller.level < 6) {
+            this.priority = OperationPriority.VeryHigh;
+        }
+    }
 
     memory: {
         powerMining: boolean
@@ -58,7 +67,11 @@ export abstract class ControllerOperation extends Operation {
 
         // initOperation FortOperation variables
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
-        if(!this.spawnGroup) return;
+        if(!this.spawnGroup) {
+            this.spawnGroup = this.findRemoteSpawn(6);
+            if (!this.spawnGroup) return;
+        }
+
         this.empire.register(this.flag.room);
 
         // spawn emergency miner if needed
@@ -95,8 +108,8 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // build construction
-        let allowBuilderSpawn = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0;
-        this.addMission(new BuildMission(this, "builder", this.calcBuilderPotency(), allowBuilderSpawn));
+        let buildMission = new BuildMission(this);
+        this.addMission(buildMission);
 
         // use link array near storage to fire energy at controller link (pre-rcl8)
         if (this.flag.room.storage) {
@@ -110,9 +123,18 @@ export abstract class ControllerOperation extends Operation {
 
         // upgrader controller
         let boostUpgraders = this.flag.room.controller.level < 8;
-        this.addMission(new UpgradeMission(this, boostUpgraders));
+        let upgradeMission = new UpgradeMission(this, boostUpgraders);
+        this.addMission(upgradeMission);
 
         this.towerRepair();
+
+        if (this.flag.room.controller.level < 6) {
+            let boostSpawnGroup = this.findRemoteSpawn(4);
+            if (boostSpawnGroup) {
+                upgradeMission.spawnGroup = boostSpawnGroup;
+                buildMission.spawnGroup = boostSpawnGroup;
+            }
+        }
     }
 
     finalizeOperation() {
@@ -121,35 +143,6 @@ export abstract class ControllerOperation extends Operation {
     invalidateOperationCache() {
         this.memory.masonPotency = undefined;
         this.memory.builderPotency = undefined;
-    }
-
-    calcMasonPotency(): number {
-        if (!this.memory.masonPotency) {
-            let surplusMode = this.flag.room.storage && this.flag.room.storage.store.energy > NEED_ENERGY_THRESHOLD;
-            let megaSurplusMode = this.flag.room.storage && this.flag.room.storage.store.energy > ENERGYSINK_THRESHOLD;
-            let potencyBasedOnStorage = megaSurplusMode ? 10 : surplusMode ? 5 : 1;
-
-            if (this.memory.wallBoost) {
-                potencyBasedOnStorage = 20;
-            }
-
-            // would happen to be the same as the potency used for builders
-            let potencyBasedOnSpawn = this.calcBuilderPotency();
-
-            if (this.memory.wallBoost) {
-                this.memory.mason.activateBoost = true;
-            }
-
-            this.memory.masonPotency = Math.min(potencyBasedOnSpawn, potencyBasedOnStorage);
-        }
-        return this.memory.masonPotency;
-    }
-
-    calcBuilderPotency(): number {
-        if (!this.memory.builderPotency) {
-            this.memory.builderPotency = Math.min(Math.floor(this.spawnGroup.maxSpawnEnergy / 175), 20);
-        }
-        return this.memory.builderPotency;
     }
 
     public nuke(x: number, y: number, roomName: string): string {
@@ -298,9 +291,11 @@ export abstract class ControllerOperation extends Operation {
     }
 
     protected towerRepair() {
+        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
+        if (towers.length === 0) return;
+
         if (Game.time % 4 === 0) {
             // repair ramparts
-            let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
             let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
             if (towers.length === 0 || ramparts.length === 0) return;
 
@@ -311,7 +306,6 @@ export abstract class ControllerOperation extends Operation {
         else if (Game.time % 4 === 2) {
             // repair roads
             let centerPosition = helper.deserializeRoomPosition(this.memory.centerPosition);
-            let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
             let roadsInRange =  centerPosition.findInRange<StructureRoad>(this.flag.room.findStructures(STRUCTURE_ROAD) as StructureRoad[],
                 this.memory.radius);
             if (this.memory.roadRepairIndex === undefined || this.memory.roadRepairIndex >= roadsInRange.length) {
@@ -319,10 +313,34 @@ export abstract class ControllerOperation extends Operation {
             }
 
             let road = roadsInRange[this.memory.roadRepairIndex++];
-            if (road.hitsMax - road.hits >= 800) {
+            let repairsNeeded = Math.floor((road.hitsMax - road.hits) / 800);
+            if (repairsNeeded === 1) {
                 let tower = road.pos.findClosestByRange(towers) as StructureTower;
                 tower.repair(road);
             }
+            else if (repairsNeeded > 1) {
+                console.log(`significant road repair needed in ${this.name}, damage to road: ${road.hitsMax - road.hits}`);
+                towers = _.sortBy(towers, (t: StructureTower) => road.pos.getRangeTo(t));
+                for (let tower of towers) {
+                    repairsNeeded--;
+                    tower.repair(road);
+                    if (repairsNeeded === 0) break;
+                }
+            }
         }
+    }
+
+    private findRemoteSpawn(distanceLimit: number): SpawnGroup {
+        let remoteSpawn = _(this.empire.spawnGroups)
+            .filter((s: SpawnGroup) => {
+                return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
+                    && s.room.controller.level === 8
+                    && s.averageAvailability() > .2
+            })
+            .sortBy((s: SpawnGroup) => {
+                return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name)
+            })
+            .head();
+        return remoteSpawn;
     }
 }

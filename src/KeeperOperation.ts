@@ -48,7 +48,6 @@ export class KeeperOperation extends Operation {
         }
 
         this.addMission(new RemoteBuildMission(this, true));
-        this.addMission(new PaverMission(this));
 
         if (this.mineral.pos.lookFor(LOOK_FLAGS).length === 0) {
             this.addMission(new GeologyMission(this));

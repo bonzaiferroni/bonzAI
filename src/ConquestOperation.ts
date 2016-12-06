@@ -90,11 +90,6 @@ export class ConquestOperation extends Operation {
             this.waypoints = undefined;
             this.spawnGroup = localSpawnGroup;
             this.addMission(new RefillMission(this));
-
-            // build walls
-            if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-                this.addMission(new BuildMission(this, "mason", CONQUEST_MASON_POTENCY));
-            }
         }
 
         for (let i = 0; i < this.sources.length; i++) {
@@ -104,9 +99,6 @@ export class ConquestOperation extends Operation {
 
         // use link array near storage to fire energy at controller link (pre-rcl8)
         this.addMission(new LinkNetworkMission(this));
-
-        // repair roads
-        this.addMission(new PaverMission(this));
 
         // shoot towers and refill
         this.addMission(new DefenseMission(this));
