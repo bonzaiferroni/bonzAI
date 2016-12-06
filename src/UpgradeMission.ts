@@ -284,34 +284,7 @@ export class UpgradeMission extends Mission {
         let battery = this.battery as StructureContainer;
         let hasLoad = this.hasLoad(cart);
         if (!hasLoad) {
-            let cartBattery: StructureContainer | StructureStorage = this.room.storage;
-            if (!cartBattery) {
-                let find = (): Structure => {
-                    let containers = _.filter(this.room.findStructures(STRUCTURE_CONTAINER),
-                        (container: StructureContainer) => container !== battery && container.store.energy > 100 && container.pos.lookFor(LOOK_CREEPS).length > 0 );
-                    containers = _.sortBy(containers, (container: StructureContainer) => cart.pos.getRangeTo(container));
-                    return containers[0] as Structure;
-                };
-                let forget = (structure: Structure): boolean => {
-                    return structure.pos.lookFor(LOOK_CREEPS).length === 0
-                };
-                cartBattery = cart.rememberStructure(find, forget) as StructureContainer;
-            }
-
-            if (cartBattery) {
-                if (cart.pos.isNearTo(cartBattery)) {
-                    cart.withdrawIfFull(cartBattery, RESOURCE_ENERGY);
-                    if (cartBattery.store.energy > cart.carryCapacity) {
-                        cart.blindMoveTo(battery);
-                    }
-                }
-                else {
-                    cart.blindMoveTo(cartBattery, {maxRooms: 1});
-                }
-            }
-            else {
-                cart.idleOffRoad(this.flag);
-            }
+            this.procureEnergy(cart, battery);
             return;
         }
 
