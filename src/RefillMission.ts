@@ -77,8 +77,17 @@ export class RefillMission extends Mission {
 
         let target = this.findNearestEmpty(cart);
         if (!target) {
-            cart.memory.hasLoad = cart.carry.energy === cart.carryCapacity;
-            cart.idleOffRoad(this.flag);
+            if (cart.carry.energy === cart.carryCapacity) {
+                if (cart.pos.inRangeTo(this.spawnGroup, 12)) {
+                    cart.idleOffRoad(this.flag);
+                }
+                else {
+                    cart.blindMoveTo(this.spawnGroup, {maxRooms: 1});
+                }
+            }
+            else {
+                cart.memory.hasLoad = false;
+            }
             return;
         }
 

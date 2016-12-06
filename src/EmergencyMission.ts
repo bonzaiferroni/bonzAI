@@ -4,6 +4,10 @@ export class EmergencyMinerMission extends Mission {
 
     emergencyMiners: Creep[];
 
+    memory: {
+        lastTick: number
+    };
+
     /**
      * Checks every 100 ticks if storage is full or a miner is present, if not spawns an emergency miner. Should come
      * first in FortOperation
@@ -15,14 +19,23 @@ export class EmergencyMinerMission extends Mission {
     }
 
     initMission() {
-        if (this.memory.ticksWithoutBattery === undefined) this.memory.ticksWithoutBattery = 0;
     }
 
     roleCall() {
         let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
             (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
         let body = () => this.workerBody(2, 1, 1);
-        let maxEmergencyMiners = energyAvailable ? 0 : 2;
+
+        if (energyAvailable) {
+            this.memory.lastTick = Game.time;
+        }
+
+        let maxEmergencyMiners = 0;
+        if (Game.time - this.memory.lastTick < 100) {
+            console.log("ATTN: Emergency miner being spawned in", this.opName);
+            maxEmergencyMiners = 2;
+        }
+
         this.emergencyMiners = this.headCount("emergencyMiner", body, maxEmergencyMiners);
     }
 
@@ -55,7 +68,6 @@ export class EmergencyMinerMission extends Mission {
                 return true;
             }
         }
-        console.log("ATTN: Emergency miner being spawned in", this.opName);
         return false;
     }
 }

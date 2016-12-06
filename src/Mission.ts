@@ -384,7 +384,8 @@ export abstract class Mission {
     }
 
     supplyCartActions(cart: Creep, suppliedCreep: Creep) {
-        if (cart.carry.energy < cart.carryCapacity) {
+
+        if (cart.carry.energy < cart.carryCapacity * .5) {
             this.procureEnergy(cart, suppliedCreep);
             return;
         }
