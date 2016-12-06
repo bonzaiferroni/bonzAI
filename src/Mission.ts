@@ -513,7 +513,7 @@ export abstract class Mission {
         }
     }
 
-    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
+    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number, ignoreLimit = false) {
         if (Game.time - this.memory.paveTick < 1000) return;
 
         let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
@@ -525,7 +525,7 @@ export abstract class Mission {
 
         let newConstructionPos = this.examinePavedPath(path);
 
-        if (newConstructionPos && Object.keys(Game.constructionSites).length < 40) {
+        if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 40)) {
             if (!Game.cache.placedRoad) {
                 Game.cache.placedRoad = true;
                 console.log(`PAVER: placed road ${newConstructionPos} in ${this.opName}`);
