@@ -40,7 +40,7 @@ export function initCreepPrototype() {
 
             let lab = flag.pos.lookForStructure(STRUCTURE_LAB) as StructureLab;
 
-            if (lab.mineralType === boost && lab.mineralAmount >= IGOR_CAPACITY) {
+            if (lab.mineralType === boost && lab.mineralAmount >= IGOR_CAPACITY && lab.energy >= IGOR_CAPACITY) {
                 if (this.pos.isNearTo(lab)) {
                     lab.boostCreep(this);
                 }
