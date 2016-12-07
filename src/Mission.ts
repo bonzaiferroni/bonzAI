@@ -530,7 +530,7 @@ export abstract class Mission {
 
         let newConstructionPos = this.examinePavedPath(path);
 
-        if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 40)) {
+        if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 95)) {
             if (!Game.cache.placedRoad) {
                 Game.cache.placedRoad = true;
                 console.log(`PAVER: placed road ${newConstructionPos} in ${this.opName}`);
@@ -543,32 +543,39 @@ export abstract class Mission {
     }
 
     protected findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
+        const ROAD_COST = 3;
+        const PLAIN_COST = 4;
+        const SWAMP_COST = 5;
+        const AVOID_COST = 10;
+
         let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
-            plainCost: 2,
-            swampCost: 3,
-            maxOps: 4000,
+            plainCost: PLAIN_COST,
+            swampCost: SWAMP_COST,
+            maxOps: 8000,
             roomCallback: (roomName: string): CostMatrix => {
                 let roomCoords = helper.getRoomCoordinates(roomName);
                 if (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0) {
                     let matrix = new PathFinder.CostMatrix();
-                    helper.blockOffExits(matrix, 10);
+                    helper.blockOffExits(matrix, AVOID_COST);
                     return matrix;
                 }
                 let room = Game.rooms[roomName];
                 if (!room) return;
 
                 let matrix = new PathFinder.CostMatrix();
-                helper.addStructuresToMatrix(matrix, room);
+                helper.addStructuresToMatrix(matrix, room, ROAD_COST);
 
                 // avoid controller
-                helper.blockOffMatrix(matrix, room.controller, 3, 5);
+                if (room.controller) {
+                    helper.blockOffMatrix(matrix, room.controller, 3, AVOID_COST);
+                }
 
                 // avoid container adjacency
                 let sources = room.find<Source>(FIND_SOURCES);
                 for (let source of sources) {
                     let container = source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
                     if (container) {
-                        helper.blockOffMatrix(matrix, container, 1, 10);
+                        helper.blockOffMatrix(matrix, container, 1, AVOID_COST);
                     }
                 }
 
@@ -576,7 +583,7 @@ export abstract class Mission {
                 let constructionSites = room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES);
                 for (let site of constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
-                        matrix.set(site.pos.x, site.pos.y, 1);
+                        matrix.set(site.pos.x, site.pos.y, ROAD_COST);
                     }
                 }
 
@@ -610,22 +617,6 @@ export abstract class Mission {
             }
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (construction && construction.structureType === STRUCTURE_ROAD) continue;
-            if (i > 1 && !position.isNearExit(1)) {
-                let lastPosition = path[i - 1];
-                let lastDirection = path[i -2].getDirectionTo(lastPosition);
-                let currentDirection = lastPosition.getDirectionTo(position);
-                if (lastDirection % 2 === 0 && lastDirection !== currentDirection) {
-                    let testPosition = lastPosition.getPositionAtDirection(lastDirection);
-                    let finalPositionInRoom = _(path).filter((p: RoomPosition) => p.roomName === position.roomName).last();
-                    let posRange = position.getPathDistanceTo(finalPositionInRoom, true);
-                    let testRange = testPosition.getPathDistanceTo(finalPositionInRoom, true);
-                    if (!testPosition.isNearExit(0) && testPosition.isPassible(true) && posRange === testRange) {
-                        if (testPosition.lookForStructure(STRUCTURE_ROAD) !== undefined) continue;
-                        console.log(`straightend road: ${testPosition} (changed from ${position})`);
-                        return testPosition;
-                    }
-                }
-            }
             return position;
         }
     }
