@@ -205,7 +205,7 @@ export var helper = {
         }
     },
 
-    addStructuresToMatrix(costs: CostMatrix, room: Room): CostMatrix {
+    addStructuresToMatrix(costs: CostMatrix, room: Room, roadCost = 1): CostMatrix {
         room.find(FIND_STRUCTURES).forEach(function(structure: Structure) {
             if (structure instanceof StructureRampart) {
                 if (!structure.my) {
@@ -213,7 +213,7 @@ export var helper = {
                 }
             } else if (structure instanceof StructureRoad) {
                 // Favor roads over plain tiles
-                costs.set(structure.pos.x, structure.pos.y, 1);
+                costs.set(structure.pos.x, structure.pos.y, roadCost);
             } else if (structure.structureType !== STRUCTURE_CONTAINER) {
                 // Can't walk through non-walkable buildings
                 costs.set(structure.pos.x, structure.pos.y, 0xff);

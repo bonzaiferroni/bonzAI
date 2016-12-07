@@ -21,6 +21,8 @@ export const ALLIES = {
     "danny": true,
     "Atavus": true,
     "Ashburnie": true,
+    "ricane": true,
+    "trebbettes": true,
 };
 
 export const KCLUBBERS = ["bonzaiferroni", "taiga", "Reini", "Vervorris", "Jeb"];

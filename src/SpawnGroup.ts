@@ -11,9 +11,19 @@ export class SpawnGroup {
     currentSpawnEnergy: number;
     maxSpawnEnergy: number;
 
+    memory: {
+        log: {
+            availability: number
+            history: number[]
+            longHistory: number[]
+        },
+    };
+
     constructor(room: Room) {
         this.room = room;
         this.spawns = room.find(FIND_MY_SPAWNS) as Spawn[];
+        if (!this.room.memory.spawnMemory) this.room.memory.spawnMemory = {};
+        this.memory = this.room.memory.spawnMemory;
         this.extensions = room.findStructures(STRUCTURE_EXTENSION) as StructureExtension[];
         this.manageSpawnLog();
         this.availableSpawnCount = this.getSpawnAvailability();
@@ -63,7 +73,7 @@ export class SpawnGroup {
                 count++;
             }
         }
-        this.room.memory.spawnLog.availability += count;
+        this.memory.log.availability += count;
         Memory.stats["spawnGroups." + this.room.name + ".idleCount"] = count;
         return count;
     }
@@ -112,11 +122,11 @@ export class SpawnGroup {
     }
 
     private manageSpawnLog() {
-        if (!this.room.memory.spawnLog) this.room.memory.spawnLog = {availability: 0, history: [], longHistory: []};
+        if (!this.memory.log) this.memory.log = {availability: 0, history: [], longHistory: []};
 
-        if (Game.time % 1500 !== 0) return; // early
-        let log = this.room.memory.spawnLog;
-        let average = log.availability / 1500;
+        if (Game.time % 100 !== 0) return; // early
+        let log = this.memory.log;
+        let average = log.availability / 100;
         log.availability = 0;
         /*
         if (average > 1) console.log("SPAWNING:", this.room, "not very busy (avg", average, "idle out of",
@@ -127,7 +137,7 @@ export class SpawnGroup {
         log.history.push(average);
         while (log.history.length > 5) log.history.shift();
 
-        if (Game.time % 15000 !== 0) return; // early
+        if (Game.time % 500 !== 0) return; // early
         let longAverage = _.sum(log.history) / 5;
         log.longHistory.push(longAverage);
         while (log.history.length > 5) log.history.shift();
@@ -135,12 +145,12 @@ export class SpawnGroup {
 
     public showHistory() {
         console.log("Average availability in", this.room.name, "the last 5 creep generations (1500 ticks):");
-        console.log(this.room.memory.spawnLog.history);
+        console.log(this.memory.log.history);
         console.log("Average availability over the last 75000 ticks (each represents a period of 15000 ticks)");
-        console.log(this.room.memory.spawnLog.longHistory);
+        console.log(this.memory.log.longHistory);
     }
 
     public averageAvailability(): number {
-        return _.last(this.room.memory.spawnLog.history) as number;
+        return _.last(this.memory.log.history) as number;
     }
 }
