@@ -335,7 +335,8 @@ export abstract class ControllerOperation extends Operation {
             .filter((s: SpawnGroup) => {
                 return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
                     && s.room.controller.level === 8
-                    && s.averageAvailability() > .2
+                    && s.averageAvailability() > .3
+                    && s.isAvailable
             })
             .sortBy((s: SpawnGroup) => {
                 return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name)
