@@ -63,8 +63,19 @@ export class BuildMission extends Mission {
             }
         }
 
+        let analysis = this.analyzeTransport(20, potency * 5);
+
         let builderBody = () => {
-            return this.bodyRatio(1, 1, .5, 1, potency);
+            if (this.spawnGroup.maxSpawnEnergy < 550) {
+                return this.bodyRatio(1, 3, .5, 1, potency)
+            }
+
+            let potencyCost = potency + Math.ceil(potency / 2) * 50;
+            let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
+            let cartCarryCount = Math.floor((analysis.body.length * 2) / 3);
+            let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
+
+            return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
         };
 
         let builderMemory;
@@ -85,7 +96,6 @@ export class BuildMission extends Mission {
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
-        let analysis = this.analyzeTransport(20, potency * 5);
         this.supplyCarts = this.headCount(this.name + "Cart", () => analysis.body, analysis.cartsNeeded,
             {prespawn: analysis.distance, memory: cartMemory, moveToRoom: true});
     }
@@ -96,7 +106,7 @@ export class BuildMission extends Mission {
         }
 
         for (let cart of this.supplyCarts) {
-            this.supplyCartActions(cart, _.head(this.builders));
+            this.builderCartActions(cart);
         }
     }
 
@@ -276,5 +286,41 @@ export class BuildMission extends Mission {
         }
 
         return potency;
+    }
+
+    private builderCartActions(cart: Creep) {
+        let suppliedCreep = _.head(this.builders);
+        if (!suppliedCreep) {
+            cart.idleOffRoad(this.flag);
+            return;
+        }
+
+        let hasLoad = this.hasLoad(cart);
+        if (!hasLoad) {
+            this.procureEnergy(cart, suppliedCreep);
+            return;
+        }
+
+        let rangeToBuilder = cart.pos.getRangeTo(suppliedCreep);
+        if (rangeToBuilder > 3) {
+            cart.blindMoveTo(suppliedCreep);
+            return;
+        }
+
+        let overCapacity = cart.carry.energy > suppliedCreep.carryCapacity - suppliedCreep.carry.energy
+        if (suppliedCreep.carry.energy > suppliedCreep.carryCapacity * .5 && overCapacity) {
+            cart.yieldRoad(suppliedCreep);
+            return;
+        }
+
+        if (rangeToBuilder > 1) {
+            cart.blindMoveTo(suppliedCreep);
+            return;
+        }
+
+        cart.transfer(suppliedCreep, RESOURCE_ENERGY);
+        if (!overCapacity && this.room.storage) {
+            cart.blindMoveTo(this.room.storage)
+        }
     }
 }

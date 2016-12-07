@@ -383,29 +383,6 @@ export abstract class Mission {
         }
     }
 
-    supplyCartActions(cart: Creep, suppliedCreep: Creep) {
-
-        if (cart.carry.energy < cart.carryCapacity * .5) {
-            this.procureEnergy(cart, suppliedCreep);
-            return;
-        }
-
-        // has energy
-        if (!suppliedCreep || suppliedCreep.carry.energy > suppliedCreep.carryCapacity * 0.8) {
-            cart.idleOffRoad(this.flag);
-            return;
-        }
-
-        // has target with room for more energy
-        let outcome = cart.transfer(suppliedCreep, RESOURCE_ENERGY);
-        if (outcome === ERR_NOT_IN_RANGE) {
-            cart.blindMoveTo(suppliedCreep);
-        }
-        else if (outcome === OK) {
-            this.procureEnergy(cart, suppliedCreep);
-        }
-    }
-
     private findOrphans(roleName: string) {
         let creepNames = [];
         for (let creepName in Game.creeps) {
