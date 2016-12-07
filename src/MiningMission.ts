@@ -113,7 +113,10 @@ export class MiningMission extends Mission {
                 startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
             }
             if (startingPosition) {
-                this.pavePath(startingPosition, this.container, 2);
+                let distance = this.pavePath(startingPosition, this.container, 2);
+                if (distance) {
+                    this.memory.distanceToStorage = distance;
+                }
             }
         }
     }
@@ -212,7 +215,7 @@ export class MiningMission extends Mission {
     }
 
     private runTransportAnalysis() {
-        if (!this.memory.distanceToStorage || Game.time % 10000 === TICK_TRANSPORT_ANALYSIS) {
+        if (!this.memory.distanceToStorage) {
             let path = PathFinder.search(this.storage.pos, {pos: this.source.pos, range: 1}).path;
             this.memory.distanceToStorage = path.length;
         }
@@ -235,19 +238,30 @@ export class MiningMission extends Mission {
 
             if (!supply) {
                 if (!cart.pos.isNearTo(this.flag)) {
-                    cart.blindMoveTo(this.flag);
+                    cart.idleOffRoad(this.flag);
                 }
                 return; // early
             }
 
-            if (cart.pos.isNearTo(supply)) {
-                let outcome = cart.withdrawIfFull(supply, RESOURCE_ENERGY);
-                if (outcome === OK && supply.store.energy >= cart.storeCapacity) {
-                    cart.blindMoveTo(this.storage);
-                }
-            }
-            else {
+            let rangeToSupply = cart.pos.getRangeTo(supply);
+            if (rangeToSupply > 3) {
                 cart.blindMoveTo(supply);
+                return;
+            }
+
+            if (supply.store.energy === 0) {
+                cart.idleOffRoad(this.flag);
+                return;
+            }
+
+            if (rangeToSupply > 1) {
+                cart.blindMoveTo(supply);
+                return;
+            }
+
+            let outcome = cart.withdrawIfFull(supply, RESOURCE_ENERGY);
+            if (outcome === OK && supply.store.energy >= cart.storeCapacity) {
+                cart.blindMoveTo(this.storage);
             }
             return; // early
         }

@@ -495,7 +495,7 @@ export abstract class Mission {
         }
     }
 
-    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number, ignoreLimit = false) {
+    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number, ignoreLimit = false): number {
         if (Game.time - this.memory.paveTick < 1000) return;
 
         let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
@@ -516,6 +516,10 @@ export abstract class Mission {
         }
         else {
             this.memory.paveTick = Game.time;
+            if (_.last(path).inRangeTo(finish.pos, rangeAllowance)) {
+                console.log("modifying pathlength " + path.length);
+                return path.length;
+            }
         }
     }
 
