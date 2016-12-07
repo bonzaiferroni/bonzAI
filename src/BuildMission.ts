@@ -70,7 +70,7 @@ export class BuildMission extends Mission {
                 return this.bodyRatio(1, 3, .5, 1, potency)
             }
 
-            let potencyCost = potency + Math.ceil(potency / 2) * 50;
+            let potencyCost = potency * 100 + Math.ceil(potency / 2) * 50;
             let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
             let cartCarryCount = Math.floor((analysis.body.length * 2) / 3);
             let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);

@@ -517,7 +517,6 @@ export abstract class Mission {
         else {
             this.memory.paveTick = Game.time;
             if (_.last(path).inRangeTo(finish.pos, rangeAllowance)) {
-                console.log("modifying pathlength " + path.length);
                 return path.length;
             }
         }
@@ -527,7 +526,7 @@ export abstract class Mission {
         const ROAD_COST = 3;
         const PLAIN_COST = 4;
         const SWAMP_COST = 5;
-        const AVOID_COST = 10;
+        const AVOID_COST = 7;
 
         let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
             plainCost: PLAIN_COST,
