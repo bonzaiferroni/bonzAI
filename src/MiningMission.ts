@@ -108,12 +108,12 @@ export class MiningMission extends Mission {
         }
 
         if (this.container) {
-            let startingPosition: {pos: RoomPosition} = this.room.storage;
+            let startingPosition: {pos: RoomPosition} = this.storage;
             if (!startingPosition) {
                 startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
             }
             if (startingPosition) {
-                this.pavePath(startingPosition, this.container, 2, true);
+                this.pavePath(startingPosition, this.container, 2);
             }
         }
     }
