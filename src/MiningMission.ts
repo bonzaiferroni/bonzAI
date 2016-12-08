@@ -308,12 +308,15 @@ export class MiningMission extends Mission {
     }
 
     private placeContainer() {
-        let spawn = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;
-        if (!spawn) return;
+        let startingPosition: {pos: RoomPosition} = this.storage;
+        if (!startingPosition) {
+            startingPosition = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;
+            if (!startingPosition) return;
+        }
 
         if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) return;
 
-        let ret = PathFinder.search(this.source.pos, [{pos: spawn.pos, range: 1}], {
+        let ret = PathFinder.search(this.source.pos, [{pos: startingPosition.pos, range: 1}], {
             maxOps: 4000,
             swampCost: 2,
             plainCost: 2,
