@@ -1,6 +1,12 @@
 # bonzAI
 > The self-managing AI used by bonzaiferroni at screeps.com
 
+This is the code running my AI on the MMO programming game [Screeps](https://screeps.com/). Back when I was learning screeps I was always looking for examples of other players code, so hopefully this can be of some use. I'm still actively developing this code and using it on the MMO server. Searching the code to find vulnerabilities in my raiding/defense is fair game!
+
+For people that are interested in using it on a private server or forking it, I've included some information on how it works. If it seems like people are using it, I will expand on this. If you have any problems or something seems really unclear, please raise an issue.
+
+I had only been doing javascript/typescript for a few months when I started this, so if you are wondering why I'm doing certain things it is probably because I don't know any better. Any advice/guidance from experienced programmers is very welcome.
+
 ## Installation
 Install [typescript](https://www.npmjs.com/package/typescript) and some system for compiling as you code (eg Webstorm)
 run `npm install` to setup grunt for pushing code up.
