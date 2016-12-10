@@ -154,13 +154,18 @@ export class BuildMission extends Mission {
         }
 
         // has target
-        if (builder.pos.inRangeTo(closest, 3)) {
+        let range = builder.pos.getRangeTo(closest);
+        if (range <= 3) {
             let outcome = builder.build(closest);
             if (outcome === OK) {
                 builder.yieldRoad(closest);
             }
             if (outcome === OK && closest.structureType === STRUCTURE_RAMPART) {
                 this.memory.rampartPos = closest.pos;
+            }
+
+            if (range === 0) {
+                builder.blindMoveTo(this.flag);
             }
         }
         else {
