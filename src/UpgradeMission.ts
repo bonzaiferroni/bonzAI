@@ -69,7 +69,10 @@ export class UpgradeMission extends Mission {
             potencyPerCreep = Math.min(Math.floor((this.spawnGroup.maxSpawnEnergy - 200) / unitCost), 30, totalPotency);
         }
 
-        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5, this.room.controller.getUpgraderPositions().length);
+        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
+        if (this.room.controller.getUpgraderPositions()) {
+            max = Math.min(this.room.controller.getUpgraderPositions().length, max)
+        }
         if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
             max = 1;
         }
