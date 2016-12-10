@@ -507,7 +507,7 @@ export abstract class Mission {
 
         let newConstructionPos = this.examinePavedPath(path);
 
-        if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 95)) {
+        if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 60)) {
             if (!Game.cache.placedRoad) {
                 Game.cache.placedRoad = true;
                 console.log(`PAVER: placed road ${newConstructionPos} in ${this.opName}`);
