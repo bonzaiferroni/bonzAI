@@ -54,7 +54,7 @@ export abstract class ControllerOperation extends Operation {
         flexRadius: number
     };
 
-    staticLayout: {[structureType: string]: Coord[]} = {};
+    staticStructures: {[structureType: string]: Coord[]};
 
     protected abstract addDefense();
     protected abstract initAutoLayout();
@@ -223,7 +223,7 @@ export abstract class ControllerOperation extends Operation {
         this.memory.lastChecked[structureType] = Game.time;
     }
 
-    private findCenterPositionFromSpawn(spawn: StructureSpawn) {
+    private recalculateLayout(layoutType?: string) {
 
         if (!this.memory.seedData) {
             let sourceData = [];
@@ -238,7 +238,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         let analysis = new SeedAnalysis(this.flag.room, this.memory.seedData);
-        let results = analysis.run(spawn);
+        let results = analysis.run(this.staticStructures, layoutType);
         if (results) {
             let centerPosition = new RoomPosition(results.origin.x, results.origin.y, this.flag.room.name);
             if (results.seedType === this.type) {
@@ -269,8 +269,8 @@ export abstract class ControllerOperation extends Operation {
     }
 
     protected layoutCoords(structureType: string): Coord[] {
-        if (this.staticLayout[structureType]) {
-            return this.staticLayout[structureType]
+        if (this.staticStructures[structureType]) {
+            return this.staticStructures[structureType]
         }
         else if (this.memory.layoutMap && this.memory.layoutMap[structureType]) {
             return this.memory.layoutMap[structureType];
@@ -282,9 +282,12 @@ export abstract class ControllerOperation extends Operation {
 
     private initWithSpawn() {
         if (!this.memory.centerPosition || this.memory.rotation === undefined) {
-            let spawns = this.flag.room.find<StructureSpawn>(FIND_MY_SPAWNS);
-            if (spawns.length === 1) {
-                this.findCenterPositionFromSpawn(spawns[0]);
+            let structureCount = this.flag.room.find(FIND_STRUCTURES).length;
+            if (structureCount === 1) {
+                this.recalculateLayout();
+            }
+            else if (structureCount > 1) {
+                this.recalculateLayout(this.type)
             }
             return;
         }

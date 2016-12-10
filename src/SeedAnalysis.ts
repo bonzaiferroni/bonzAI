@@ -10,33 +10,29 @@ export class SeedAnalysis {
         this.room = room;
     }
 
-    run(spawn?: StructureSpawn): SeedSelection {
+    run(staticStructures?: {[structureType: string]: Coord[]}, layoutType?: string): SeedSelection {
 
-        if (!this.data.seedScan["quad"]) {
-            this.findSeeds("quad");
+        let layoutTypes;
+        if (layoutType) {
+            layoutTypes = [layoutType];
+        }
+        else {
+            layoutTypes = ["quad", "flex"];
         }
 
-        if (this.data.seedScan["quad"].length > 0) {
-            if (spawn) {
-                let result = this.findBySpawn("quad", spawn);
-                if (result) return result;
+        for (let type of layoutTypes) {
+            if (!this.data.seedScan[type]) {
+                this.findSeeds(type);
             }
-            else {
-                return this.selectSeed("quad", this.data.seedScan["quad"]);
-            }
-        }
 
-        if (!this.data.seedScan["flex"]) {
-            this.findSeeds("flex");
-        }
-
-        if (this.data.seedScan["flex"].length > 0) {
-            if (spawn) {
-                let result = this.findBySpawn("flex", spawn);
-                if (result) return result;
-            }
-            else {
-                return this.selectSeed("flex", this.data.seedScan["flex"]);
+            if (this.data.seedScan[type].length > 0) {
+                if (staticStructures) {
+                    let result = this.findByStructures(type, staticStructures);
+                    if (result) return result;
+                }
+                else {
+                    return this.selectSeed(type, this.data.seedScan[type]);
+                }
             }
         }
 
@@ -201,6 +197,42 @@ export class SeedAnalysis {
                     }
                 }
             }
+        }
+    }
+
+    private findByStructures(seedType: string, staticStructures: {[structureType: string]: Coord[]}): SeedSelection {
+
+        let mostHits = 0;
+        let bestSeed;
+        let bestRotation;
+
+        let seeds = this.data.seedScan[seedType];
+        for (let seed of seeds) {
+            let centerPosition = new RoomPosition(seed.x, seed.y, this.room.name);
+            for (let rotation = 0; rotation <= 3; rotation++) {
+
+                let structureHits = 0;
+
+                for (let structureType of [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_LAB, STRUCTURE_TERMINAL]) {
+                    let coords = staticStructures[structureType];
+                    for (let coord of coords) {
+                        let testPosition = helper.coordToPosition(coord, centerPosition, rotation);
+                        if (testPosition.lookForStructure(structureType)) {
+                            structureHits++;
+                        }
+                    }
+                }
+
+                if (structureHits > mostHits) {
+                    mostHits = structureHits;
+                    bestSeed = seed;
+                    bestRotation = rotation;
+                }
+            }
+        }
+
+        if (mostHits > 0) {
+            return { seedType: seedType, origin: bestSeed, rotation: bestRotation, energyPerDistance: undefined }
         }
     }
 }

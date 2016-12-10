@@ -61,8 +61,6 @@ export class FlexOperation extends ControllerOperation {
     }
 
     protected initAutoLayout() {
-        this.staticLayout = FlexGenerator.staticStructures;
-
         if(!this.memory.layoutMap) {
 
             if (this.memory.flexLayoutMap) {
@@ -71,10 +69,22 @@ export class FlexOperation extends ControllerOperation {
                 this.memory.radius = this.memory.flexRadius;
             }
             else {
-                let map = new FlexGenerator(this.memory.centerPosition, this.memory.rotation);
+                let map = new FlexGenerator(this.memory.centerPosition, this.memory.rotation, this.staticStructures);
                 this.memory.layoutMap = map.generate(true);
                 this.memory.radius = map.radius + 1;
             }
         }
     }
+
+    staticStructures = {
+        [STRUCTURE_STORAGE]: [{x: 0, y: -3}],
+        [STRUCTURE_TERMINAL]: [{x: -2, y: -1}],
+        [STRUCTURE_SPAWN]: [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: 3}],
+        [STRUCTURE_NUKER]: [{x: 3, y: 0}],
+        [STRUCTURE_POWER_SPAWN]: [{x: -3, y: 0}],
+        [STRUCTURE_LAB]: [
+            {x: 1, y: 0}, {x: 2, y: 1}, {x: 0, y: 1},
+            {x: 1, y: 2}, {x: 2, y: 0}, {x: 0, y: 2},
+            {x: 0, y: -1}, {x: -1, y: 0}, {x: 1, y: -1}, {x: -1, y: 1},],
+    };
 }

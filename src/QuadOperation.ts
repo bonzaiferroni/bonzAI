@@ -20,8 +20,6 @@ export class QuadOperation extends ControllerOperation {
     }
 
     protected initAutoLayout() {
-        this.staticLayout = this.quadLayoutMap;
-
         if(!this.memory.layoutMap) {
             this.memory.layoutMap = {};
             this.memory.radius = QUAD_RADIUS;
@@ -78,7 +76,7 @@ export class QuadOperation extends ControllerOperation {
         }
     }
 
-    quadLayoutMap = {
+    staticStructures = {
         [STRUCTURE_SPAWN]: [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}],
         [STRUCTURE_TOWER]: [
             {x: 1, y: -1}, {x: -1, y: -1}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}],
