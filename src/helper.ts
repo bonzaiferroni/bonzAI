@@ -111,6 +111,7 @@ export var helper = {
 
         let coordinateRegex = /(E|W)(\d+)(N|S)(\d+)/g;
         let match = coordinateRegex.exec(roomName);
+        if (!match) return;
 
         let xDir = match[1];
         let x = match[2];

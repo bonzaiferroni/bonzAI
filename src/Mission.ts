@@ -534,7 +534,7 @@ export abstract class Mission {
             maxOps: 8000,
             roomCallback: (roomName: string): CostMatrix => {
                 let roomCoords = helper.getRoomCoordinates(roomName);
-                if (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0) {
+                if (roomCoords && (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0)) {
                     let matrix = new PathFinder.CostMatrix();
                     helper.blockOffExits(matrix, AVOID_COST);
                     return matrix;
