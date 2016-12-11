@@ -84,8 +84,7 @@ export class GeologyMission extends Mission {
                 return this.workerBody(33, 0, 17);
             }
         };
-        this.geologists = this.headCount("geologist", () => this.memory.bestBody, maxGeologists,
-            this.distanceToSpawn);
+        this.geologists = this.headCount("geologist", geoBody, maxGeologists, this.distanceToSpawn);
 
         let maxCarts = maxGeologists > 0 ? this.analysis.cartsNeeded : 0;
         this.carts = this.headCount("geologyCart", () => this.analysis.body, maxCarts, {prespawn: this.distanceToSpawn});
