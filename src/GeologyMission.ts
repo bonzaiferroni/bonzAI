@@ -43,7 +43,7 @@ export class GeologyMission extends Mission {
             this.memory.distanceToStorage = this.mineral.pos.walkablePath(this.storeStructure.pos).length;
         }
 
-        if (this.room.controller.level >= 7 && !this.memory.builtExtractor) {
+        if ((!this.room.controller || this.room.controller.level >= 7) && !this.memory.builtExtractor) {
             let extractor = this.mineral.pos.lookForStructure(STRUCTURE_EXTRACTOR);
             if (!extractor) {
                 this.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
