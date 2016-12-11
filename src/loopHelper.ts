@@ -15,6 +15,7 @@ import {TransportOperation} from "./TransportOperation";
 import {MiningOperation} from "./MiningOperation";
 import {FortOperation} from "./FortOperation";
 import {ConquestOperation} from "./ConquestOperation";
+import {BaseOperation} from "./BaseOperation";
 
 const OPERATION_CLASSES = {
     conquest: ConquestOperation,
@@ -27,6 +28,7 @@ const OPERATION_CLASSES = {
     quad: QuadOperation,
     auto: AutoOperation,
     flex: FlexOperation,
+    base: BaseOperation, // we just added this line
 };
 
 export var loopHelper = {

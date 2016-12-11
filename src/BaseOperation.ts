@@ -11,6 +11,8 @@ export class BaseOperation extends Operation {
     }
 
     initOperation() {
+        // this line tells our operation where to spawn from
+        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
         // instantiate our mission
         this.addMission(new HarvestMission(this))
     }
