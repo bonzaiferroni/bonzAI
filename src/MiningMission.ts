@@ -308,6 +308,9 @@ export class MiningMission extends Mission {
     }
 
     private placeContainer() {
+
+        if (this.room.controller && this.room.controller.my && this.room.controller.level === 1) return;
+
         let startingPosition: {pos: RoomPosition} = this.storage;
         if (!startingPosition) {
             startingPosition = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;

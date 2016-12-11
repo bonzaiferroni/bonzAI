@@ -44,7 +44,7 @@ export class RefillMission extends Mission {
             emergencyMax = 1;
         }
 
-        let emergencyBody = () => { return this.workerBody(0, 2, 1); };
+        let emergencyBody = () => { return this.workerBody(0, 4, 2); };
         this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
 
         let cartBody = () => {
