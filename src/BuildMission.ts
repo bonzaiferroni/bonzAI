@@ -63,7 +63,12 @@ export class BuildMission extends Mission {
             }
         }
 
-        let analysis = this.analyzeTransport(20, potency * 5);
+        let distance = 20;
+        if (this.room.storage) {
+            distance = 10;
+        }
+
+        let analysis = this.analyzeTransport(distance, potency * 5);
 
         let builderBody = () => {
             if (this.spawnGroup.maxSpawnEnergy < 550) {
