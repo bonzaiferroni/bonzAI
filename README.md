@@ -52,7 +52,7 @@ Additional framework topics:
 - SpawnGroup (coming soon)
 - Empire (coming soon)
 - Cache invalidation (coming soon)
-- Tutorial: Write a couple classes that extends Operation and Mission to do all the basic creep behavior (harvesting, building construction, etc.) (coming soon)
+- [Quickstart](https://github.com/bonzaiferroni/bonzAI/wiki/bonzAI-Quickstart): Write a couple classes that extends Operation and Mission to do all the basic creep behavior
 
 ### Overview of AI implementation
 
