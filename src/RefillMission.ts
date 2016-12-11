@@ -1,72 +1,131 @@
 import {Mission} from "./Mission";
 import {Operation} from "./Operation";
+
+interface EnergyStructure extends Structure {
+    pos: RoomPosition
+    energy: number
+    energyCapacity: number
+}
+
 export class RefillMission extends Mission {
 
     carts: Creep[];
     emergencyCarts: Creep[];
-    limit: number;
-    maxRefillers: number;
     emergencyMode: boolean;
-    structures: Structure[];
+    empties: EnergyStructure[];
+
+    memory: {
+        cartsLastTick: number
+    };
 
     /**
      * General-purpose structure refilling. Can be used to refill spawning energy, towers, links, labs, etc.
      *  Will default to drawing energy from storage, and use altBattery if there is no storage with energy
      * @param operation
-     * @param name
-     * @param maxRefillers
-     * @param structures
-     * @param limit - the number of units each refill cart should be (1 unit = [CARRY, CARRY, MOVE])
-     * @param emergencyMode
      */
 
-    constructor(operation: Operation, name: string, maxRefillers: number, structures: Structure[], limit: number,
-                emergencyMode?: boolean) {
-        super(operation, name);
-        this.limit = limit;
-        this.structures = structures;
-        this.maxRefillers = maxRefillers;
-        this.emergencyMode = emergencyMode;
+    constructor(operation: Operation) {
+        super(operation, "refill");
     }
 
     initMission() {
-        this.structures = _.filter(this.structures, (s: StructureSpawn | StructureExtension) => s.energy < s.energyCapacity) as Structure[];
+        this.emergencyMode = this.memory.cartsLastTick === 0;
     }
 
     roleCall() {
 
-        if (this.emergencyMode) {
-            let emergencyBody = () => { return this.workerBody(0, 2, 1); };
-            let needEmergencyCart = this.memory.cartCount === 0;
-            if (needEmergencyCart && Game.time % 10 === 0) console.log(this.opName, "is spawning emergency spawnEnergy-refilling carts");
-            let emergencyCartMax = needEmergencyCart ? 2 : 0;
-            this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyCartMax);
+        let max = 2;
+        if (this.room.storage) {
+            max = 1;
         }
 
+        let emergencyMax = 0;
+        if (this.emergencyMode) {
+            emergencyMax = 1;
+        }
+
+        let emergencyBody = () => { return this.workerBody(0, 4, 2); };
+        this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
+
         let cartBody = () => {
-            return this.bodyRatio(0, 2, 1, 1, this.limit);
+            return this.bodyRatio(0, 2, 1, 1, 10);
         };
 
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.carts = this.headCount(this.name, cartBody, this.maxRefillers, {prespawn: 50, memory: memory});
-        this.memory.cartCount = this.carts.length;
+        this.carts = this.headCount("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
+        this.memory.cartsLastTick = this.carts.length;
     }
 
     missionActions() {
 
-        if (this.emergencyMode) {
-            for (let cart of this.emergencyCarts) {
-                this.refillCartActions(cart, this.structures);
-            }
+        for (let cart of this.emergencyCarts) {
+            this.spawnCartActions(cart);
         }
 
         for (let cart of this.carts) {
-            this.refillCartActions(cart, this.structures);
+            this.spawnCartActions(cart);
+        }
+    }
+
+    spawnCartActions(cart: Creep) {
+
+        let hasLoad = this.hasLoad(cart);
+        if (!hasLoad) {
+            this.procureEnergy(cart, this.findNearestEmpty(cart), true);
+            return;
+        }
+
+        let target = this.findNearestEmpty(cart);
+        if (!target) {
+            if (cart.carry.energy === cart.carryCapacity) {
+                if (cart.pos.inRangeTo(this.spawnGroup, 12)) {
+                    cart.idleOffRoad(this.flag);
+                }
+                else {
+                    cart.blindMoveTo(this.spawnGroup, {maxRooms: 1});
+                }
+            }
+            else {
+                cart.memory.hasLoad = false;
+            }
+            return;
+        }
+
+        // has target
+        if (!cart.pos.isNearTo(target)) {
+            cart.blindMoveTo(target, {maxRooms: 1});
+            return;
+        }
+
+        // is near to target
+        let outcome = cart.transfer(target, RESOURCE_ENERGY);
+        if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
+            target = this.findNearestEmpty(cart, target);
+            if (target && !cart.pos.isNearTo(target)) {
+                cart.blindMoveTo(target, {maxRooms: 1});
+            }
         }
     }
 
     finalizeMission() {
     }
     invalidateMissionCache() {
+    }
+
+    findNearestEmpty(cart: Creep, pullTarget?: EnergyStructure): EnergyStructure {
+        if (!this.empties) {
+            this.empties = _.filter(this.spawnGroup.extensions.concat(this.spawnGroup.spawns), (s: StructureSpawn) => {
+                return s.energy < s.energyCapacity;
+            }) as EnergyStructure[];
+            this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s: StructureTower) => {
+                return s.energy < s.energyCapacity * .5;
+            }) as EnergyStructure[]);
+        }
+
+        if (pullTarget) {
+            _.pull(this.empties, pullTarget);
+        }
+
+        return cart.pos.findClosestByRange(this.empties);
     }
 }

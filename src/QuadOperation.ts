@@ -1,12 +1,9 @@
-import {Empire} from "./Empire";
-import {NightsWatchMission} from "./NightsWatchMission";
-import {OperationPriority} from "./constants";
+import {DefenseMission} from "./DefenseMission";
 import {Coord} from "./interfaces";
 import {ControllerOperation} from "./ControllerOperation";
 import {helper} from "./helper";
 
 const QUAD_RADIUS = 6;
-const REPAIR_INTERVAL = 4;
 
 export class QuadOperation extends ControllerOperation {
 
@@ -18,34 +15,11 @@ export class QuadOperation extends ControllerOperation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
-        this.priority = OperationPriority.OwnedRoom;
-    }
-
     protected addDefense() {
-        this.addMission(new NightsWatchMission(this));
-    }
-
-    protected repairWalls() {
-        this.towerRepair();
-    }
-
-    protected towerRepair() {
-        if (Game.time % REPAIR_INTERVAL !== 0) return;
-
-        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
-        let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
-        if (towers.length === 0 || ramparts.length === 0) return;
-
-        let rampart = _(ramparts).sortBy("hits").head();
-
-        rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
+        this.addMission(new DefenseMission(this));
     }
 
     protected initAutoLayout() {
-        this.staticLayout = this.quadLayoutMap;
-
         if(!this.memory.layoutMap) {
             this.memory.layoutMap = {};
             this.memory.radius = QUAD_RADIUS;
@@ -57,14 +31,6 @@ export class QuadOperation extends ControllerOperation {
         if (!this.memory.temporaryPlacement[level]) {
 
             let actions: {actionType: string, structureType: string, coord: Coord}[] = [];
-
-            // containers
-            if (level === 2) {
-                actions.push({actionType: "place", structureType: STRUCTURE_CONTAINER, coord: {x: -1, y: 5}});
-            }
-            if (level === 5) {
-                actions.push({actionType: "remove", structureType: STRUCTURE_CONTAINER, coord: {x: -1, y: 5}});
-            }
 
             // links
             if (level === 5) {
@@ -110,7 +76,7 @@ export class QuadOperation extends ControllerOperation {
         }
     }
 
-    quadLayoutMap = {
+    staticStructures = {
         [STRUCTURE_SPAWN]: [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}],
         [STRUCTURE_TOWER]: [
             {x: 1, y: -1}, {x: -1, y: -1}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}],

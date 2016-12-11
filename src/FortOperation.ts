@@ -7,9 +7,8 @@ import {GeologyMission} from "./GeologyMission";
 import {IgorMission} from "./IgorMission";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
-import {NightsWatchMission} from "./NightsWatchMission";
+import {DefenseMission} from "./DefenseMission";
 import {MiningMission} from "./MiningMission";
-import {ObserverMission} from "./ObserverMission";
 import {PaverMission} from "./PaverMission";
 import {PowerMission} from "./PowerMission";
 import {RefillMission} from "./RefillMission";
@@ -46,9 +45,9 @@ export class FortOperation extends Operation {
             let structures = this.flag.room.findStructures(STRUCTURE_EXTENSION)
                 .concat(this.flag.room.find(FIND_MY_SPAWNS)) as Structure[];
             let maxCarts = this.flag.room.storage ? 1 : 2;
-            this.addMission(new RefillMission(this, "spawnCart", maxCarts, structures, 10, true));
+            this.addMission(new RefillMission(this));
 
-            this.addMission(new NightsWatchMission(this));
+            this.addMission(new DefenseMission(this));
 
             if (this.memory.powerMining) {
                 this.addMission(new PowerMission(this));
@@ -75,13 +74,10 @@ export class FortOperation extends Operation {
             }
 
             // build construction
-            let allowBuilderSpawn = this.flag.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0;
-            this.addMission(new BuildMission(this, "builder", this.calcBuilderPotency(), allowBuilderSpawn));
+            this.addMission(new BuildMission(this));
 
             // build walls
-            if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-                this.addMission(new BuildMission(this, "mason", this.calcMasonPotency()));
-            }
+            // TODO: make MasonMission
 
             // use link array near storage to fire energy at controller link (pre-rcl8)
             if (this.flag.room.storage) {
@@ -96,9 +92,6 @@ export class FortOperation extends Operation {
             // upgrader controller
             let boostUpgraders = this.flag.room.controller.level < 8;
             this.addMission(new UpgradeMission(this, boostUpgraders));
-
-            // repair roads
-            this.addMission(new PaverMission(this));
         }
     }
 

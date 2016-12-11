@@ -1,12 +1,12 @@
 import {Mission} from "./Mission";
 import {Operation} from "./Operation";
-export class NightsWatchMission extends Mission {
+export class DefenseMission extends Mission {
 
     refillCarts: Creep[];
     defenders: Creep[];
 
     towers: StructureTower[];
-    emptyTowers: StructureTower[];
+    empties: StructureTower[];
     closestHostile: Creep;
     healedDefender: Creep;
 
@@ -23,13 +23,22 @@ export class NightsWatchMission extends Mission {
 
     enemySquads = [];
 
+    memory: {
+        idlePosition: RoomPosition;
+        unleash: boolean;
+        disableSafeMode: boolean;
+        wallCount: number;
+        closestWallId: string;
+        preSpawn: boolean
+        lastCheckedTowers: number;
+    };
+
     constructor(operation: Operation) {
-        super(operation, "nightsWatch");
+        super(operation, "defense");
     }
 
     initMission() {
         this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
-        this.emptyTowers = _.filter(this.towers, (s: StructureTower) => s.energy < s.energyCapacity) as StructureTower[];
 
         this.analyzePlayerThreat();
 
@@ -37,7 +46,7 @@ export class NightsWatchMission extends Mission {
         if (Game.time % 1000 === 1) {
             let nukes = this.room.find(FIND_NUKES) as Nuke[];
             for (let nuke of nukes) {
-                console.log(`NIGHTSWATCH: nuke landing at ${this.opName} in ${nuke.timeToLand}`);
+                console.log(`DEFENSE: nuke landing at ${this.opName} in ${nuke.timeToLand}`);
             }
         }
 
@@ -46,14 +55,14 @@ export class NightsWatchMission extends Mission {
     }
 
     roleCall() {
-        let maxRefillers = this.emptyTowers.length > 0 ? 1 : 0;
-
-        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), maxRefillers);
-
         let maxDefenders = 0;
+        let maxRefillers = 0;
         if (this.playerThreat) {
             maxDefenders = Math.max(this.enemySquads.length, 1);
+            maxRefillers = 1;
         }
+
+        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), maxRefillers);
 
         let memory = { boosts: [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
             RESOURCE_CATALYZED_UTRIUM_ACID], allowUnboosted: !this.enhancedBoost };
@@ -75,7 +84,7 @@ export class NightsWatchMission extends Mission {
             }
         };
 
-        this.defenders = this.headCount("JonSnow", defenderBody, maxDefenders, {prespawn: 1, memory: memory});
+        this.defenders = this.headCount("defender", defenderBody, maxDefenders, {prespawn: 1, memory: memory});
     }
 
     missionActions() {
@@ -89,7 +98,7 @@ export class NightsWatchMission extends Mission {
         this.towerTargeting(this.towers);
 
         for (let cart of this.refillCarts) {
-            this.refillCartActions(cart, this.emptyTowers, true);
+            this.towerCartActions(cart);
         }
     }
 
@@ -97,6 +106,52 @@ export class NightsWatchMission extends Mission {
     }
 
     invalidateMissionCache() {
+    }
+
+    towerCartActions(cart: Creep) {
+
+        let hasLoad = this.hasLoad(cart);
+        if (!hasLoad) {
+            this.procureEnergy(cart, this.findLowestEmpty(cart), true);
+            return;
+        }
+
+        let target = this.findLowestEmpty(cart);
+        if (!target) {
+            cart.memory.hasLoad = cart.carry.energy === cart.carryCapacity;
+            cart.yieldRoad(this.flag);
+            return;
+        }
+
+        // has target
+        if (!cart.pos.isNearTo(target)) {
+            cart.blindMoveTo(target, {maxRooms: 1});
+            return;
+        }
+
+        // is near to target
+        let outcome = cart.transfer(target, RESOURCE_ENERGY);
+        if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
+            target = this.findLowestEmpty(cart, target);
+            if (target && !cart.pos.isNearTo(target)) {
+                cart.blindMoveTo(target, {maxRooms: 1});
+            }
+        }
+    }
+
+    findLowestEmpty(cart: Creep, pullTarget?: StructureTower): StructureTower {
+        if (!this.empties) {
+            this.empties = _(this.towers)
+                .filter((s: StructureTower) => s.energy < s.energyCapacity)
+                .sortBy("energy")
+                .value() as StructureTower[];
+        }
+
+        if (pullTarget) {
+            _.pull(this.empties, pullTarget);
+        }
+
+        return this.empties[0];
     }
 
     private defenderActions(defender: Creep, order: number) {
@@ -252,7 +307,7 @@ export class NightsWatchMission extends Mission {
             Memory.roomAttacks[playerCreeps[0].owner.username] = Game.time;
 
             if (Game.time % 10 === 5) {
-                console.log("NIGHTSWATCH: " + playerCreeps.length + " non-ally hostile creep in owned room: " + this.flag.pos.roomName);
+                console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned room: " + this.flag.pos.roomName);
             }
 
             for (let creep of this.room.hostiles) {

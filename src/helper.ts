@@ -111,6 +111,7 @@ export var helper = {
 
         let coordinateRegex = /(E|W)(\d+)(N|S)(\d+)/g;
         let match = coordinateRegex.exec(roomName);
+        if (!match) return;
 
         let xDir = match[1];
         let x = match[2];
@@ -199,12 +200,13 @@ export var helper = {
     blockOffMatrix(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
             for (let yDelta = -range; yDelta <= range; yDelta++) {
+                if (Game.map.getTerrainAt(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, roomObject.room.name) === "wall") continue;
                 costs.set(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, cost);
             }
         }
     },
 
-    addStructuresToMatrix(costs: CostMatrix, room: Room): CostMatrix {
+    addStructuresToMatrix(costs: CostMatrix, room: Room, roadCost = 1): CostMatrix {
         room.find(FIND_STRUCTURES).forEach(function(structure: Structure) {
             if (structure instanceof StructureRampart) {
                 if (!structure.my) {
@@ -212,13 +214,31 @@ export var helper = {
                 }
             } else if (structure instanceof StructureRoad) {
                 // Favor roads over plain tiles
-                costs.set(structure.pos.x, structure.pos.y, 1);
+                costs.set(structure.pos.x, structure.pos.y, roadCost);
             } else if (structure.structureType !== STRUCTURE_CONTAINER) {
                 // Can't walk through non-walkable buildings
                 costs.set(structure.pos.x, structure.pos.y, 0xff);
             }
         });
         return costs;
+    },
+
+    addTerrainToMatrix(matrix: CostMatrix, roomName: string): CostMatrix {
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
+                let terrain = Game.map.getTerrainAt(x, y, roomName);
+                if (terrain === "wall") {
+                    matrix.set(x, y, 0xff);
+                }
+                else if (terrain === "swamp") {
+                    matrix.set(x, y, 5);
+                }
+                else {
+                    matrix.set(x, y, 1);
+                }
+            }
+        }
+        return;
     },
 
     findRelativeRoomName(room: Room, xDelta: number, yDelta: number): string {
@@ -240,15 +260,15 @@ export var helper = {
         return xDir + x + yDir + y;
     },
 
-    blockOffExits(matrix: CostMatrix): CostMatrix {
+    blockOffExits(matrix: CostMatrix, cost = 0xff): CostMatrix {
         for (let i = 0; i < 50; i += 49) {
             for (let j = 0; j < 50; j++) {
-                matrix.set(i, j, 0xff);
+                matrix.set(i, j, cost);
             }
         }
         for (let i = 0; i < 50; i++) {
             for (let j = 0; j < 50; j += 49) {
-                matrix.set(i, j, 0xff);
+                matrix.set(i, j, cost);
             }
         }
         return matrix;

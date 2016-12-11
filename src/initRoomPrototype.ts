@@ -89,6 +89,9 @@ export function initRoomPrototype() {
         if (!this.altBatteries) {
             let possibilities = [];
             let containers = this.findStructures(STRUCTURE_CONTAINER);
+            if (this.controller && this.controller.getBattery() instanceof StructureContainer) {
+                _.pull(containers, this.controller.getBattery());
+            }
             for (let container of containers) {
                 if (container.store.energy >= 50) {
                     possibilities.push(container);

@@ -83,6 +83,10 @@ export var consoleCommands = {
                     if (propertyName === "power") continue;
                     if (propertyName === "spawnRoom") continue;
                     if (propertyName === "distance") continue;
+                    if (propertyName === "centerPosition") continue;
+                    if (propertyName === "rotation") continue;
+                    if (propertyName === "radius") continue;
+                    if (propertyName === "layoutMap") continue;
                     delete flag.memory[propertyName];
                 }
             }

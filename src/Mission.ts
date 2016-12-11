@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {TransportAnalysis, SpawnReservation, HeadCountOptions} from "./interfaces";
+import {TransportAnalysis, HeadCountOptions} from "./interfaces";
 import {Empire} from "./Empire";
 import {SpawnGroup} from "./SpawnGroup";
 import {DESTINATION_REACHED} from "./constants";
@@ -105,15 +105,46 @@ export abstract class Mission {
                 Memory.creeps[creepName] = undefined;
                 i--;
             }
+
+            // if (this.opName === "dingus5" && this.name === "igor") console.log(Game.time, creepName, creep ? creep.ticksToLive : "noCreep", count, this.memory.spawn[roleName])
         }
 
         if (this.allowSpawn && this.spawnGroup.isAvailable && (count < max) && (this.hasVision || options.blindSpawn)) {
+            // if (this.opName === "dingus5" && this.name === "igor") console.log("spawn", count);
             let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
         }
 
         return roleArray;
+    }
+
+    protected spawnSharedCreep(roleName: string, getBody: () => string[]) {
+        let spawnMemory = this.spawnGroup.spawns[0].memory;
+        if (!spawnMemory.communityRoles) spawnMemory.communityRoles = {};
+
+        let employerName = this.opName + this.name;
+        let creep;
+        if (spawnMemory.communityRoles[roleName]) {
+            creep = Game.creeps[spawnMemory.communityRoles[roleName]];
+            if (creep) {
+                if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed || Game.time - creep.memory.lastTickEmployed > 1)) {
+                    creep.memory.employer = employerName;
+                    creep.memory.lastTickEmployed = Game.time;
+                    return creep;
+                }
+            }
+        }
+
+        if (!creep && this.spawnGroup.isAvailable) {
+            let outcome = this.spawnGroup.spawn(getBody(), "community_" + roleName + "_" + Math.floor(Math.random() * 100), undefined, undefined);
+            if (_.isString(outcome)) {
+                spawnMemory.communityRoles[roleName] = outcome;
+            }
+            else if (Game.time % 10 !== 0 && outcome !== ERR_NOT_ENOUGH_RESOURCES) {
+                console.log(`error spawning community ${roleName} in ${this.opName} outcome: ${outcome}`);
+            }
+        }
     }
 
     /**
@@ -232,12 +263,12 @@ export abstract class Mission {
                 if (outcome === OK) {
                     creep.memory.batteryId = undefined;
                     if (nextDestination) {
-                        creep.blindMoveTo(nextDestination);
+                        creep.blindMoveTo(nextDestination, {maxRooms: 1});
                     }
                 }
             }
             else {
-                creep.blindMoveTo(battery);
+                creep.blindMoveTo(battery, {maxRooms: 1});
             }
         }
         else {
@@ -352,71 +383,6 @@ export abstract class Mission {
         }
     }
 
-    supplyCartActions(cart: Creep, suppliedCreep: Creep) {
-        if (cart.carry.energy < cart.carryCapacity) {
-            this.procureEnergy(cart, suppliedCreep);
-            return;
-        }
-
-        // has energy
-        if (!suppliedCreep || suppliedCreep.carry.energy > suppliedCreep.carryCapacity * 0.8) {
-            cart.idleOffRoad(this.flag);
-            return;
-        }
-
-        // has target with room for more energy
-        let outcome = cart.transfer(suppliedCreep, RESOURCE_ENERGY);
-        if (outcome === ERR_NOT_IN_RANGE) {
-            cart.blindMoveTo(suppliedCreep);
-        }
-        else if (outcome === OK) {
-            this.procureEnergy(cart, suppliedCreep);
-        }
-    }
-
-    refillCartActions(cart: Creep, structures: Structure[], findLowest?: boolean) {
-
-        if (cart.room.name !== this.flag.pos.roomName) {
-            this.moveToFlag(cart);
-            return; // early
-        }
-
-        let hasLoad = this.hasLoad(cart);
-        if (!hasLoad) {
-            this.procureEnergy(cart, cart.pos.findClosestByRange(structures), true);
-            return;
-        }
-
-        let target;
-        if (findLowest) {
-            target = _.sortBy(structures, (structure: StructureTower | StructureSpawn | StructureExtension) => structure.energy)[0];
-        }
-        else {
-            target = cart.pos.findClosestByRange(structures) as StructureExtension | StructureSpawn;
-        }
-        if (!target) {
-            cart.memory.hasLoad = cart.carry.energy === cart.carryCapacity;
-            cart.yieldRoad(this.flag);
-            return;
-        }
-
-        // has target
-        if (!cart.pos.isNearTo(target)) {
-            cart.blindMoveTo(target);
-            return;
-        }
-
-        // is near to target
-        let outcome = cart.transfer(target, RESOURCE_ENERGY);
-        if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
-            structures = _.pull(structures, target);
-            target = cart.pos.findClosestByRange(structures) as StructureExtension | StructureSpawn;
-            if (target && !cart.pos.isNearTo(target)) {
-                cart.blindMoveTo(target);
-            }
-        }
-    }
-
     private findOrphans(roleName: string) {
         let creepNames = [];
         for (let creepName in Game.creeps) {
@@ -444,6 +410,10 @@ export abstract class Mission {
             if (!boosted) return false;
             let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
+            if (options.moveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(0))) {
+                creep.avoidSK(this.flag);
+                return false;
+            }
             creep.memory.prep = true;
         }
         return true;
@@ -525,34 +495,67 @@ export abstract class Mission {
         }
     }
 
-    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number) {
-        if (Game.cache.placedRoad) return;
-        if (Object.keys(Game.constructionSites).length > 40) return;
+    protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number, ignoreLimit = false): number {
         if (Game.time - this.memory.paveTick < 1000) return;
 
-        let ret = PathFinder.search(start.pos, [{pos: finish.pos, range: rangeAllowance}], {
-            plainCost: 2,
-            swampCost: 3,
-            maxOps: 4000,
+        let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
+
+        if (!path) {
+            console.log(`incomplete pavePath, please investigate (${this.opName}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
+            return;
+        }
+
+        let newConstructionPos = this.examinePavedPath(path);
+
+        if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 60)) {
+            if (!Game.cache.placedRoad) {
+                Game.cache.placedRoad = true;
+                console.log(`PAVER: placed road ${newConstructionPos} in ${this.opName}`);
+                newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
+            }
+        }
+        else {
+            this.memory.paveTick = Game.time;
+            if (_.last(path).inRangeTo(finish.pos, rangeAllowance)) {
+                return path.length;
+            }
+        }
+    }
+
+    protected findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
+        const ROAD_COST = 3;
+        const PLAIN_COST = 4;
+        const SWAMP_COST = 5;
+        const AVOID_COST = 7;
+
+        let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
+            plainCost: PLAIN_COST,
+            swampCost: SWAMP_COST,
+            maxOps: 8000,
             roomCallback: (roomName: string): CostMatrix => {
                 let roomCoords = helper.getRoomCoordinates(roomName);
-                if (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0) {
+                if (roomCoords && (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0)) {
                     let matrix = new PathFinder.CostMatrix();
-                    helper.blockOffExits(matrix);
+                    helper.blockOffExits(matrix, AVOID_COST);
                     return matrix;
                 }
                 let room = Game.rooms[roomName];
                 if (!room) return;
 
                 let matrix = new PathFinder.CostMatrix();
-                helper.addStructuresToMatrix(matrix, room);
+                helper.addStructuresToMatrix(matrix, room, ROAD_COST);
+
+                // avoid controller
+                if (room.controller) {
+                    helper.blockOffMatrix(matrix, room.controller, 3, AVOID_COST);
+                }
 
                 // avoid container adjacency
                 let sources = room.find<Source>(FIND_SOURCES);
                 for (let source of sources) {
                     let container = source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
                     if (container) {
-                        helper.blockOffMatrix(matrix, container, 1, 10);
+                        helper.blockOffMatrix(matrix, container, 1, AVOID_COST);
                     }
                 }
 
@@ -560,7 +563,7 @@ export abstract class Mission {
                 let constructionSites = room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES);
                 for (let site of constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
-                        matrix.set(site.pos.x, site.pos.y, 1);
+                        matrix.set(site.pos.x, site.pos.y, ROAD_COST);
                     }
                 }
 
@@ -568,43 +571,101 @@ export abstract class Mission {
             },
         });
 
-        if (ret.incomplete) {
-            console.log(`pavePath got an incomplete path, please investigate (${this.opName})`);
-            return;
-        }
+        if (!ret.incomplete) return ret.path;
+    }
 
-        for (let i = 0; i < ret.path.length; i++) {
-            let position = ret.path[i];
+    private examinePavedPath(path: RoomPosition[]) {
+
+        let repairIds = [];
+        let hitsToRepair = 0;
+
+        for (let i = 0; i < path.length; i++) {
+            let position = path[i];
             if (!Game.rooms[position.roomName]) return;
             if (position.isNearExit(0)) continue;
             let road = position.lookForStructure(STRUCTURE_ROAD);
-            if (road) continue;
+            if (road) {
+                repairIds.push(road.id);
+                hitsToRepair += road.hitsMax - road.hits;
+                // TODO: calculate how much "a whole lot" should be based on paver repair rate
+                const A_WHOLE_LOT = 1000000;
+                if (!this.memory.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20)) {
+                    console.log(`PAVER: I'm being summoned in ${this.opName}`);
+                    this.memory.roadRepairIds = repairIds;
+                }
+                continue;
+            }
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (construction && construction.structureType === STRUCTURE_ROAD) continue;
-            if (i > 1 && !position.isNearExit(1)) {
-                let lastPosition = ret.path[i - 1];
-                let lastDirection = ret.path[i -2].getDirectionTo(lastPosition);
-                let currentDirection = lastPosition.getDirectionTo(position);
-                if (lastDirection % 2 === 0 && lastDirection !== currentDirection) {
-                    let testPosition = lastPosition.getPositionAtDirection(lastDirection);
-                    let finalPositionInRoom = _(ret.path).filter((p: RoomPosition) => p.roomName === position.roomName).last();
-                    let posRange = position.getPathDistanceTo(finalPositionInRoom, true);
-                    let testRange = testPosition.getPathDistanceTo(finalPositionInRoom, true);
-                    if (!testPosition.isNearExit(0) && testPosition.isPassible(true) && posRange === testRange) {
-                        testPosition.createConstructionSite(STRUCTURE_ROAD);
-                        Game.cache.placedRoad = true;
-                        console.log(`placed construction ${position} (straight road)`);
-                        console.log(`${position}, ${testPosition}, ${finalPositionInRoom}, ${posRange}, ${testRange}`);
-                        return;
-                    }
-                }
-            }
-            position.createConstructionSite(STRUCTURE_ROAD);
-            Game.cache.placedRoad = true;
-            console.log(`placed construction ${position}`);
+            return position;
+        }
+    }
+
+    protected paverActions(paver: Creep) {
+
+        let hasLoad = this.hasLoad(paver);
+        if (!hasLoad) {
+            this.procureEnergy(paver, this.findRoadToRepair());
             return;
         }
 
-        this.memory.paveTick = Game.time;
+        let road = this.findRoadToRepair();
+
+        if (!road) {
+            console.log(`this is ${this.opName} paver, checking out with ${paver.ticksToLive} ticks to live`);
+            paver.idleOffRoad(this.room.controller);
+            return;
+        }
+
+        let paving = false;
+        if (paver.pos.inRangeTo(road, 3) && !paver.pos.isNearExit(0)) {
+            paving = paver.repair(road) === OK;
+            let hitsLeftToRepair = road.hitsMax - road.hits;
+            if (hitsLeftToRepair > 10000) {
+                paver.yieldRoad(road, true);
+            }
+            else if (hitsLeftToRepair > 1500) {
+                paver.yieldRoad(road, false)
+            }
+        }
+        else {
+            paver.blindMoveTo(road);
+        }
+
+        if (!paving) {
+            road = paver.pos.lookForStructure(STRUCTURE_ROAD) as StructureRoad;
+            if (road && road.hits < road.hitsMax) paver.repair(road);
+        }
+
+        let creepsInRange = _.filter(paver.pos.findInRange(FIND_MY_CREEPS, 1), (c: Creep) => {
+            return c.carry.energy > 0 && c.partCount(WORK) === 0;
+        }) as Creep[];
+
+        if (creepsInRange.length > 0) {
+            creepsInRange[0].transfer(paver, RESOURCE_ENERGY);
+        }
+    }
+
+    private findRoadToRepair(): StructureRoad {
+        if (!this.memory.roadRepairIds) return;
+
+        let road = Game.getObjectById<StructureRoad>(this.memory.roadRepairIds[0]);
+        if (road && road.hits < road.hitsMax) {
+            return road;
+        }
+        else {
+            this.memory.roadRepairIds.shift();
+            if (this.memory.roadRepairIds.length > 0) {
+                return this.findRoadToRepair();
+            }
+            else {
+                this.memory.roadRepairIds = undefined;
+            }
+        }
+    }
+
+    protected spawnPaver(): Creep {
+        let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
+        return this.spawnSharedCreep("paver", paverBody);
     }
 }

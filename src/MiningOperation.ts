@@ -80,7 +80,6 @@ export class MiningOperation extends Operation {
         }
 
         this.addMission(new RemoteBuildMission(this, true));
-        this.addMission(new PaverMission(this));
 
         if (!this.flag.room.controller || this.memory.swapMining) {
             let storeStructure = this.memory.swapMining ? this.flag.room.terminal : undefined;

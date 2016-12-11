@@ -58,7 +58,7 @@ interface Creep {
     blindMoveTo(target: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
     moveItOrLoseIt(position: RoomPosition, name?: string): number;
     idleOffRoad(defaultPoint: RoomObject): number;
-    yieldRoad(target: RoomObject): number;
+    yieldRoad(target: RoomObject, allowSwamps?: boolean): number;
     _withdraw(target: Structure, resourceType: string, amount?: number): number;
     withdraw(target: Structure | Creep, resourceType: string, amount?: number): number;
     withdrawIfFull(target: Creep | Structure, resourceType: string): number;
@@ -66,7 +66,7 @@ interface Creep {
     withdrawEverything(target: { store: StoreDefinition, pos: RoomPosition }): number;
     rememberBattery(): Creep | StructureContainer;
     rememberCreep(findCreep: () => Creep, forget: (creep: Creep) => boolean): Creep;
-    rememberStructure(findStructure: () => Structure, forget: (structure: Structure) => boolean): Structure;
+    rememberStructure<T>(findStructure: () => Structure, forget: (structure: Structure) => boolean, propertyName?: string): T;
     isNearExit(range: number): boolean;
     travelByWaypoint(flag: Flag[]): number;
     avoidSK(destination: {pos: RoomPosition}, opts?: any): number;

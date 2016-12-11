@@ -3,12 +3,12 @@ import {Operation} from "./Operation";
 import {TransportAnalysis} from "./interfaces";
 import {TICK_TRANSPORT_ANALYSIS} from "./constants";
 import {helper} from "./helper";
-import {profiler} from "./profiler";
 
 export class MiningMission extends Mission {
 
     miners: Creep[];
     minerCarts: Creep[];
+    paver: Creep;
 
     source: Source;
     container: StructureContainer;
@@ -26,6 +26,7 @@ export class MiningMission extends Mission {
         positionsAvailable: number;
         transportAnalysis: TransportAnalysis;
         distanceToStorage: number;
+        roadRepairIds: string[];
     };
 
     /**
@@ -68,7 +69,7 @@ export class MiningMission extends Mission {
         // below a certain amount of maxSpawnEnergy, BootstrapMission will harvest energy
         if (!this.memory.potencyPerMiner) this.memory.potencyPerMiner = 2;
         let maxMiners = this.needsEnergyTransport ? 1 : Math.min(Math.ceil(5 / this.memory.potencyPerMiner), this.positionsAvailable);
-        if (maxMiners > 1) {
+        if (maxMiners > 1 && this.spawnGroup.maxSpawnEnergy < 800) {
             this.container = undefined;
         }
 
@@ -77,6 +78,10 @@ export class MiningMission extends Mission {
         };
 
         this.miners = this.headCount(this.name, getMinerBody, maxMiners, {prespawn: this.distanceToSpawn});
+
+        if (this.memory.roadRepairIds) {
+            this.paver = this.spawnPaver();
+        }
 
         if (!this.needsEnergyTransport) return;
 
@@ -98,11 +103,22 @@ export class MiningMission extends Mission {
             }
         }
 
-        profiler.start("paver");
-        if (this.storage && this.container && this.storage.room.controller.level >= 4) {
-            this.pavePath(this.storage, this.container, 2);
+        if (this.paver) {
+            this.paverActions(this.paver);
         }
-        profiler.end("paver");
+
+        if (this.container) {
+            let startingPosition: {pos: RoomPosition} = this.storage;
+            if (!startingPosition) {
+                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            }
+            if (startingPosition) {
+                let distance = this.pavePath(startingPosition, this.container, 2);
+                if (distance) {
+                    this.memory.distanceToStorage = distance;
+                }
+            }
+        }
     }
 
     private minerActions(miner: Creep) {
@@ -159,7 +175,7 @@ export class MiningMission extends Mission {
 
     private getMinerBody(): string[] {
         let body;
-        if (this.needsEnergyTransport && this.spawnGroup.maxSpawnEnergy >= 800) {
+        if ((this.container || this.needsEnergyTransport) && this.spawnGroup.maxSpawnEnergy >= 800) {
 
             let work = Math.ceil((Math.max(this.source.energyCapacity,
                     SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);
@@ -199,7 +215,7 @@ export class MiningMission extends Mission {
     }
 
     private runTransportAnalysis() {
-        if (!this.memory.distanceToStorage || Game.time % 10000 === TICK_TRANSPORT_ANALYSIS) {
+        if (!this.memory.distanceToStorage) {
             let path = PathFinder.search(this.storage.pos, {pos: this.source.pos, range: 1}).path;
             this.memory.distanceToStorage = path.length;
         }
@@ -222,19 +238,30 @@ export class MiningMission extends Mission {
 
             if (!supply) {
                 if (!cart.pos.isNearTo(this.flag)) {
-                    cart.blindMoveTo(this.flag);
+                    cart.idleOffRoad(this.flag);
                 }
                 return; // early
             }
 
-            if (cart.pos.isNearTo(supply)) {
-                let outcome = cart.withdrawIfFull(supply, RESOURCE_ENERGY);
-                if (outcome === OK && supply.store.energy >= cart.storeCapacity) {
-                    cart.blindMoveTo(this.storage);
-                }
-            }
-            else {
+            let rangeToSupply = cart.pos.getRangeTo(supply);
+            if (rangeToSupply > 3) {
                 cart.blindMoveTo(supply);
+                return;
+            }
+
+            if (supply.store.energy === 0) {
+                cart.idleOffRoad(this.flag);
+                return;
+            }
+
+            if (rangeToSupply > 1) {
+                cart.blindMoveTo(supply);
+                return;
+            }
+
+            let outcome = cart.withdrawIfFull(supply, RESOURCE_ENERGY);
+            if (outcome === OK && supply.store.energy >= cart.storeCapacity) {
+                cart.blindMoveTo(this.storage);
             }
             return; // early
         }
@@ -281,11 +308,18 @@ export class MiningMission extends Mission {
     }
 
     private placeContainer() {
-        if (!this.storage) return;
+
+        if (this.room.controller && this.room.controller.my && this.room.controller.level === 1) return;
+
+        let startingPosition: {pos: RoomPosition} = this.storage;
+        if (!startingPosition) {
+            startingPosition = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;
+            if (!startingPosition) return;
+        }
 
         if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) return;
 
-        let ret = PathFinder.search(this.source.pos, [{pos: this.storage.pos, range: 1}], {
+        let ret = PathFinder.search(this.source.pos, [{pos: startingPosition.pos, range: 1}], {
             maxOps: 4000,
             swampCost: 2,
             plainCost: 2,
@@ -301,7 +335,6 @@ export class MiningMission extends Mission {
         });
         if (ret.incomplete || ret.path.length === 0) {
             console.log(`path used for container placement in ${this.opName} incomplete, please investigate`);
-            console.log(`${this.storage.pos}`)
         }
 
         let position = ret.path[0];

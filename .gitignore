@@ -4,6 +4,4 @@
 /dist
 Gruntfile.js
 /.idea
-/src/TrainingOperation.ts
-/src/TrainingMission.ts
 /src/sandbox.ts

@@ -26,19 +26,7 @@ export class FlexGenerator {
     wallCount: number;
     recheckCount = 0;
 
-    static staticStructures = {
-        [STRUCTURE_STORAGE]: [{x: 0, y: -3}],
-        [STRUCTURE_TERMINAL]: [{x: -2, y: -1}],
-        [STRUCTURE_SPAWN]: [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: 3}],
-        [STRUCTURE_NUKER]: [{x: 3, y: 0}],
-        [STRUCTURE_POWER_SPAWN]: [{x: -3, y: 0}],
-        [STRUCTURE_LAB]: [
-            {x: 1, y: 0}, {x: 2, y: 1}, {x: 0, y: 1},
-            {x: 1, y: 2}, {x: 2, y: 0}, {x: 0, y: 2},
-            {x: 0, y: -1}, {x: -1, y: 0}, {x: 1, y: -1}, {x: -1, y: 1},],
-    };
-
-    constructor(centerPosition: RoomPosition, rotation: number) {
+    constructor(centerPosition: RoomPosition, rotation: number, staticStructures: {[structureType: string]: Coord[]}) {
         if (!(centerPosition instanceof RoomPosition)) {
             centerPosition = helper.deserializeRoomPosition(centerPosition);
         }
@@ -51,7 +39,7 @@ export class FlexGenerator {
         this.topMost = centerPosition.y;
         this.bottomMost = centerPosition.y;
 
-        this.coreStructureCoordinates = FlexGenerator.staticStructures;
+        this.coreStructureCoordinates = staticStructures;
     }
 
     generate(debug: boolean): {[structureType: string]: Coord[]} {
@@ -285,7 +273,7 @@ export class FlexGenerator {
         for (let x in this.map) {
             for (let y in this.map[x]) {
                 let structureType = this.map[x][y];
-                if (structureType !== STRUCTURE_ROAD && _.includes(Object.keys(FlexGenerator.staticStructures), structureType)) continue;
+                if (structureType !== STRUCTURE_ROAD && _.includes(Object.keys(this.coreStructureCoordinates), structureType)) continue;
                 if (!roomPositions[structureType]) roomPositions[structureType] = [];
                 roomPositions[structureType].push(new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.roomName));
             }

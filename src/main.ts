@@ -7,7 +7,8 @@ loopHelper.initMemory();
 initPrototypes();
 
 module.exports.loop = function () {
-    Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {}, activeLabCount: 0 };
+    Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
+        activeLabCount: 0, placedRoad: false };
 
     // Init phase - Information is gathered about the game state and game objects instantiated
     profiler.start("init");

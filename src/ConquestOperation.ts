@@ -9,7 +9,7 @@ import {PaverMission} from "./PaverMission";
 import {OperationPriority} from "./constants";
 import {TransportMission} from "./TransportMission";
 import {RemoteBuildMission} from "./RemoteBuildMission";
-import {NightsWatchMission} from "./NightsWatchMission";
+import {DefenseMission} from "./DefenseMission";
 import {LinkNetworkMission} from "./LinkNetworkMission";
 import {BuildMission} from "./BuildMission";
 import {RefillMission} from "./RefillMission";
@@ -89,12 +89,7 @@ export class ConquestOperation extends Operation {
         if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= CONQUEST_LOCAL_MIN_SPAWN_ENERGY) {
             this.waypoints = undefined;
             this.spawnGroup = localSpawnGroup;
-            this.addMission(new RefillMission(this, "spawnCart", 1, localSpawnGroup.extensions.concat(localSpawnGroup.spawns), 4, true));
-
-            // build walls
-            if (this.flag.room.findStructures(STRUCTURE_RAMPART).length > 0 && !this.memory.noMason) {
-                this.addMission(new BuildMission(this, "mason", CONQUEST_MASON_POTENCY));
-            }
+            this.addMission(new RefillMission(this));
         }
 
         for (let i = 0; i < this.sources.length; i++) {
@@ -105,11 +100,8 @@ export class ConquestOperation extends Operation {
         // use link array near storage to fire energy at controller link (pre-rcl8)
         this.addMission(new LinkNetworkMission(this));
 
-        // repair roads
-        this.addMission(new PaverMission(this));
-
         // shoot towers and refill
-        this.addMission(new NightsWatchMission(this));
+        this.addMission(new DefenseMission(this));
     }
 
     finalizeOperation() {

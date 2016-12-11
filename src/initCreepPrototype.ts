@@ -40,7 +40,7 @@ export function initCreepPrototype() {
 
             let lab = flag.pos.lookForStructure(STRUCTURE_LAB) as StructureLab;
 
-            if (lab.mineralType === boost && lab.mineralAmount >= IGOR_CAPACITY) {
+            if (lab.mineralType === boost && lab.mineralAmount >= IGOR_CAPACITY && lab.energy >= IGOR_CAPACITY) {
                 if (this.pos.isNearTo(lab)) {
                     lab.boostCreep(this);
                 }
@@ -260,12 +260,23 @@ export function initCreepPrototype() {
         if (offRoad) return OK;
 
         let positions = this.pos.openAdjacentSpots();
+        let swampPosition;
         for (let position of positions) {
-            if (position.lookFor(LOOK_STRUCTURES).length === 0 &&
-                (!this.room.storage || !this.room.storage.pos.inRangeTo(position, 1))) {
-                return this.move(this.pos.getDirectionTo(position));
+            if (position.lookFor(LOOK_STRUCTURES).length === 0) {
+                let terrain = position.lookFor(LOOK_TERRAIN)[0] as string;
+                if (terrain === "swamp") {
+                    swampPosition = position;
+                }
+                else {
+                    return this.move(this.pos.getDirectionTo(position));
+                }
             }
         }
+
+        if (swampPosition) {
+            return this.move(this.pos.getDirectionTo(swampPosition));
+        }
+
         return this.blindMoveTo(defaultPoint);
     };
 
@@ -275,9 +286,10 @@ export function initCreepPrototype() {
      * @param target - target for which you do not want to move out of range
      * @returns {number}
      */
-    Creep.prototype.yieldRoad = function(target: RoomObject): number  {
+    Creep.prototype.yieldRoad = function(target: RoomObject, allowSwamps = true): number  {
         let isOnRoad = this.pos.lookFor(LOOK_STRUCTURES).length > 0;
         if (isOnRoad) {
+            let swampPosition;
             // find movement options
             let direction = this.pos.getDirectionTo(target);
             for (let i = -2; i <= 2; i++) {
@@ -288,7 +300,14 @@ export function initCreepPrototype() {
                 if (position.lookFor(LOOK_STRUCTURES).length > 0) continue;
                 if (!position.isPassible()) continue;
                 if (position.isNearExit(0)) continue;
+                if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
+                    swampPosition = position;
+                    continue;
+                }
                 return this.move(relDirection);
+            }
+            if (swampPosition && allowSwamps) {
+                return this.move(this.pos.getDirectionTo(swampPosition));
             }
             return this.blindMoveTo(target);
         }
@@ -371,24 +390,26 @@ export function initCreepPrototype() {
      * @param findStructure
      * @param forget
      * @param recursion
+     * @param prop
      * @returns {Structure}
      */
 
-    Creep.prototype.rememberStructure = function(findStructure: () => Structure, forget: (structure: Structure) => boolean, recursion = false): Structure {
-        if (this.memory.remStructureId) {
-            let structure = Game.getObjectById(this.memory.remStructureId) as Structure;
+    Creep.prototype.rememberStructure = function(findStructure: () => Structure, forget: (structure: Structure) => boolean,
+                                                 prop = "remStructureId", recursion = false): Structure {
+        if (this.memory[prop]) {
+            let structure = Game.getObjectById(this.memory[prop]) as Structure;
             if (structure && !forget(structure)) {
                 return structure;
             }
             else {
-                this.memory.remStructureId = undefined;
-                return this.rememberStructure(findStructure, forget, true);
+                this.memory[prop] = undefined;
+                return this.rememberStructure(findStructure, forget, prop, true);
             }
         }
         else if (Game.time % 10 === 0 || recursion) {
             let object = findStructure();
             if (object) {
-                this.memory.remStructureId = object.id;
+                this.memory[prop] = object.id;
                 return object;
             }
         }
