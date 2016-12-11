@@ -1,20 +1,34 @@
 import {Empire} from "./Empire";
-import {FortOperation} from "./FortOperation";
 import {Operation} from "./Operation";
-import {MiningOperation} from "./MiningOperation";
 import {
     CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD, MINERALS_RAW, PRODUCT_LIST,
     USERNAME, RESERVE_AMOUNT
 } from "./constants";
-import {KeeperOperation} from "./KeeperOperation";
-import {ConquestOperation} from "./ConquestOperation";
 import {consoleCommands} from "./consoleCommands";
-import {DemolishOperation} from "./DemolishOperation";
-import {TransportOperation} from "./TransportOperation";
-import {RaidOperation} from "./RaidOperation";
-import {QuadOperation} from "./QuadOperation";
-import {AutoOperation} from "./AutoOperation";
 import {FlexOperation} from "./FlexOperation";
+import {AutoOperation} from "./AutoOperation";
+import {QuadOperation} from "./QuadOperation";
+import {RaidOperation} from "./RaidOperation";
+import {DemolishOperation} from "./DemolishOperation";
+import {KeeperOperation} from "./KeeperOperation";
+import {TransportOperation} from "./TransportOperation";
+import {MiningOperation} from "./MiningOperation";
+import {FortOperation} from "./FortOperation";
+import {ConquestOperation} from "./ConquestOperation";
+
+const OPERATION_CLASSES = {
+    conquest: ConquestOperation,
+    fort: FortOperation,
+    mining: MiningOperation,
+    tran: TransportOperation,
+    keeper: KeeperOperation,
+    demolish: DemolishOperation,
+    raid: RaidOperation,
+    quad: QuadOperation,
+    auto: AutoOperation,
+    flex: FlexOperation,
+};
+
 export var loopHelper = {
 
     initEmpire: function(): Empire {
@@ -27,26 +41,14 @@ export var loopHelper = {
     /// <summary>loop through flags and construct operation objects, return operation array sorted by priority</summary>
 
     getOperations: function(empire: Empire): Operation[] {
-        let operationTypes: any = {
-            conquest: ConquestOperation,
-            fort: FortOperation,
-            mining: MiningOperation,
-            tran: TransportOperation,
-            keeper: KeeperOperation,
-            demolish: DemolishOperation,
-            raid: RaidOperation,
-            quad: QuadOperation,
-            auto: AutoOperation,
-            flex: FlexOperation,
-        };
 
         // gather flag data, instantiate operations
         let operationList: {[operationName: string]: Operation} = {};
         for (let flagName in Game.flags) {
-            for (let typeName in operationTypes) {
-                if (!operationTypes.hasOwnProperty(typeName)) continue;
+            for (let typeName in OPERATION_CLASSES) {
+                if (!OPERATION_CLASSES.hasOwnProperty(typeName)) continue;
                 if (flagName.substring(0, typeName.length) === typeName) {
-                    let operationClass = operationTypes[typeName];
+                    let operationClass = OPERATION_CLASSES[typeName];
                     let flag = Game.flags[flagName];
                     let name = flagName.substring(flagName.indexOf("_") + 1);
 
