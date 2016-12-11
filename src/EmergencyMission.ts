@@ -31,8 +31,10 @@ export class EmergencyMinerMission extends Mission {
         }
 
         let maxEmergencyMiners = 0;
-        if (Game.time - this.memory.lastTick > 100) {
-            console.log("ATTN: Emergency miner being spawned in", this.opName);
+        if (!this.memory.lastTick || Game.time - this.memory.lastTick > 100) {
+            if (Game.time % 10 === 0) {
+                console.log("ATTN: Backup miner being spawned in", this.opName);
+            }
             maxEmergencyMiners = 2;
         }
 
