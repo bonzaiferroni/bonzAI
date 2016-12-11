@@ -66,7 +66,7 @@ interface Creep {
     withdrawEverything(target: { store: StoreDefinition, pos: RoomPosition }): number;
     rememberBattery(): Creep | StructureContainer;
     rememberCreep(findCreep: () => Creep, forget: (creep: Creep) => boolean): Creep;
-    rememberStructure(findStructure: () => Structure, forget: (structure: Structure) => boolean): Structure;
+    rememberStructure<T>(findStructure: () => Structure, forget: (structure: Structure) => boolean, propertyName?: string): T;
     isNearExit(range: number): boolean;
     travelByWaypoint(flag: Flag[]): number;
     avoidSK(destination: {pos: RoomPosition}, opts?: any): number;

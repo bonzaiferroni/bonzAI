@@ -16,6 +16,7 @@ import {helper} from "./helper";
 import {SeedAnalysis} from "./SeedAnalysis";
 import {SpawnGroup} from "./SpawnGroup";
 import {Empire} from "./Empire";
+import {MasonMission} from "./MasonMission";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -111,20 +112,20 @@ export abstract class ControllerOperation extends Operation {
         let buildMission = new BuildMission(this);
         this.addMission(buildMission);
 
-        // use link array near storage to fire energy at controller link (pre-rcl8)
         if (this.flag.room.storage) {
+            // use link array near storage to fire energy at controller link (pre-rcl8)
             this.addMission(new LinkNetworkMission(this));
-
-            let extractor = this.mineral.pos.lookFor<StructureExtractor>(LOOK_STRUCTURES)[0];
-            if (this.flag.room.energyCapacityAvailable > GEO_SPAWN_COST && extractor && extractor.my) {
-                this.addMission(new GeologyMission(this));
-            }
+            // mine minerals
+            this.addMission(new GeologyMission(this));
         }
 
         // upgrader controller
         let boostUpgraders = this.flag.room.controller.level < 8;
         let upgradeMission = new UpgradeMission(this, boostUpgraders);
         this.addMission(upgradeMission);
+
+        // repair walls
+        this.addMission(new MasonMission(this));
 
         this.towerRepair();
 

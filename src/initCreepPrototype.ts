@@ -390,24 +390,26 @@ export function initCreepPrototype() {
      * @param findStructure
      * @param forget
      * @param recursion
+     * @param prop
      * @returns {Structure}
      */
 
-    Creep.prototype.rememberStructure = function(findStructure: () => Structure, forget: (structure: Structure) => boolean, recursion = false): Structure {
-        if (this.memory.remStructureId) {
-            let structure = Game.getObjectById(this.memory.remStructureId) as Structure;
+    Creep.prototype.rememberStructure = function(findStructure: () => Structure, forget: (structure: Structure) => boolean,
+                                                 prop = "remStructureId", recursion = false): Structure {
+        if (this.memory[prop]) {
+            let structure = Game.getObjectById(this.memory[prop]) as Structure;
             if (structure && !forget(structure)) {
                 return structure;
             }
             else {
-                this.memory.remStructureId = undefined;
-                return this.rememberStructure(findStructure, forget, true);
+                this.memory[prop] = undefined;
+                return this.rememberStructure(findStructure, forget, prop, true);
             }
         }
         else if (Game.time % 10 === 0 || recursion) {
             let object = findStructure();
             if (object) {
-                this.memory.remStructureId = object.id;
+                this.memory[prop] = object.id;
                 return object;
             }
         }

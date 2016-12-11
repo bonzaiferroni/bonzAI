@@ -76,7 +76,7 @@ export class PaverMission extends Mission {
             (s: Structure) => s.hits < s.hitsMax - 1000)[0] as Structure;
         };
         let forget = (s: Structure) => s.hits === s.hitsMax;
-        let target = paver.rememberStructure(findRoad, forget);
+        let target = paver.rememberStructure<StructureRoad>(findRoad, forget);
         if (!target) {
             let repairing = false;
             if (this.room.controller && this.room.controller.my) {
@@ -108,7 +108,7 @@ export class PaverMission extends Mission {
     }
 
     private repairContainers(paver: Creep): boolean {
-        let disrepairedContainer = paver.rememberStructure(() => {
+        let disrepairedContainer = paver.rememberStructure<StructureContainer>(() => {
             return _(this.room.findStructures(STRUCTURE_CONTAINER))
                 .filter((c: StructureContainer) => {return c.hits < c.hitsMax * .5
                     && !c.pos.isNearTo(c.room.find<Mineral>(FIND_MINERALS)[0])})
