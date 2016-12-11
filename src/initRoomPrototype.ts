@@ -70,12 +70,10 @@ export function initRoomPrototype() {
      * @returns {Structure[]}
      */
     Room.prototype.findStructures = function(structureType: string): Structure[] {
-        if (!Game.cache.structures[this.name]) Game.cache.structures[this.name] = {};
-        if (!Game.cache.structures[this.name][structureType]) {
-            Game.cache.structures[this.name][structureType] = this.find(FIND_STRUCTURES,
-                {filter: {structureType: structureType}});
+        if (!Game.cache.structures[this.name]) {
+            Game.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s:Structure) => s.structureType);
         }
-        return Game.cache.structures[this.name][structureType];
+        return Game.cache.structures[this.name][structureType] || [];
     };
 
     /**
