@@ -120,7 +120,7 @@ export class MasonMission extends Mission {
             if (position.lookFor(LOOK_STRUCTURES).length > 1) {
                 for (let direction = 1; direction <= 8; direction++) {
                     let testPosition = position.getPositionAtDirection(direction);
-                    if (testPosition.isPassible(true) && !testPosition.lookForStructure(STRUCTURE_ROAD)) {
+                    if (testPosition.isPassible() && !testPosition.lookForStructure(STRUCTURE_ROAD)) {
                         position = testPosition;
                         break;
                     }

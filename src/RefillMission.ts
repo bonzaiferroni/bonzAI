@@ -41,7 +41,7 @@ export class RefillMission extends Mission {
 
         let emergencyMax = 0;
         if (this.emergencyMode) {
-            emergencyMax = 3;
+            emergencyMax = 1;
         }
 
         let emergencyBody = () => { return this.workerBody(0, 2, 1); };
