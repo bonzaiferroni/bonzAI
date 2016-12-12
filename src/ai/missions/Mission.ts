@@ -98,9 +98,7 @@ export abstract class Mission {
                     ticksNeeded += creep.body.length * 3;
                     ticksNeeded += options.prespawn;
                 }
-                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; } else {
-                    console.log("not adding creep to list: "+creep.name+" | "+creep.ticksToLive);
-                }
+                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
             }
             else {
                 this.memory.spawn[roleName].splice(i, 1);
