@@ -112,7 +112,7 @@ A variety of gulp tasks have been provided...
  - `watchUpload` compiles and uploads to the server when a file is saved in your src directory.
  - `watchLocal` compiles and copies to your local path when a file is saved in your src directory.
 
-run in the console, e.g. ` gulp copyLocal `;
+you can run gulp tasks in the terminal... ` gulp copyLocal `;
 
 tasks are defined in gulpfile.js and you can read more about gulp here...
 http://gulpjs.com/
