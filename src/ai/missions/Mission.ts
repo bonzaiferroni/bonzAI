@@ -1,4 +1,3 @@
-///<reference path="../../helpers/helper.ts"/>
 import {Operation} from "../operations/Operation";
 import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
@@ -99,7 +98,9 @@ export abstract class Mission {
                     ticksNeeded += creep.body.length * 3;
                     ticksNeeded += options.prespawn;
                 }
-                if (creep.spawning || creep.ticksToLive > ticksNeeded) { count++; }
+                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; } else {
+                    console.log("not adding creep to list: "+creep.name+" | "+creep.ticksToLive);
+                }
             }
             else {
                 this.memory.spawn[roleName].splice(i, 1);
