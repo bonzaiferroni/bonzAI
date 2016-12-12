@@ -125,12 +125,12 @@ gulp.task('upload', gulp.series('compile', function uploading() {
 
 gulp.task('copyLocal', gulp.series('compile', function() {
   return gulp.src('dist/dev/*')
-    .pipe(gulp.dest('C:/MyScreepsOutput'));
+    .pipe(gulp.dest(config.localPath));
 }));
 
 
-gulp.task('watch', function () {
-  gulp.watch('src/**/*.ts', gulp.series('copyLocal'))
+gulp.task('watchUpload', function () {
+  gulp.watch('src/**/*.ts', gulp.series('upload'))
     .on('all', function(event, path, stats) {
       console.log('');
       gutil.log(gutil.colors.green('File ' + path + ' was ' + event + 'ed, running tasks...'));
@@ -138,6 +138,17 @@ gulp.task('watch', function () {
     .on('error', function () {
       gutil.log(gutil.colors.green('Error during build tasks: aborting'));
     });
+});
+
+gulp.task('watchLocal', function () {
+  gulp.watch('src/**/*.ts', gulp.series('copyLocal'))
+      .on('all', function(event, path, stats) {
+        console.log('');
+        gutil.log(gutil.colors.green('File ' + path + ' was ' + event + 'ed, running tasks...'));
+      })
+      .on('error', function () {
+        gutil.log(gutil.colors.green('Error during build tasks: aborting'));
+      });
 });
 
 gulp.task('build', gulp.series('upload', function buildDone(done) {

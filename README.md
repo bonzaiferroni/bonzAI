@@ -7,9 +7,7 @@ For people that are interested in using it on a private server or forking it, I'
 
 I had only been doing javascript/typescript for a few months when I started this, so if you are wondering why I'm doing certain things it is probably because I don't know any better. Any advice/guidance from experienced programmers is very welcome.
 
-## Installation
-Install [typescript](https://www.npmjs.com/package/typescript) and some system for compiling as you code (eg Webstorm)
-run `npm install` to setup grunt for pushing code up.
+
 
 Once you have the code pushed to a screeps server: 
 
@@ -88,3 +86,53 @@ The following is a summary of the Operations/missions you can find in this repos
   - GeologyMission: Like MiningMission, but manages a Mineral source
 - Progress
   - UpgradeMission: Upgrade controllers
+
+
+## Installation
+run `npm install` to install dependencies.
+
+Create a copy of `config.example.json` and rename it to `config.json`.
+
+Then, on the `config.json` file, change the `username` and `password` properties with your Screeps credentials.
+The `config.json` file is where you set up your development environment. If you want to push your code to another branch, for example.
+
+
+
+
+## Notes
+
+### Gulp Tasks
+A variety of gulp tasks have been provided...
+
+ - `lint` runs TSLint against /src/*
+ - `compile-bundled` compiles the code into a single 'main.js' file in the /dist folder.
+ - `compile-flattened` compiles the code into the /dist folder but emits
+ - `upload` compiles according to your config.json file and uploads to the defaultTarget.
+ - `copyLocal` compiles according to your config.json file and copies the result to the local directory
+ - `watchUpload` compiles and uploads to the server when a file is saved in your src directory.
+ - `watchLocal` compiles and copies to your local path when a file is saved in your src directory.
+
+run in the console by typing ` gulp [taskName] `;
+
+tasks are defined in gulpfile.js and you can read more about gulp here...
+http://gulpjs.com/
+
+
+### TSLint
+
+TSLint checks your TypeScript code for readability, maintainability, and functionality errors, and can also enforce coding style standards.
+
+After each successful compiling of the project, TSLint will parse the TypeScript source files and display a warning for any issues it will find.
+
+This project provides TSLint rules through a `tslint.json` file, which extends the recommended set of rules from TSLint github repository: https://github.com/palantir/tslint/blob/next/src/configs/recommended.ts
+
+We made some changes to those rules, which we considered necessary and/or relevant to a proper Screeps project:
+
+ - set the [forin](http://palantir.github.io/tslint/rules/forin/) rule to `false`, it was forcing `for ( ... in ...)` loops to check if object members were not coming from the class prototype.
+ - set the [interface-name](http://palantir.github.io/tslint/rules/interface-name/) rule to `false`, in order to allow interfaces that are not prefixed with `I`.
+ - set the [no-console](http://palantir.github.io/tslint/rules/no-console/) rule to `false`, in order to allow using `console`.
+ - in the [variable-name](http://palantir.github.io/tslint/rules/variable-name/) rule, added `allow-leading-underscore`.
+
+If you believe that some rules should not apply to a part of your code, you can use flags to let TSLint know about it: https://palantir.github.io/tslint/usage/rule-flags/
+
+**More info about TSLint:** https://palantir.github.io/tslint/

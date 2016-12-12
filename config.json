@@ -3,6 +3,7 @@
     "email": "123",
     "password": "123"
   },
+  "localPath": "C:/Temp/",
   "defaultTarget": "dev",
   "targets": {
     "dev": {
