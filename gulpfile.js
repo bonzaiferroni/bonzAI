@@ -156,4 +156,4 @@ gulp.task('build', gulp.series('upload', function buildDone(done) {
   return done();
 }));
 gulp.task('test', gulp.series('lint'));
-gulp.task('default', gulp.series('watch'));
+gulp.task('default', gulp.series('watchLocal'));
