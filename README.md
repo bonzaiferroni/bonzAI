@@ -89,15 +89,14 @@ The following is a summary of the Operations/missions you can find in this repos
 
 
 ## Installation
+Most of the tooling here has been taken directly from https://github.com/screepers/screeps-typescript-starter
+
 run `npm install` to install dependencies.
 
 Create a copy of `config.example.json` and rename it to `config.json`.
 
 Then, on the `config.json` file, change the `username` and `password` properties with your Screeps credentials.
 The `config.json` file is where you set up your development environment. If you want to push your code to another branch, for example.
-
-
-
 
 ## Notes
 
