@@ -96,8 +96,8 @@ export class UpgradeMission extends Mission {
 
         this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
             prespawn: this.distanceToSpawn,
-            memory: memory,
-            moveToRoom: true} );
+            memory: memory
+        } );
 
         if (this.battery instanceof StructureContainer) {
             let analysis = this.analyzeTransport(25, totalPotency);
