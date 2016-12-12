@@ -2,14 +2,15 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
+import {PRIORITY_BUILD} from "../../config/constants";
 export class BuildMission extends Mission {
 
     builders: Creep[];
     supplyCarts: Creep[];
     sites: ConstructionSite[];
+    prioritySites: ConstructionSite[];
     walls: StructureRampart[];
     remoteSpawn: boolean;
-    priorityStructures: string[] = [STRUCTURE_CONTAINER, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TOWER];
 
     memory: {
         maxHitsToBuild: number
@@ -37,10 +38,12 @@ export class BuildMission extends Mission {
             this.remoteSpawn = true;
         }
 
+        this.sites = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+        this.prioritySites = _.filter(this.sites, s => PRIORITY_BUILD.indexOf(s.structureType) > -1);
+
         if (Game.time % 10 === 5) {
             // this should be a little more cpu-friendly since it basically will only run in room that has construction
-            let constructionSites = this.room.find(FIND_MY_CONSTRUCTION_SITES) as ConstructionSite[];
-            for (let site of constructionSites) {
+            for (let site of this.sites) {
                 if (site.structureType === STRUCTURE_RAMPART || site.structureType === STRUCTURE_WALL) {
                     this.memory.maxHitsToBuild = 2000;
                     break;
@@ -49,14 +52,13 @@ export class BuildMission extends Mission {
         }
 
         if (!this.memory.maxHitsToBuild) this.memory.maxHitsToBuild = 2000;
-        this.sites = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
     }
 
     roleCall() {
 
         let maxBuilders = 0;
         let potency = 0;
-        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
+        if (this.sites.length > 0) {
             maxBuilders = 1;
             potency = this.findBuilderPotency();
             if (this.room.storage && this.room.storage.store.energy < 50000) {
@@ -151,13 +153,10 @@ export class BuildMission extends Mission {
         // has energy
         let closest;
         if (this.name !== "mason") {
-
-            let sites = builder.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
-            let priority = _.filter(sites, s => this.priorityStructures.indexOf(s.structureType) >= 0);
-            if (priority.length) {
-                closest = builder.pos.findClosestByRange(priority);
+            if (this.prioritySites.length > 0) {
+                closest = builder.pos.findClosestByRange(this.prioritySites);
             } else {
-                closest = builder.pos.findClosestByRange<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+                closest = builder.pos.findClosestByRange(this.sites);
             }
 
         }
