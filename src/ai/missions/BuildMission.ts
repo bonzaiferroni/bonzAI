@@ -152,13 +152,10 @@ export class BuildMission extends Mission {
 
         // has energy
         let closest;
-        if (this.name !== "mason") {
-            if (this.prioritySites.length > 0) {
-                closest = builder.pos.findClosestByRange(this.prioritySites);
-            } else {
-                closest = builder.pos.findClosestByRange(this.sites);
-            }
-
+        if (this.prioritySites.length > 0) {
+            closest = builder.pos.findClosestByRange(this.prioritySites);
+        } else {
+            closest = builder.pos.findClosestByRange(this.sites);
         }
 
         if (!closest) {
