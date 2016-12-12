@@ -106,7 +106,7 @@ A variety of gulp tasks have been provided...
 
  - `lint` runs TSLint against /src/*
  - `compile-bundled` compiles the code into a single 'main.js' file in the /dist folder.
- - `compile-flattened` compiles the code into the /dist folder but emits
+ - `compile-flattened` compiles the code into the /dist folder but emits any folder structure (required for screeps)
  - `upload` compiles according to your config.json file and uploads to the defaultTarget.
  - `copyLocal` compiles according to your config.json file and copies the result to the local directory
  - `watchUpload` compiles and uploads to the server when a file is saved in your src directory.
