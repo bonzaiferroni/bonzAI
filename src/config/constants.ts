@@ -10,6 +10,7 @@ export const ROOMTYPE_ALLEY = -1304;
 export const CACHE_INVALIDATION_FREQUENCY = 1000;
 export const CACHE_INVALIDATION_PERIOD = 10;
 
+export const PRIORITY_BUILD: string[] = [STRUCTURE_CONTAINER, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TOWER];
 export const LOADAMOUNT_MINERAL = Math.ceil(33 / 6);
 export const ALLIES = {
     "taiga": true,
