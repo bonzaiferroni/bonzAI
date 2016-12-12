@@ -5,3 +5,4 @@
 Gruntfile.js
 /.idea
 /src/sandbox.ts
+config.json
