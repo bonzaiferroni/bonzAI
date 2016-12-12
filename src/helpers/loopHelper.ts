@@ -1,20 +1,20 @@
-import {Empire} from "./Empire";
-import {Operation} from "./Operation";
+import {Empire} from "../ai/Empire";
+import {FortOperation} from "../ai/operations/FortOperation";
+import {Operation} from "../ai/operations/Operation";
+import {MiningOperation} from "../ai/operations/MiningOperation";
 import {
     CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD, MINERALS_RAW, PRODUCT_LIST,
     USERNAME, RESERVE_AMOUNT
-} from "./constants";
+} from "../config/constants";
+import {KeeperOperation} from "../ai/operations/KeeperOperation";
+import {ConquestOperation} from "../ai/operations/ConquestOperation";
 import {consoleCommands} from "./consoleCommands";
-import {FlexOperation} from "./FlexOperation";
-import {AutoOperation} from "./AutoOperation";
-import {QuadOperation} from "./QuadOperation";
-import {RaidOperation} from "./RaidOperation";
-import {DemolishOperation} from "./DemolishOperation";
-import {KeeperOperation} from "./KeeperOperation";
-import {TransportOperation} from "./TransportOperation";
-import {MiningOperation} from "./MiningOperation";
-import {FortOperation} from "./FortOperation";
-import {ConquestOperation} from "./ConquestOperation";
+import {DemolishOperation} from "../ai/operations/DemolishOperation";
+import {TransportOperation} from "../ai/operations/TransportOperation";
+import {RaidOperation} from "../ai/operations/RaidOperation";
+import {QuadOperation} from "../ai/operations/QuadOperation";
+import {AutoOperation} from "../ai/operations/AutoOperation";
+import {FlexOperation} from "../ai/operations/FlexOperation";
 
 const OPERATION_CLASSES = {
     conquest: ConquestOperation,
