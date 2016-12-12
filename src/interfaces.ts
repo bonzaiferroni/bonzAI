@@ -40,7 +40,7 @@ export interface HeadCountOptions {
     blindSpawn?: boolean;
     reservation?: SpawnReservation;
     disableNotify?: boolean;
-    moveToRoom?: boolean;
+    skipMoveToRoom?: boolean;
 }
 
 export interface SpawnReservation {
@@ -92,23 +92,22 @@ export interface Coord {
 }
 
 export enum BoostLevel { Training, Unboosted, Boosted, SuperTough, RCL7 }
-export enum Direction { North = 1, NorthEast = 2, East = 3, SouthEast = 4, South = 5, SouthWest = 6, West = 7, NorthWest = 8 }
 
 export interface SeedSelection {
-    seedType: string,
-    origin: Coord,
-    rotation: number,
-    energyPerDistance: number
+    seedType: string;
+    origin: Coord;
+    rotation: number;
+    energyPerDistance: number;
 }
 
 export interface SeedData {
-    sourceData: {pos: RoomPosition, amount: number}[]
+    sourceData: {pos: RoomPosition, amount: number}[];
     seedScan: {
         [seedType: string]: Coord[]
-    }
+    };
     seedSelectData: {
         index: number
         rotation: number
         best: SeedSelection
-    }
+    };
 }

@@ -214,10 +214,7 @@ export abstract class Operation {
         }
 
         this.memory.spawnRoom = roomName;
-        _.each(this.missions, (mission) => { if (mission.memory.distanceToSpawn) {
-            console.log("SPAWN: resetting distance for", mission.name);
-            mission.memory.distanceToSpawn = undefined;
-        } });
+        _.each(this.missions, (mission) => mission.invalidateSpawnDistance());
         return "SPAWN: spawnRoom for " + this.name + " set to " + roomName + " (map range: " +
             Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName) + ")";
     }

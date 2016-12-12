@@ -6,13 +6,13 @@ import {DESTINATION_REACHED} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 export abstract class Mission {
 
-    opName: string;
-    opType: string;
-    flag: Flag;
-    empire: Empire;
-    memory: any;
-    spawnGroup: SpawnGroup;
-    sources: Source[];
+    protected opName: string;
+    protected opType: string;
+    protected flag: Flag;
+    protected empire: Empire;
+    protected memory: any;
+    protected spawnGroup: SpawnGroup;
+    protected sources: Source[];
 
     room: Room;
     name: string;
@@ -46,27 +46,50 @@ export abstract class Mission {
     /**
      * Init Phase - Used to initialize values for the following phases
      */
-    abstract initMission();
+    public abstract initMission();
 
     /**
      * RoleCall Phase - Used to find creeps and spawn any extra that are needed
      */
-    abstract roleCall();
+    public abstract roleCall();
 
     /**
      * MissionAction Phase - Primary phase for world-changing functions like creep.harvest(), tower.attack(), etc.
      */
-    abstract missionActions();
+    public abstract missionActions();
 
     /**
      * Finish Phase - Do any remaining work that needs to happen after the other phases
      */
-    abstract finalizeMission();
+    public abstract finalizeMission();
 
     /**
      * Invalidate Cache Phase - Do any housekeeping that might need to be done
      */
-    abstract invalidateMissionCache();
+    public abstract invalidateMissionCache();
+
+    public setBoost(activateBoost: boolean) {
+        let oldValue = this.memory.activateBoost;
+        this.memory.activateBoost = activateBoost;
+        return `changing boost activation for ${this.name} in ${this.opName} from ${oldValue} to ${activateBoost}`;
+    }
+
+    public setMax(max: number) {
+        let oldValue = this.memory.max;
+        this.memory.max = max;
+        return `changing max creeps for ${this.name} in ${this.opName} from ${oldValue} to ${max}`;
+    }
+
+    public setSpawnGroup(spawnGroup: SpawnGroup) {
+        this.spawnGroup = spawnGroup;
+    }
+
+    public invalidateSpawnDistance() {
+        if (this.memory.distanceToSpawn) {
+            console.log(`SPAWN: resetting distance for ${this.name} in ${this.opName}`);
+            this.memory.distanceToSpawn = undefined;
+        }
+    }
 
     /**
      * General purpose function for spawning creeps
@@ -77,9 +100,9 @@ export abstract class Mission {
      * @returns {Creep[]}
      */
     protected headCount(roleName: string, getBody: () => string[], max: number, options?: HeadCountOptions): Creep[] {
-        if (!options) options = {};
+        if (!options) { options = {}; }
         let roleArray = [];
-        if (!this.memory.spawn[roleName]) this.memory.spawn[roleName] = this.findOrphans(roleName);
+        if (!this.memory.spawn[roleName]) { this.memory.spawn[roleName] = this.findOrphans(roleName); }
 
         let count = 0;
         for (let i = 0; i < this.memory.spawn[roleName].length; i++ ) {
@@ -410,25 +433,13 @@ export abstract class Mission {
             if (!boosted) return false;
             let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
-            if (options.moveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(0))) {
+            if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(0))) {
                 creep.avoidSK(this.flag);
                 return false;
             }
             creep.memory.prep = true;
         }
         return true;
-    }
-
-    setBoost(activateBoost: boolean) {
-        let oldValue = this.memory.activateBoost;
-        this.memory.activateBoost = activateBoost;
-        return "changing boost activation for " + this.name + " in " + this.opName + " from " + oldValue + " to " + activateBoost;
-    }
-
-    setMax(max: number) {
-        let oldValue = this.memory.max;
-        this.memory.max = max;
-        return "changing max creeps for " + this.name + " in " + this.opName + " from " + oldValue + " to " + max;
     }
 
     findPartnerships(creeps: Creep[], role: string) {
