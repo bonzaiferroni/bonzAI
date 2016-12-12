@@ -1,5 +1,5 @@
-import {loopHelper} from "./loopHelper";
-import {initPrototypes} from "./initPrototypes";
+import {loopHelper} from "./helpers/loopHelper";
+import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
 import {profiler} from "./profiler";
 
