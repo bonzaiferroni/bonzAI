@@ -52,6 +52,11 @@ export var loopHelper = {
                     let flag = Game.flags[flagName];
                     let name = flagName.substring(flagName.indexOf("_") + 1);
 
+                    if (operationList.hasOwnProperty(name)) {
+                        console.log(`operation with name ${name} already exists (type: ${operationList[name].type}), please use a different name`);
+                        continue;
+                    }
+
                     let operation;
                     try {
                         operation = new operationClass(flag, name, typeName, empire);
