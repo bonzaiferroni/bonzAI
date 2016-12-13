@@ -78,11 +78,11 @@ export class RefillMission extends Mission {
         let target = this.findNearestEmpty(cart);
         if (!target) {
             if (cart.carry.energy === cart.carryCapacity) {
-                if (cart.pos.inRangeTo(this.spawnGroup, 12)) {
+                if (cart.pos.inRangeTo(this.flag, 12)) {
                     cart.idleOffRoad(this.flag);
                 }
                 else {
-                    cart.blindMoveTo(this.spawnGroup, {maxRooms: 1});
+                    cart.blindMoveTo(this.flag, {maxRooms: 1});
                 }
             }
             else {
@@ -114,7 +114,8 @@ export class RefillMission extends Mission {
 
     findNearestEmpty(cart: Creep, pullTarget?: EnergyStructure): EnergyStructure {
         if (!this.empties) {
-            this.empties = _.filter(this.spawnGroup.extensions.concat(this.spawnGroup.spawns), (s: StructureSpawn) => {
+            this.empties = _.filter(this.room.findStructures(STRUCTURE_SPAWN)
+                .concat(this.room.findStructures(STRUCTURE_EXTENSION)), (s: StructureSpawn) => {
                 return s.energy < s.energyCapacity;
             }) as EnergyStructure[];
             this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s: StructureTower) => {

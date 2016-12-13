@@ -2,11 +2,11 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 export class EmergencyMinerMission extends Mission {
 
-    emergencyMiners: Creep[];
-
-    memory: {
+    protected memory: {
         lastTick: number
     };
+
+    private emergencyMiners: Creep[];
 
     /**
      * Checks every 100 ticks if storage is full or a miner is present, if not spawns an emergency miner. Should come
@@ -18,10 +18,10 @@ export class EmergencyMinerMission extends Mission {
         super(operation, "emergencyMiner");
     }
 
-    initMission() {
+    public initMission() {
     }
 
-    roleCall() {
+    public roleCall() {
         let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
             (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
         let body = () => this.workerBody(2, 1, 1);
@@ -41,15 +41,15 @@ export class EmergencyMinerMission extends Mission {
         this.emergencyMiners = this.headCount("emergencyMiner", body, maxEmergencyMiners);
     }
 
-    missionActions() {
+    public missionActions() {
         for (let miner of this.emergencyMiners) {
             this.minerActions(miner);
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     private minerActions(miner: Creep) {

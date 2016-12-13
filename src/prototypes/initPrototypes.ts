@@ -57,7 +57,7 @@ export function initPrototypes() {
                 this.room.memory.upgraderPositions = undefined;
             }
         }
-        else if (Game.time % 10 === 7) {
+        else {
             let battery = _(this.pos.findInRange(FIND_STRUCTURES, 4))
                 .filter((structure: Structure) => {
                 if (structureType) {
@@ -151,4 +151,15 @@ export function initPrototypes() {
             return this._send(resourceType, amount, roomName, description);
         }
     };
+
+    StructureTower.prototype._repair = StructureTower.prototype.repair;
+    StructureTower.prototype.repair = function (target: Structure | Spawn): number {
+        if (!this.alreadyFired) {
+            this.alreadyFired = true;
+            return this._repair(target);
+        }
+        else {
+            return ERR_BUSY;
+        }
+    }
 }

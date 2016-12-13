@@ -15,6 +15,20 @@ import {RaidOperation} from "../ai/operations/RaidOperation";
 import {QuadOperation} from "../ai/operations/QuadOperation";
 import {AutoOperation} from "../ai/operations/AutoOperation";
 import {FlexOperation} from "../ai/operations/FlexOperation";
+
+const OPERATION_CLASSES = {
+    conquest: ConquestOperation,
+    fort: FortOperation,
+    mining: MiningOperation,
+    tran: TransportOperation,
+    keeper: KeeperOperation,
+    demolish: DemolishOperation,
+    raid: RaidOperation,
+    quad: QuadOperation,
+    auto: AutoOperation,
+    flex: FlexOperation,
+};
+
 export var loopHelper = {
 
     initEmpire: function(): Empire {
@@ -27,28 +41,21 @@ export var loopHelper = {
     /// <summary>loop through flags and construct operation objects, return operation array sorted by priority</summary>
 
     getOperations: function(empire: Empire): Operation[] {
-        let operationTypes: any = {
-            conquest: ConquestOperation,
-            fort: FortOperation,
-            mining: MiningOperation,
-            tran: TransportOperation,
-            keeper: KeeperOperation,
-            demolish: DemolishOperation,
-            raid: RaidOperation,
-            quad: QuadOperation,
-            auto: AutoOperation,
-            flex: FlexOperation,
-        };
 
         // gather flag data, instantiate operations
         let operationList: {[operationName: string]: Operation} = {};
         for (let flagName in Game.flags) {
-            for (let typeName in operationTypes) {
-                if (!operationTypes.hasOwnProperty(typeName)) continue;
+            for (let typeName in OPERATION_CLASSES) {
+                if (!OPERATION_CLASSES.hasOwnProperty(typeName)) continue;
                 if (flagName.substring(0, typeName.length) === typeName) {
-                    let operationClass = operationTypes[typeName];
+                    let operationClass = OPERATION_CLASSES[typeName];
                     let flag = Game.flags[flagName];
                     let name = flagName.substring(flagName.indexOf("_") + 1);
+
+                    if (operationList.hasOwnProperty(name)) {
+                        console.log(`operation with name ${name} already exists (type: ${operationList[name].type}), please use a different name`);
+                        continue;
+                    }
 
                     let operation;
                     try {

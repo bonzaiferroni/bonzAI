@@ -1,18 +1,16 @@
 {
-  "name": "kittenClub",
+  "name": "bonzAI",
   "version": "1.0.0",
-  "description": "ThunderKittens Screeps Team framework",
+  "description": "AI for MMO programming game Screeps",
   "main": "./dist/main.js",
   "scripts": {
     "gulp": "gulp",
-    "postinstall": "typings install",
     "deploy": "gulp build",
     "deploy-prod": "gulp build --target prod",
     "start": "gulp watch",
     "prod": "gulp watch --target prod",
     "test": "gulp test",
     "tslint": "tslint 'src/**/*.ts'; echo",
-    "typings": "typings",
     "jshint-gulp": "jshint gulpfile.js libs/gulp*.js; echo"
   },
   "devDependencies": {
@@ -34,13 +32,11 @@
     "typescript": "^2.0.3",
     "typings": "^1.3.0",
     "webpack": "^1.13.1",
-    "webpack-stream": "^3.2.0",
-    "grunt-contrib-watch": "^1.0.0",
-    "grunt-screeps": "^1.2.1"
+    "webpack-stream": "^3.2.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bonzaiferroni/kittenClub.git"
+    "url": "git+https://github.com/bonzaiferroni/bonzAI.git"
   },
   "author": "",
   "license": "ISC"

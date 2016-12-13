@@ -22,6 +22,7 @@ export class UpgradeMission extends Mission {
         roadRepairIds: string[]
         transportAnalysis: TransportAnalysis
         potency: number
+        max: number
     };
 
     /**
@@ -69,15 +70,14 @@ export class UpgradeMission extends Mission {
             potencyPerCreep = Math.min(Math.floor((this.spawnGroup.maxSpawnEnergy - 200) / unitCost), 30, totalPotency);
         }
 
-        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
-        if (this.room.controller.getUpgraderPositions()) {
-            max = Math.min(this.room.controller.getUpgraderPositions().length, max)
-        }
-        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
-            max = 1;
-        }
+        let max = this.findMaxUpgraders(totalPotency, potencyPerCreep);
 
         let linkUpgraderBody = () => {
+
+            if (this.memory.max !== undefined) {
+                return this.workerBody(30, 4, 15);
+            }
+
             if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
                 return this.workerBody(1, 1, 1);
             }
@@ -96,8 +96,8 @@ export class UpgradeMission extends Mission {
 
         this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
             prespawn: this.distanceToSpawn,
-            memory: memory,
-            moveToRoom: true} );
+            memory: memory
+        } );
 
         if (this.battery instanceof StructureContainer) {
             let analysis = this.analyzeTransport(25, totalPotency);
@@ -345,5 +345,24 @@ export class UpgradeMission extends Mission {
         else {
             influxCart.avoidSK(this.room.storage);
         }
+    }
+
+    private findMaxUpgraders(totalPotency: number, potencyPerCreep: number): number {
+        if (!this.battery) return 0;
+
+        if (this.memory.max !== undefined) {
+            console.log(`overriding max in ${this.opName}`);
+            return this.memory.max;
+        }
+
+        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
+        if (this.room.controller.getUpgraderPositions()) {
+            max = Math.min(this.room.controller.getUpgraderPositions().length, max)
+        }
+        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
+            max = 1;
+        }
+
+        return max
     }
 }

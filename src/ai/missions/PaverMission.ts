@@ -31,7 +31,7 @@ export class PaverMission extends Mission {
         }
         let body = () => {
             if (this.spawnGroup.maxSpawnEnergy <= 550) {
-                return this.bodyRatio(1,3, 1, 1);
+                return this.bodyRatio(1, 3, 1, 1);
             }
             else {
                 return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);

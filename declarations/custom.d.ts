@@ -144,3 +144,8 @@ interface StructureTerminal {
     _send(resourceType: string, amount: number, roomName: string, description?: string): number;
     send(resourceType: string, amount: number, roomName: string, description?: string): number;
 }
+
+interface StructureTower {
+    alreadyFired: boolean;
+    _repair(target: Structure | Spawn): number;
+}

@@ -98,14 +98,14 @@ export class BuildMission extends Mission {
             builderMemory = { scavanger: RESOURCE_ENERGY };
         }
 
-        this.builders = this.headCount(this.name, builderBody, maxBuilders, {prespawn: 10, memory: builderMemory, moveToRoom: true});
+        this.builders = this.headCount(this.name, builderBody, maxBuilders, {prespawn: 10, memory: builderMemory });
         this.builders = _.sortBy(this.builders, (c: Creep) => c.carry.energy);
 
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
         this.supplyCarts = this.headCount(this.name + "Cart", () => analysis.body, analysis.cartsNeeded,
-            {prespawn: analysis.distance, memory: cartMemory, moveToRoom: true});
+            {prespawn: analysis.distance, memory: cartMemory });
     }
 
     missionActions() {
@@ -152,13 +152,10 @@ export class BuildMission extends Mission {
 
         // has energy
         let closest;
-        if (this.name !== "mason") {
-            if (this.prioritySites.length > 0) {
-                closest = builder.pos.findClosestByRange(this.prioritySites);
-            } else {
-                closest = builder.pos.findClosestByRange(this.sites);
-            }
-
+        if (this.prioritySites.length > 0) {
+            closest = builder.pos.findClosestByRange(this.prioritySites);
+        } else {
+            closest = builder.pos.findClosestByRange(this.sites);
         }
 
         if (!closest) {

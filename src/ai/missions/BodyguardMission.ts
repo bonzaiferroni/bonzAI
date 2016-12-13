@@ -21,14 +21,13 @@ export class BodyguardMission extends Mission {
      */
 
     constructor(operation: Operation, allowSpawn = true) {
-        super(operation, "defense", allowSpawn);
+        super(operation, "bodyguard", allowSpawn);
     }
 
     initMission() {
         if (!this.hasVision) return; // early
         this.hostiles = this.room.hostiles;
-        if (this.opType !== "conquest") {
-            this.hostiles = _.filter(this.hostiles, (hostile: Creep) => hostile.owner.username === "Invader");
+        if (this.opType === "mining") {
             this.trackEnergyTillInvader();
         }
     }
@@ -38,11 +37,13 @@ export class BodyguardMission extends Mission {
         if (this.memory.invaderProbable) {
             maxDefenders = 1;
         }
-        if (this.hasVision && this.hostiles.length > 0) {
-            maxDefenders = Math.ceil(this.hostiles.length / 2);
-        }
-        else if (this.opType === "conquest" && this.room && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
-            maxDefenders = 1;
+        if (this.hasVision) {
+            if (this.hostiles.length > 0) {
+                maxDefenders = Math.ceil(this.hostiles.length / 2);
+            }
+            if (this.opType !== "mining" && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
+                maxDefenders = 1;
+            }
         }
 
 
@@ -62,7 +63,7 @@ export class BodyguardMission extends Mission {
             });
         };
 
-        this.defenders = this.headCount("leeroy", defenderBody, maxDefenders, {prespawn: 50});
+        this.defenders = this.headCount("leeroy", defenderBody, maxDefenders, { prespawn: 50 } );
     }
 
     missionActions() {
