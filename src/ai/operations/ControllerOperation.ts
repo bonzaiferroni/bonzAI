@@ -362,7 +362,7 @@ export abstract class ControllerOperation extends Operation {
 
         let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
         if (structure.structureType === STRUCTURE_RAMPART) {
-            if (structure.hits >= 10000) { return; }
+            if (structure.hits >= 100000) { return; }
         }
         else {
             if (repairsNeeded === 0) { return; }
@@ -376,6 +376,10 @@ export abstract class ControllerOperation extends Operation {
             if (!tower.pos.inRangeTo(structure, Math.max(5, this.memory.radius - 3))) { continue; }
             let outcome = tower.repair(structure);
             repairsNeeded--;
+        }
+
+        if (repairsNeeded > 0 && towers.length > 0) {
+            structure.pos.findClosestByRange<StructureTower>(towers).repair(structure);
         }
     }
 }
