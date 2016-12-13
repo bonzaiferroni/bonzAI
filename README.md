@@ -27,7 +27,7 @@ At the moment, rooms are still chosen manually, although I've begun the process 
 
 ### Using `main.js`
 
-If you aren't interested in modifying the typescript (perhaps you just want an opponent on a private server), you can save a lot of time by using the `main.js` file that you will find in the lastStableBuild folder ([download link](https://github.com/bonzaiferroni/bonzAI/blob/master/lastStableBuild/main.js)). You can just drop this in your local folder.
+If you aren't interested in modifying the typescript (perhaps you just want an opponent on a private server), you can save a lot of time by using the `main.js` file that you will find in the lastStableBuild folder ([right click, save as](https://raw.githubusercontent.com/bonzaiferroni/bonzAI/master/lastStableBuild/main.js)). You can just drop this in your local folder.
 
 Once you have the code pushed to a screeps server: 
 
