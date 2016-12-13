@@ -13,6 +13,7 @@ import {BuildMission} from "../missions/BuildMission";
 import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
 import {GeologyMission} from "../missions/GeologyMission";
+import {PaverMission} from "../missions/PaverMission";
 
 
 export class FortOperation extends Operation {
@@ -90,6 +91,9 @@ export class FortOperation extends Operation {
             // upgrader controller
             let boostUpgraders = this.flag.room.controller.level < 8;
             this.addMission(new UpgradeMission(this, boostUpgraders));
+
+            // pave all roads in the room
+            this.addMission(new PaverMission(this));
         }
     }
 
