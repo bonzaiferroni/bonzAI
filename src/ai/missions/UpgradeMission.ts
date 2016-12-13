@@ -69,13 +69,7 @@ export class UpgradeMission extends Mission {
             potencyPerCreep = Math.min(Math.floor((this.spawnGroup.maxSpawnEnergy - 200) / unitCost), 30, totalPotency);
         }
 
-        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
-        if (this.room.controller.getUpgraderPositions()) {
-            max = Math.min(this.room.controller.getUpgraderPositions().length, max)
-        }
-        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
-            max = 1;
-        }
+        let max = this.findMaxUpgraders(totalPotency, potencyPerCreep);
 
         let linkUpgraderBody = () => {
             if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
@@ -345,5 +339,19 @@ export class UpgradeMission extends Mission {
         else {
             influxCart.avoidSK(this.room.storage);
         }
+    }
+
+    private findMaxUpgraders(totalPotency: number, potencyPerCreep: number): number {
+        if (!this.battery) return 0;
+
+        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
+        if (this.room.controller.getUpgraderPositions()) {
+            max = Math.min(this.room.controller.getUpgraderPositions().length, max)
+        }
+        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
+            max = 1;
+        }
+
+        return max
     }
 }
