@@ -17,6 +17,8 @@ import {SpawnGroup} from "../SpawnGroup";
 import {Empire} from "../Empire";
 import {MasonMission} from "../missions/MasonMission";
 import {OperationPriority} from "../../config/constants";
+import {BodyguardMission} from "../missions/BodyguardMission";
+import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -49,6 +51,7 @@ export abstract class ControllerOperation extends Operation {
         seedData: SeedData
         lastChecked: {[structureType: string]: number }
         roadRepairIndex: number;
+        backupSpawnRoom: string;
 
         // deprecated values
         flexLayoutMap: {[structureType: string]: Coord[]}
@@ -69,8 +72,10 @@ export abstract class ControllerOperation extends Operation {
         // initOperation FortOperation variables
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
         if(!this.spawnGroup) {
-            this.spawnGroup = this.findRemoteSpawn(6);
+            this.spawnGroup = this.findBackupSpawn();
             if (!this.spawnGroup) return;
+            this.addMission(new BodyguardMission(this));
+            this.addMission(new RemoteBuildMission(this, false))
         }
 
         this.empire.register(this.flag.room);
@@ -132,8 +137,8 @@ export abstract class ControllerOperation extends Operation {
         if (this.flag.room.controller.level < 6) {
             let boostSpawnGroup = this.findRemoteSpawn(4);
             if (boostSpawnGroup) {
-                upgradeMission.spawnGroup = boostSpawnGroup;
-                buildMission.spawnGroup = boostSpawnGroup;
+                upgradeMission.setSpawnGroup(boostSpawnGroup);
+                buildMission.setSpawnGroup(boostSpawnGroup);
             }
         }
     }
@@ -334,11 +339,11 @@ export abstract class ControllerOperation extends Operation {
         }
     }
 
-    private findRemoteSpawn(distanceLimit: number): SpawnGroup {
+    private findRemoteSpawn(distanceLimit: number, levelRequirement = 8): SpawnGroup {
         let remoteSpawn = _(this.empire.spawnGroups)
             .filter((s: SpawnGroup) => {
                 return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
-                    && s.room.controller.level === 8
+                    && s.room.controller.level >= levelRequirement
                     && s.averageAvailability() > .3
                     && s.isAvailable
             })
@@ -347,5 +352,24 @@ export abstract class ControllerOperation extends Operation {
             })
             .head();
         return remoteSpawn;
+    }
+
+    private findBackupSpawn() {
+        if (this.memory.backupSpawnRoom) {
+            let spawnGroup = this.empire.getSpawnGroup(this.memory.backupSpawnRoom);
+            if (spawnGroup) {
+                return spawnGroup;
+            }
+            else {
+                this.memory.backupSpawnRoom = undefined;
+            }
+        }
+        else {
+            let remoteSpawnGroup = this.findRemoteSpawn(6, 4);
+            if (remoteSpawnGroup) {
+                this.memory.backupSpawnRoom = remoteSpawnGroup.room.name;
+                return this.findBackupSpawn();
+            }
+        }
     }
 }
