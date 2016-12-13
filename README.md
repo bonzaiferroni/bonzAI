@@ -25,9 +25,15 @@ At the moment, rooms are still chosen manually, although I've begun the process 
 
 ## Installation
 
-### main.js
+### Using main.js
 
 If you aren't interested in modifying the typescript (perhaps you just want an opponent on a private server), you can save a lot of time by using the main.js file that you will find in the lastStableBuild folder ((download link)[https://github.com/bonzaiferroni/bonzAI/blob/master/lastStableBuild/main.js]). You can just drop this in your local folder.
+
+Once you have the code pushed to a screeps server: 
+
+1. Find a room and place a spawn
+ * If it has trouble determining a layout based on your room/spawn placement, it will let you know in the console. Just try again, perhaps a room with more space and don't place the spawn too close to a source.
+2. Place a flag with the name "quad_myBase"
 
 ### Typescript
 
@@ -40,15 +46,9 @@ Create a copy of `config.example.json` and rename it to `config.json`.
 Then, on the `config.json` file, change the `username` and `password` properties with your Screeps credentials.
 The `config.json` file is where you set up your development environment. If you want to push your code to another branch, for example.
 
-Once you have the code pushed to a screeps server: 
+The command `gulp build` will compile/push your code.
 
-1. Find a room and place a spawn
- * If it has trouble determining a layout based on your room/spawn placement, it will let you know in the console. Just try again, perhaps a room with more space and don't place the spawn too close to a source.
-2. Place a flag with the name "quad_myBase"
-
-#### Notes
-
-##### Gulp Tasks
+#### Gulp Tasks
 A variety of gulp tasks have been provided...
 
  - `lint` runs TSLint against /src/*
@@ -64,7 +64,7 @@ you can run gulp tasks in the terminal... ` gulp copyLocal `;
 tasks are defined in gulpfile.js and you can read more about gulp here...
 http://gulpjs.com/
 
-##### TSLint
+#### TSLint
 
 TSLint checks your TypeScript code for readability, maintainability, and functionality errors, and can also enforce coding style standards.
 After each successful compiling of the project, TSLint will parse the TypeScript source files and display a warning for any issues it will find.
