@@ -24,6 +24,13 @@ At the moment, rooms are still chosen manually, although I've begun the process 
 * [Quickstart](https://github.com/bonzaiferroni/bonzAI/wiki/bonzAI-Quickstart): Write a couple classes that extends Operation and Mission to do all the basic creep behavior
 
 ## Installation
+
+### main.js
+
+If you aren't interested in modifying the typescript (perhaps you just want an opponent on a private server), you can save a lot of time by using the main.js file that you will find in the lastStableBuild folder ((download link)[https://github.com/bonzaiferroni/bonzAI/blob/master/lastStableBuild/main.js]). You can just drop this in your local folder.
+
+### Typescript
+
 Most of the tooling here has been taken directly from https://github.com/screepers/screeps-typescript-starter
 
 run `npm install` to install dependencies.
@@ -39,9 +46,9 @@ Once you have the code pushed to a screeps server:
  * If it has trouble determining a layout based on your room/spawn placement, it will let you know in the console. Just try again, perhaps a room with more space and don't place the spawn too close to a source.
 2. Place a flag with the name "quad_myBase"
 
-## Notes
+#### Notes
 
-### Gulp Tasks
+##### Gulp Tasks
 A variety of gulp tasks have been provided...
 
  - `lint` runs TSLint against /src/*
@@ -57,8 +64,7 @@ you can run gulp tasks in the terminal... ` gulp copyLocal `;
 tasks are defined in gulpfile.js and you can read more about gulp here...
 http://gulpjs.com/
 
-
-### TSLint
+##### TSLint
 
 TSLint checks your TypeScript code for readability, maintainability, and functionality errors, and can also enforce coding style standards.
 After each successful compiling of the project, TSLint will parse the TypeScript source files and display a warning for any issues it will find.
