@@ -151,4 +151,15 @@ export function initPrototypes() {
             return this._send(resourceType, amount, roomName, description);
         }
     };
+
+    StructureTower.prototype._repair = StructureTower.prototype.repair;
+    StructureTower.prototype.repair = function (target: Structure | Spawn): number {
+        if (!this.alreadyFired) {
+            this.alreadyFired = true;
+            return this._repair(target);
+        }
+        else {
+            return ERR_BUSY;
+        }
+    }
 }

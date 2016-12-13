@@ -19,6 +19,7 @@ import {MasonMission} from "../missions/MasonMission";
 import {OperationPriority} from "../../config/constants";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
+import {profiler} from "../../profiler";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -43,14 +44,13 @@ export abstract class ControllerOperation extends Operation {
         centerPosition: RoomPosition;
         centerPoint: Coord;
         rotation: number
-        repairIndex: number
+        repairIndices: {[structureType: string]: number}
         temporaryPlacement: {[level: number]: boolean}
         checkLayoutIndex: number
         layoutMap: {[structureType: string]: Coord[]}
         radius: number
         seedData: SeedData
         lastChecked: {[structureType: string]: number }
-        roadRepairIndex: number;
         backupSpawnRoom: string;
 
         // deprecated values
@@ -210,8 +210,11 @@ export abstract class ControllerOperation extends Operation {
 
             let coord = coords[i];
             let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-            let hasStructure = position.lookForStructure(structureType);
-            if (hasStructure) continue;
+            let structure = position.lookForStructure(structureType);
+            if (structure) {
+                this.repairLayout(structure);
+                continue;
+            }
             let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
             if (hasConstruction) continue;
 
@@ -300,42 +303,24 @@ export abstract class ControllerOperation extends Operation {
     }
 
     protected towerRepair() {
-        let towers = this.flag.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
-        if (towers.length === 0) return;
 
-        if (Game.time % 4 === 0) {
-            // repair ramparts
-            let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART) as StructureRampart[];
-            if (towers.length === 0 || ramparts.length === 0) return;
-
-            let rampart = _(ramparts).sortBy("hits").head();
-
-            rampart.pos.findClosestByRange<StructureTower>(towers).repair(rampart);
+        let structureType = STRUCTURE_RAMPART;
+        if (Game.time % 2 === 0) {
+            structureType = STRUCTURE_ROAD;
         }
-        else if (Game.time % 4 === 2) {
-            // repair roads
-            let centerPosition = helper.deserializeRoomPosition(this.memory.centerPosition);
-            let roadsInRange =  centerPosition.findInRange<StructureRoad>(this.flag.room.findStructures(STRUCTURE_ROAD) as StructureRoad[],
-                this.memory.radius);
-            if (this.memory.roadRepairIndex === undefined || this.memory.roadRepairIndex >= roadsInRange.length) {
-                this.memory.roadRepairIndex = 0;
-            }
 
-            let road = roadsInRange[this.memory.roadRepairIndex++];
-            let repairsNeeded = Math.floor((road.hitsMax - road.hits) / 800);
-            if (repairsNeeded === 1) {
-                let tower = road.pos.findClosestByRange(towers) as StructureTower;
-                tower.repair(road);
-            }
-            else if (repairsNeeded > 1) {
-                console.log(`significant road repair needed in ${this.name}, damage to road: ${road.hitsMax - road.hits}`);
-                towers = _.sortBy(towers, (t: StructureTower) => road.pos.getRangeTo(t));
-                for (let tower of towers) {
-                    repairsNeeded--;
-                    tower.repair(road);
-                    if (repairsNeeded === 0) break;
-                }
-            }
+        let coords = this.layoutCoords(structureType);
+        if (!this.memory.repairIndices) { this.memory.repairIndices = {} }
+        if (this.memory.repairIndices[structureType] === undefined ||
+            this.memory.repairIndices[structureType] >= coords.length) {
+            this.memory.repairIndices[structureType] = 0;
+        }
+
+        let coord = coords[this.memory.repairIndices[structureType]++];
+        let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+        let structure = position.lookForStructure(structureType);
+        if (structure) {
+            this.repairLayout(structure);
         }
     }
 
@@ -370,6 +355,27 @@ export abstract class ControllerOperation extends Operation {
                 this.memory.backupSpawnRoom = remoteSpawnGroup.room.name;
                 return this.findBackupSpawn();
             }
+        }
+    }
+
+    private repairLayout(structure: Structure) {
+
+        let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
+        if (structure.structureType === STRUCTURE_RAMPART) {
+            if (structure.hits >= 10000) { return; }
+        }
+        else {
+            if (repairsNeeded === 0) { return; }
+        }
+
+        let towers = this.flag.room.findStructures<StructureTower>(STRUCTURE_TOWER);
+
+        for (let tower of towers) {
+            if (repairsNeeded === 0) { return; }
+            if (tower.alreadyFired) { continue; }
+            if (!tower.pos.inRangeTo(structure, Math.max(5, this.memory.radius - 3))) { continue; }
+            let outcome = tower.repair(structure);
+            repairsNeeded--;
         }
     }
 }
