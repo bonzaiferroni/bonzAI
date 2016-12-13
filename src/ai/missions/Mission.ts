@@ -433,7 +433,7 @@ export abstract class Mission {
             if (!boosted) return false;
             let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
-            if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(0))) {
+            if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(1))) {
                 creep.avoidSK(this.flag);
                 return false;
             }
@@ -676,6 +676,7 @@ export abstract class Mission {
     }
 
     protected spawnPaver(): Creep {
+        if (this.room.controller && this.room.controller.level < 2) return;
         let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
         return this.spawnSharedCreep("paver", paverBody);
     }
