@@ -22,6 +22,7 @@ export class UpgradeMission extends Mission {
         roadRepairIds: string[]
         transportAnalysis: TransportAnalysis
         potency: number
+        max: number
     };
 
     /**
@@ -72,6 +73,11 @@ export class UpgradeMission extends Mission {
         let max = this.findMaxUpgraders(totalPotency, potencyPerCreep);
 
         let linkUpgraderBody = () => {
+
+            if (this.memory.max !== undefined) {
+                return this.workerBody(30, 4, 15);
+            }
+
             if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
                 return this.workerBody(1, 1, 1);
             }
@@ -343,6 +349,11 @@ export class UpgradeMission extends Mission {
 
     private findMaxUpgraders(totalPotency: number, potencyPerCreep: number): number {
         if (!this.battery) return 0;
+
+        if (this.memory.max !== undefined) {
+            console.log(`overriding max in ${this.opName}`);
+            return this.memory.max;
+        }
 
         let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
         if (this.room.controller.getUpgraderPositions()) {
