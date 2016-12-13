@@ -39,14 +39,10 @@ Once you have the code pushed to a screeps server:
 
 Most of the tooling here has been taken directly from https://github.com/screepers/screeps-typescript-starter
 
-run `npm install` to install dependencies.
-
-Create a copy of `config.example.json` and rename it to `config.json`.
-
-Then, on the `config.json` file, change the `username` and `password` properties with your Screeps credentials.
-The `config.json` file is where you set up your development environment. If you want to push your code to another branch, for example.
-
-The command `gulp build` will compile/push your code.
+1. Run `npm install` to install dependencies.
+2. Create a copy of `config.example.json` and rename it to `config.json`.
+3. Then, on the `config.json` file, change the `username` and `password` properties with your Screeps credentials. The `config.json` file is where you set up your development environment. If you want to push your code to another branch, for example.
+4. Run `gulp build` to compile/push your code. Run `gulp copyLocal` if you only need the code to go to the path set in `config.json` (like with a private server). Running `gulp watchUpload` or `gulp watchLocal` will have the code watch for changes and push code to the server or your local folder, respectively.
 
 #### Gulp Tasks
 A variety of gulp tasks have been provided...
