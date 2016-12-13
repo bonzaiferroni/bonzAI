@@ -1,13 +1,13 @@
 # bonzAI
 > The self-managing AI used by bonzaiferroni at screeps.com
 
-This is the code running my AI on the MMO programming game [Screeps](https://screeps.com/). Back when I was learning screeps I was always looking for examples of other players code, so hopefully this can be of some use. I'm still actively developing this code and using it on the MMO server. Searching the code to find vulnerabilities in my raiding/defense is fair game!
+This is the code running my AI on the MMO programming game [Screeps](https://screeps.com/). Back when I was learning screeps I was always looking for examples of other players' code, so hopefully this can be of some use. I'm still actively developing this code and using it on the MMO server. Searching the code to find vulnerabilities in my raiding/defense is fair game!
 
-For people that are interested in using it on a private server or forking it, I've included some information on how it works. If it seems like people are using it, I will expand on this. If you have any problems or something seems really unclear, please raise an issue. 
+For people that are interested in using it on a private server or forking it, I've included some information on how it works. If it seems like people are using it, I will expand on this. If you have any problems or something seems really unclear, please raise an issue. You can also join the discussion in the slack channel [#thunderkittens_public](https://screeps.slack.com/messages/thunderkittens_public/)
 
 I had only been doing javascript/typescript for a few months when I started this. Any advice/guidance from experienced programmers is very welcome.
 
-### Use on MMO server
+#### Use on MMO server
 Using this code as-is on the MMO server could present some problems. First, the screeps world is most interesting when there are a diversity of ideas/approaches being tried. Second, there will no doubt be gaps in its functionality and undesired behavior. At the moment the code is very passive, but eventually it will start claiming rooms and attacking neighbors (if you are my neighbor, don't worry, I plan to provide an opt-out system).
 
 For these reasons, I don't recommend using it that way without first going through the code and modifying its behavior to what you would like to see. 
