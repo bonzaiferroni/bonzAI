@@ -57,7 +57,7 @@ export function initPrototypes() {
                 this.room.memory.upgraderPositions = undefined;
             }
         }
-        else if (Game.time % 10 === 7) {
+        else {
             let battery = _(this.pos.findInRange(FIND_STRUCTURES, 4))
                 .filter((structure: Structure) => {
                 if (structureType) {
