@@ -20,6 +20,8 @@ import {OperationPriority} from "../../config/constants";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {profiler} from "../../profiler";
+import {ScoutMission} from "../missions/ScoutMission";
+import {ClaimMission} from "../missions/ClaimMission";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -67,15 +69,19 @@ export abstract class ControllerOperation extends Operation {
     initOperation() {
 
         this.autoLayout();
-        if (!this.flag.room) return; // TODO: remote revival
 
         // initOperation FortOperation variables
-        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
         if(!this.spawnGroup) {
             this.spawnGroup = this.findBackupSpawn();
             if (!this.spawnGroup) return;
+
+            this.addMission(new ScoutMission(this));
+            if (!this.flag.room) { return; }
+            this.addMission(new ClaimMission(this))
             this.addMission(new BodyguardMission(this));
-            this.addMission(new RemoteBuildMission(this, false))
+            this.addMission(new RemoteBuildMission(this, false));
+            return;
         }
 
         this.empire.register(this.flag.room);
@@ -163,7 +169,7 @@ export abstract class ControllerOperation extends Operation {
         }
     }
 
-    addAllyRoom(roomName: string) {
+    public addAllyRoom(roomName: string) {
         if (_.includes(this.memory.network.scanData.roomNames, roomName)) {
             return "NETWORK: " + roomName + " is already being scanned by " + this.name;
         }
@@ -173,18 +179,81 @@ export abstract class ControllerOperation extends Operation {
         return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
     }
 
+    public moveLayout(x: number, y: number, rotation: number): string {
+        this.memory.centerPosition = new RoomPosition(x, y, this.flag.pos.roomName);
+        this.memory.rotation = rotation;
+        this.memory.layoutMap = undefined;
+        this.showLayout(false);
+
+        return `moving layout, run command ${this.name}.showLayout(true) to display`
+    }
+
+    public showLayout(show: boolean): string {
+        if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
+            return "No layout defined";
+        }
+
+        if (!show) {
+            for (let flagName in Game.flags) {
+                let flag = Game.flags[flagName];
+                if (flag.name.indexOf(`${this.name}_layout`) >= 0) { flag.remove(); }}
+            return "removing layout flags";
+        }
+
+        for (let structureType of Object.keys(CONSTRUCTION_COST)) {
+            let coords = this.layoutCoords(structureType);
+            let order = 0;
+            for (let coord of coords) {
+                let flagName = `${this.name}_layout_${structureType}_${order++}`;
+                let flag = Game.flags[flagName];
+                if (flag) {
+                    flag.setPosition(coord.x, coord.y);
+                    continue;
+                }
+
+                let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+                let color = COLOR_WHITE;
+                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
+                    || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
+                    color = COLOR_YELLOW;
+                }
+                else if (structureType === STRUCTURE_TOWER) {
+                    color = COLOR_BLUE;
+                }
+                else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
+                    color = COLOR_CYAN;
+                }
+                else if (structureType === STRUCTURE_POWER_SPAWN) {
+                    color = COLOR_RED;
+                }
+                else if (structureType === STRUCTURE_OBSERVER) {
+                    color = COLOR_BROWN;
+                }
+                else if (structureType === STRUCTURE_ROAD) {
+                    color = COLOR_GREY;
+                }
+                else if (structureType === STRUCTURE_RAMPART) {
+                    color = COLOR_GREEN;
+                }
+                position.createFlag(flagName, color);
+            }
+        }
+
+        return "showing layout flags"
+    }
+
     private autoLayout() {
 
         this.initWithSpawn();
         if (!this.memory.centerPosition || this.memory.rotation === undefined ) return;
         this.initAutoLayout();
         this.buildLayout();
-
     }
 
     private buildLayout() {
-        let structureTypes = Object.keys(CONSTRUCTION_COST);
 
+        if (!this.flag.room) return;
+        let structureTypes = Object.keys(CONSTRUCTION_COST);
         if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= structureTypes.length) {
             this.memory.checkLayoutIndex = 0;
         }
@@ -196,7 +265,7 @@ export abstract class ControllerOperation extends Operation {
 
     private fixedPlacement(structureType: string) {
         let controllerLevel = this.flag.room.controller.level;
-        let constructionPriority = controllerLevel * 10;
+        let constructionPriority = Math.max(controllerLevel * 10, 40);
         if (Object.keys(Game.constructionSites).length > constructionPriority) return;
         if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) return;
         if (!this.memory.lastChecked) this.memory.lastChecked = {};
@@ -290,6 +359,8 @@ export abstract class ControllerOperation extends Operation {
     }
 
     private initWithSpawn() {
+
+        if (!this.flag.room) return;
         if (!this.memory.centerPosition || this.memory.rotation === undefined) {
             let structureCount = this.flag.room.find(FIND_STRUCTURES).length;
             if (structureCount === 1) {

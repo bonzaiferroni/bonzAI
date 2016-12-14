@@ -71,7 +71,7 @@ export class FlexOperation extends ControllerOperation {
             }
             else {
                 let map = new FlexGenerator(this.memory.centerPosition, this.memory.rotation, this.staticStructures);
-                this.memory.layoutMap = map.generate(true);
+                this.memory.layoutMap = map.generate();
                 this.memory.radius = map.radius + 1;
             }
         }
