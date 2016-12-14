@@ -486,7 +486,7 @@ export class PowerMission extends Mission {
             let allyPlay = allyClyde.saying;
             if (!allyPlay || allyPlay === myPlay) {
                 console.log("POWER: we had a tie!");
-                clyde.say("tie!", true);
+                clyde.say("tie!");
                 clyde.memory.play = undefined;
             }
             else if ((allyPlay === "rock" && myPlay === "scissors") || (allyPlay === "scissors" && myPlay === "paper") ||
@@ -498,12 +498,12 @@ export class PowerMission extends Mission {
                 }
                 console.log("POWER: ally gets the power!");
                 this.memory.currentBank.assisting = true;
-                clyde.say("damn", true);
+                clyde.say("damn");
             }
             else {
                 console.log("POWER: I get the power!");
                 this.memory.currentBank.assisting = false;
-                clyde.say("yay!", true);
+                clyde.say("yay!");
             }
         }
         else {
@@ -520,7 +520,7 @@ export class PowerMission extends Mission {
                 play = "scissors";
             }
             clyde.memory.play = play;
-            clyde.say(play, true);
+            clyde.say(play);
         }
     }
 
