@@ -42,14 +42,12 @@ export class FlexGenerator {
         this.coreStructureCoordinates = staticStructures;
     }
 
-    generate(debug: boolean): {[structureType: string]: Coord[]} {
-        let room = Game.rooms[this.roomName];
-        if (!room) return;
+    generate(): {[structureType: string]: Coord[]} {
 
         this.addFixedStructuresToMap();
         this.addUsingExpandingRadius();
         this.addWalls();
-        if (debug) this.debugMap();
+        this.removeStragglingRoads();
         return this.generateCoords();
     }
 
@@ -109,28 +107,40 @@ export class FlexGenerator {
         let x = this.centerPosition.x + xDelta;
         let y = this.centerPosition.y + yDelta;
         let alreadyUsed = this.checkIfUsed(x, y);
+        console.log(`alreadyUsed: ${alreadyUsed} x: ${xDelta}, y: ${yDelta}`);
         if (alreadyUsed) return;
 
         let position = new RoomPosition(x, y, this.roomName);
-        if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) return;
-        if (position.inRangeTo(Game.rooms[this.roomName].controller, 2)) return;
-        if (position.isNearTo(position.findClosestByRange<RoomPosition>(this.roadPositions))) {
+        if (Game.rooms[this.roomName]) {
+            if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) return;
+            if (position.inRangeTo(Game.rooms[this.roomName].controller, 2)) return;
+        }
 
-            let structureType = this.findStructureType(xDelta, yDelta);
-            if (structureType) {
-                this.addStructurePosition(position, structureType);
-                this.remaining[structureType]--
+        let foundRoad = false;
+        for (let roadPos of this.roadPositions) {
+            if (position.isNearTo(roadPos)) {
+                let structureType = this.findStructureType(xDelta, yDelta);
+                console.log("findStructureType: " + structureType)
+                if (structureType) {
+                    this.addStructurePosition(position, structureType);
+                    this.remaining[structureType]--;
+                    foundRoad = true;
+                    break;
+                }
             }
         }
-        else if (save) {
+
+        if (!foundRoad && save) {
             this.noRoadAccess.push({x: xDelta, y: yDelta});
         }
     }
 
     private recheckNonAccess() {
-        if (this.recheckCount > 100) return;
+        // if (this.recheckCount > 100) return;
         this.recheckCount++;
-        console.log("rechecking" + this.recheckCount, this.noRoadAccess.length);
+        if (this.recheckCount > 100) throw "too fucking long";
+        console.log("rechecking " + this.recheckCount, this.noRoadAccess.length);
+        this.noRoadAccess = _.filter(this.noRoadAccess, (c: Coord) => !this.checkIfUsed(c.x, c.y));
         for (let coord of this.noRoadAccess) {
             this.addRemaining(coord.x, coord.y, false);
         }
@@ -148,7 +158,10 @@ export class FlexGenerator {
             else { return; }
         }
 
+        this.map[pos.x][pos.y] = structureType;
+
         if (structureType === STRUCTURE_ROAD) {
+            console.log("foundRoad, add pos and recheck: " + pos);
             this.roadPositions.push(pos);
             this.recheckNonAccess()
         }
@@ -158,8 +171,6 @@ export class FlexGenerator {
             if (pos.y < this.topMost) { this.topMost = pos.y; }
             if (pos.y > this.bottomMost) { this.bottomMost = pos.y; }
         }
-
-        this.map[pos.x][pos.y] = structureType;
     }
 
     private findStructureType(xDelta: number, yDelta: number): string {
@@ -303,13 +314,10 @@ export class FlexGenerator {
             let pos = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
 
             // check narrow passage due to natural walls
-            if (pos.getPositionAtDirection(2).lookFor(LOOK_TERRAIN)[0] === "wall"
-                && pos.getPositionAtDirection(6).lookFor(LOOK_TERRAIN)[0] === "wall") {
-                return true;
-            }
-            else if (pos.getPositionAtDirection(4).lookFor(LOOK_TERRAIN)[0] === "wall"
-                && pos.getPositionAtDirection(8).lookFor(LOOK_TERRAIN)[0] === "wall") {
-                return true;
+            for (let direction = 2; direction <= 8; direction += 2) {
+                if (pos.getPositionAtDirection(direction).lookFor(LOOK_TERRAIN)[0] === "wall") {
+                    return true;
+                }
             }
 
             return false;
@@ -319,35 +327,15 @@ export class FlexGenerator {
         }
     }
 
-    private debugMap() {
+    private removeStragglingRoads() {
         for (let x in this.map) {
             for (let y in this.map[x]) {
-                let structureType = this.map[x][y];
-                let position = new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.roomName);
-                let color = COLOR_WHITE;
-                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
-                    || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
-                    color = COLOR_YELLOW;
+                let xInt = Number.parseInt(x);
+                let yInt = Number.parseInt(y);
+                if (xInt < this.leftMost - 1 || xInt > this.rightMost + 1
+                    || yInt < this.topMost - 1 || yInt > this.bottomMost + 1) {
+                    this.map[x][y] = undefined;
                 }
-                else if (structureType === STRUCTURE_TOWER) {
-                    color = COLOR_BLUE;
-                }
-                else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
-                    color = COLOR_CYAN;
-                }
-                else if (structureType === STRUCTURE_POWER_SPAWN) {
-                    color = COLOR_RED;
-                }
-                else if (structureType === STRUCTURE_OBSERVER) {
-                    color = COLOR_BROWN;
-                }
-                else if (structureType === STRUCTURE_ROAD) {
-                    color = COLOR_GREY;
-                }
-                else if (structureType === STRUCTURE_RAMPART) {
-                    color = COLOR_GREEN;
-                }
-                position.createFlag("layout_" + x + y + structureType, color);
             }
         }
     }
