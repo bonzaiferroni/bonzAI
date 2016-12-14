@@ -41,6 +41,7 @@ export class ConquestOperation extends Operation {
             }
             return; // early
         }
+
         this.spawnGroup = this.empire.getSpawnGroup(this.memory.spawnRoom);
         if (!this.spawnGroup) {
             console.log("Invalid spawn room specified for", this.name);
