@@ -19,11 +19,8 @@ export class DemolishMission extends Mission {
      * @param allowSpawn
      */
 
-    constructor(operation: Operation, potency = 25,
-                storeStructure: StructureContainer|StructureStorage|StructureTerminal, allowSpawn = true) {
-        super(operation, "demolish", allowSpawn);
-        this.potency = potency;
-        this.storeStructure = storeStructure;
+    constructor(operation: Operation) {
+        super(operation, "demolish");
     }
 
     initMission() {
@@ -41,16 +38,30 @@ export class DemolishMission extends Mission {
                 flag.remove();
             }
         }
+        
+        this.storeStructure = this.checkStoreStructure();
     }
 
     roleCall() {
 
-        let max = this.demoFlags.length > 0 ? 1 : 0;
-        let potency = Math.min(this.potency, 25);
+        let max = 0;
+        if (this.demoFlags.length > 0) {
+            max = 1;
+            if (this.memory.max !== undefined) {
+                max = this.memory.max;
+            }
+        }
+        
+        let demoBody = () => {
+            return this.bodyRatio(1, 0, 1, 1);
+        };
 
-        this.demolishers = this.headCount("demolisher", () => this.workerBody(potency, 0, potency), max);
+        this.demolishers = this.headCount("demolisher", demoBody, max);
 
-        let maxScavangers = max > 0 && this.storeStructure ? 1 : 0;
+        let maxScavangers = 0;
+        if (this.demoFlags.length > 0 && this.storeStructure) {
+            maxScavangers = max;
+        }
         this.scavangers = this.headCount("scavanger", () => this.workerBody(0, this.potency, this.potency), maxScavangers);
     }
 
@@ -160,6 +171,17 @@ export class DemolishMission extends Mission {
                 scavanger.memory.resourceId = closest.id;
                 return closest;
             }
+        }
+    }
+
+    private checkStoreStructure(): StructureContainer | StructureStorage | StructureTerminal {
+
+        let flag = Game.flags[`${this.name}_store`];
+        if (flag && flag.room) {
+            let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
+                .filter((s: any) => s.store !== undefined)
+                .head() as StructureContainer | StructureStorage | StructureTerminal;
+            if (storeStructure) return storeStructure;
         }
     }
 }

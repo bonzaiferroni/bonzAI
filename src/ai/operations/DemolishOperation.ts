@@ -20,24 +20,12 @@ export class DemolishOperation extends Operation {
     initOperation() {
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
 
-        let storeStructure = this.checkStoreStructure();
-        this.addMission(new DemolishMission(this, this.memory.potency, storeStructure, this.memory.enableDemo));
+        this.addMission(new DemolishMission(this));
     }
 
     finalizeOperation() {
     }
 
     invalidateOperationCache() {
-    }
-
-    private checkStoreStructure(): StructureContainer | StructureStorage | StructureTerminal {
-
-        let flag = Game.flags[`${this.name}_store`];
-        if (flag && flag.room) {
-            let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
-                .filter((s: any) => s.store !== undefined)
-                .head() as StructureContainer | StructureStorage | StructureTerminal;
-            if (storeStructure) return storeStructure;
-        }
     }
 }
