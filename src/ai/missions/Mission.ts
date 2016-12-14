@@ -128,12 +128,9 @@ export abstract class Mission {
                 Memory.creeps[creepName] = undefined;
                 i--;
             }
-
-            // if (this.opName === "dingus5" && this.name === "igor") console.log(Game.time, creepName, creep ? creep.ticksToLive : "noCreep", count, this.memory.spawn[roleName])
         }
 
         if (this.allowSpawn && this.spawnGroup.isAvailable && (count < max) && (this.hasVision || options.blindSpawn)) {
-            // if (this.opName === "dingus5" && this.name === "igor") console.log("spawn", count);
             let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
@@ -676,7 +673,7 @@ export abstract class Mission {
     }
 
     protected spawnPaver(): Creep {
-        if (this.room.controller && this.room.controller.level < 2) return;
+        if (this.room.controller && this.room.controller.level === 1) return;
         let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
         return this.spawnSharedCreep("paver", paverBody);
     }
