@@ -120,8 +120,8 @@ export class GeologyMission extends Mission {
             this.paverActions(this.paver);
         }
 
-        if (this.mineral && this.room.storage) {
-            let distance = this.pavePath(this.room.storage, this.mineral, 2);
+        if (this.memory.builtExtractor) {
+            let distance = this.pavePath(this.storeStructure, this.mineral, 2);
             if (distance) {
                 this.memory.distanceToStorage = distance;
             }
