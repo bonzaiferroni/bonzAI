@@ -65,9 +65,8 @@ export function initPrototypes() {
                 }
                 else {
                     if (structure.structureType === STRUCTURE_CONTAINER || structure.structureType === STRUCTURE_LINK) {
-                        let sourceInRange = structure.pos.findInRange(FIND_SOURCES, 2)[0];
-                        if (sourceInRange) return false;
-                        else return true;
+                        let sourcesInRange = structure.pos.findInRange(FIND_SOURCES, 2);
+                        return sourcesInRange.length === 0;
                     }
                 }
                 })
