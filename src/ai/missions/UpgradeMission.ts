@@ -239,7 +239,7 @@ export class UpgradeMission extends Mission {
         let bestPositionSoFar;
         for (let position of positionsInRange) {
             let sourcesInRange = position.findInRange(FIND_SOURCES, 2);
-            if (sourcesInRange.length > 1) continue;
+            if (sourcesInRange.length > 0) continue;
             let openSpotCount = _.filter(position.openAdjacentSpots(true),
                 (pos: RoomPosition) => pos.getRangeTo(this.room.controller) <= 3).length;
             if (openSpotCount >= 5) return position;
