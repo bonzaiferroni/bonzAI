@@ -226,13 +226,13 @@ export function initCreepPrototype() {
                         occupier.transfer(this, resourceType);
                     }
                 }
-                this.say("my spot!", true);
+                this.say("my spot!");
                 occupier.suicide();
             }
             else {
                 let direction = occupier.pos.getDirectionTo(this);
                 occupier.move(direction);
-                this.say("move it", true);
+                this.say("move it");
             }
         }
 
