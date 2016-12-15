@@ -110,7 +110,7 @@ export class UpgradeMission extends Mission {
             this.paver = this.spawnPaver();
         }
 
-        let maxInfluxCarts = 0;
+       /* let maxInfluxCarts = 0;
         let influxMemory;
         if (this.remoteSpawning) {
             if (this.room.storage && this.room.storage.store.energy < NEED_ENERGY_THRESHOLD
@@ -121,7 +121,7 @@ export class UpgradeMission extends Mission {
         }
         let influxCartBody = () => this.workerBody(0,25,25);
         this.influxCarts = this.headCount("influxCart", influxCartBody, maxInfluxCarts,
-            { memory: influxMemory });
+            { memory: influxMemory });*/
     }
 
     missionActions() {
@@ -141,10 +141,10 @@ export class UpgradeMission extends Mission {
             }
         }
 
-        for (let influxCart of this.influxCarts) {
+     /*   for (let influxCart of this.influxCarts) {
             this.influxCartActions(influxCart);
         }
-
+*/
         if (this.battery) {
             let startingPosition: {pos: RoomPosition} = this.room.storage;
             if (!startingPosition) {
@@ -179,13 +179,17 @@ export class UpgradeMission extends Mission {
         else {
             outcome = upgrader.upgradeController(this.room.controller);
         }
-
         let myPosition = this.room.controller.getUpgraderPositions()[index];
-
         if (myPosition) {
             let range = upgrader.pos.getRangeTo(myPosition);
             if (range > 0) {
                 upgrader.blindMoveTo(myPosition);
+            }
+            if (range === 1) {
+                let creep = myPosition.lookFor<Creep>(LOOK_CREEPS)[0];
+                if (creep) {
+                    upgrader.moveItOrLoseIt(myPosition);
+                }
             }
         }
         else {

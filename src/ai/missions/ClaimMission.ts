@@ -10,17 +10,20 @@ export class ClaimMission extends Mission {
     }
 
     initMission() {
-        if (!this.hasVision) return; // early
-        this.controller = this.room.controller;
+        //if (!this.hasVision) return; // early
+        if(this.room) {
+            this.controller = this.room.controller;
+        }
     }
 
     roleCall() {
-        let needClaimer = this.controller && !this.controller.my;
+        let needClaimer = (this.controller && !this.controller.my) || !this.hasVision;
         let maxClaimers = needClaimer ? 1 : 0;
-        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], maxClaimers);
+        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], maxClaimers, { blindSpawn: true });
     }
 
     missionActions() {
+
         for (let claimer of this.claimers) {
             this.claimerActions(claimer);
         }
@@ -33,6 +36,9 @@ export class ClaimMission extends Mission {
     }
 
     private claimerActions(claimer: Creep) {
+      
+        let destinationReached = claimer.travelByWaypoint(this.waypoints);
+        if (!destinationReached) return; // early
 
         if (!this.controller) {
             this.moveToFlag(claimer);

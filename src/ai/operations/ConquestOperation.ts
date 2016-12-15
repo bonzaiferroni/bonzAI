@@ -41,6 +41,7 @@ export class ConquestOperation extends Operation {
             }
             return; // early
         }
+
         this.spawnGroup = this.empire.getSpawnGroup(this.memory.spawnRoom);
         if (!this.spawnGroup) {
             console.log("Invalid spawn room specified for", this.name);
@@ -49,15 +50,17 @@ export class ConquestOperation extends Operation {
 
         this.addMission(new ScoutMission(this));
 
+        if (!this.hasVision || !this.flag.room.controller.my) {
+            this.addMission(new ClaimMission(this));
+        }
+
         if (!this.hasVision) return; // early
 
         if (this.flag.room.findStructures(STRUCTURE_TOWER).length === 0) {
             this.addMission(new BodyguardMission(this));
         }
 
-        if (!this.flag.room.controller.my) {
-            this.addMission(new ClaimMission(this));
-        }
+
 
         // build construction
         this.addMission(new RemoteBuildMission(this, false));
