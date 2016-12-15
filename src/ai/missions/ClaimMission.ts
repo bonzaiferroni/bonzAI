@@ -19,7 +19,7 @@ export class ClaimMission extends Mission {
     roleCall() {
         let needClaimer = (this.controller && !this.controller.my) || !this.hasVision;
         let maxClaimers = needClaimer ? 1 : 0;
-        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE, MOVE, MOVE, MOVE], maxClaimers, { blindSpawn: true });
+        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], maxClaimers, { blindSpawn: true });
     }
 
     missionActions() {
