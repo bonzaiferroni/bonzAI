@@ -55,6 +55,9 @@ export class KeeperOperation extends Operation {
     finalizeOperation() {
     }
     invalidateOperationCache() {
+        if (Math.random() < .01) {
+            this.memory.spawnRooms = undefined;
+        }
     }
 
     public buildKeeperRoads(operation: string, segments: number[] = [0, 1, 2, 3, 4]) {

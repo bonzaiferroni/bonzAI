@@ -151,6 +151,9 @@ export class SpawnGroup {
     }
 
     public averageAvailability(): number {
+        if (this.memory.log.history.length === 0) {
+            return .1;
+        }
         return _.last(this.memory.log.history) as number;
     }
 }

@@ -127,24 +127,24 @@ export abstract class Operation {
      */
     invalidateCache() {
         // base rate of 1 proc out of 100 ticks
-        if (Math.random() < .01)
+        if (Math.random() < .01) {
+            for (let missionName in this.missions) {
+                try {
+                    this.missions[missionName].invalidateMissionCache();
+                }
+                catch (e) {
+                    console.log("error caught in invalidateMissionCache phase, operation:", this.name, "mission:", missionName);
+                    console.log(e.stack);
+                }
+            }
 
-        for (let missionName in this.missions) {
             try {
-                this.missions[missionName].invalidateMissionCache();
+                this.invalidateOperationCache();
             }
             catch (e) {
-                console.log("error caught in invalidateMissionCache phase, operation:", this.name, "mission:", missionName);
+                console.log("error caught in invalidateOperationCache phase, operation:", this.name);
                 console.log(e.stack);
             }
-        }
-
-        try {
-            this.invalidateOperationCache();
-        }
-        catch (e) {
-            console.log("error caught in invalidateOperationCache phase, operation:", this.name);
-            console.log(e.stack);
         }
     }
     abstract invalidateOperationCache();
@@ -159,18 +159,40 @@ export abstract class Operation {
         this.missions[mission.name] = mission;
     }
 
-    getRemoteSpawnGroup(): SpawnGroup {
-        if (!this.memory.spawnRoom) {
-            let spawnGroup = this.flag.pos.findClosestByLongPath(_.values<SpawnGroup>(this.empire.spawnGroups));
+    getRemoteSpawnGroup(distanceLimit = 4): SpawnGroup {
+        // invalidated periodically
+        if (!this.memory.spawnRooms) {
+            let closestRoomRange = Number.MAX_VALUE;
+            let roomNames = [];
+            let cpu = Game.cpu.getUsed();
+            for (let roomName of Object.keys(this.empire.spawnGroups)) {
+                let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
+                if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
+                let distance = this.empire.roomTravelDistance(this.flag.pos.roomName, roomName);
+                if (distance < closestRoomRange) {
+                    closestRoomRange = distance;
+                    roomNames = [roomName];
+                }
+                else if (distance === closestRoomRange) {
+                    roomNames.push(roomName);
+                }
+            }
+            console.log(Game.cpu.getUsed() - cpu);
+            console.log(`finding spawn rooms in ${this.name}, ${roomNames}`);
+            this.memory.spawnRooms = roomNames;
+        }
+
+        let spawnRoom = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
+            let spawnGroup = this.empire.spawnGroups[roomName];
             if (spawnGroup) {
-                this.memory.spawnRoom = spawnGroup.pos.roomName;
+                return spawnGroup.averageAvailability();
             }
             else {
-                return;
+                _.pull(this.memory.spawnRooms, roomName);
             }
+        }).last();
 
-        }
-        return this.empire.getSpawnGroup(this.memory.spawnRoom);
+        return this.empire.getSpawnGroup(spawnRoom);
     }
 
     manualControllerBattery(id: string) {
