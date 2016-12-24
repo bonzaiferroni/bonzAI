@@ -531,5 +531,35 @@ export class Empire {
             console.log(`EMPIRE: ${Game.time - activeNuke.tick} till our nuke lands in ${activeNuke.roomName}`);
         }
     }
+
+    roomTravelDistance(origin: string, destination: string): number {
+        let linearDistance = Game.map.getRoomLinearDistance(origin, destination);
+        if (linearDistance >= 20) {
+            return linearDistance;
+        }
+
+        let alreadyChecked: {[roomName: string]: boolean } = { [origin]: true };
+
+        let testRooms: string[] = [origin];
+        for (let distance = 0; distance < 20; distance++) {
+            let checkExits: string[] = [];
+            for (let testRoom of testRooms) {
+                if (destination === testRoom) {
+                    return distance;
+                }
+                checkExits.push(testRoom);
+            }
+
+            testRooms = [];
+            for (let roomName of checkExits) {
+                 for (let value of _.values<string>(Game.map.describeExits(roomName))) {
+                     if (alreadyChecked[value]) continue;
+                     if (this.memory.hostileRooms[value]) continue;
+                     testRooms.push(value);
+                     alreadyChecked[value] = true;
+                 }
+            }
+        }
+    }
 }
 
