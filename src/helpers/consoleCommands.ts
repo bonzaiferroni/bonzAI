@@ -104,6 +104,19 @@ export var consoleCommands = {
     },
 
     /**
+     * remove old properties in memory that are no longer being used by the AI
+     */
+
+    removeUnusedProperties() {
+        delete Memory.empire["allyForts"];
+        delete Memory.empire["allySwaps"];
+
+        for (let flagName in Memory.flags) {
+            delete Memory.flags[flagName]["network"];
+        }
+    },
+
+    /**
      * find which rooms contain a resource type in terminal
      * @param resourceType
      */
