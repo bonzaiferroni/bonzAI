@@ -1,7 +1,8 @@
 import {SpawnGroup} from "./SpawnGroup";
 import {
     RESOURCE_VALUE, MINERALS_RAW, RESERVE_AMOUNT, PRODUCT_LIST, PRODUCT_PRICE, TRADE_RESOURCES, NEED_ENERGY_THRESHOLD,
-    SUPPLY_ENERGY_THRESHOLD, SWAP_RESERVE, TRADE_ENERGY_AMOUNT, TRADE_MAX_DISTANCE, TICK_FULL_REPORT
+    SUPPLY_ENERGY_THRESHOLD, SWAP_RESERVE, TRADE_ENERGY_AMOUNT, TRADE_MAX_DISTANCE, TICK_FULL_REPORT,
+    OBSERVER_PURPOSE_ALLYTRADE
 } from "../config/constants";
 import {helper} from "../helpers/helper";
 export class Empire {
@@ -13,19 +14,20 @@ export class Empire {
     energyTraded: boolean;
     mineralTraded: boolean;
     memory: {
-        allyForts: string[],
-        allySwaps: string[],
-        tradeIndex: number,
-        activeNukes: {tick: number, roomName: string }[],
+        allyRooms: string[];
+        hostileRooms: {[roomName: string]: number }
+        tradeIndex: number;
+        activeNukes: {tick: number, roomName: string }[];
     };
     tradeResource: string;
     shortages: StructureTerminal[] = [];
     severeShortages: StructureTerminal[] = [];
     surpluses: StructureTerminal[] = [];
+    allyTradeStatus: {[roomName: string]: boolean};
 
     constructor() {
         if (!Memory.empire) Memory.empire = {};
-        _.defaults(Memory.empire, { allyForts: [], allySwaps: [], tradeIndex: 0, activeNukes: [] });
+        _.defaults(Memory.empire, { allyRooms: [], hostileRooms: {}, tradeIndex: 0, activeNukes: [] });
         this.memory = Memory.empire;
     }
 
@@ -340,12 +342,45 @@ export class Empire {
         }
     }
 
-    addAllyForts(roomNames: string[]) {
-        this.memory.allyForts = _.union(this.memory.allyForts, roomNames);
+    addAllyRoom(roomName: string) {
+        if (_.contains(this.memory.allyRooms, roomName)) { return; }
+        this.memory.allyRooms.push(roomName);
     }
 
-    addAllySwaps(roomNames: string[]) {
-        this.memory.allySwaps = _.union(this.memory.allySwaps, roomNames);
+    removeAllyRoom(roomName: string) {
+        _.pull(this.memory.allyRooms, roomName);
+    }
+
+    addHostileRoom(roomName: string, controllerLevel: number) {
+        this.memory.hostileRooms[roomName] = controllerLevel;
+    }
+
+    removeHostileRoom(roomName: string) {
+        delete this.memory.hostileRooms[roomName];
+    }
+
+    observeAllyRoom(observer: StructureObserver, index: number) {
+        if (index === undefined) {
+            index = 0;
+        }
+
+        if (!this.allyTradeStatus) {
+            this.allyTradeStatus = {};
+            for (let roomname of this.memory.allyRooms) { this.allyTradeStatus[roomname] = false }
+        }
+
+        let checkCount = this.memory.allyRooms.length;
+        while (checkCount > 0) {
+            index++;
+            checkCount--;
+            if (index >= this.memory.allyRooms.length) { index = 0; }
+            let checkRoomName = Object.keys(this.allyTradeStatus)[index];
+            if (Game.map.getRoomLinearDistance(observer.room.name, checkRoomName) > OBSERVER_RANGE) continue;
+            if (this.allyTradeStatus[checkRoomName]) continue;
+            this.allyTradeStatus[checkRoomName] = true;
+            observer.observeRoom(checkRoomName, OBSERVER_PURPOSE_ALLYTRADE);
+            return index;
+        }
     }
 
     sellCompounds() {
@@ -386,18 +421,11 @@ export class Empire {
     }
 
     private registerAllyRooms() {
-        for (let roomName of this.memory.allyForts) {
+        for (let roomName of this.memory.allyRooms) {
             let room = Game.rooms[roomName];
             if (!room) continue;
 
             this.analyzeResources(room);
-        }
-
-        for (let roomName of this.memory.allySwaps) {
-            let room = Game.rooms[roomName];
-            if (!room) continue;
-
-            this.analyzeResources(room, true);
         }
     }
 

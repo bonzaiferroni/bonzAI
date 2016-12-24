@@ -7,6 +7,8 @@ export const ROOMTYPE_CORE = -1302;
 export const ROOMTYPE_CONTROLLER = -1303;
 export const ROOMTYPE_ALLEY = -1304;
 
+export const OBSERVER_PURPOSE_ALLYTRADE = "allyTrade";
+
 export const CACHE_INVALIDATION_FREQUENCY = 1000;
 export const CACHE_INVALIDATION_PERIOD = 10;
 
@@ -34,7 +36,15 @@ export const ALLIES = {
     "trebbettes": true,
 };
 
-export const KCLUBBERS = ["bonzaiferroni", "taiga", "Reini", "Vervorris", "Jeb"];
+export const TRADE_PARTNERS = {
+    "bonzaiferroni": true,
+    "taiga": true,
+    "Reini": true,
+    "Vervorris": true,
+    "Jeb": true,
+    "trebbettes": true,
+    "ricane": true,
+};
 
 export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 
