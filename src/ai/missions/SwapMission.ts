@@ -86,7 +86,7 @@ export class SwapMission extends Mission {
 
     finalizeMission() {
         if (!this.memory.fortRoomNames) {
-            let roomNames = _.map(this.empire.terminals, (t: StructureTerminal) => t.room.name).concat(this.empire.memory.allyForts);
+            let roomNames = _.map(this.empire.terminals, (t: StructureTerminal) => t.room.name);
             this.memory.fortRoomNames = _.sortBy(roomNames, (s: string) => Game.map.getRoomLinearDistance(s, this.room.name, true));
         }
     }
