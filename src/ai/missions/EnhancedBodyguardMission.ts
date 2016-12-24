@@ -95,8 +95,8 @@ export class EnhancedBodyguardMission extends Mission {
             }
         };
 
-        this.squadAttackers = this.headCount("lee", squadAttackerBody, maxSquads, {prespawn: 50, memory: attackerMemory});
-        this.squadHealers = this.headCount("roy", squadHealerBody, maxSquads, {prespawn: 50, memory: healerMemory});
+        this.squadAttackers = this.headCount("lee", squadAttackerBody, maxSquads, {prespawn: 50, memory: attackerMemory, skipMoveToRoom: true});
+        this.squadHealers = this.headCount("roy", squadHealerBody, maxSquads, {prespawn: 50, memory: healerMemory, skipMoveToRoom: true});
     }
 
     missionActions() {
