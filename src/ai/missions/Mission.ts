@@ -468,28 +468,21 @@ export abstract class Mission {
 
     protected findDistanceToSpawn(destination: RoomPosition): number {
         if (!this.memory.distanceToSpawn) {
-            if (this.waypoints && this.waypoints.length > 0 && this.waypoints[0].memory.portalTravel) {
-                console.log("SPAWN: using portal travel in", this.name + ", distanceToSpawn is set to:", 200);
-                this.memory.distanceToSpawn = 200;
+            let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
+            if (roomLinearDistance === 0) {
+                let distance = this.spawnGroup.pos.getPathDistanceTo(destination);
+                if (!distance) {
+                    console.log(`SPAWN: error finding distance in ${this.opName} for object at ${destination}`);
+                    return;
+                }
+                this.memory.distanceToSpawn = distance;
+            }
+            else if (roomLinearDistance <= OBSERVER_RANGE) {
+                this.memory.distanceToSpawn = (roomLinearDistance + 1) * 50;
             }
             else {
-                let distance = 0;
-                let lastPos = this.spawnGroup.pos;
-                if (this.waypoints) {
-                    for (let waypoint of this.waypoints) {
-                        distance += lastPos.getPathDistanceTo(waypoint.pos);
-                        lastPos = waypoint.pos;
-                    }
-                }
-                distance += lastPos.getPathDistanceTo(destination);
-                if (distance > 500) {
-                    console.log("WARNING: spawn distance (" + distance +
-                        ") much higher than would usually be expected, setting to max of 500");
-                    distance = 500;
-                }
-
-                console.log("SPAWN: found new distance for", this.name + ":", distance);
-                this.memory.distanceToSpawn = distance;
+                console.log(`SPAWN: likely portal travel detected in ${this.opName}, setting distance to 200`);
+                this.memory.distanceToSpawn = 200;
             }
         }
 

@@ -25,6 +25,7 @@ export class MiningMission extends Mission {
         positionsAvailable: number;
         transportAnalysis: TransportAnalysis;
         distanceToStorage: number;
+        distanceToSpawn: number;
         roadRepairIds: string[];
     };
 
@@ -170,6 +171,7 @@ export class MiningMission extends Mission {
     }
     invalidateMissionCache() {
         this.memory.transportAnalysis = undefined;
+        this.memory.distanceToSpawn = undefined;
     }
 
     private getMinerBody(): string[] {

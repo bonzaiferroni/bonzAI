@@ -16,14 +16,15 @@ export class GeologyMission extends Mission {
     container: StructureContainer;
 
     memory: {
-        distanceToStorage: number
-        builtExtractor: boolean
-        bestBody: string[]
-        roadRepairIds: string[]
-        storageId: string
-        transportAnalysis: TransportAnalysis
-        containerPosition: RoomPosition
-        cartWaitPosition: RoomPosition
+        distanceToStorage: number;
+        distanceToSpawn: number;
+        builtExtractor: boolean;
+        bestBody: string[];
+        roadRepairIds: string[];
+        storageId: string;
+        transportAnalysis: TransportAnalysis;
+        containerPosition: RoomPosition;
+        cartWaitPosition: RoomPosition;
     };
 
     constructor(operation: Operation, storeStructure?: StructureStorage | StructureTerminal) {
@@ -136,7 +137,8 @@ export class GeologyMission extends Mission {
             this.memory.storageId = undefined;
             this.memory.transportAnalysis = undefined;
             this.memory.distanceToStorage = undefined;
-            this.memory.builtExtractor = undefined
+            this.memory.builtExtractor = undefined;
+            this.memory.distanceToSpawn = undefined;
         }
     }
 
