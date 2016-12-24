@@ -146,12 +146,11 @@ export class FortOperation extends Operation {
     }
 
     addAllyRoom(roomName: string) {
-        if (_.includes(this.memory.network.scanData.roomNames, roomName)) {
+        if (_.includes(this.empire.memory.allyRooms, roomName)) {
             return "NETWORK: " + roomName + " is already being scanned by " + this.name;
         }
 
-        this.memory.network.scanData.roomNames.push(roomName);
-        this.empire.addAllyForts([roomName]);
+        this.empire.addAllyRoom(roomName);
         return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
     }
 }

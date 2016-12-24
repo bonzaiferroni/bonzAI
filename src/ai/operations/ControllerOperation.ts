@@ -22,6 +22,7 @@ import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {profiler} from "../../profiler";
 import {ScoutMission} from "../missions/ScoutMission";
 import {ClaimMission} from "../missions/ClaimMission";
+import {RadarMission} from "../missions/RadarMission";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -103,6 +104,7 @@ export abstract class ControllerOperation extends Operation {
         if (this.flag.room.terminal && this.flag.room.storage) {
             this.addMission(new TerminalNetworkMission(this));
             this.addMission(new IgorMission(this));
+            this.addMission(new RadarMission(this));
         }
 
         // harvest energy
@@ -170,12 +172,11 @@ export abstract class ControllerOperation extends Operation {
     }
 
     public addAllyRoom(roomName: string) {
-        if (_.includes(this.memory.network.scanData.roomNames, roomName)) {
+        if (_.includes(this.empire.memory.allyRooms, roomName)) {
             return "NETWORK: " + roomName + " is already being scanned by " + this.name;
         }
 
-        this.memory.network.scanData.roomNames.push(roomName);
-        this.empire.addAllyForts([roomName]);
+        this.empire.addAllyRoom(roomName);
         return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
     }
 
