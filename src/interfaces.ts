@@ -111,3 +111,15 @@ export interface SeedData {
         best: SeedSelection
     };
 }
+
+export interface TravelData {
+    stuck: number;
+    destination: RoomPosition;
+    lastPos: RoomPosition;
+    path: string;
+}
+
+export interface TravelToOptions {
+    preferHighway: boolean;
+    ignoreRoads: boolean;
+}

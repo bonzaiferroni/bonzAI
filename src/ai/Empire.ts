@@ -2,9 +2,11 @@ import {SpawnGroup} from "./SpawnGroup";
 import {
     RESOURCE_VALUE, MINERALS_RAW, RESERVE_AMOUNT, PRODUCT_LIST, PRODUCT_PRICE, TRADE_RESOURCES, NEED_ENERGY_THRESHOLD,
     SUPPLY_ENERGY_THRESHOLD, SWAP_RESERVE, TRADE_ENERGY_AMOUNT, TRADE_MAX_DISTANCE, TICK_FULL_REPORT,
-    OBSERVER_PURPOSE_ALLYTRADE
+    OBSERVER_PURPOSE_ALLYTRADE, ALLIES
 } from "../config/constants";
 import {helper} from "../helpers/helper";
+import {TravelData, TravelToOptions} from "../interfaces";
+import {profiler} from "../profiler";
 export class Empire {
 
     storages: StructureStorage[] = [];
@@ -538,6 +540,11 @@ export class Empire {
             return linearDistance;
         }
 
+        let allowedRooms = this.findAllowedRooms(origin, destination);
+        if (allowedRooms) {
+            return Object.keys(allowedRooms).length;
+        }
+        /* deprecated
         let alreadyChecked: {[roomName: string]: boolean } = { [origin]: true };
 
         let testRooms: string[] = [origin];
@@ -560,6 +567,128 @@ export class Empire {
                  }
             }
         }
+        */
     }
+
+    findAllowedRooms(origin: string, destination: string, preferHighway = false,
+                     avoidEnemyRooms = true): {[roomName: string]: boolean } {
+        // Use `findRoute` to calculate a high-level plan for this path,
+        // prioritizing highways and owned rooms
+        let allowedRooms = { [ origin ]: true };
+        let ret = Game.map.findRoute(origin, destination, {
+            routeCallback: (roomName: string) => {
+                if (preferHighway) {
+                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
+                    let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
+                    if (isHighway) {
+                        return 1;
+                    }
+                }
+                if ( avoidEnemyRooms && this.memory.hostileRooms[roomName]) {
+                    return Number.POSITIVE_INFINITY;
+                }
+            }
+        });
+        if (_.isNumber(ret)) {
+            console.log(`couldn't findRoute to ${destination}`);
+        }
+        for (let value of ret) {
+            allowedRooms[value.room] = true;
+        }
+
+        return allowedRooms;
+    }
+
+    travelTo(creep: Creep, destination: {pos: RoomPosition}, options?: TravelToOptions): number {
+        if (!options) {
+            options = { preferHighway: false, ignoreRoads: false };
+        }
+
+        // register hostile rooms entered
+        if (creep.room.controller && creep.room.controller.owner && !ALLIES[creep.room.controller.owner.username]) {
+            this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+        }
+
+        if (!creep.memory._travel) {
+            creep.memory._travel = { stuck: 0, destination: destination.pos, lastPos: undefined, path: undefined }
+        }
+        let travelData: TravelData = creep.memory._travel;
+
+        let allowedRooms;
+        let callback = (roomName: string): CostMatrix | boolean => {
+            if (!allowedRooms) {
+                profiler.start("findAllowedRooms");
+                allowedRooms = this.findAllowedRooms(creep.pos.roomName, destination.pos.roomName, options.preferHighway);
+                profiler.end("findAllowedRooms");
+            }
+            if (!allowedRooms[roomName]) return false;
+            let room = Game.rooms[roomName];
+            if (!room) return;
+            let matrix = new PathFinder.CostMatrix();
+            helper.addStructuresToMatrix(matrix, room);
+            if (travelData.stuck >= 5) {
+                helper.addCreepsToMatrix(matrix, room);
+            }
+            return matrix;
+        };
+
+        if (creep.fatigue > 0 || creep.spawning) {
+            return ERR_BUSY;
+        }
+        let rangeToDestination = creep.pos.getRangeTo(destination);
+        if (rangeToDestination <= 1) {
+            if (rangeToDestination === 0) {
+                return OK;
+            }
+            if (destination.pos.isPassible()) {
+                return creep.move(creep.pos.getDirectionTo(destination));
+            }
+            else {
+                return OK;
+            }
+        }
+
+        if (travelData.lastPos) {
+            travelData.lastPos = helper.deserializeRoomPosition(travelData.lastPos);
+            if (creep.pos.inRangeTo(travelData.lastPos, 0)) {
+                travelData.stuck++;
+            }
+            else {
+                travelData.stuck = 0;
+            }
+        }
+
+        if (travelData.destination) {
+            travelData.destination = helper.deserializeRoomPosition(travelData.destination);
+        }
+        if (!travelData.path || !travelData.destination.inRangeTo(destination, 0)
+            || travelData.stuck >= 5) {
+            travelData.destination = destination.pos;
+            travelData.lastPos = undefined;
+            travelData.stuck = 0;
+            let ret = PathFinder.search(creep.pos, [{pos: destination.pos, range: 1}], {
+                swampCost: options.ignoreRoads ? 5 : 10,
+                plainCost: options.ignoreRoads ? 1 : 2,
+                maxOps: 20000,
+                roomCallback: callback
+            } );
+            console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}`);
+            profiler.start("serializePath");
+            travelData.path = helper.serializePath(creep.pos, ret.path);
+            profiler.end("serializePath");
+        }
+
+        if (!travelData.path || travelData.path.length === 0) {
+            return ERR_NO_PATH;
+        }
+
+        if (travelData.lastPos && travelData.stuck === 0) {
+            travelData.path = travelData.path.substr(1);
+        }
+        travelData.lastPos = creep.pos;
+        let nextDirection = parseInt(travelData.path[0]);
+        return creep.move(nextDirection);
+    }
+
 }
 

@@ -1,32 +1,38 @@
 export var profiler = {
-    start(identifier: string) {
-        this.cpu = Game.cpu.getUsed();
-        if (!Memory.profiler[identifier]) Memory.profiler[identifier] = {
-            tickBegin: Game.time,
-            lastTickTracked: undefined,
-            total: 0,
-            count: 0,
-            costPerCall: undefined,
-            costPerTick: undefined,
-            callsPerTick: undefined,
-        };
+
+    start(identifier: string, consoleReport = false, period = 10) {
+        if (!Memory.profiler[identifier]) { Memory.profiler[identifier] = {} as ProfilerData; }
+        _.defaults(Memory.profiler[identifier], {total: 0, count: 0, startOfPeriod: Game.time - 1});
+        Memory.profiler[identifier].period = period;
+        Memory.profiler[identifier].consoleReport = consoleReport;
         Memory.profiler[identifier].lastTickTracked = Game.time;
+        Memory.profiler[identifier].cpu = Game.cpu.getUsed();
     },
 
-    end(identifier: string, period = 10) {
+    end(identifier: string) {
         let profile = Memory.profiler[identifier];
-        profile.total += Game.cpu.getUsed() - this.cpu;
+        profile.total += Game.cpu.getUsed() - profile.cpu;
         profile.count++;
+    },
 
-        if (Game.time - profile.tickBegin >= period - 1) {
-            profile.costPerCall = _.round(profile.total / profile.count, 2);
-            profile.costPerTick = _.round(profile.total / period, 2);
-            profile.callsPerTick = _.round(profile.count / period, 2);
-            // console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:",
-            //    profile.costPerCall, "calls per tick:", profile.callsPerTick);
-            profile.tickBegin = Game.time + 1;
-            profile.total = 0;
-            profile.count = 0;
+    finalize() {
+        for (let identifier in Memory.profiler) {
+            let profile = Memory.profiler[identifier];
+            if (Game.time - profile.startOfPeriod >= profile.period) {
+                profile.costPerCall = _.round(profile.total / profile.count, 2);
+                profile.costPerTick = _.round(profile.total / profile.period, 2);
+                profile.callsPerTick = _.round(profile.count / profile.period, 2);
+                if (profile.consoleReport) {
+                    console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:",
+                        profile.costPerCall, "calls per tick:", profile.callsPerTick);
+                }
+                profile.startOfPeriod = Game.time;
+                profile.total = 0;
+                profile.count = 0;
+            }
+            if (Game.time - profile.lastTickTracked > 10000) {
+                delete Memory.profiler[identifier];
+            }
         }
     }
 };

@@ -246,13 +246,4 @@ export var loopHelper = {
         // example: cc.minv()
         global.cc = consoleCommands;
     },
-
-    profilerCheck: function() {
-        for (let identifier in Memory.profiler) {
-            let profile = Memory.profiler[identifier];
-            if (Game.time - profile.lastTickTracked > 1) {
-                delete Memory.profiler[identifier];
-            }
-        }
-    }
 };

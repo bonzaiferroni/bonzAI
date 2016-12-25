@@ -206,21 +206,42 @@ export var helper = {
         }
     },
 
-    addStructuresToMatrix(costs: CostMatrix, room: Room, roadCost = 1): CostMatrix {
+    addStructuresToMatrix(matrix: CostMatrix, room: Room, roadCost = 1): CostMatrix {
         room.find(FIND_STRUCTURES).forEach(function(structure: Structure) {
             if (structure instanceof StructureRampart) {
                 if (!structure.my) {
-                    costs.set(structure.pos.x, structure.pos.y, 0xff);
+                    matrix.set(structure.pos.x, structure.pos.y, 0xff);
                 }
             } else if (structure instanceof StructureRoad) {
                 // Favor roads over plain tiles
-                costs.set(structure.pos.x, structure.pos.y, roadCost);
+                matrix.set(structure.pos.x, structure.pos.y, roadCost);
             } else if (structure.structureType !== STRUCTURE_CONTAINER) {
                 // Can't walk through non-walkable buildings
-                costs.set(structure.pos.x, structure.pos.y, 0xff);
+                matrix.set(structure.pos.x, structure.pos.y, 0xff);
             }
         });
-        return costs;
+        return matrix;
+    },
+
+    addCreepsToMatrix(matrix: CostMatrix, room: Room, addFriendly = true, addHostile = true): CostMatrix {
+        room.find<Creep>(FIND_CREEPS).forEach((creep: Creep) => {
+            if (!creep.owner) {
+                if (addHostile) {
+                    matrix.set(creep.pos.x, creep.pos.y, 0xff);
+                }
+            }
+            else if (ALLIES[creep.owner.username]) {
+                if (addFriendly) {
+                    matrix.set(creep.pos.x, creep.pos.y, 0xff);
+                }
+            }
+            else {
+                if (addHostile) {
+                    matrix.set(creep.pos.x, creep.pos.y, 0xff);
+                }
+            }
+        });
+        return matrix;
     },
 
     addTerrainToMatrix(matrix: CostMatrix, roomName: string): CostMatrix {
@@ -323,5 +344,17 @@ export var helper = {
         else if (rotation === 3) {
             return {x: -yCoord, y: xCoord};
         }
+    },
+
+    serializePath(startPos: RoomPosition, path: RoomPosition[]): string {
+        let serializedPath = "";
+        let lastPosition = startPos;
+        for (let position of path) {
+            if (position.roomName === lastPosition.roomName) {
+                serializedPath += lastPosition.getDirectionTo(position);
+            }
+            lastPosition = position;
+        }
+        return serializedPath;
     }
 };

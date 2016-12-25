@@ -23,7 +23,7 @@ module.exports.loop = function () {
     profiler.end("roleCall");
 
     // Actions phase - Actions that change the game state are executed in this phase.
-    profiler.start("actions");
+    profiler.start("actions", true);
     for (let operation of operations) operation.actions();
     profiler.end("actions");
 
@@ -43,6 +43,6 @@ module.exports.loop = function () {
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
     profiler.end("postOperations");
     try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
-    try { loopHelper.profilerCheck(); } catch (e) { console.log("error checking profiler:\n", e.stack); }
+    try { profiler.finalize(); } catch (e) { console.log("error checking profiler:\n", e.stack); }
 };
 

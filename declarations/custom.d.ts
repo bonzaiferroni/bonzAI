@@ -99,16 +99,21 @@ interface Memory {
         powerMinimum: number;
     };
     empire: any;
-    profiler: {[identifier: string]: {
-        tickBegin: number;
-        lastTickTracked: number;
-        total: number;
-        count: number;
-        costPerCall: number;
-        costPerTick: number;
-        callsPerTick: number
-    }};
+    profiler: {[identifier: string]: ProfilerData };
     roomAttacks: any;
+}
+
+interface ProfilerData {
+    startOfPeriod: number;
+    lastTickTracked: number;
+    total: number;
+    count: number;
+    costPerCall: number;
+    costPerTick: number;
+    callsPerTick: number;
+    cpu: number;
+    consoleReport: boolean;
+    period: number;
 }
 
 interface ResourceOrder {

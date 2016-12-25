@@ -164,7 +164,6 @@ export abstract class Operation {
         if (!this.memory.spawnRooms) {
             let closestRoomRange = Number.MAX_VALUE;
             let roomNames = [];
-            let cpu = Game.cpu.getUsed();
             for (let roomName of Object.keys(this.empire.spawnGroups)) {
                 let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
                 if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
@@ -177,7 +176,6 @@ export abstract class Operation {
                     roomNames.push(roomName);
                 }
             }
-            console.log(Game.cpu.getUsed() - cpu);
             console.log(`finding spawn rooms in ${this.name}, ${roomNames}`);
             this.memory.spawnRooms = roomNames;
         }

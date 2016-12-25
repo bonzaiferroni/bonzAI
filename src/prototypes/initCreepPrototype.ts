@@ -191,9 +191,6 @@ export function initCreepPrototype() {
             else {
                 ops.reusePath = 5;
             }
-            if (this.name === "swat1_gammaHealer") {
-                console.log(destination);
-            }
             return this.moveTo(destination, ops);
         }
         else {

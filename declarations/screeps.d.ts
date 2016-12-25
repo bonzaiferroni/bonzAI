@@ -1152,7 +1152,7 @@ declare class GameMap {
     }): {
         exit: string;
         room: string;
-    }[] | number;
+    }[];
     /**
      * Get the linear distance (in rooms) between two rooms. You can use this function to estimate the energy cost of
      * sending resources through terminals, or using observers and nukes.
