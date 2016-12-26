@@ -74,12 +74,12 @@ export abstract class ControllerOperation extends Operation {
         // initOperation FortOperation variables
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
         if(!this.spawnGroup) {
-            this.spawnGroup = this.findBackupSpawn();
+            this.spawnGroup = this.getRemoteSpawnGroup(8);
             if (!this.spawnGroup) return;
 
             this.addMission(new ScoutMission(this));
             if (!this.flag.room) { return; }
-            this.addMission(new ClaimMission(this))
+            this.addMission(new ClaimMission(this));
             this.addMission(new BodyguardMission(this));
             this.addMission(new RemoteBuildMission(this, false));
             return;
@@ -143,7 +143,7 @@ export abstract class ControllerOperation extends Operation {
         this.towerRepair();
 
         if (this.flag.room.controller.level < 6) {
-            let boostSpawnGroup = this.findRemoteSpawn(4);
+            let boostSpawnGroup = this.getRemoteSpawnGroup(6);
             if (boostSpawnGroup) {
                 upgradeMission.setSpawnGroup(boostSpawnGroup);
                 buildMission.setSpawnGroup(boostSpawnGroup);
@@ -396,6 +396,7 @@ export abstract class ControllerOperation extends Operation {
         }
     }
 
+    // deprecated
     private findRemoteSpawn(distanceLimit: number, levelRequirement = 8): SpawnGroup {
         let remoteSpawn = _(this.empire.spawnGroups)
             .filter((s: SpawnGroup) => {

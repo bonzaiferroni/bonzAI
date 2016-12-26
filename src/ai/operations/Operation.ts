@@ -166,6 +166,7 @@ export abstract class Operation {
             let roomNames = [];
             for (let roomName of Object.keys(this.empire.spawnGroups)) {
                 let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
+                if (roomLinearDistance === 0) continue;
                 if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
                 let distance = this.empire.roomTravelDistance(this.flag.pos.roomName, roomName);
                 if (distance < closestRoomRange) {
