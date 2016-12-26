@@ -71,19 +71,15 @@ export abstract class ControllerOperation extends Operation {
 
         this.autoLayout();
 
-        // initOperation FortOperation variables
+        // scout room
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
-        if(!this.spawnGroup) {
-            if (!this.memory.spawnRooms) return;
+        if (!this.spawnGroup) {
+            if (!this.memory.spawnRooms) { return; }
             this.spawnGroup = this.getRemoteSpawnGroup(8);
-            if (!this.spawnGroup) return;
-
             this.addMission(new ScoutMission(this));
-            if (!this.flag.room) { return; }
             this.addMission(new ClaimMission(this));
             this.addMission(new BodyguardMission(this));
             this.addMission(new RemoteBuildMission(this, false));
-            return;
         }
 
         this.empire.register(this.flag.room);
@@ -109,6 +105,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // harvest energy
+        let miningMissions: MiningMission[] = [];
         for (let i = 0; i < this.sources.length; i++) {
             if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) continue;
             let source = this.sources[i];
@@ -119,7 +116,9 @@ export abstract class ControllerOperation extends Operation {
                     continue;
                 }
             }
-            this.addMission(new MiningMission(this, "miner" + i, source));
+            let miningMission = new MiningMission(this, "miner" + i, source);
+            miningMissions.push(miningMission);
+            this.addMission(miningMission);
         }
 
         // build construction
@@ -143,12 +142,29 @@ export abstract class ControllerOperation extends Operation {
 
         this.towerRepair();
 
+        // reassign spawngroups for remote boosting
         if (this.flag.room.controller.level < 6) {
             if (!this.memory.spawnRooms) return;
             let boostSpawnGroup = this.getRemoteSpawnGroup(6);
-            if (boostSpawnGroup) {
+            if (boostSpawnGroup && boostSpawnGroup.room.controller.level >= 7) {
                 upgradeMission.setSpawnGroup(boostSpawnGroup);
                 buildMission.setSpawnGroup(boostSpawnGroup);
+
+                // remote spawn miners
+                if (this.spawnGroup.maxSpawnEnergy < 1300) {
+                    for (let miningMission of miningMissions) {
+                        miningMission.setSpawnGroup(boostSpawnGroup);
+                    }
+                }
+
+                if (this.flag.room.controller.level < 4) {
+                    let bodyguard = new BodyguardMission(this);
+                    this.addMission(bodyguard);
+                    bodyguard.setSpawnGroup(boostSpawnGroup);
+                    let remoteBuilder = new RemoteBuildMission(this, false);
+                    this.addMission(remoteBuilder);
+                    remoteBuilder.setSpawnGroup(boostSpawnGroup);
+                }
             }
         }
     }
@@ -271,6 +287,9 @@ export abstract class ControllerOperation extends Operation {
     private fixedPlacement(structureType: string) {
         let controllerLevel = this.flag.room.controller.level;
         let constructionPriority = Math.max(controllerLevel * 10, 40);
+        if (controllerLevel === 1) {
+            constructionPriority = 90;
+        }
         if (Object.keys(Game.constructionSites).length > constructionPriority) return;
         if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) return;
         if (!this.memory.lastChecked) this.memory.lastChecked = {};
