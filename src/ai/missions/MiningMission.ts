@@ -112,6 +112,10 @@ export class MiningMission extends Mission {
             if (!startingPosition) {
                 startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
             }
+            if (!startingPosition) {
+                startingPosition = this.room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES,
+                    {filter: ( (s: ConstructionSite) => s.structureType === STRUCTURE_SPAWN)})[0];
+            }
             if (startingPosition) {
                 let distance = this.pavePath(startingPosition, this.container, 2);
                 if (distance) {
@@ -309,8 +313,6 @@ export class MiningMission extends Mission {
     }
 
     private placeContainer() {
-
-        if (this.room.controller && this.room.controller.my && this.room.controller.level === 1) return;
 
         let startingPosition: {pos: RoomPosition} = this.storage;
         if (!startingPosition) {

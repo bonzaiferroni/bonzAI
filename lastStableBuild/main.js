@@ -10182,7 +10182,7 @@ module.exports =
 	        this.cpu = Game.cpu.getUsed();
 	        if (!Memory.profiler[identifier])
 	            Memory.profiler[identifier] = {
-	                tickBegin: Game.time,
+	                startOfPeriod: Game.time,
 	                lastTickTracked: undefined,
 	                total: 0,
 	                count: 0,
