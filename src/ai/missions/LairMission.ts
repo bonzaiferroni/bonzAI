@@ -124,7 +124,7 @@ export class LairMission extends Mission {
         if (closest) {
             if (scavenger.pos.isNearTo(closest)) {
                 scavenger.pickup(closest);
-                scavenger.say("yoink!");
+                scavenger.say("yoink!", true);
             }
             else {
                 scavenger.blindMoveTo(closest, {maxRooms: 0});

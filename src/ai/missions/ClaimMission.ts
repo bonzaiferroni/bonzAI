@@ -36,9 +36,6 @@ export class ClaimMission extends Mission {
     }
 
     private claimerActions(claimer: Creep) {
-      
-        let destinationReached = claimer.travelByWaypoint(this.waypoints);
-        if (!destinationReached) return; // early
 
         if (!this.controller) {
             this.moveToFlag(claimer);

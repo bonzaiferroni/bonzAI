@@ -185,12 +185,6 @@ export class UpgradeMission extends Mission {
             if (range > 0) {
                 upgrader.blindMoveTo(myPosition);
             }
-            if (range === 1) {
-                let creep = myPosition.lookFor<Creep>(LOOK_CREEPS)[0];
-                if (creep) {
-                    upgrader.moveItOrLoseIt(myPosition);
-                }
-            }
         }
         else {
             if (upgrader.pos.inRangeTo(battery, 3)) {
