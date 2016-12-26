@@ -177,12 +177,12 @@ export abstract class Operation {
                     roomNames.push(roomName);
                 }
             }
-            console.log(`finding spawn rooms in ${this.name}, ${roomNames}`);
+            console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
             this.memory.spawnRooms = roomNames;
         }
 
         let spawnRoom = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
-            let spawnGroup = this.empire.spawnGroups[roomName];
+            let spawnGroup = this.empire.getSpawnGroup(roomName);
             if (spawnGroup) {
                 return spawnGroup.averageAvailability();
             }

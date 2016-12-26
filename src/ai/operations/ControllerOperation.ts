@@ -54,7 +54,7 @@ export abstract class ControllerOperation extends Operation {
         radius: number
         seedData: SeedData
         lastChecked: {[structureType: string]: number }
-        backupSpawnRoom: string;
+        spawnRooms: string[]
 
         // deprecated values
         flexLayoutMap: {[structureType: string]: Coord[]}
@@ -74,6 +74,7 @@ export abstract class ControllerOperation extends Operation {
         // initOperation FortOperation variables
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
         if(!this.spawnGroup) {
+            if (!this.memory.spawnRooms) return;
             this.spawnGroup = this.getRemoteSpawnGroup(8);
             if (!this.spawnGroup) return;
 
@@ -143,6 +144,7 @@ export abstract class ControllerOperation extends Operation {
         this.towerRepair();
 
         if (this.flag.room.controller.level < 6) {
+            if (!this.memory.spawnRooms) return;
             let boostSpawnGroup = this.getRemoteSpawnGroup(6);
             if (boostSpawnGroup) {
                 upgradeMission.setSpawnGroup(boostSpawnGroup);
@@ -152,11 +154,13 @@ export abstract class ControllerOperation extends Operation {
     }
 
     finalizeOperation() {
+        this.getRemoteSpawnGroup(8);
     }
 
     invalidateOperationCache() {
-        this.memory.masonPotency = undefined;
-        this.memory.builderPotency = undefined;
+        if (Math.random() < .01) {
+            this.memory.spawnRooms = undefined;
+        }
     }
 
     public nuke(x: number, y: number, roomName: string): string {
@@ -411,25 +415,6 @@ export abstract class ControllerOperation extends Operation {
             })
             .head();
         return remoteSpawn;
-    }
-
-    private findBackupSpawn() {
-        if (this.memory.backupSpawnRoom) {
-            let spawnGroup = this.empire.getSpawnGroup(this.memory.backupSpawnRoom);
-            if (spawnGroup) {
-                return spawnGroup;
-            }
-            else {
-                this.memory.backupSpawnRoom = undefined;
-            }
-        }
-        else {
-            let remoteSpawnGroup = this.findRemoteSpawn(6, 4);
-            if (remoteSpawnGroup) {
-                this.memory.backupSpawnRoom = remoteSpawnGroup.room.name;
-                return this.findBackupSpawn();
-            }
-        }
     }
 
     private repairLayout(structure: Structure) {
