@@ -38,7 +38,7 @@ export class DemolishMission extends Mission {
                 flag.remove();
             }
         }
-        
+
         this.storeStructure = this.checkStoreStructure();
     }
 
@@ -51,7 +51,7 @@ export class DemolishMission extends Mission {
                 max = this.memory.max;
             }
         }
-        
+
         let demoBody = () => {
             return this.bodyRatio(1, 0, 1, 1);
         };
@@ -62,7 +62,7 @@ export class DemolishMission extends Mission {
         if (this.demoFlags.length > 0 && this.storeStructure) {
             maxScavangers = max;
         }
-        this.scavangers = this.headCount("scavanger", () => this.workerBody(0, this.potency, this.potency), maxScavangers);
+        this.scavangers = this.headCount("scavanger", () => this.bodyRatio(0, 1, 1, 1), maxScavangers);
     }
 
     missionActions() {
@@ -176,7 +176,7 @@ export class DemolishMission extends Mission {
 
     private checkStoreStructure(): StructureContainer | StructureStorage | StructureTerminal {
 
-        let flag = Game.flags[`${this.name}_store`];
+        let flag = Game.flags[`${this.opName}_store`];
         if (flag && flag.room) {
             let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
                 .filter((s: any) => s.store !== undefined)
