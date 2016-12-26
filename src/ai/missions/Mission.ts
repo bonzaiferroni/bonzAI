@@ -2,7 +2,7 @@ import {Operation} from "../operations/Operation";
 import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
-import {DESTINATION_REACHED} from "../../config/constants";
+import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 export abstract class Mission {
 
@@ -431,7 +431,12 @@ export abstract class Mission {
             let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
             if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(1))) {
-                creep.avoidSK(this.flag);
+                if (creep.room.roomType === ROOMTYPE_SOURCEKEEPER) {
+                    creep.avoidSK(this.flag);
+                }
+                else {
+                    this.empire.travelTo(creep, this.flag);
+                }
                 return false;
             }
             creep.memory.prep = true;
