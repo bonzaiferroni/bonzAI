@@ -23,7 +23,7 @@ module.exports.loop = function () {
     profiler.end("roleCall");
 
     // Actions phase - Actions that change the game state are executed in this phase.
-    profiler.start("actions", true);
+    profiler.start("actions");
     for (let operation of operations) operation.actions();
     profiler.end("actions");
 

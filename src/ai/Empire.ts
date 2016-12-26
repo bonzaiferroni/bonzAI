@@ -617,9 +617,7 @@ export class Empire {
         let allowedRooms;
         let callback = (roomName: string): CostMatrix | boolean => {
             if (!allowedRooms) {
-                profiler.start("findAllowedRooms");
                 allowedRooms = this.findAllowedRooms(creep.pos.roomName, destination.pos.roomName, options.preferHighway);
-                profiler.end("findAllowedRooms");
             }
             if (!allowedRooms[roomName]) return false;
             let room = Game.rooms[roomName];
@@ -665,17 +663,15 @@ export class Empire {
             || travelData.stuck >= 5) {
             travelData.destination = destination.pos;
             travelData.lastPos = undefined;
-            travelData.stuck = 0;
-            let ret = PathFinder.search(creep.pos, [{pos: destination.pos, range: 1}], {
+            let ret = PathFinder.search(creep.pos, {pos: destination.pos, range: 1}, {
                 swampCost: options.ignoreRoads ? 5 : 10,
                 plainCost: options.ignoreRoads ? 1 : 2,
                 maxOps: 20000,
                 roomCallback: callback
             } );
             console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}`);
-            profiler.start("serializePath");
             travelData.path = helper.serializePath(creep.pos, ret.path);
-            profiler.end("serializePath");
+            travelData.stuck = 0;
         }
 
         if (!travelData.path || travelData.path.length === 0) {
