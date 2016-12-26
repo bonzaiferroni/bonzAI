@@ -30,13 +30,10 @@ export class RemoteBuildMission extends Mission {
     roleCall() {
         let maxBuilders = this.construction && this.construction.length > 0 ? 1 : 0;
         let getBody = () => {
-            if (this.memory.activateBoost) {
-                return this.workerBody(16, 16, 16);
-            }
             return this.bodyRatio(1, 1, 1, .8, 10);
         };
         let memory;
-        if (this.memory.activateBoost) {
+        if (this.memory.activateBoost || (this.room.controller && this.room.controller.my)) {
             memory = { boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID], allowUnboosted: true};
         }
         this.builders = this.headCount("remoteBuilder", getBody, maxBuilders, {memory: memory});

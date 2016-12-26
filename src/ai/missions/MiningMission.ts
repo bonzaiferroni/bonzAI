@@ -179,6 +179,16 @@ export class MiningMission extends Mission {
     }
 
     private getMinerBody(): string[] {
+        if (this.room.controller && this.room.controller.my && this.spawnGroup.room !== this.room
+            && this.spawnGroup.maxSpawnEnergy >= 1250) {
+            if (this.container) {
+                return this.workerBody(6, 1, 6);
+            }
+            else {
+                return this.workerBody(5, 10, 5);
+            }
+        }
+
         let body;
         if ((this.container || this.needsEnergyTransport) && this.spawnGroup.maxSpawnEnergy >= 800) {
 
@@ -317,8 +327,12 @@ export class MiningMission extends Mission {
         let startingPosition: {pos: RoomPosition} = this.storage;
         if (!startingPosition) {
             startingPosition = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;
-            if (!startingPosition) return;
         }
+        if (!startingPosition) {
+            startingPosition = this.room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES,
+                {filter: ( (s: ConstructionSite) => s.structureType === STRUCTURE_SPAWN)})[0];
+        }
+        if (!startingPosition) return;
 
         if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) return;
 

@@ -24,7 +24,7 @@ export class LinkMiningMission extends Mission {
     }
 
     roleCall() {
-        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 3), 1);
+        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), 1);
     }
 
     missionActions() {

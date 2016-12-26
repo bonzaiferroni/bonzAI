@@ -588,7 +588,6 @@ export class Empire {
                     let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
                     let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) && ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
                     if (isSK) {
-                        console.log("found sk: " + roomName);
                         return 10;
                     }
                 }

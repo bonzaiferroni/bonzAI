@@ -439,6 +439,7 @@ export abstract class Mission {
                 }
                 return false;
             }
+            delete creep.memory._travel;
             creep.memory.prep = true;
         }
         return true;
