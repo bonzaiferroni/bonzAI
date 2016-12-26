@@ -571,7 +571,7 @@ export class Empire {
     }
 
     findAllowedRooms(origin: string, destination: string, preferHighway = false,
-                     avoidEnemyRooms = true): {[roomName: string]: boolean } {
+                     avoidEnemyRooms = true, avoidSKrooms = true): {[roomName: string]: boolean } {
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
         let allowedRooms = { [ origin ]: true };
@@ -582,6 +582,14 @@ export class Empire {
                     let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
                     if (isHighway) {
                         return 1;
+                    }
+                }
+                if (avoidSKrooms && !Game.rooms[roomName]) {
+                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
+                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) && ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
+                    if (isSK) {
+                        console.log("found sk: " + roomName);
+                        return 10;
                     }
                 }
                 if ( avoidEnemyRooms && this.memory.hostileRooms[roomName]) {
@@ -669,7 +677,7 @@ export class Empire {
                 maxOps: 20000,
                 roomCallback: callback
             } );
-            console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}`);
+            // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
             travelData.path = helper.serializePath(creep.pos, ret.path);
             travelData.stuck = 0;
         }
