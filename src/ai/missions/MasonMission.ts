@@ -1,7 +1,7 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 
-const MIN_RAMPART_HITS = 5000000;
+const MIN_RAMPART_HITS = 50000000;
 
 export class MasonMission extends Mission {
 
