@@ -340,7 +340,8 @@ export abstract class ControllerOperation extends Operation {
     }
 
     protected allowedCount(structureType: string, level: number): number {
-        if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
+        if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL
+            || structureType === STRUCTURE_ROAD)) {
             return 0;
         }
 
