@@ -544,37 +544,13 @@ export class Empire {
         if (allowedRooms) {
             return Object.keys(allowedRooms).length;
         }
-        /* deprecated
-        let alreadyChecked: {[roomName: string]: boolean } = { [origin]: true };
-
-        let testRooms: string[] = [origin];
-        for (let distance = 0; distance < 20; distance++) {
-            let checkExits: string[] = [];
-            for (let testRoom of testRooms) {
-                if (destination === testRoom) {
-                    return distance;
-                }
-                checkExits.push(testRoom);
-            }
-
-            testRooms = [];
-            for (let roomName of checkExits) {
-                 for (let value of _.values<string>(Game.map.describeExits(roomName))) {
-                     if (alreadyChecked[value]) continue;
-                     if (this.memory.hostileRooms[value]) continue;
-                     testRooms.push(value);
-                     alreadyChecked[value] = true;
-                 }
-            }
-        }
-        */
     }
 
     findAllowedRooms(origin: string, destination: string, preferHighway = false,
                      avoidEnemyRooms = true, avoidSKrooms = true): {[roomName: string]: boolean } {
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
-        let allowedRooms = { [ origin ]: true };
+        let allowedRooms = { [ origin ]: true, [ destination ]: true };
         let ret = Game.map.findRoute(origin, destination, {
             routeCallback: (roomName: string) => {
                 if (preferHighway) {
@@ -588,10 +564,10 @@ export class Empire {
                     let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
                     let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) && ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
                     if (isSK) {
-                        return 10;
+                        return 20;
                     }
                 }
-                if ( avoidEnemyRooms && this.memory.hostileRooms[roomName]) {
+                if (avoidEnemyRooms && this.memory.hostileRooms[roomName] && roomName !== destination && roomName !== origin) {
                     return Number.POSITIVE_INFINITY;
                 }
             }
@@ -607,10 +583,6 @@ export class Empire {
     }
 
     travelTo(creep: Creep, destination: {pos: RoomPosition}, options?: TravelToOptions): number {
-        if (!options) {
-            options = { preferHighway: false, ignoreRoads: false };
-        }
-
         // register hostile rooms entered
         if (creep.room.controller && creep.room.controller.owner && !ALLIES[creep.room.controller.owner.username]) {
             this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
@@ -620,22 +592,6 @@ export class Empire {
             creep.memory._travel = { stuck: 0, destination: destination.pos, lastPos: undefined, path: undefined }
         }
         let travelData: TravelData = creep.memory._travel;
-
-        let allowedRooms;
-        let callback = (roomName: string): CostMatrix | boolean => {
-            if (!allowedRooms) {
-                allowedRooms = this.findAllowedRooms(creep.pos.roomName, destination.pos.roomName, options.preferHighway);
-            }
-            if (!allowedRooms[roomName]) return false;
-            let room = Game.rooms[roomName];
-            if (!room) return;
-            let matrix = new PathFinder.CostMatrix();
-            helper.addStructuresToMatrix(matrix, room);
-            if (travelData.stuck >= 5) {
-                helper.addCreepsToMatrix(matrix, room);
-            }
-            return matrix;
-        };
 
         if (creep.fatigue > 0 || creep.spawning) {
             return ERR_BUSY;
@@ -670,12 +626,11 @@ export class Empire {
             || travelData.stuck >= 5) {
             travelData.destination = destination.pos;
             travelData.lastPos = undefined;
-            let ret = PathFinder.search(creep.pos, {pos: destination.pos, range: 1}, {
-                swampCost: options.ignoreRoads ? 5 : 10,
-                plainCost: options.ignoreRoads ? 1 : 2,
-                maxOps: 20000,
-                roomCallback: callback
-            } );
+            if (!options) {
+                options = {};
+            }
+            options.ignoreCreeps = travelData.stuck >= 5;
+            let ret = this.findTravelPath(creep, destination, options);
             // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
             travelData.path = helper.serializePath(creep.pos, ret.path);
             travelData.stuck = 0;
@@ -693,5 +648,43 @@ export class Empire {
         return creep.move(nextDirection);
     }
 
+    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}, options?: TravelToOptions) {
+        if (!options) {
+            options = {};
+        }
+
+        _.defaults(options, {
+            ignoreRoads: false,
+            ignoreCreeps: true,
+            preferHighway: false,
+            ignoreStructures: false,
+        });
+
+        let allowedRooms;
+        let callback = (roomName: string): CostMatrix | boolean => {
+            if (!allowedRooms) {
+                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options.preferHighway);
+            }
+            if (!allowedRooms[roomName]) return false;
+            let room = Game.rooms[roomName];
+            if (!room) return;
+            let matrix = new PathFinder.CostMatrix();
+            if (!options.ignoreStructures) {
+                helper.addStructuresToMatrix(matrix, room);
+            }
+            if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
+                helper.addCreepsToMatrix(matrix, room);
+            }
+            return matrix;
+        };
+
+        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: 1}, {
+            swampCost: options.ignoreRoads ? 5 : 10,
+            plainCost: options.ignoreRoads ? 1 : 2,
+            maxOps: 20000,
+            roomCallback: callback
+        } );
+        return ret;
+    }
 }
 
