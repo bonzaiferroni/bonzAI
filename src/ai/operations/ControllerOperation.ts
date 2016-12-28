@@ -157,6 +157,10 @@ export abstract class ControllerOperation extends Operation {
                     remoteBuilder.setSpawnGroup(boostSpawnGroup);
                 }
 
+                if (Game.map.getRoomLinearDistance(this.flag.room.name, boostSpawnGroup.room.name) > 4) {
+                    return;
+                }
+
                 if (boostSpawnGroup.room.controller.level >= 8) {
                     upgradeMission.setSpawnGroup(boostSpawnGroup);
                     buildMission.setSpawnGroup(boostSpawnGroup);
