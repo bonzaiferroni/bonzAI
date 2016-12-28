@@ -50,9 +50,9 @@ module.exports =
 
 	"use strict";
 	const loopHelper_1 = __webpack_require__(/*! ./helpers/loopHelper */ 1);
-	const initPrototypes_1 = __webpack_require__(/*! ./prototypes/initPrototypes */ 45);
-	const sandbox_1 = __webpack_require__(/*! ./sandbox */ 49);
-	const profiler_1 = __webpack_require__(/*! ./profiler */ 50);
+	const initPrototypes_1 = __webpack_require__(/*! ./prototypes/initPrototypes */ 52);
+	const sandbox_1 = __webpack_require__(/*! ./sandbox */ 56);
+	const profiler_1 = __webpack_require__(/*! ./profiler */ 57);
 	loopHelper_1.loopHelper.initMemory();
 	initPrototypes_1.initPrototypes();
 	module.exports.loop = function () {
@@ -128,7 +128,7 @@ module.exports =
 	        console.log("error reporting stats:\n", e.stack);
 	    }
 	    try {
-	        loopHelper_1.loopHelper.profilerCheck();
+	        profiler_1.profiler.finalize();
 	    }
 	    catch (e) {
 	        console.log("error checking profiler:\n", e.stack);
@@ -146,17 +146,17 @@ module.exports =
 	"use strict";
 	const Empire_1 = __webpack_require__(/*! ../ai/Empire */ 2);
 	const FortOperation_1 = __webpack_require__(/*! ../ai/operations/FortOperation */ 6);
-	const MiningOperation_1 = __webpack_require__(/*! ../ai/operations/MiningOperation */ 21);
+	const MiningOperation_1 = __webpack_require__(/*! ../ai/operations/MiningOperation */ 22);
 	const constants_1 = __webpack_require__(/*! ../config/constants */ 4);
-	const KeeperOperation_1 = __webpack_require__(/*! ../ai/operations/KeeperOperation */ 29);
-	const ConquestOperation_1 = __webpack_require__(/*! ../ai/operations/ConquestOperation */ 31);
-	const consoleCommands_1 = __webpack_require__(/*! ./consoleCommands */ 33);
-	const DemolishOperation_1 = __webpack_require__(/*! ../ai/operations/DemolishOperation */ 34);
-	const TransportOperation_1 = __webpack_require__(/*! ../ai/operations/TransportOperation */ 36);
-	const RaidOperation_1 = __webpack_require__(/*! ../ai/operations/RaidOperation */ 37);
-	const QuadOperation_1 = __webpack_require__(/*! ../ai/operations/QuadOperation */ 38);
-	const AutoOperation_1 = __webpack_require__(/*! ../ai/operations/AutoOperation */ 42);
-	const FlexOperation_1 = __webpack_require__(/*! ../ai/operations/FlexOperation */ 43);
+	const KeeperOperation_1 = __webpack_require__(/*! ../ai/operations/KeeperOperation */ 30);
+	const ConquestOperation_1 = __webpack_require__(/*! ../ai/operations/ConquestOperation */ 32);
+	const consoleCommands_1 = __webpack_require__(/*! ./consoleCommands */ 34);
+	const DemolishOperation_1 = __webpack_require__(/*! ../ai/operations/DemolishOperation */ 35);
+	const TransportOperation_1 = __webpack_require__(/*! ../ai/operations/TransportOperation */ 37);
+	const RaidOperation_1 = __webpack_require__(/*! ../ai/operations/RaidOperation */ 38);
+	const QuadOperation_1 = __webpack_require__(/*! ../ai/operations/QuadOperation */ 44);
+	const AutoOperation_1 = __webpack_require__(/*! ../ai/operations/AutoOperation */ 49);
+	const FlexOperation_1 = __webpack_require__(/*! ../ai/operations/FlexOperation */ 50);
 	const OPERATION_CLASSES = {
 	    conquest: ConquestOperation_1.ConquestOperation,
 	    fort: FortOperation_1.FortOperation,
@@ -359,14 +359,6 @@ module.exports =
 	        // example: cc.minv()
 	        global.cc = consoleCommands_1.consoleCommands;
 	    },
-	    profilerCheck: function () {
-	        for (let identifier in Memory.profiler) {
-	            let profile = Memory.profiler[identifier];
-	            if (Game.time - profile.lastTickTracked > 1) {
-	                delete Memory.profiler[identifier];
-	            }
-	        }
-	    }
 	};
 
 
@@ -392,7 +384,7 @@ module.exports =
 	        this.surpluses = [];
 	        if (!Memory.empire)
 	            Memory.empire = {};
-	        _.defaults(Memory.empire, { allyForts: [], allySwaps: [], tradeIndex: 0, activeNukes: [] });
+	        _.defaults(Memory.empire, { allyRooms: [], hostileRooms: {}, tradeIndex: 0, activeNukes: [] });
 	        this.memory = Memory.empire;
 	    }
 	    /**
@@ -657,11 +649,47 @@ module.exports =
 	            }
 	        }
 	    }
-	    addAllyForts(roomNames) {
-	        this.memory.allyForts = _.union(this.memory.allyForts, roomNames);
+	    addAllyRoom(roomName) {
+	        if (_.contains(this.memory.allyRooms, roomName)) {
+	            return;
+	        }
+	        this.memory.allyRooms.push(roomName);
 	    }
-	    addAllySwaps(roomNames) {
-	        this.memory.allySwaps = _.union(this.memory.allySwaps, roomNames);
+	    removeAllyRoom(roomName) {
+	        _.pull(this.memory.allyRooms, roomName);
+	    }
+	    addHostileRoom(roomName, controllerLevel) {
+	        this.memory.hostileRooms[roomName] = controllerLevel;
+	    }
+	    removeHostileRoom(roomName) {
+	        delete this.memory.hostileRooms[roomName];
+	    }
+	    observeAllyRoom(observer, index) {
+	        if (index === undefined) {
+	            index = 0;
+	        }
+	        if (!this.allyTradeStatus) {
+	            this.allyTradeStatus = {};
+	            for (let roomname of this.memory.allyRooms) {
+	                this.allyTradeStatus[roomname] = false;
+	            }
+	        }
+	        let checkCount = this.memory.allyRooms.length;
+	        while (checkCount > 0) {
+	            index++;
+	            checkCount--;
+	            if (index >= this.memory.allyRooms.length) {
+	                index = 0;
+	            }
+	            let checkRoomName = Object.keys(this.allyTradeStatus)[index];
+	            if (Game.map.getRoomLinearDistance(observer.room.name, checkRoomName) > OBSERVER_RANGE)
+	                continue;
+	            if (this.allyTradeStatus[checkRoomName])
+	                continue;
+	            this.allyTradeStatus[checkRoomName] = true;
+	            observer.observeRoom(checkRoomName, constants_1.OBSERVER_PURPOSE_ALLYTRADE);
+	            return index;
+	        }
 	    }
 	    sellCompounds() {
 	        if (Game.time % 100 !== 2)
@@ -700,17 +728,11 @@ module.exports =
 	        this.tradeMonkey();
 	    }
 	    registerAllyRooms() {
-	        for (let roomName of this.memory.allyForts) {
+	        for (let roomName of this.memory.allyRooms) {
 	            let room = Game.rooms[roomName];
 	            if (!room)
 	                continue;
 	            this.analyzeResources(room);
-	        }
-	        for (let roomName of this.memory.allySwaps) {
-	            let room = Game.rooms[roomName];
-	            if (!room)
-	                continue;
-	            this.analyzeResources(room, true);
 	        }
 	    }
 	    analyzeResources(room, swap = false) {
@@ -801,6 +823,145 @@ module.exports =
 	        for (let activeNuke of this.memory.activeNukes) {
 	            console.log(`EMPIRE: ${Game.time - activeNuke.tick} till our nuke lands in ${activeNuke.roomName}`);
 	        }
+	    }
+	    roomTravelDistance(origin, destination) {
+	        let linearDistance = Game.map.getRoomLinearDistance(origin, destination);
+	        if (linearDistance >= 20) {
+	            return linearDistance;
+	        }
+	        let allowedRooms = this.findAllowedRooms(origin, destination);
+	        if (allowedRooms) {
+	            return Object.keys(allowedRooms).length;
+	        }
+	    }
+	    findAllowedRooms(origin, destination, preferHighway = false, avoidEnemyRooms = true, avoidSKrooms = true) {
+	        // Use `findRoute` to calculate a high-level plan for this path,
+	        // prioritizing highways and owned rooms
+	        let allowedRooms = { [origin]: true, [destination]: true };
+	        let ret = Game.map.findRoute(origin, destination, {
+	            routeCallback: (roomName) => {
+	                if (preferHighway) {
+	                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+	                    let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
+	                    if (isHighway) {
+	                        return 1;
+	                    }
+	                }
+	                if (avoidSKrooms && !Game.rooms[roomName]) {
+	                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+	                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) && ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
+	                    if (isSK) {
+	                        return 20;
+	                    }
+	                }
+	                if (avoidEnemyRooms && this.memory.hostileRooms[roomName] && roomName !== destination && roomName !== origin) {
+	                    return Number.POSITIVE_INFINITY;
+	                }
+	            }
+	        });
+	        if (_.isNumber(ret)) {
+	            console.log(`couldn't findRoute to ${destination}`);
+	        }
+	        for (let value of ret) {
+	            allowedRooms[value.room] = true;
+	        }
+	        return allowedRooms;
+	    }
+	    travelTo(creep, destination, options) {
+	        // register hostile rooms entered
+	        if (creep.room.controller && creep.room.controller.owner && !constants_1.ALLIES[creep.room.controller.owner.username]) {
+	            this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+	        }
+	        if (!creep.memory._travel) {
+	            creep.memory._travel = { stuck: 0, destination: destination.pos, lastPos: undefined, path: undefined };
+	        }
+	        let travelData = creep.memory._travel;
+	        if (creep.fatigue > 0 || creep.spawning) {
+	            return ERR_BUSY;
+	        }
+	        let rangeToDestination = creep.pos.getRangeTo(destination);
+	        if (rangeToDestination <= 1) {
+	            if (rangeToDestination === 0) {
+	                return OK;
+	            }
+	            if (destination.pos.isPassible()) {
+	                return creep.move(creep.pos.getDirectionTo(destination));
+	            }
+	            else {
+	                return OK;
+	            }
+	        }
+	        if (travelData.lastPos) {
+	            travelData.lastPos = helper_1.helper.deserializeRoomPosition(travelData.lastPos);
+	            if (creep.pos.inRangeTo(travelData.lastPos, 0)) {
+	                travelData.stuck++;
+	            }
+	            else {
+	                travelData.stuck = 0;
+	            }
+	        }
+	        if (travelData.destination) {
+	            travelData.destination = helper_1.helper.deserializeRoomPosition(travelData.destination);
+	        }
+	        if (!travelData.path || !travelData.destination.inRangeTo(destination, 0)
+	            || travelData.stuck >= 5) {
+	            travelData.destination = destination.pos;
+	            travelData.lastPos = undefined;
+	            if (!options) {
+	                options = {};
+	            }
+	            options.ignoreCreeps = travelData.stuck >= 5;
+	            let ret = this.findTravelPath(creep, destination, options);
+	            // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
+	            travelData.path = helper_1.helper.serializePath(creep.pos, ret.path);
+	            travelData.stuck = 0;
+	        }
+	        if (!travelData.path || travelData.path.length === 0) {
+	            return ERR_NO_PATH;
+	        }
+	        if (travelData.lastPos && travelData.stuck === 0) {
+	            travelData.path = travelData.path.substr(1);
+	        }
+	        travelData.lastPos = creep.pos;
+	        let nextDirection = parseInt(travelData.path[0]);
+	        return creep.move(nextDirection);
+	    }
+	    findTravelPath(origin, destination, options) {
+	        if (!options) {
+	            options = {};
+	        }
+	        _.defaults(options, {
+	            ignoreRoads: false,
+	            ignoreCreeps: true,
+	            preferHighway: false,
+	            ignoreStructures: false,
+	        });
+	        let allowedRooms;
+	        let callback = (roomName) => {
+	            if (!allowedRooms) {
+	                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options.preferHighway);
+	            }
+	            if (!allowedRooms[roomName])
+	                return false;
+	            let room = Game.rooms[roomName];
+	            if (!room)
+	                return;
+	            let matrix = new PathFinder.CostMatrix();
+	            if (!options.ignoreStructures) {
+	                helper_1.helper.addStructuresToMatrix(matrix, room);
+	            }
+	            if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
+	                helper_1.helper.addCreepsToMatrix(matrix, room);
+	            }
+	            return matrix;
+	        };
+	        let ret = PathFinder.search(origin.pos, { pos: destination.pos, range: 1 }, {
+	            swampCost: options.ignoreRoads ? 5 : 10,
+	            plainCost: options.ignoreRoads ? 1 : 2,
+	            maxOps: 20000,
+	            roomCallback: callback
+	        });
+	        return ret;
 	    }
 	}
 	exports.Empire = Empire;
@@ -940,6 +1101,9 @@ module.exports =
 	        console.log(this.memory.log.longHistory);
 	    }
 	    averageAvailability() {
+	        if (this.memory.log.history.length === 0) {
+	            return .1;
+	        }
 	        return _.last(this.memory.log.history);
 	    }
 	}
@@ -961,6 +1125,7 @@ module.exports =
 	exports.ROOMTYPE_CORE = -1302;
 	exports.ROOMTYPE_CONTROLLER = -1303;
 	exports.ROOMTYPE_ALLEY = -1304;
+	exports.OBSERVER_PURPOSE_ALLYTRADE = "allyTrade";
 	exports.CACHE_INVALIDATION_FREQUENCY = 1000;
 	exports.CACHE_INVALIDATION_PERIOD = 10;
 	exports.PRIORITY_BUILD = [
@@ -986,7 +1151,15 @@ module.exports =
 	    "ricane": true,
 	    "trebbettes": true,
 	};
-	exports.KCLUBBERS = ["bonzaiferroni", "taiga", "Reini", "Vervorris", "Jeb"];
+	exports.TRADE_PARTNERS = {
+	    "bonzaiferroni": true,
+	    "taiga": true,
+	    "Reini": true,
+	    "Vervorris": true,
+	    "Jeb": true,
+	    "trebbettes": true,
+	    "ricane": true,
+	};
 	exports.USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 	var OperationPriority;
 	(function (OperationPriority) {
@@ -998,6 +1171,17 @@ module.exports =
 	    OperationPriority[OperationPriority["Low"] = 5] = "Low";
 	    OperationPriority[OperationPriority["VeryLow"] = 6] = "VeryLow";
 	})(OperationPriority = exports.OperationPriority || (exports.OperationPriority = {}));
+	var Direction;
+	(function (Direction) {
+	    Direction[Direction["North"] = 1] = "North";
+	    Direction[Direction["NorthEast"] = 2] = "NorthEast";
+	    Direction[Direction["East"] = 3] = "East";
+	    Direction[Direction["SouthEast"] = 4] = "SouthEast";
+	    Direction[Direction["South"] = 5] = "South";
+	    Direction[Direction["SouthWest"] = 6] = "SouthWest";
+	    Direction[Direction["West"] = 7] = "West";
+	    Direction[Direction["NorthWest"] = 8] = "NorthWest";
+	})(Direction = exports.Direction || (exports.Direction = {}));
 	// these are the constants that govern your energy balance
 	// rooms below this will try to pull energy...
 	exports.NEED_ENERGY_THRESHOLD = 200000;
@@ -1279,23 +1463,43 @@ module.exports =
 	            }
 	        }
 	    },
-	    addStructuresToMatrix(costs, room, roadCost = 1) {
+	    addStructuresToMatrix(matrix, room, roadCost = 1) {
 	        room.find(FIND_STRUCTURES).forEach(function (structure) {
 	            if (structure instanceof StructureRampart) {
 	                if (!structure.my) {
-	                    costs.set(structure.pos.x, structure.pos.y, 0xff);
+	                    matrix.set(structure.pos.x, structure.pos.y, 0xff);
 	                }
 	            }
 	            else if (structure instanceof StructureRoad) {
 	                // Favor roads over plain tiles
-	                costs.set(structure.pos.x, structure.pos.y, roadCost);
+	                matrix.set(structure.pos.x, structure.pos.y, roadCost);
 	            }
 	            else if (structure.structureType !== STRUCTURE_CONTAINER) {
 	                // Can't walk through non-walkable buildings
-	                costs.set(structure.pos.x, structure.pos.y, 0xff);
+	                matrix.set(structure.pos.x, structure.pos.y, 0xff);
 	            }
 	        });
-	        return costs;
+	        return matrix;
+	    },
+	    addCreepsToMatrix(matrix, room, addFriendly = true, addHostile = true) {
+	        room.find(FIND_CREEPS).forEach((creep) => {
+	            if (!creep.owner) {
+	                if (addHostile) {
+	                    matrix.set(creep.pos.x, creep.pos.y, 0xff);
+	                }
+	            }
+	            else if (constants_1.ALLIES[creep.owner.username]) {
+	                if (addFriendly) {
+	                    matrix.set(creep.pos.x, creep.pos.y, 0xff);
+	                }
+	            }
+	            else {
+	                if (addHostile) {
+	                    matrix.set(creep.pos.x, creep.pos.y, 0xff);
+	                }
+	            }
+	        });
+	        return matrix;
 	    },
 	    addTerrainToMatrix(matrix, roomName) {
 	        for (let x = 0; x < 50; x++) {
@@ -1393,6 +1597,17 @@ module.exports =
 	        else if (rotation === 3) {
 	            return { x: -yCoord, y: xCoord };
 	        }
+	    },
+	    serializePath(startPos, path) {
+	        let serializedPath = "";
+	        let lastPosition = startPos;
+	        for (let position of path) {
+	            if (position.roomName === lastPosition.roomName) {
+	                serializedPath += lastPosition.getDirectionTo(position);
+	            }
+	            lastPosition = position;
+	        }
+	        return serializedPath;
 	    }
 	};
 
@@ -1419,6 +1634,7 @@ module.exports =
 	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 18);
 	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
 	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
+	const PaverMission_1 = __webpack_require__(/*! ../missions/PaverMission */ 21);
 	class FortOperation extends Operation_1.Operation {
 	    /**
 	     * Manages the activities of an owned room, assumes bonzaiferroni's build spec
@@ -1481,6 +1697,8 @@ module.exports =
 	            // upgrader controller
 	            let boostUpgraders = this.flag.room.controller.level < 8;
 	            this.addMission(new UpgradeMission_1.UpgradeMission(this, boostUpgraders));
+	            // pave all roads in the room
+	            this.addMission(new PaverMission_1.PaverMission(this));
 	        }
 	    }
 	    finalizeOperation() {
@@ -1524,11 +1742,10 @@ module.exports =
 	        }
 	    }
 	    addAllyRoom(roomName) {
-	        if (_.includes(this.memory.network.scanData.roomNames, roomName)) {
+	        if (_.includes(this.empire.memory.allyRooms, roomName)) {
 	            return "NETWORK: " + roomName + " is already being scanned by " + this.name;
 	        }
-	        this.memory.network.scanData.roomNames.push(roomName);
-	        this.empire.addAllyForts([roomName]);
+	        this.empire.addAllyRoom(roomName);
 	        return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
 	    }
 	}
@@ -1646,7 +1863,7 @@ module.exports =
 	     */
 	    invalidateCache() {
 	        // base rate of 1 proc out of 100 ticks
-	        if (Math.random() < .01)
+	        if (Math.random() < .01) {
 	            for (let missionName in this.missions) {
 	                try {
 	                    this.missions[missionName].invalidateMissionCache();
@@ -1656,12 +1873,13 @@ module.exports =
 	                    console.log(e.stack);
 	                }
 	            }
-	        try {
-	            this.invalidateOperationCache();
-	        }
-	        catch (e) {
-	            console.log("error caught in invalidateOperationCache phase, operation:", this.name);
-	            console.log(e.stack);
+	            try {
+	                this.invalidateOperationCache();
+	            }
+	            catch (e) {
+	                console.log("error caught in invalidateOperationCache phase, operation:", this.name);
+	                console.log(e.stack);
+	            }
 	        }
 	    }
 	    /**
@@ -1673,17 +1891,39 @@ module.exports =
 	        // a unique name or they will be overwritten here
 	        this.missions[mission.name] = mission;
 	    }
-	    getRemoteSpawnGroup() {
-	        if (!this.memory.spawnRoom) {
-	            let spawnGroup = this.flag.pos.findClosestByLongPath(_.values(this.empire.spawnGroups));
+	    getRemoteSpawnGroup(distanceLimit = 4) {
+	        // invalidated periodically
+	        if (!this.memory.spawnRooms) {
+	            let closestRoomRange = Number.MAX_VALUE;
+	            let roomNames = [];
+	            for (let roomName of Object.keys(this.empire.spawnGroups)) {
+	                let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
+	                if (roomLinearDistance === 0)
+	                    continue;
+	                if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange)
+	                    continue;
+	                let distance = this.empire.roomTravelDistance(this.flag.pos.roomName, roomName);
+	                if (distance < closestRoomRange) {
+	                    closestRoomRange = distance;
+	                    roomNames = [roomName];
+	                }
+	                else if (distance === closestRoomRange) {
+	                    roomNames.push(roomName);
+	                }
+	            }
+	            console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
+	            this.memory.spawnRooms = roomNames;
+	        }
+	        let spawnRoom = _(this.memory.spawnRooms).sortBy((roomName) => {
+	            let spawnGroup = this.empire.getSpawnGroup(roomName);
 	            if (spawnGroup) {
-	                this.memory.spawnRoom = spawnGroup.pos.roomName;
+	                return spawnGroup.averageAvailability();
 	            }
 	            else {
-	                return;
+	                _.pull(this.memory.spawnRooms, roomName);
 	            }
-	        }
-	        return this.empire.getSpawnGroup(this.memory.spawnRoom);
+	        }).last();
+	        return this.empire.getSpawnGroup(spawnRoom);
 	    }
 	    manualControllerBattery(id) {
 	        let object = Game.getObjectById(id);
@@ -1922,7 +2162,6 @@ module.exports =
 	            }
 	        }
 	        if (this.allowSpawn && this.spawnGroup.isAvailable && (count < max) && (this.hasVision || options.blindSpawn)) {
-	            // if (this.opName === "dingus5" && this.name === "igor") console.log("spawn", count);
 	            let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
 	            let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
 	            if (_.isString(outcome))
@@ -2202,9 +2441,15 @@ module.exports =
 	            if (outcome !== constants_1.DESTINATION_REACHED)
 	                return false;
 	            if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(1))) {
-	                creep.avoidSK(this.flag);
+	                if (creep.room.roomType === constants_1.ROOMTYPE_SOURCEKEEPER) {
+	                    creep.avoidSK(this.flag);
+	                }
+	                else {
+	                    this.empire.travelTo(creep, this.flag);
+	                }
 	                return false;
 	            }
+	            delete creep.memory._travel;
 	            creep.memory.prep = true;
 	        }
 	        return true;
@@ -2238,27 +2483,21 @@ module.exports =
 	    }
 	    findDistanceToSpawn(destination) {
 	        if (!this.memory.distanceToSpawn) {
-	            if (this.waypoints && this.waypoints.length > 0 && this.waypoints[0].memory.portalTravel) {
-	                console.log("SPAWN: using portal travel in", this.name + ", distanceToSpawn is set to:", 200);
-	                this.memory.distanceToSpawn = 200;
+	            let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
+	            if (roomLinearDistance === 0) {
+	                let distance = this.spawnGroup.pos.getPathDistanceTo(destination);
+	                if (!distance) {
+	                    console.log(`SPAWN: error finding distance in ${this.opName} for object at ${destination}`);
+	                    return;
+	                }
+	                this.memory.distanceToSpawn = distance;
+	            }
+	            else if (roomLinearDistance <= OBSERVER_RANGE) {
+	                this.memory.distanceToSpawn = (roomLinearDistance + 1) * 50;
 	            }
 	            else {
-	                let distance = 0;
-	                let lastPos = this.spawnGroup.pos;
-	                if (this.waypoints) {
-	                    for (let waypoint of this.waypoints) {
-	                        distance += lastPos.getPathDistanceTo(waypoint.pos);
-	                        lastPos = waypoint.pos;
-	                    }
-	                }
-	                distance += lastPos.getPathDistanceTo(destination);
-	                if (distance > 500) {
-	                    console.log("WARNING: spawn distance (" + distance +
-	                        ") much higher than would usually be expected, setting to max of 500");
-	                    distance = 500;
-	                }
-	                console.log("SPAWN: found new distance for", this.name + ":", distance);
-	                this.memory.distanceToSpawn = distance;
+	                console.log(`SPAWN: likely portal travel detected in ${this.opName}, setting distance to 200`);
+	                this.memory.distanceToSpawn = 200;
 	            }
 	        }
 	        return this.memory.distanceToSpawn;
@@ -2421,7 +2660,7 @@ module.exports =
 	        }
 	    }
 	    spawnPaver() {
-	        if (this.room.controller && this.room.controller.level < 2)
+	        if (this.room.controller && this.room.controller.level === 1)
 	            return;
 	        let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
 	        return this.spawnSharedCreep("paver", paverBody);
@@ -2455,6 +2694,9 @@ module.exports =
 	        let max = 2;
 	        if (this.room.storage) {
 	            max = 1;
+	        }
+	        if (this.memory.max) {
+	            max = this.memory.max;
 	        }
 	        let emergencyMax = 0;
 	        if (this.emergencyMode) {
@@ -3286,7 +3528,6 @@ module.exports =
 	"use strict";
 	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class TerminalNetworkMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "network");
@@ -3298,60 +3539,12 @@ module.exports =
 	    roleCall() {
 	    }
 	    missionActions() {
-	        this.allyTrade();
 	        this.sellOverstock();
 	        this.checkOverstock();
 	    }
 	    finalizeMission() {
 	    }
 	    invalidateMissionCache() {
-	        this.memory.fortRoomNames = undefined;
-	        this.memory.swapRoomNames = undefined;
-	    }
-	    energyNetworkActions() {
-	        if (this.terminal.store.energy < 30000 || Math.random() < .9)
-	            return;
-	        if (this.traded)
-	            return;
-	        this.supplyEnergyToForts();
-	        this.supplyEnergyToSwaps();
-	    }
-	    mineralNetworkActions() {
-	        if (this.terminal.store.energy < 10000 || Math.random() < .9)
-	            return;
-	        if (!this.memory.fortRoomNames)
-	            return;
-	        if (this.traded)
-	            return;
-	        for (let resourceType of constants_1.TRADE_RESOURCES) {
-	            if (this.empire.mineralTraded)
-	                break;
-	            let localAbundance = this.terminal.store[resourceType] >= constants_1.RESERVE_AMOUNT * 2;
-	            if (!localAbundance)
-	                continue;
-	            let shortageFound = this.tradeResource(resourceType, this.memory.fortRoomNames);
-	            if (shortageFound) {
-	                return;
-	            }
-	        }
-	    }
-	    tradeResource(resourceType, roomNames) {
-	        let tradeWithAllies = this.empire.hasAbundance(resourceType, constants_1.RESERVE_AMOUNT);
-	        for (let roomName of roomNames) {
-	            if (roomName === this.terminal.room.name)
-	                continue;
-	            let threshold = Math.max(constants_1.RESERVE_AMOUNT - Game.map.getRoomLinearDistance(this.room.name, roomName, true) * 100, 1000);
-	            let otherRoom = Game.rooms[roomName];
-	            if (!otherRoom || !otherRoom.terminal || otherRoom.controller.level < 6
-	                || (!otherRoom.terminal.my && !tradeWithAllies)
-	                || otherRoom.terminal.store[resourceType] >= threshold)
-	                continue;
-	            let otherRoomAmount = otherRoom.terminal.store[resourceType] ? otherRoom.terminal.store[resourceType] : 0;
-	            let amount = Math.max(Math.min(threshold - otherRoomAmount, constants_1.RESERVE_AMOUNT), 100);
-	            this.sendResource(resourceType, amount, otherRoom.terminal);
-	            return true;
-	        }
-	        return false;
 	    }
 	    sellOverstock() {
 	        if (Game.time % 100 !== 1)
@@ -3368,187 +3561,22 @@ module.exports =
 	            this.empire.sellExcess(this.room, RESOURCE_ENERGY, constants_1.RESERVE_AMOUNT);
 	        }
 	    }
-	    allyTrade() {
-	        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
-	        if (!observer) {
-	            if (this.room.controller.level === 8 && Game.time % 100 === 0) {
-	                console.log("NETWORK: please add an observer to", this.opName, "to participate in network");
-	            }
-	            return;
-	        }
-	        if (!this.memory.scanData) {
-	            this.initScan(observer);
-	            return;
-	        }
-	        let scanData = this.memory.scanData;
-	        // no ally rooms in range
-	        if (scanData.roomNames.length === 0)
-	            return;
-	        // gather information for next tick
-	        if (scanData.index >= scanData.roomNames.length)
-	            scanData.index = 0;
-	        observer.observeRoom(scanData.roomNames[scanData.index++], "allyScan");
-	    }
-	    initScan(observer) {
-	        if (!this.memory.searchData) {
-	            console.log("NETWORK: Beginning ally scan for", this.opName);
-	            this.memory.searchData = {
-	                x: -10,
-	                y: -10,
-	                forts: [],
-	                swaps: [],
-	            };
-	        }
-	        let scanData = this.memory.searchData;
-	        if (observer.observation && observer.observation.purpose === "allySearch") {
-	            let room = observer.observation.room;
-	            if (room.storage && room.terminal && !room.terminal.my && _.includes(constants_1.KCLUBBERS, room.terminal.owner.username)) {
-	                // check for swap mining
-	                let swapPosition = this.findSwapPosition(room);
-	                if (swapPosition) {
-	                    console.log("NETWORK: ally scan found", room.terminal.owner.username + "'s swap mine at", room.name);
-	                    scanData.swaps.push(room.name);
-	                }
-	                else if (room.controller.level >= 6) {
-	                    console.log("NETWORK: ally scan found", room.terminal.owner.username + "'s owned room at", room.name);
-	                    scanData.forts.push(room.name);
-	                }
-	            }
-	            // increment
-	            scanData.x++;
-	            if (scanData.x > 10) {
-	                scanData.x = -10;
-	                scanData.y++;
-	                if (scanData.y > 10) {
-	                    this.empire.addAllyForts(scanData.forts);
-	                    this.empire.addAllySwaps(scanData.swaps);
-	                    this.memory.scanData = {
-	                        roomNames: scanData.forts.concat(scanData.swaps),
-	                        index: 0,
-	                    };
-	                    this.memory.searchData = undefined;
-	                    console.log("NETWORK: Scan of ally rooms complete at", this.opName, "found", scanData.forts.length, "forts and", scanData.swaps.length, "swaps");
-	                    return;
-	                }
-	            }
-	        }
-	        if (observer.currentPurpose === undefined) {
-	            let roomName = helper_1.helper.findRelativeRoomName(this.room, scanData.x, scanData.y);
-	            observer.observeRoom(roomName, "allySearch");
-	        }
-	    }
-	    findSwapPosition(room) {
-	        if (!room.storage || !room.terminal)
-	            return;
-	        // check for spawns
-	        if (room.find(FIND_HOSTILE_SPAWNS).length > 0)
-	            return;
-	        // check for layout match
-	        if (room.terminal.pos.getRangeTo(room.storage) !== 2)
-	            return;
-	        let position = room.terminal.pos.getPositionAtDirection(room.terminal.pos.getDirectionTo(room.storage));
-	        if (position.isNearTo(room.terminal) && position.isNearTo(room.storage)
-	            && position.getDirectionTo(room.storage) % 2 === 0 && position.getDirectionTo(room.terminal) % 2 === 0)
-	            return position;
-	    }
-	    sendResource(resourceType, amount, otherTerminal) {
-	        if (otherTerminal.room.controller.level === 0) {
-	            console.log("NETWORK: error,", this.opName, "tried to send to abandoned room:", otherTerminal.room.name);
-	            return;
-	        }
-	        let spaceAvailable = otherTerminal.storeCapacity - _.sum(otherTerminal.store);
-	        let overstocked = false;
-	        if (resourceType === RESOURCE_ENERGY) {
-	            overstocked = spaceAvailable < amount;
-	        }
-	        else {
-	            overstocked = spaceAvailable < 30000;
-	        }
-	        if (overstocked) {
-	            console.log("NETWORK: error,", this.opName, "tried to send to full terminal:", otherTerminal.room.name);
-	            if (otherTerminal.my && otherTerminal.store.energy >= 20000) {
-	                this.balanceCapacity(otherTerminal);
-	            }
-	            return;
-	        }
-	        let outcome = this.terminal.send(resourceType, amount, otherTerminal.room.name);
-	        if (outcome === OK) {
-	            let distance = Game.map.getRoomLinearDistance(otherTerminal.room.name, this.room.name, true);
-	            console.log("NETWORK:", this.room.name, "→", otherTerminal.room.name + ":", amount, resourceType, "(" + otherTerminal.owner.username.substring(0, 3) + ", dist: " + distance + ")");
-	            if (resourceType === RESOURCE_ENERGY) {
-	                this.empire.energyTraded = true;
-	            }
-	            else {
-	                this.empire.mineralTraded = true;
-	            }
-	            this.traded = true;
-	        }
-	        else {
-	            console.log("NETWORK: error sending resource in", this.opName + ", outcome:", outcome);
-	            console.log("arguments used:", resourceType, amount, otherTerminal.room.name);
-	        }
-	    }
-	    supplyEnergyToForts() {
-	        if (this.empire.energyTraded || this.storage.store.energy < constants_1.SUPPLY_ENERGY_THRESHOLD || !this.memory.fortRoomNames)
-	            return;
-	        let overloaded = _.sum(this.storage.store) > 940000;
-	        for (let roomName of this.memory.fortRoomNames) {
-	            let distance = Game.map.getRoomLinearDistance(roomName, this.room.name, true);
-	            if (!overloaded && distance > constants_1.TRADE_MAX_DISTANCE) {
-	                break;
-	            }
-	            let otherRoom = Game.rooms[roomName];
-	            if (!otherRoom)
-	                continue;
-	            if (otherRoom.controller.level < 6)
-	                continue;
-	            if (!otherRoom.storage || otherRoom.storage.store.energy > constants_1.NEED_ENERGY_THRESHOLD)
-	                continue;
-	            if (!otherRoom.terminal || otherRoom.terminal.store.energy > 50000)
-	                continue;
-	            this.sendResource(RESOURCE_ENERGY, constants_1.TRADE_ENERGY_AMOUNT, otherRoom.terminal);
-	            break;
-	        }
-	    }
-	    supplyEnergyToSwaps() {
-	        if (this.empire.energyTraded || this.storage.store.energy < constants_1.SUPPLY_SWAP_THRESHOLD || !this.memory.swapRoomNames)
-	            return;
-	        let overloaded = _.sum(this.storage.store) > 940000;
-	        for (let roomName of this.memory.swapRoomNames) {
-	            let distance = Game.map.getRoomLinearDistance(roomName, this.room.name, true);
-	            if (!overloaded && distance > constants_1.TRADE_MAX_DISTANCE) {
-	                break;
-	            }
-	            let otherRoom = Game.rooms[roomName];
-	            if (!otherRoom)
-	                continue;
-	            if (otherRoom.controller.level < 6 || !otherRoom.storage || !otherRoom.terminal)
-	                continue;
-	            if (otherRoom.terminal.store.energy > 50000)
-	                continue;
-	            this.sendResource(RESOURCE_ENERGY, constants_1.TRADE_ENERGY_AMOUNT, otherRoom.terminal);
-	            break;
-	        }
-	    }
-	    balanceCapacity(otherTerminal) {
-	        let mostStockedAmount = 0;
-	        let mostStockedResource;
-	        for (let resourceType in otherTerminal.store) {
-	            if (resourceType === RESOURCE_ENERGY)
-	                continue;
-	            if (otherTerminal.store[resourceType] < mostStockedAmount)
-	                continue;
-	            mostStockedAmount = otherTerminal.store[resourceType];
-	            mostStockedResource = resourceType;
-	        }
-	        let leastStockedTerminal = _.sortBy(this.empire.terminals, (t) => _.sum(t.store))[0];
-	        otherTerminal.send(mostStockedResource, constants_1.RESERVE_AMOUNT, leastStockedTerminal.room.name);
-	        console.log("NETWORK: balancing terminal capacity, sending", constants_1.RESERVE_AMOUNT, mostStockedResource, "from", otherTerminal.room.name, "to", leastStockedTerminal.room.name);
-	    }
 	    checkOverstock() {
 	        if (Game.time % 100 !== 0 || _.sum(this.terminal.store) < 250000)
 	            return;
-	        this.balanceCapacity(this.terminal);
+	        let mostStockedAmount = 0;
+	        let mostStockedResource;
+	        for (let resourceType in this.terminal.store) {
+	            if (resourceType === RESOURCE_ENERGY)
+	                continue;
+	            if (this.terminal.store[resourceType] < mostStockedAmount)
+	                continue;
+	            mostStockedAmount = this.terminal.store[resourceType];
+	            mostStockedResource = resourceType;
+	        }
+	        let leastStockedTerminal = _.sortBy(this.empire.terminals, (t) => _.sum(t.store))[0];
+	        this.terminal.send(mostStockedResource, constants_1.RESERVE_AMOUNT, leastStockedTerminal.room.name);
+	        console.log("NETWORK: balancing terminal capacity, sending", constants_1.RESERVE_AMOUNT, mostStockedResource, "from", this.room.name, "to", leastStockedTerminal.room.name);
 	    }
 	}
 	exports.TerminalNetworkMission = TerminalNetworkMission;
@@ -3647,6 +3675,12 @@ module.exports =
 	        if (_.sum(igor.carry) === 0) {
 	            let origin = Game.getObjectById(command.origin);
 	            if (igor.pos.isNearTo(origin)) {
+	                if (origin instanceof StructureTerminal) {
+	                    if (!origin.store[command.resourceType]) {
+	                        console.log(`IGOR: I can't find that resource in terminal, opName: ${this.opName}`);
+	                        this.memory.command = undefined;
+	                    }
+	                }
 	                igor.withdraw(origin, command.resourceType, command.amount);
 	                let destination = Game.getObjectById(command.destination);
 	                if (!igor.pos.isNearTo(destination)) {
@@ -4123,7 +4157,7 @@ module.exports =
 	    initMission() {
 	    }
 	    roleCall() {
-	        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 3), 1);
+	        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), 1);
 	    }
 	    missionActions() {
 	        for (let miner of this.linkMiners) {
@@ -4253,6 +4287,9 @@ module.exports =
 	            if (!startingPosition) {
 	                startingPosition = this.room.find(FIND_MY_SPAWNS)[0];
 	            }
+	            if (!startingPosition) {
+	                startingPosition = this.room.find(FIND_CONSTRUCTION_SITES, { filter: ((s) => s.structureType === STRUCTURE_SPAWN) })[0];
+	            }
 	            if (startingPosition) {
 	                let distance = this.pavePath(startingPosition, this.container, 2);
 	                if (distance) {
@@ -4304,8 +4341,18 @@ module.exports =
 	    }
 	    invalidateMissionCache() {
 	        this.memory.transportAnalysis = undefined;
+	        this.memory.distanceToSpawn = undefined;
 	    }
 	    getMinerBody() {
+	        if (this.room.controller && this.room.controller.my && this.spawnGroup.room !== this.room
+	            && this.spawnGroup.maxSpawnEnergy >= 1250) {
+	            if (this.container) {
+	                return this.workerBody(6, 1, 6);
+	            }
+	            else {
+	                return this.workerBody(5, 10, 5);
+	            }
+	        }
 	        let body;
 	        if ((this.container || this.needsEnergyTransport) && this.spawnGroup.maxSpawnEnergy >= 800) {
 	            let work = Math.ceil((Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);
@@ -4426,14 +4473,15 @@ module.exports =
 	        }
 	    }
 	    placeContainer() {
-	        if (this.room.controller && this.room.controller.my && this.room.controller.level === 1)
-	            return;
 	        let startingPosition = this.storage;
 	        if (!startingPosition) {
 	            startingPosition = this.room.find(FIND_MY_SPAWNS)[0];
-	            if (!startingPosition)
-	                return;
 	        }
+	        if (!startingPosition) {
+	            startingPosition = this.room.find(FIND_CONSTRUCTION_SITES, { filter: ((s) => s.structureType === STRUCTURE_SPAWN) })[0];
+	        }
+	        if (!startingPosition)
+	            return;
 	        if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0)
 	            return;
 	        let ret = PathFinder.search(this.source.pos, [{ pos: startingPosition.pos, range: 1 }], {
@@ -4523,7 +4571,12 @@ module.exports =
 	            let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
 	            let cartCarryCount = Math.floor((analysis.body.length * 2) / 3);
 	            let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
-	            return this.workerBody(potency, carryCount, Math.ceil(potency / 2));
+	            if (this.spawnGroup.room === this.room) {
+	                return this.workerBody(potency, carryCount, Math.ceil(potency / 2));
+	            }
+	            else {
+	                return this.workerBody(potency, carryCount, potency);
+	            }
 	        };
 	        let builderMemory;
 	        if (this.memory.activateBoost) {
@@ -5041,6 +5094,9 @@ module.exports =
 	        }
 	        let max = this.findMaxUpgraders(totalPotency, potencyPerCreep);
 	        let linkUpgraderBody = () => {
+	            if (this.memory.max !== undefined) {
+	                return this.workerBody(30, 4, 15);
+	            }
 	            if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
 	                return this.workerBody(1, 1, 1);
 	            }
@@ -5077,7 +5133,7 @@ module.exports =
 	            }
 	        }
 	        let influxCartBody = () => this.workerBody(0, 25, 25);
-	        this.influxCarts = this.headCount("influxCart", influxCartBody, maxInfluxCarts, { memory: influxMemory });
+	        this.influxCarts = this.headCount("influxCart", influxCartBody, maxInfluxCarts, { memory: influxMemory, skipMoveToRoom: true });
 	    }
 	    missionActions() {
 	        let index = 0;
@@ -5180,6 +5236,9 @@ module.exports =
 	        let mostSpots = 0;
 	        let bestPositionSoFar;
 	        for (let position of positionsInRange) {
+	            let sourcesInRange = position.findInRange(FIND_SOURCES, 2);
+	            if (sourcesInRange.length > 0)
+	                continue;
 	            let openSpotCount = _.filter(position.openAdjacentSpots(true), (pos) => pos.getRangeTo(this.room.controller) <= 3).length;
 	            if (openSpotCount >= 5)
 	                return position;
@@ -5260,24 +5319,28 @@ module.exports =
 	        if (!hasLoad) {
 	            if (influxCart.pos.isNearTo(originStorage)) {
 	                influxCart.withdraw(originStorage, RESOURCE_ENERGY);
-	                influxCart.avoidSK(this.room.storage);
+	                this.empire.travelTo(influxCart, this.room.storage, { ignoreRoads: true });
 	            }
 	            else {
-	                influxCart.avoidSK(originStorage, { ignoreRoads: true });
+	                this.empire.travelTo(influxCart, originStorage, { ignoreRoads: true });
 	            }
 	            return;
 	        }
 	        if (influxCart.pos.isNearTo(this.room.storage)) {
 	            influxCart.transfer(this.room.storage, RESOURCE_ENERGY);
-	            influxCart.avoidSK(originStorage);
+	            this.empire.travelTo(influxCart, originStorage, { ignoreRoads: true });
 	        }
 	        else {
-	            influxCart.avoidSK(this.room.storage);
+	            this.empire.travelTo(influxCart, this.room.storage, { ignoreRoads: true });
 	        }
 	    }
 	    findMaxUpgraders(totalPotency, potencyPerCreep) {
 	        if (!this.battery)
 	            return 0;
+	        if (this.memory.max !== undefined) {
+	            console.log(`overriding max in ${this.opName}`);
+	            return this.memory.max;
+	        }
 	        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
 	        if (this.room.controller.getUpgraderPositions()) {
 	            max = Math.min(this.room.controller.getUpgraderPositions().length, max);
@@ -5383,8 +5446,8 @@ module.exports =
 	        if (this.paver) {
 	            this.paverActions(this.paver);
 	        }
-	        if (this.mineral && this.room.storage) {
-	            let distance = this.pavePath(this.room.storage, this.mineral, 2);
+	        if (this.memory.builtExtractor) {
+	            let distance = this.pavePath(this.storeStructure, this.mineral, 2);
 	            if (distance) {
 	                this.memory.distanceToStorage = distance;
 	            }
@@ -5398,6 +5461,7 @@ module.exports =
 	            this.memory.transportAnalysis = undefined;
 	            this.memory.distanceToStorage = undefined;
 	            this.memory.builtExtractor = undefined;
+	            this.memory.distanceToSpawn = undefined;
 	        }
 	    }
 	    calculateBestBody() {
@@ -5582,6 +5646,136 @@ module.exports =
 
 /***/ },
 /* 21 */
+/*!*****************************************!*\
+  !*** ./src/ai/missions/PaverMission.ts ***!
+  \*****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	class PaverMission extends Mission_1.Mission {
+	    constructor(operation) {
+	        super(operation, "paver");
+	    }
+	    initMission() {
+	        if (!this.hasVision)
+	            return; // early
+	        if (!this.memory.potency) {
+	            let roads = this.room.findStructures(STRUCTURE_ROAD);
+	            let sum = 0;
+	            for (let road of roads) {
+	                sum += road.hitsMax;
+	            }
+	            this.memory.potency = Math.max(Math.ceil(sum / 500000), 1);
+	        }
+	        this.potency = this.memory.potency;
+	    }
+	    roleCall() {
+	        let needPaver = this.room && this.room.findStructures(STRUCTURE_ROAD).length > 0;
+	        let max = 0;
+	        if (needPaver) {
+	            max = 1;
+	        }
+	        let body = () => {
+	            if (this.spawnGroup.maxSpawnEnergy <= 550) {
+	                return this.bodyRatio(1, 3, 1, 1);
+	            }
+	            else {
+	                return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);
+	            }
+	        };
+	        this.pavers = this.headCount(this.name, body, max, { prespawn: 10 });
+	    }
+	    missionActions() {
+	        for (let paver of this.pavers) {
+	            this.deprecatedPaverActions(paver);
+	        }
+	    }
+	    finalizeMission() {
+	    }
+	    invalidateMissionCache() {
+	        if (Math.random() < .01)
+	            this.memory.potency = undefined;
+	    }
+	    deprecatedPaverActions(paver) {
+	        let fleeing = paver.fleeHostiles();
+	        if (fleeing)
+	            return; // early
+	        let withinRoom = paver.pos.roomName === this.flag.pos.roomName;
+	        if (!withinRoom) {
+	            paver.blindMoveTo(this.flag);
+	            return;
+	        }
+	        // I'm in the room
+	        paver.memory.scavanger = RESOURCE_ENERGY;
+	        let hasLoad = this.hasLoad(paver);
+	        if (!hasLoad) {
+	            this.procureEnergy(paver);
+	            return;
+	        }
+	        // I'm in the room and I have energy
+	        let findRoad = () => {
+	            return _.filter(paver.room.findStructures(STRUCTURE_ROAD), (s) => s.hits < s.hitsMax - 1000)[0];
+	        };
+	        let forget = (s) => s.hits === s.hitsMax;
+	        let target = paver.rememberStructure(findRoad, forget);
+	        if (!target) {
+	            let repairing = false;
+	            if (this.room.controller && this.room.controller.my) {
+	                repairing = this.repairContainers(paver);
+	            }
+	            if (!repairing) {
+	                paver.memory.hasLoad = paver.carry.energy === paver.carryCapacity;
+	                paver.idleOffRoad(this.flag);
+	            }
+	            return;
+	        }
+	        // and I have a target
+	        let range = paver.pos.getRangeTo(target);
+	        if (range > 3) {
+	            paver.blindMoveTo(target, { maxRooms: 1 });
+	            // repair any damaged road i'm standing on
+	            let road = paver.pos.lookForStructure(STRUCTURE_ROAD);
+	            if (road && road.hits < road.hitsMax - 100) {
+	                paver.repair(road);
+	            }
+	            return;
+	        }
+	        // and i'm in range
+	        paver.repair(target);
+	        paver.yieldRoad(target);
+	    }
+	    repairContainers(paver) {
+	        let disrepairedContainer = paver.rememberStructure(() => {
+	            return _(this.room.findStructures(STRUCTURE_CONTAINER))
+	                .filter((c) => {
+	                return c.hits < c.hitsMax * .5
+	                    && !c.pos.isNearTo(c.room.find(FIND_MINERALS)[0]);
+	            })
+	                .head();
+	        }, (s) => {
+	            return s.hits === s.hitsMax;
+	        });
+	        if (disrepairedContainer) {
+	            if (paver.pos.isNearTo(disrepairedContainer)) {
+	                paver.repair(disrepairedContainer);
+	                paver.yieldRoad(disrepairedContainer);
+	            }
+	            else {
+	                paver.blindMoveTo(disrepairedContainer);
+	            }
+	            return true;
+	        }
+	        else {
+	            return false;
+	        }
+	    }
+	}
+	exports.PaverMission = PaverMission;
+
+
+/***/ },
+/* 22 */
 /*!**********************************************!*\
   !*** ./src/ai/operations/MiningOperation.ts ***!
   \**********************************************/
@@ -5589,17 +5783,17 @@ module.exports =
 
 	"use strict";
 	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 22);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
 	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 23);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
 	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const ReserveMission_1 = __webpack_require__(/*! ../missions/ReserveMission */ 24);
-	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 25);
-	const SwapMission_1 = __webpack_require__(/*! ../missions/SwapMission */ 26);
-	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 27);
+	const ReserveMission_1 = __webpack_require__(/*! ../missions/ReserveMission */ 25);
+	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 26);
+	const SwapMission_1 = __webpack_require__(/*! ../missions/SwapMission */ 27);
+	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 28);
 	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
-	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 28);
+	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 29);
 	class MiningOperation extends Operation_1.Operation {
 	    /**
 	     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the room. Can also
@@ -5668,13 +5862,16 @@ module.exports =
 	    finalizeOperation() {
 	    }
 	    invalidateOperationCache() {
+	        if (Math.random() < .01) {
+	            this.memory.spawnRooms = undefined;
+	        }
 	    }
 	}
 	exports.MiningOperation = MiningOperation;
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/ScoutMission.ts ***!
   \*****************************************/
@@ -5711,7 +5908,7 @@ module.exports =
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /*!***********************************************!*\
   !*** ./src/ai/missions/RemoteBuildMission.ts ***!
   \***********************************************/
@@ -5739,13 +5936,10 @@ module.exports =
 	    roleCall() {
 	        let maxBuilders = this.construction && this.construction.length > 0 ? 1 : 0;
 	        let getBody = () => {
-	            if (this.memory.activateBoost) {
-	                return this.workerBody(16, 16, 16);
-	            }
 	            return this.bodyRatio(1, 1, 1, .8, 10);
 	        };
 	        let memory;
-	        if (this.memory.activateBoost) {
+	        if (this.memory.activateBoost || (this.room.controller && this.room.controller.my)) {
 	            memory = { boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID], allowUnboosted: true };
 	        }
 	        this.builders = this.headCount("remoteBuilder", getBody, maxBuilders, { memory: memory });
@@ -5823,7 +6017,7 @@ module.exports =
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/ReserveMission.ts ***!
   \*******************************************/
@@ -5877,7 +6071,7 @@ module.exports =
 
 
 /***/ },
-/* 25 */
+/* 26 */
 /*!*********************************************!*\
   !*** ./src/ai/missions/BodyguardMission.ts ***!
   \*********************************************/
@@ -6017,7 +6211,7 @@ module.exports =
 
 
 /***/ },
-/* 26 */
+/* 27 */
 /*!****************************************!*\
   !*** ./src/ai/missions/SwapMission.ts ***!
   \****************************************/
@@ -6082,7 +6276,7 @@ module.exports =
 	    }
 	    finalizeMission() {
 	        if (!this.memory.fortRoomNames) {
-	            let roomNames = _.map(this.empire.terminals, (t) => t.room.name).concat(this.empire.memory.allyForts);
+	            let roomNames = _.map(this.empire.terminals, (t) => t.room.name);
 	            this.memory.fortRoomNames = _.sortBy(roomNames, (s) => Game.map.getRoomLinearDistance(s, this.room.name, true));
 	        }
 	    }
@@ -6188,7 +6382,7 @@ module.exports =
 
 
 /***/ },
-/* 27 */
+/* 28 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/ClaimMission.ts ***!
   \*****************************************/
@@ -6201,14 +6395,15 @@ module.exports =
 	        super(operation, "claimer");
 	    }
 	    initMission() {
-	        if (!this.hasVision)
-	            return; // early
-	        this.controller = this.room.controller;
+	        //if (!this.hasVision) return; // early
+	        if (this.room) {
+	            this.controller = this.room.controller;
+	        }
 	    }
 	    roleCall() {
-	        let needClaimer = this.controller && !this.controller.my;
+	        let needClaimer = (this.controller && !this.controller.my) || !this.hasVision;
 	        let maxClaimers = needClaimer ? 1 : 0;
-	        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], maxClaimers);
+	        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], maxClaimers, { blindSpawn: true });
 	    }
 	    missionActions() {
 	        for (let claimer of this.claimers) {
@@ -6220,9 +6415,6 @@ module.exports =
 	    invalidateMissionCache() {
 	    }
 	    claimerActions(claimer) {
-	        let destinationReached = claimer.travelByWaypoint(this.waypoints);
-	        if (!destinationReached)
-	            return; // early
 	        if (!this.controller) {
 	            this.moveToFlag(claimer);
 	            return; // early
@@ -6239,7 +6431,7 @@ module.exports =
 
 
 /***/ },
-/* 28 */
+/* 29 */
 /*!*****************************************************!*\
   !*** ./src/ai/missions/EnhancedBodyguardMission.ts ***!
   \*****************************************************/
@@ -6328,8 +6520,8 @@ module.exports =
 	                });
 	            }
 	        };
-	        this.squadAttackers = this.headCount("lee", squadAttackerBody, maxSquads, { prespawn: 50, memory: attackerMemory });
-	        this.squadHealers = this.headCount("roy", squadHealerBody, maxSquads, { prespawn: 50, memory: healerMemory });
+	        this.squadAttackers = this.headCount("lee", squadAttackerBody, maxSquads, { prespawn: 50, memory: attackerMemory, skipMoveToRoom: true });
+	        this.squadHealers = this.headCount("roy", squadHealerBody, maxSquads, { prespawn: 50, memory: healerMemory, skipMoveToRoom: true });
 	    }
 	    missionActions() {
 	        this.findPartnerships(this.squadAttackers, "attacker");
@@ -6659,7 +6851,7 @@ module.exports =
 
 
 /***/ },
-/* 29 */
+/* 30 */
 /*!**********************************************!*\
   !*** ./src/ai/operations/KeeperOperation.ts ***!
   \**********************************************/
@@ -6667,12 +6859,12 @@ module.exports =
 
 	"use strict";
 	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 22);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
 	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 23);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
 	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
-	const LairMission_1 = __webpack_require__(/*! ../missions/LairMission */ 30);
-	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 28);
+	const LairMission_1 = __webpack_require__(/*! ../missions/LairMission */ 31);
+	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 29);
 	class KeeperOperation extends Operation_1.Operation {
 	    /**
 	     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the room. Can also
@@ -6715,6 +6907,9 @@ module.exports =
 	    finalizeOperation() {
 	    }
 	    invalidateOperationCache() {
+	        if (Math.random() < .01) {
+	            this.memory.spawnRooms = undefined;
+	        }
 	    }
 	    buildKeeperRoads(operation, segments = [0, 1, 2, 3, 4]) {
 	        let opFlag = Game.flags["keeper_" + operation];
@@ -6764,7 +6959,7 @@ module.exports =
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /*!****************************************!*\
   !*** ./src/ai/missions/LairMission.ts ***!
   \****************************************/
@@ -6951,7 +7146,7 @@ module.exports =
 
 
 /***/ },
-/* 31 */
+/* 32 */
 /*!************************************************!*\
   !*** ./src/ai/operations/ConquestOperation.ts ***!
   \************************************************/
@@ -6965,11 +7160,11 @@ module.exports =
 	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 18);
 	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 22);
-	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 25);
-	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 32);
-	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 27);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 23);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
+	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 26);
+	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 33);
+	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 28);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
 	const CONQUEST_MASON_POTENCY = 4;
 	const CONQUEST_LOCAL_MIN_SPAWN_ENERGY = 1300;
 	class ConquestOperation extends Operation_1.Operation {
@@ -7000,13 +7195,13 @@ module.exports =
 	            return;
 	        }
 	        this.addMission(new ScoutMission_1.ScoutMission(this));
+	        if (!this.hasVision || !this.flag.room.controller.my) {
+	            this.addMission(new ClaimMission_1.ClaimMission(this));
+	        }
 	        if (!this.hasVision)
 	            return; // early
 	        if (this.flag.room.findStructures(STRUCTURE_TOWER).length === 0) {
 	            this.addMission(new BodyguardMission_1.BodyguardMission(this));
-	        }
-	        if (!this.flag.room.controller.my) {
-	            this.addMission(new ClaimMission_1.ClaimMission(this));
 	        }
 	        // build construction
 	        this.addMission(new RemoteBuildMission_1.RemoteBuildMission(this, false));
@@ -7055,7 +7250,7 @@ module.exports =
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /*!*********************************************!*\
   !*** ./src/ai/missions/TransportMission.ts ***!
   \*********************************************/
@@ -7178,7 +7373,7 @@ module.exports =
 
 
 /***/ },
-/* 33 */
+/* 34 */
 /*!****************************************!*\
   !*** ./src/helpers/consoleCommands.ts ***!
   \****************************************/
@@ -7278,6 +7473,16 @@ module.exports =
 	            if (!creep) {
 	                delete Memory.creeps[creepName];
 	            }
+	        }
+	    },
+	    /**
+	     * remove old properties in memory that are no longer being used by the AI
+	     */
+	    removeUnusedProperties() {
+	        delete Memory.empire["allyForts"];
+	        delete Memory.empire["allySwaps"];
+	        for (let flagName in Memory.flags) {
+	            delete Memory.flags[flagName]["network"];
 	        }
 	    },
 	    /**
@@ -7383,7 +7588,7 @@ module.exports =
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /*!************************************************!*\
   !*** ./src/ai/operations/DemolishOperation.ts ***!
   \************************************************/
@@ -7391,7 +7596,7 @@ module.exports =
 
 	"use strict";
 	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const DemolishMission_1 = __webpack_require__(/*! ../missions/DemolishMission */ 35);
+	const DemolishMission_1 = __webpack_require__(/*! ../missions/DemolishMission */ 36);
 	class DemolishOperation extends Operation_1.Operation {
 	    /**
 	     * Spawn a demolisher when there are flags that match his pattern ("Flag + n"), he will visit those flags and remove the
@@ -7407,29 +7612,18 @@ module.exports =
 	    }
 	    initOperation() {
 	        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
-	        let storeStructure = this.checkStoreStructure();
-	        this.addMission(new DemolishMission_1.DemolishMission(this, this.memory.potency, storeStructure, this.memory.enableDemo));
+	        this.addMission(new DemolishMission_1.DemolishMission(this));
 	    }
 	    finalizeOperation() {
 	    }
 	    invalidateOperationCache() {
-	    }
-	    checkStoreStructure() {
-	        let flag = Game.flags[`${this.name}_store`];
-	        if (flag && flag.room) {
-	            let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
-	                .filter((s) => s.store !== undefined)
-	                .head();
-	            if (storeStructure)
-	                return storeStructure;
-	        }
 	    }
 	}
 	exports.DemolishOperation = DemolishOperation;
 
 
 /***/ },
-/* 35 */
+/* 36 */
 /*!********************************************!*\
   !*** ./src/ai/missions/DemolishMission.ts ***!
   \********************************************/
@@ -7446,12 +7640,10 @@ module.exports =
 	     * @param storeStructure When a storeStructure is provided, it will spawn a scavanger to deliver energy
 	     * @param allowSpawn
 	     */
-	    constructor(operation, potency = 25, storeStructure, allowSpawn = true) {
-	        super(operation, "demolish", allowSpawn);
+	    constructor(operation) {
+	        super(operation, "demolish");
 	        this.demoFlags = [];
 	        this.demoStructures = [];
-	        this.potency = potency;
-	        this.storeStructure = storeStructure;
 	    }
 	    initMission() {
 	        for (let i = 0; i <= 50; i++) {
@@ -7469,13 +7661,25 @@ module.exports =
 	                flag.remove();
 	            }
 	        }
+	        this.storeStructure = this.checkStoreStructure();
 	    }
 	    roleCall() {
-	        let max = this.demoFlags.length > 0 ? 1 : 0;
-	        let potency = Math.min(this.potency, 25);
-	        this.demolishers = this.headCount("demolisher", () => this.workerBody(potency, 0, potency), max);
-	        let maxScavangers = max > 0 && this.storeStructure ? 1 : 0;
-	        this.scavangers = this.headCount("scavanger", () => this.workerBody(0, this.potency, this.potency), maxScavangers);
+	        let max = 0;
+	        if (this.demoFlags.length > 0) {
+	            max = 1;
+	            if (this.memory.max !== undefined) {
+	                max = this.memory.max;
+	            }
+	        }
+	        let demoBody = () => {
+	            return this.bodyRatio(1, 0, 1, 1);
+	        };
+	        this.demolishers = this.headCount("demolisher", demoBody, max);
+	        let maxScavangers = 0;
+	        if (this.demoFlags.length > 0 && this.storeStructure) {
+	            maxScavangers = max;
+	        }
+	        this.scavangers = this.headCount("scavanger", () => this.bodyRatio(0, 1, 1, 1), maxScavangers);
 	    }
 	    missionActions() {
 	        for (let demolisher of this.demolishers) {
@@ -7569,12 +7773,22 @@ module.exports =
 	            }
 	        }
 	    }
+	    checkStoreStructure() {
+	        let flag = Game.flags[`${this.opName}_store`];
+	        if (flag && flag.room) {
+	            let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
+	                .filter((s) => s.store !== undefined)
+	                .head();
+	            if (storeStructure)
+	                return storeStructure;
+	        }
+	    }
 	}
 	exports.DemolishMission = DemolishMission;
 
 
 /***/ },
-/* 36 */
+/* 37 */
 /*!*************************************************!*\
   !*** ./src/ai/operations/TransportOperation.ts ***!
   \*************************************************/
@@ -7582,7 +7796,7 @@ module.exports =
 
 	"use strict";
 	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 32);
+	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 33);
 	class TransportOperation extends Operation_1.Operation {
 	    constructor(flag, name, type, empire) {
 	        super(flag, name, type, empire);
@@ -7602,7 +7816,7 @@ module.exports =
 
 
 /***/ },
-/* 37 */
+/* 38 */
 /*!********************************************!*\
   !*** ./src/ai/operations/RaidOperation.ts ***!
   \********************************************/
@@ -7610,24 +7824,1248 @@ module.exports =
 
 	"use strict";
 	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
+	const FireflyMission_1 = __webpack_require__(/*! ../missions/FireflyMission */ 39);
+	const MessMission_1 = __webpack_require__(/*! ../missions/MessMission */ 42);
+	const BrawlerMission_1 = __webpack_require__(/*! ../missions/BrawlerMission */ 43);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
+	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class RaidOperation extends Operation_1.Operation {
 	    constructor(flag, name, type, empire) {
 	        super(flag, name, type, empire);
+	        this.squadTypes = {
+	            firefly: FireflyMission_1.FireflyMission,
+	            mess: MessMission_1.MesserschmittMission,
+	            brawler: BrawlerMission_1.BrawlerMission,
+	        };
+	        this.squadNames = ["alfa", "bravo", "charlie"];
+	        this.raidMissions = [];
 	        this.priority = constants_1.OperationPriority.VeryHigh;
 	    }
 	    initOperation() {
+	        this.checkNewPlacement();
+	        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+	        this.raidData = this.generateRaidData();
+	        if (!this.raidData)
+	            return;
+	        let spawnGroups = this.findSpawnGroups();
+	        let squadCount = this.memory.squadCount;
+	        if (!squadCount)
+	            squadCount = 0;
+	        for (let i = 0; i < squadCount; i++) {
+	            let name = this.squadNames[i];
+	            let config = this.memory.squadConfig[name];
+	            let spawnGroup = spawnGroups[i % spawnGroups.length];
+	            let allowSpawn = i < this.memory.maxSquads && this.memory.allowSpawn;
+	            let missionClass = this.squadTypes[config.type];
+	            let mission = new missionClass(this, name, this.raidData, spawnGroup, config.boostLevel, allowSpawn);
+	            this.raidMissions.push(mission);
+	            this.addMission(mission);
+	        }
+	    }
+	    finalizeOperation() {
+	        if (!this.raidData)
+	            return;
+	        let spawnCount = 0;
+	        for (let mission of this.raidMissions) {
+	            if (mission.spawned) {
+	                spawnCount++;
+	            }
+	            else {
+	                if (this.memory.queue[mission.name]) {
+	                    this.memory.squadConfig[mission.name] = this.memory.queue[mission.name];
+	                    let config = this.memory.squadConfig[mission.name];
+	                    console.log("RAID: updating", mission.name, "to be of type", config.type, "with boostLevel", config.boostLevel);
+	                    delete this.memory.queue[mission.name];
+	                }
+	            }
+	        }
+	        this.memory.squadCount = Math.max(this.memory.maxSquads, spawnCount);
+	        if (!this.memory.waveComplete && spawnCount >= this.memory.maxSquads) {
+	            this.memory.waveComplete = true;
+	        }
+	        if (this.memory.waveComplete && spawnCount === 0) {
+	            this.memory.waveComplete = false;
+	        }
+	        this.memory.allowSpawn = (!this.memory.spawnSync || !this.memory.waveComplete) && !this.memory.raidComplete;
+	        let attackRoom = this.raidData.breachFlags[0].room;
+	        if (attackRoom && attackRoom.controller && attackRoom.controller.safeMode) {
+	            this.memory.raidComplete = true;
+	            this.memory.fallback = true;
+	        }
 	    }
 	    invalidateOperationCache() {
 	    }
-	    finalizeOperation() {
+	    findBreachFlags() {
+	        let breachFlags = [];
+	        for (let i = 0; i < 20; i++) {
+	            let flag = Game.flags[this.name + "_breach_" + i];
+	            if (flag) {
+	                breachFlags.push(flag);
+	            }
+	            else {
+	                break;
+	            }
+	        }
+	        return breachFlags;
+	    }
+	    generateRaidData() {
+	        if (!this.memory.queue)
+	            this.memory.queue = {};
+	        if (!this.memory.squadConfig)
+	            this.memory.squadConfig = {};
+	        let breachFlags = this.findBreachFlags();
+	        let fallback = Game.flags[this.name + "_fallback"];
+	        if (breachFlags.length === 0 || !fallback) {
+	            if (Game.time % 3 === 0) {
+	                console.log("RAID: please set breach flags (ex: " + this.name + "_breach_0, etc.) and fallback (ex: "
+	                    + this.name + "_fallback)");
+	            }
+	            if (this.memory.auto) {
+	                let completed = this.automateParams();
+	                if (!completed)
+	                    return;
+	            }
+	            else {
+	                return;
+	            }
+	        }
+	        if (this.memory.defaultBoostLevel === undefined) {
+	            if (Game.time % 3 === 0) {
+	                console.log("RAID: please set a default boostLevel, ex: " + this.name + ".setDefaultBoostLevel(2)");
+	            }
+	            return;
+	        }
+	        if (this.memory.maxSquads === undefined) {
+	            if (Game.time % 3 === 0) {
+	                console.log("RAID: please set a default number of squads, 0 to stop spawning, ex: " + this.name + ".setMaxSquads(1)");
+	            }
+	            return;
+	        }
+	        if (this.memory.defaultSquad === undefined) {
+	            if (Game.time % 3 === 0) {
+	                console.log("RAID: please set a default squad type, ex: " + this.name + ".setDefaultType(\"mess\")");
+	            }
+	            return;
+	        }
+	        // init squadConfig
+	        for (let i = 0; i < this.memory.maxSquads; i++) {
+	            let name = this.squadNames[i];
+	            if (!this.memory.squadConfig[name])
+	                this.memory.squadConfig[name] = {
+	                    type: this.memory.defaultSquad,
+	                    boostLevel: this.memory.defaultBoostLevel
+	                };
+	        }
+	        return {
+	            raidCreeps: [],
+	            injuredCreeps: undefined,
+	            breachFlags: breachFlags,
+	            positions: this.findPositions(breachFlags, fallback),
+	            breachStructure: this.findBreachStructure(breachFlags),
+	            targetStructures: this.findTargetStructures(breachFlags[0].room),
+	            fallback: this.memory.fallback,
+	        };
+	    }
+	    findSpawnGroups() {
+	        if (!this.memory.additionalRooms)
+	            this.memory.additionalRooms = [];
+	        let spawnGroups = [this.spawnGroup];
+	        for (let roomName of this.memory.additionalRooms) {
+	            let spawnGroup = this.empire.getSpawnGroup(roomName);
+	            if (!spawnGroup)
+	                continue;
+	            spawnGroups.push(spawnGroup);
+	        }
+	        return spawnGroups;
+	    }
+	    checkNewPlacement() {
+	        if (!this.memory.tickLastActive)
+	            this.memory.tickLastActive = Game.time;
+	        if (!this.memory.saveValues && Game.time - this.memory.tickLastActive > 100) {
+	            console.log("RAID: new flag placement detected, resetting raid values");
+	            this.resetRaid();
+	        }
+	        this.memory.tickLastActive = Game.time;
+	    }
+	    resetRaid() {
+	        for (let property in this.memory) {
+	            if (!this.memory.hasOwnProperty(property))
+	                continue;
+	            delete this.memory[property];
+	        }
+	    }
+	    findPositions(breachFlags, fallback) {
+	        let attackPos = breachFlags[0].pos;
+	        let fallbackPos = fallback.pos;
+	        if (this.memory.attackRoomName !== attackPos.roomName || this.memory.fallbackRoomName !== fallbackPos.roomName) {
+	            this.memory.attackRoomName = attackPos.roomName;
+	            this.memory.fallbackRoomName = fallbackPos.roomName;
+	            console.log("RAID: flag configuration change detected, recalculating position flags");
+	            this.resetPositions(attackPos, fallbackPos);
+	        }
+	        return {
+	            alfa: {
+	                healer: Game.flags[this.name + "_alfaHeal"],
+	                attacker: Game.flags[this.name + "_alfaAttack"],
+	            },
+	            bravo: {
+	                healer: Game.flags[this.name + "_bravoHeal"],
+	                attacker: Game.flags[this.name + "_bravoAttack"],
+	            },
+	            charlie: {
+	                healer: Game.flags[this.name + "_charlieHeal"],
+	                attacker: Game.flags[this.name + "_charlieAttack"],
+	            },
+	            fallback: fallback,
+	        };
+	    }
+	    findAttackDirection(attackRoomCoords, fallbackRoomCoords) {
+	        let directionLetter;
+	        if (attackRoomCoords.x < fallbackRoomCoords.x)
+	            directionLetter = attackRoomCoords.xDir;
+	        else if (attackRoomCoords.x > fallbackRoomCoords.x)
+	            directionLetter = helper_1.helper.negaDirection(attackRoomCoords.xDir);
+	        else if (attackRoomCoords.y < fallbackRoomCoords.y)
+	            directionLetter = attackRoomCoords.yDir;
+	        else if (attackRoomCoords.y > fallbackRoomCoords.y)
+	            directionLetter = helper_1.helper.negaDirection(attackRoomCoords.yDir);
+	        if (directionLetter === "N")
+	            return constants_1.Direction.North;
+	        else if (directionLetter === "E")
+	            return constants_1.Direction.East;
+	        else if (directionLetter === "S")
+	            return constants_1.Direction.South;
+	        else
+	            return constants_1.Direction.West;
+	    }
+	    resetPositions(attackPos, fallbackPos) {
+	        let attackCoords = helper_1.helper.getRoomCoordinates(attackPos.roomName);
+	        let fallbackCoords = helper_1.helper.getRoomCoordinates(fallbackPos.roomName);
+	        let attackDirection = this.findAttackDirection(attackCoords, fallbackCoords);
+	        let alfaAttackPos = attackPos.getPositionAtDirection(helper_1.helper.clampDirection(attackDirection - 1));
+	        let alfaHealPos = alfaAttackPos.getPositionAtDirection(helper_1.helper.clampDirection(attackDirection - 2));
+	        let bravoAttackPos = attackPos.getPositionAtDirection(helper_1.helper.clampDirection(attackDirection + 1));
+	        let bravoHealPos = bravoAttackPos.getPositionAtDirection(helper_1.helper.clampDirection(attackDirection + 2));
+	        let charlieAttackPos = attackPos.getPositionAtDirection(attackDirection);
+	        let charlieHealPos = charlieAttackPos.getPositionAtDirection(attackDirection);
+	        let runNextTick = false;
+	        // alfa flags
+	        let alfaAttackFlag = Game.flags[this.name + "_alfaAttack"];
+	        if (!alfaAttackFlag) {
+	            runNextTick = true;
+	            this.spawnGroup.pos.createFlag(this.name + "_alfaAttack", COLOR_BLUE, COLOR_RED);
+	        }
+	        else {
+	            alfaAttackFlag.setPosition(alfaAttackPos);
+	        }
+	        let alfaHealFlag = Game.flags[this.name + "_alfaHeal"];
+	        if (!alfaHealFlag) {
+	            runNextTick = true;
+	            this.spawnGroup.pos.createFlag(this.name + "_alfaHeal", COLOR_BLUE, COLOR_GREEN);
+	        }
+	        else {
+	            alfaHealFlag.setPosition(alfaHealPos);
+	        }
+	        // bravo flags
+	        let bravoAttackFlag = Game.flags[this.name + "_bravoAttack"];
+	        if (!bravoAttackFlag) {
+	            runNextTick = true;
+	            this.spawnGroup.pos.createFlag(this.name + "_bravoAttack", COLOR_YELLOW, COLOR_RED);
+	        }
+	        else {
+	            bravoAttackFlag.setPosition(bravoAttackPos);
+	        }
+	        let bravoHealFlag = Game.flags[this.name + "_bravoHeal"];
+	        if (!bravoHealFlag) {
+	            runNextTick = true;
+	            this.spawnGroup.pos.createFlag(this.name + "_bravoHeal", COLOR_YELLOW, COLOR_GREEN);
+	        }
+	        else {
+	            bravoHealFlag.setPosition(bravoHealPos);
+	        }
+	        // charlie flags
+	        let charlieAttackFlag = Game.flags[this.name + "_charlieAttack"];
+	        if (!charlieAttackFlag) {
+	            runNextTick = true;
+	            this.spawnGroup.pos.createFlag(this.name + "_charlieAttack", COLOR_BROWN, COLOR_RED);
+	        }
+	        else {
+	            charlieAttackFlag.setPosition(charlieAttackPos);
+	        }
+	        let charlieHealFlag = Game.flags[this.name + "_charlieHeal"];
+	        if (!charlieHealFlag) {
+	            runNextTick = true;
+	            this.spawnGroup.pos.createFlag(this.name + "_charlieHeal", COLOR_BROWN, COLOR_GREEN);
+	        }
+	        else {
+	            charlieHealFlag.setPosition(charlieHealPos);
+	        }
+	        if (runNextTick) {
+	            this.memory.attackRoomName = undefined;
+	        }
+	    }
+	    findBreachStructure(breachFlags) {
+	        if (!breachFlags[0].room)
+	            return; // early
+	        for (let flag of breachFlags) {
+	            if (!flag.room)
+	                continue;
+	            let structure = flag.pos.lookFor(LOOK_STRUCTURES)[0];
+	            if (structure) {
+	                return structure;
+	            }
+	        }
+	    }
+	    setMaxSquads(max) {
+	        let oldValue = this.memory.maxSquads;
+	        this.memory.maxSquads = max;
+	        return "RAID: changing number of active squads from " + oldValue + " to " + max;
+	    }
+	    queueSquad(name, type, boostlLevel) {
+	        if (name === "a") {
+	            name = "alpha";
+	        }
+	        else if (name === "b") {
+	            name = "bravo";
+	        }
+	        else if (name === "c") {
+	            name = "charlie";
+	        }
+	        if (!type || !_.includes(Object.keys(this.squadTypes), type)) {
+	            return "invalid squad type";
+	        }
+	        let config = { type: type, boostLevel: boostlLevel };
+	        if (boostlLevel === undefined) {
+	            if (this.memory.defaultBoostLevel === undefined) {
+	                return "no boostLevel given or defaultBoostLevel set";
+	            }
+	            config.boostLevel = this.memory.defaultBoostLevel;
+	        }
+	        this.memory.queue[name] = config;
+	        return "the next " + name + " squad will be a " + config.type + " with boostLevel " + config.boostLevel;
+	    }
+	    setDefaultType(squadType) {
+	        if (!_.includes(Object.keys(this.squadTypes), squadType))
+	            return "RAID: ERROR, invalid squad type";
+	        let oldValue = this.memory.defaultSquad;
+	        this.memory.defaultSquad = squadType;
+	        return "RAID: changing default squad from " + oldValue + " to " + squadType;
+	    }
+	    setDefaultBoostLevel(level) {
+	        if (level >= 0 && level <= 4) {
+	            let oldValue = this.memory.defaultBoostLevel;
+	            this.memory.defaultBoostLevel = level;
+	            return "RAID: changed from " + oldValue + " to " + level;
+	        }
+	        else {
+	            return "RAID: ERROR, " + level + " is invalid as a boostLevel";
+	        }
+	    }
+	    resetFlags() {
+	        let breachFlag = Game.flags[this.name + "_breach_0"];
+	        let fallbackFlag = Game.flags[this.name + "_fallback"];
+	        if (breachFlag && fallbackFlag) {
+	            this.resetPositions(breachFlag.pos, fallbackFlag.pos);
+	        }
+	    }
+	    addRoomName(roomName) {
+	        if (!this.memory.additionalRooms)
+	            this.memory.additionalRooms = [];
+	        if (_.includes(this.memory.additionalRooms, roomName)) {
+	            return "RAID: that room is already being used";
+	        }
+	        else {
+	            this.memory.additionalRooms.push(roomName);
+	            return "RAID: additional rooms being used for spawning: " + this.memory.additionalRooms;
+	        }
+	    }
+	    removeRoomName(roomName) {
+	        if (_.includes(this.memory.additionalRooms, roomName)) {
+	            return "RAID: that room is already being used";
+	        }
+	        else {
+	            this.memory.additionalRooms = _.pull(this.memory.additionalRooms, roomName);
+	            return "RAID: removing " + roomName + ", current list: " + this.memory.additionalRooms;
+	        }
+	    }
+	    findTargetStructures(attackRoom) {
+	        if (!attackRoom)
+	            return;
+	        if (!this.memory.manualTargetIds)
+	            this.memory.manualTargetIds = [];
+	        let manualTargets = [];
+	        for (let i = 0; i < 10; i++) {
+	            let flag = Game.flags[this.name + "_targets_" + i];
+	            if (!flag || !flag.room)
+	                continue;
+	            let structure = _.filter(flag.pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType !== STRUCTURE_ROAD)[0];
+	            if (!structure)
+	                flag.remove();
+	            manualTargets.push(structure);
+	        }
+	        if (manualTargets.length > 0) {
+	            return manualTargets;
+	        }
+	        let attackOrder = _.get(this, "memory.attackOrder", [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_NUKER, STRUCTURE_LAB, STRUCTURE_LINK, STRUCTURE_OBSERVER]);
+	        let nonRamparted = [];
+	        for (let structureType of attackOrder) {
+	            nonRamparted = nonRamparted.concat(_.filter(attackRoom.findStructures(structureType), (s) => s.pos.lookForStructure(STRUCTURE_RAMPART) === undefined));
+	        }
+	        if (nonRamparted.length > 0) {
+	            return nonRamparted;
+	        }
+	        for (let structureType of attackOrder) {
+	            let structures = attackRoom.findStructures(structureType);
+	            if (structures.length > 0) {
+	                return structures;
+	            }
+	        }
+	        // if we made it this far, all structures have been eliminated
+	        this.memory.raidComplete = true;
+	    }
+	    reportStatus() {
+	        console.log("__________RAID STATUS__________");
+	        console.log("active squads:");
+	        // let activeSquads: RaidSquad[] = this.memory.squads.active;
+	        // for (let squad of activeSquads) {
+	        //    console.log(squad.name.toUpperCase() + ":", squad.type + " (" + squad.boostLevel + ")",
+	        //        "spawnRoom:", squad.spawnRoomName, "spawned:", squad.spawned, "alive:", squad.alive);
+	        // }
+	    }
+	    waypointProgress(index) {
+	        for (let missionName in this.missions) {
+	            let mission = this.missions[missionName];
+	            if (mission["healer"]) {
+	                mission["healer"].memory.waypointsCovered = false;
+	                if (index !== undefined) {
+	                    mission["healer"].memory.waypointIndex = index;
+	                }
+	            }
+	        }
+	    }
+	    preset(presetName) {
+	        if (presetName === "danger") {
+	            console.log(this.queueSquad("bravo", "firefly", 2));
+	            console.log(this.setDefaultBoostLevel(2));
+	            console.log(this.setMaxSquads(3));
+	            console.log(this.setDefaultType("brawler"));
+	            return "spawning a raid that can deal with attacks from behind";
+	        }
+	        else if (presetName === "cosmo") {
+	            console.log(this.queueSquad("alfa", "brawler", 2));
+	            console.log(this.queueSquad("bravo", "firefly", 2));
+	            console.log(this.queueSquad("charlie", "mess", 2));
+	            console.log(this.setDefaultBoostLevel(2));
+	            console.log(this.setMaxSquads(3));
+	            console.log(this.setDefaultType("brawler"));
+	            return "spawning a raid that is a good balance between damage rate and defense";
+	        }
+	    }
+	    copyWaypoints(from, to) {
+	        for (let i = 0; i < 100; i++) {
+	            let flag = Game.flags[`${from}_waypoints_${i}`];
+	            if (flag) {
+	            }
+	        }
+	    }
+	    addRoom(roomName) {
+	        if (roomName === "clear") {
+	            this.memory.additionalRooms = undefined;
+	        }
+	        else {
+	            if (!this.memory.additionalRooms)
+	                this.memory.additionalRooms = [];
+	            let spawnGroup = this.empire.getSpawnGroup(roomName);
+	            if (spawnGroup) {
+	                return this.memory.additionalRooms.push(roomName);
+	            }
+	            else {
+	                return "not an owned room";
+	            }
+	        }
+	    }
+	    automateParams() {
+	        if (!this.memory.attackRoomName) {
+	            console.log(`RAID: ${this.name} automation incomplete, no attackRoom specified`);
+	            return false;
+	        }
+	        let observer = this.flag.room.findStructures(STRUCTURE_OBSERVER)[0];
+	        if (!observer) {
+	            console.log(`RAID: ${this.name} automation incomplete, no observer`);
+	            return false;
+	        }
+	        observer.observeRoom(this.memory.attackRoomName, "raid", true);
+	        if (!observer.observation || observer.observation.room.name !== this.memory.attackRoomName) {
+	            console.log(`RAID: ${this.name} automation incomplete, observation not loaded`);
+	            return false;
+	        }
+	        let completed = this.placeFlags();
+	        if (!completed)
+	            return false;
+	    }
+	    placeFlags() {
+	        let attackRoom = Game.rooms[this.memory.attackRoomName];
+	        let destination = attackRoom.storage;
+	        if (!destination) {
+	            destination = attackRoom.find(FIND_HOSTILE_SPAWNS)[0];
+	        }
+	        if (!destination) {
+	            destination = this.findTargetStructures(attackRoom)[0];
+	        }
+	        if (!destination) {
+	            console.log(`RAID: ${this.name} automation incomplete, no suitable structure to attack`);
+	            return false;
+	        }
+	        let ret = this.empire.findTravelPath(this.spawnGroup, destination, { ignoreStructures: true });
+	        if (ret.incomplete) {
+	            console.log(`RAID: ${this.name} automation incomplete, incomplete path to attackRoom`);
+	            return false;
+	        }
+	        let stagingPosition;
+	        for (let i = 0; i < ret.path.length; i++) {
+	            let position = ret.path[i];
+	            if (position.isNearExit(0))
+	                continue;
+	            if (position.roomName === this.memory.attackRoomName) {
+	                stagingPosition = position;
+	                for (let j = i; j >= 0; j--) {
+	                    position = ret.path[j];
+	                    if (position.isNearExit(1))
+	                        continue;
+	                    if (position.roomName !== this.memory.attackRoomName) {
+	                        position.createFlag(`${this.name}_fallback`, COLOR_GREY);
+	                        break;
+	                    }
+	                }
+	                break;
+	            }
+	        }
+	        let complete = this.placeBreachFlags(stagingPosition, destination, attackRoom);
+	        return complete;
+	    }
+	    placeBreachFlags(stagingPosition, destination, attackRoom) {
+	        let callback = (roomName) => {
+	            if (roomName !== attackRoom.name)
+	                return;
+	            let matrix = new PathFinder.CostMatrix();
+	            let walls = [];
+	            walls.concat(attackRoom.findStructures(STRUCTURE_WALL));
+	            walls.concat(attackRoom.findStructures(STRUCTURE_RAMPART));
+	            let maxHits = 0;
+	            for (let wall of walls) {
+	                if (wall.hits > maxHits) {
+	                    maxHits = wall.hits;
+	                }
+	            }
+	            for (let wall of walls) {
+	                let cost = Math.ceil((wall.hits / wall.hitsMax) * 10);
+	                matrix.set(wall.pos.x, wall.pos.y, cost);
+	            }
+	            return matrix;
+	        };
+	        let ret = PathFinder.search(stagingPosition, { pos: destination.pos, range: 1 }, {
+	            maxRooms: 1,
+	            roomCallback: callback,
+	        });
+	        if (ret.incomplete) {
+	            console.log(`RAID: ${this.name} automation incomplete, path incomplete for placing breach flags`);
+	            return false;
+	        }
+	        let count = 0;
+	        for (let position of ret.path) {
+	            if (position.lookForStructure(STRUCTURE_WALL) || position.lookForStructure(STRUCTURE_RAMPART)) {
+	                position.createFlag(`${this.name}_breach_${count}`);
+	                count++;
+	            }
+	        }
+	        if (count === 0) {
+	            for (let position of ret.path) {
+	                if (position.isNearExit(1))
+	                    continue;
+	                console.log(`RAID: no walls found in ${this.name}, placing empty breach position`);
+	                position.createFlag(`${this.name}_breach_${count}`);
+	                break;
+	            }
+	        }
+	        return true;
 	    }
 	}
 	exports.RaidOperation = RaidOperation;
 
 
 /***/ },
-/* 38 */
+/* 39 */
+/*!*******************************************!*\
+  !*** ./src/ai/missions/FireflyMission.ts ***!
+  \*******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 40);
+	const interfaces_1 = __webpack_require__(/*! ../../interfaces */ 41);
+	class FireflyMission extends RaidMission_1.RaidMission {
+	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
+	        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
+	        this.attackerBody = () => {
+	            if (this.boostLevel === interfaces_1.BoostLevel.Training) {
+	                return this.configBody({ [TOUGH]: 1, [MOVE]: 2, [RANGED_ATTACK]: 1 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.Unboosted) {
+	                return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [RANGED_ATTACK]: 20 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.SuperTough) {
+	                return this.configBody({ [TOUGH]: 24, [MOVE]: 10, [RANGED_ATTACK]: 16 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.RCL7) {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [RANGED_ATTACK]: 20 });
+	            }
+	            else {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [RANGED_ATTACK]: 28 });
+	            }
+	        };
+	        this.specialistPart = RANGED_ATTACK;
+	        this.specialistBoost = RESOURCE_CATALYZED_KEANIUM_ALKALIDE;
+	        this.spawnCost = 12440;
+	        this.attackRange = 3;
+	        this.attackerBoosts = [
+	            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+	            RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+	            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+	        ];
+	        this.killCreeps = operation.memory.killCreeps;
+	    }
+	    breachActions(attackingCreep) {
+	        this.standardBreachActions(attackingCreep);
+	    }
+	    clearActions(attackingCreep) {
+	        this.standardClearActions(attackingCreep);
+	    }
+	    focusCreeps() {
+	        let closest = this.attacker.pos.findClosestByRange(_.filter(this.attacker.room.hostiles, (c) => {
+	            return c.owner.username !== "Source Keeper" && c.body.length > 10;
+	        }));
+	        if (closest) {
+	            let range = this.attacker.pos.getRangeTo(closest);
+	            if (range > 3) {
+	                this.squadTravel(this.attacker, this.healer, closest);
+	            }
+	            else if (range < 3) {
+	                this.squadFlee(closest);
+	            }
+	            return true;
+	        }
+	        else {
+	            return false;
+	        }
+	    }
+	}
+	exports.FireflyMission = FireflyMission;
+
+
+/***/ },
+/* 40 */
+/*!****************************************!*\
+  !*** ./src/ai/missions/RaidMission.ts ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const interfaces_1 = __webpack_require__(/*! ../../interfaces */ 41);
+	class RaidMission extends Mission_1.Mission {
+	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
+	        super(operation, name, allowSpawn);
+	        this.healerBody = () => {
+	            if (this.boostLevel === interfaces_1.BoostLevel.Training) {
+	                return this.configBody({ [TOUGH]: 1, [MOVE]: 2, [HEAL]: 1 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.Unboosted) {
+	                return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [HEAL]: 20 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.SuperTough) {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [HEAL]: 28 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.RCL7) {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [HEAL]: 20 });
+	            }
+	            else {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [HEAL]: 28 });
+	            }
+	        };
+	        this.attackerBody = () => {
+	            if (this.boostLevel === interfaces_1.BoostLevel.Training) {
+	                return this.configBody({ [TOUGH]: 1, [MOVE]: 3, [this.specialistPart]: 1, [RANGED_ATTACK]: 1 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.Unboosted) {
+	                return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.SuperTough) {
+	                return this.configBody({ [TOUGH]: 24, [MOVE]: 10, [this.specialistPart]: 15, [RANGED_ATTACK]: 1 });
+	            }
+	            else if (this.boostLevel === interfaces_1.BoostLevel.RCL7) {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 });
+	            }
+	            else {
+	                return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [this.specialistPart]: 27, [RANGED_ATTACK]: 1 });
+	            }
+	        };
+	        this.raidData = raidData;
+	        this.spawnGroup = spawnGroup;
+	        this.boostLevel = boostLevel;
+	    }
+	    initMission() {
+	        this.raidWaypoints = this.getFlagSet("_waypoints_", 15);
+	        this.healerFlag = this.raidData.positions[this.name].healer;
+	        this.attackerFlag = this.raidData.positions[this.name].attacker;
+	        if (this.boostLevel === interfaces_1.BoostLevel.Training || this.boostLevel === interfaces_1.BoostLevel.Unboosted) {
+	            this.healerBoosts = [];
+	            this.attackerBoosts = [];
+	        }
+	        else {
+	            this.healerBoosts = [
+	                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+	                RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+	                RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE
+	            ];
+	        }
+	        // if (this.raidData.breachFlags[0].room && !this.memory.fallback && this.raidData.breachFlags[0].room.controller.safeMode.)
+	    }
+	    roleCall() {
+	        let max = !this.memory.spawned ? 1 : 0;
+	        let reservation = { spawns: 2, currentEnergy: undefined };
+	        if (this.spawnGroup.maxSpawnEnergy >= this.spawnCost) {
+	            reservation.currentEnergy = this.spawnCost;
+	        }
+	        this.attacker = _.head(this.headCount(this.name + "Attacker", this.attackerBody, max, {
+	            memory: { boosts: this.attackerBoosts },
+	            reservation: reservation
+	        }));
+	        if (this.attacker)
+	            this.raidData.raidCreeps.push(this.attacker);
+	        this.healer = _.head(this.headCount(this.name + "Healer", this.healerBody, max, {
+	            memory: { boosts: this.healerBoosts }
+	        }));
+	        if (this.healer)
+	            this.raidData.raidCreeps.push(this.healer);
+	    }
+	    missionActions() {
+	        /* ------PREPARE PHASE------ */
+	        // prep, wait for the other to boost
+	        let prepared = this.preparePhase();
+	        if (!prepared)
+	            return;
+	        // healing and attacking will be active from this point on
+	        this.healCreeps();
+	        let attackingCreep = this.attackCreeps();
+	        // creeps report about situation
+	        this.raidTalk();
+	        if (this.killCreeps || this.memory.targetId) {
+	            let foundHostiles = this.focusCreeps();
+	            if (foundHostiles)
+	                return;
+	        }
+	        /* ------TRAVEL PHASE------ */
+	        let waypointsTraveled = this.waypointSquadTravel(this.healer, this.attacker, this.raidWaypoints);
+	        if (!waypointsTraveled)
+	            return;
+	        /* --------FALLBACK-------- */
+	        if (!this.healerFlag || !this.attackerFlag || this.raidData.fallback) {
+	            this.squadTravel(this.healer, this.attacker, this.raidData.positions.fallback);
+	            return;
+	        }
+	        /* ------BREACH PHASE------ */
+	        if (!this.raidData.breachFlags[0].room || this.raidData.breachStructure) {
+	            if (!this.healer.memory.breachPhase) {
+	                this.healer.memory.breachPhase = true;
+	                console.log(`RAID: starting breach (${this.opName} ${this.name})`);
+	            }
+	            this.breachActions(attackingCreep);
+	            return;
+	        }
+	        /* ------CLEAR PHASE------ */
+	        if (this.raidData.targetStructures && this.raidData.targetStructures.length > 0) {
+	            if (!this.healer.memory.clearPhase) {
+	                this.healer.memory.clearPhase = true;
+	                console.log(`RAID: breach cleared! (${this.opName} ${this.name})`);
+	            }
+	            this.clearActions(attackingCreep);
+	            return;
+	        }
+	        if (!this.healer.memory.finishPhase) {
+	            this.healer.memory.finishPhase = true;
+	            console.log(`RAID: all structures cleared! (${this.opName} ${this.name})`);
+	        }
+	        /* ------FINISH PHASE------ */
+	        this.finishActions(attackingCreep);
+	    }
+	    finalizeMission() {
+	        if (!this.memory.spawned && this.memory.spawn[this.name + "Attacker"].length > 0
+	            && this.memory.spawn[this.name + "Healer"].length > 0) {
+	            this.memory.spawned = true;
+	        }
+	        if (this.memory.spawned && this.memory.spawn[this.name + "Attacker"].length === 0
+	            && this.memory.spawn[this.name + "Healer"].length === 0) {
+	            this.memory.spawned = false;
+	        }
+	        this.spawned = this.memory.spawned;
+	        if (Game.time % 10 === 0 && !this.spawned && this.allowSpawn) {
+	            console.log(`RAID: ${this.opName} ${this.name} squad ready (reservation)`);
+	        }
+	        if (this.attacker && this.attacker.room.name !== this.raidData.breachFlags[0].pos.roomName) {
+	            this.attacker.memory.flagReached = false;
+	        }
+	        if (this.healer && this.healer.room.name !== this.raidData.breachFlags[0].pos.roomName) {
+	            this.healer.memory.flagReached = false;
+	        }
+	    }
+	    invalidateMissionCache() {
+	    }
+	    standardBreachActions(attackingCreep) {
+	        /* ------- movement ------- */
+	        let leader = this.attacker;
+	        let leaderFlag = this.attackerFlag;
+	        let follower = this.healer;
+	        let followerFlag = this.healerFlag;
+	        if (this.attacker.pos.isNearExit(0) || this.attacker.room !== this.raidData.breachFlags[0].room) {
+	            leader = this.healer;
+	            leaderFlag = this.attackerFlag;
+	            follower = this.attacker;
+	            followerFlag = this.healerFlag;
+	        }
+	        /*
+
+	        if (leader.memory.flagReached) {
+	            if (leader.room !== this.raidData.breachFlags[0].room) {
+	                leader.memory.flagReached = false;
+	            }
+	        }
+	        else {
+	            if (leader.pos.inRangeTo(leaderFlag, 0)) {
+	                leader.memory.flagReached = true;
+	            }
+	        }
+
+	        if (follower.memory.flagReached) {
+	            if (follower.room !== this.raidData.breachFlags[0].room) {
+	                follower.memory.flagReached = false;
+	            }
+	        }
+	        else {
+	            if (follower.pos.inRangeTo(follower, 0)) {
+	                follower.memory.flagReached = true;
+	            }
+	        }
+
+	        if (!leader.memory.flagReached) {
+	            this.squadTravel(this.healer, this.attacker, this.healerFlag);
+	            return;
+	        }
+
+	         */
+	        // chess-mode
+	        if (this.memory.chessMode) {
+	            // move like chess pieces by moving flags, won't squad travel
+	            if (!this.attacker.pos.inRangeTo(this.attackerFlag, 0)) {
+	                this.attacker.blindMoveTo(this.attackerFlag, undefined, true);
+	            }
+	            if (!this.healer.pos.inRangeTo(this.healerFlag, 0)) {
+	                this.healer.blindMoveTo(this.healerFlag, undefined, true);
+	            }
+	        }
+	        else {
+	            // healer is near flag, both move to flags
+	            if (leader.pos.isNearTo(leaderFlag)) {
+	                if (!leader.pos.inRangeTo(leaderFlag, 0)) {
+	                    leader.blindMoveTo(leaderFlag, undefined, true);
+	                }
+	                if (!follower.pos.inRangeTo(followerFlag, 0)) {
+	                    follower.blindMoveTo(followerFlag, undefined, true);
+	                }
+	            }
+	            else {
+	                this.squadTravel(leader, follower, leaderFlag);
+	            }
+	        }
+	        /* ------- actions ------- */
+	        this.attacker.dismantle(this.raidData.breachStructure);
+	        if (!attackingCreep) {
+	            this.attacker.attack(this.raidData.breachStructure);
+	            if (this.attacker.pos.isNearTo(this.raidData.breachStructure)) {
+	                if (this.raidData.breachStructure.structureType !== STRUCTURE_WALL) {
+	                    this.attacker.rangedMassAttack();
+	                }
+	                else {
+	                    this.attacker.rangedAttack(this.raidData.breachStructure);
+	                }
+	            }
+	            else {
+	                let structureInRange = this.attacker.pos.findInRange(FIND_STRUCTURES, 1)[0];
+	                if (structureInRange) {
+	                    this.attacker.dismantle(structureInRange);
+	                    this.attacker.attack(structureInRange);
+	                }
+	                this.attacker.rangedAttack(this.raidData.breachStructure);
+	            }
+	        }
+	    }
+	    standardClearActions(attackingCreep) {
+	        if (this.healer.room !== this.raidData.breachFlags[0].room) {
+	            this.squadTravel(this.attacker, this.healer, this.attackerFlag);
+	        }
+	        let closest = this.attacker.pos.findClosestByRange(this.raidData.targetStructures);
+	        if (!closest) {
+	            // do nothing for now
+	            return;
+	        }
+	        let hasRampart = closest.pos.lookForStructure(STRUCTURE_RAMPART) !== undefined;
+	        if (!hasRampart) {
+	            this.raidData.targetStructures = _.pull(this.raidData.targetStructures, closest);
+	        }
+	        if (this.attacker.pos.isNearTo(closest)) {
+	            this.attacker.dismantle(closest);
+	            if (!attackingCreep) {
+	                this.attacker.rangedMassAttack();
+	                this.attacker.attack(closest);
+	                if (closest.pos.lookFor(LOOK_TERRAIN)[0] !== "swamp") {
+	                    this.squadTravel(this.attacker, this.healer, closest);
+	                }
+	            }
+	            if (!this.healer.pos.isNearTo(this.attacker)) {
+	                this.healer.blindMoveTo(this.attacker);
+	            }
+	        }
+	        else {
+	            this.squadTravel(this.attacker, this.healer, closest);
+	        }
+	    }
+	    finishActions(attackingCreep) {
+	        this.squadTravel(this.healer, this.attacker, this.raidData.positions.fallback);
+	    }
+	    waypointSquadTravel(healer, attacker, waypoints) {
+	        if (healer.memory.waypointsCovered) {
+	            return true;
+	        }
+	        if (healer.memory.waypointIndex === undefined) {
+	            healer.memory.waypointIndex = 0;
+	        }
+	        if (healer.memory.waypointIndex >= waypoints.length) {
+	            healer.memory.waypointsCovered = true;
+	            return true;
+	        }
+	        let leader = attacker;
+	        let follower = healer;
+	        if (this.memory.healerLead) {
+	            leader = healer;
+	            follower = attacker;
+	        }
+	        let waypoint = waypoints[healer.memory.waypointIndex];
+	        if (waypoint.room && leader.pos.inRangeTo(waypoint, 1)) {
+	            console.log(`RAID: waypoint ${healer.memory.waypointIndex} reached (${this.opName} ${this.name})`);
+	            healer.memory.waypointIndex++;
+	        }
+	        // travel through portal with follower
+	        if (leader.pos.lookForStructure(STRUCTURE_PORTAL)) {
+	            leader.blindMoveTo(waypoint);
+	            follower.blindMoveTo(waypoints[healer.memory.waypointIndex - 1]);
+	            return false;
+	        }
+	        this.squadTravel(leader, follower, waypoint);
+	    }
+	    squadTravel(leader, follower, destination) {
+	        if (follower.fatigue > 0)
+	            return ERR_BUSY;
+	        let followerOps = { reusePath: 0, maxRooms: undefined };
+	        if (leader.room === follower.room) {
+	            followerOps.maxRooms = 1;
+	        }
+	        if (leader.isNearExit(1)) {
+	            leader.blindMoveTo(destination, followerOps, true);
+	            follower.blindMoveTo(leader, followerOps, true);
+	            return;
+	        }
+	        if (follower.pos.isNearTo(leader)) {
+	            leader.blindMoveTo(destination, followerOps, true);
+	            follower.move(follower.pos.getDirectionTo(leader));
+	        }
+	        else {
+	            follower.blindMoveTo(leader, followerOps, true);
+	        }
+	    }
+	    squadFlee(roomObject) {
+	        if (this.attacker.fatigue > 0)
+	            return ERR_BUSY;
+	        if (this.attacker.pos.isNearTo(this.healer)) {
+	            if (this.attacker.pos.inRangeTo(roomObject, 2)) {
+	                this.healer.fleeByPath(roomObject);
+	                this.attacker.move(this.attacker.pos.getDirectionTo(this.healer));
+	            }
+	        }
+	        else {
+	            this.attacker.moveTo(this.healer, { reusePath: 0 });
+	        }
+	    }
+	    healCreeps() {
+	        if (!this.healer)
+	            return;
+	        if (!this.raidData.injuredCreeps) {
+	            this.raidData.injuredCreeps = {};
+	            for (let creep of this.raidData.raidCreeps) {
+	                if (creep.hits === creep.hitsMax)
+	                    continue;
+	                this.raidData.injuredCreeps[creep.name] = creep.hits;
+	            }
+	        }
+	        let injuredCreeps = _.map(Object.keys(this.raidData.injuredCreeps), (name) => Game.creeps[name]);
+	        for (let creep of injuredCreeps) {
+	            if (!(creep instanceof Creep)) {
+	                console.log(`found a bad creep in injured creeps: ${creep}`);
+	            }
+	        }
+	        let healedAmount = (healer, shortRange) => {
+	            let healPerPart = 4;
+	            if (this.boostLevel !== interfaces_1.BoostLevel.Unboosted) {
+	                healPerPart *= 4;
+	            }
+	            if (shortRange) {
+	                healPerPart *= 3;
+	            }
+	            return healer.partCount(HEAL) * healPerPart;
+	        };
+	        let closeRange = _(this.healer.pos.findInRange(injuredCreeps, 1))
+	            .sortBy("hits")
+	            .head();
+	        if (closeRange) {
+	            if (!this.healer)
+	                console.log("no healer?");
+	            let outcome = this.healer.heal(closeRange);
+	            if (outcome !== OK)
+	                console.log(`healing error: ${outcome}`);
+	            this.raidData.injuredCreeps[closeRange.name] += healedAmount(this.healer, true);
+	            if (this.raidData.injuredCreeps[closeRange.name] > closeRange.hitsMax) {
+	                delete this.raidData.injuredCreeps[closeRange.name];
+	            }
+	            return;
+	        }
+	        let longRange = _(this.healer.pos.findInRange(injuredCreeps, 3))
+	            .sortBy("hits")
+	            .head();
+	        if (longRange) {
+	            if (!this.healer)
+	                console.log("no healer?");
+	            let outcome = this.healer.rangedHeal(longRange);
+	            if (outcome !== OK)
+	                console.log(`healing error: ${outcome}`);
+	            this.raidData.injuredCreeps[longRange.name] += healedAmount(this.healer, true);
+	            if (this.raidData.injuredCreeps[longRange.name] > longRange.hitsMax) {
+	                delete this.raidData.injuredCreeps[longRange.name];
+	            }
+	            return;
+	        }
+	        if (this.healer.room.name === this.raidData.breachFlags[0].pos.roomName) {
+	            this.healer.heal(this.attacker);
+	        }
+	    }
+	    attackCreeps() {
+	        let creepTargets = _(this.attacker.pos.findInRange(this.attacker.room.hostiles, 3))
+	            .filter((c) => _.filter(c.pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType === STRUCTURE_RAMPART).length === 0)
+	            .sortBy("hits")
+	            .value();
+	        if (creepTargets.length === 0) {
+	            return false;
+	        }
+	        let closest = this.attacker.pos.findClosestByRange(creepTargets);
+	        let range = this.attacker.pos.getRangeTo(closest);
+	        if (range === 1 || creepTargets.length > 1) {
+	            this.attacker.rangedMassAttack();
+	        }
+	        else {
+	            this.attacker.rangedAttack(closest);
+	        }
+	        if (range === 1 && this.attacker.partCount(ATTACK)) {
+	            this.attacker.attack(closest);
+	            return true;
+	        }
+	        if (this.attacker.partCount(RANGED_ATTACK) > 1) {
+	            return true;
+	        }
+	    }
+	    raidPath(pathingCreep, destination, avoids) {
+	        let ret = PathFinder.search(pathingCreep.pos, { pos: destination, range: 1 });
+	        let opts = { costCallback: function (roomName, matrix) {
+	                for (let object of avoids) {
+	                    if (this.room !== object.roomName)
+	                        continue;
+	                    matrix.set(object.x, object.y, 0xff);
+	                }
+	                return matrix;
+	            } };
+	        return pathingCreep.blindMoveTo(destination, opts);
+	    }
+	    preparePhase() {
+	        if (this.attacker && !this.healer) {
+	            if (this.attackRange === 0) {
+	                this.attackRange = 3;
+	            }
+	            let closest = this.attacker.pos.findClosestByRange(this.room.hostiles);
+	            if (closest && this.attackRange > 0) {
+	                let range = this.attacker.pos.getRangeTo(closest);
+	                if (range <= this.attackRange) {
+	                    this.attacker.attack(closest);
+	                    this.attacker.rangedAttack(closest);
+	                    if (range < this.attackRange) {
+	                        this.attacker.fleeByPath(closest);
+	                    }
+	                }
+	                else {
+	                    this.attacker.blindMoveTo(closest);
+	                }
+	            }
+	            else if (this.attacker.room === this.raidData.breachFlags[0].room) {
+	                if (this.raidData.breachStructure) {
+	                    this.attacker.rangedAttack(this.raidData.breachStructure);
+	                    this.attacker.attack(this.raidData.breachStructure);
+	                    this.attacker.dismantle(this.raidData.breachStructure);
+	                }
+	            }
+	            else {
+	                this.attacker.idleOffRoad(this.flag);
+	            }
+	        }
+	        if (this.healer && !this.attacker) {
+	            this.healCreeps();
+	            this.healer.idleOffRoad(this.flag);
+	        }
+	        return this.attacker && this.healer;
+	    }
+	    raidTalk() {
+	        if (this.attacker.hits < this.attacker.hitsMax) {
+	            this.attacker.say("" + this.attacker.hits);
+	        }
+	        if (this.healer.hits < this.healer.hitsMax) {
+	            this.healer.say("" + this.healer.hits);
+	        }
+	    }
+	    focusCreeps() {
+	        /* future look for creeps by pathfinding
+	        if (this.memory.targetId) {
+	            let creep = Game.getObjectById(this.memory.targetId) as Creep;
+	            if (creep)
+	        }
+	        */
+	        let closest = this.attacker.pos.findClosestByRange(_.filter(this.attacker.room.hostiles, (c) => {
+	            return c.owner.username !== "Source Keeper" && c.body.length > 10;
+	        }));
+	        if (closest) {
+	            let range = this.attacker.pos.getRangeTo(closest);
+	            if (range > 1) {
+	                this.squadTravel(this.attacker, this.healer, closest);
+	            }
+	            else if (range === 1 && this.healer.fatigue === 0) {
+	                this.attacker.move(this.attacker.pos.getDirectionTo(closest));
+	                if (this.healer.pos.getRangeTo(this.attacker) === 1) {
+	                    this.healer.move(this.healer.pos.getDirectionTo(this.attacker));
+	                }
+	                else {
+	                    this.healer.blindMoveTo(this.attacker, undefined, true);
+	                }
+	            }
+	            return true;
+	        }
+	        else {
+	            return false;
+	        }
+	    }
+	}
+	exports.RaidMission = RaidMission;
+
+
+/***/ },
+/* 41 */
+/*!***************************!*\
+  !*** ./src/interfaces.ts ***!
+  \***************************/
+/***/ function(module, exports) {
+
+	"use strict";
+	var BoostLevel;
+	(function (BoostLevel) {
+	    BoostLevel[BoostLevel["Training"] = 0] = "Training";
+	    BoostLevel[BoostLevel["Unboosted"] = 1] = "Unboosted";
+	    BoostLevel[BoostLevel["Boosted"] = 2] = "Boosted";
+	    BoostLevel[BoostLevel["SuperTough"] = 3] = "SuperTough";
+	    BoostLevel[BoostLevel["RCL7"] = 4] = "RCL7";
+	})(BoostLevel = exports.BoostLevel || (exports.BoostLevel = {}));
+
+
+/***/ },
+/* 42 */
+/*!****************************************!*\
+  !*** ./src/ai/missions/MessMission.ts ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 40);
+	class MesserschmittMission extends RaidMission_1.RaidMission {
+	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
+	        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
+	        this.specialistPart = WORK;
+	        this.specialistBoost = RESOURCE_CATALYZED_ZYNTHIUM_ACID;
+	        this.spawnCost = 11090;
+	        this.attackRange = 0;
+	        this.attackerBoosts = [
+	            RESOURCE_CATALYZED_ZYNTHIUM_ACID,
+	            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+	            RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+	            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+	        ];
+	    }
+	    breachActions(attackingCreep) {
+	        this.standardBreachActions(attackingCreep);
+	    }
+	    clearActions(attackingCreep) {
+	        this.standardClearActions(attackingCreep);
+	    }
+	}
+	exports.MesserschmittMission = MesserschmittMission;
+
+
+/***/ },
+/* 43 */
+/*!*******************************************!*\
+  !*** ./src/ai/missions/BrawlerMission.ts ***!
+  \*******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 40);
+	class BrawlerMission extends RaidMission_1.RaidMission {
+	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
+	        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
+	        this.specialistPart = ATTACK;
+	        this.specialistBoost = RESOURCE_CATALYZED_UTRIUM_ACID;
+	        this.spawnCost = 10550;
+	        this.attackRange = 1;
+	        this.attackerBoosts = [
+	            RESOURCE_CATALYZED_UTRIUM_ACID,
+	            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+	            RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+	            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+	        ];
+	        this.killCreeps = operation.memory.killCreeps;
+	    }
+	    breachActions(attackingCreep) {
+	        this.standardBreachActions(attackingCreep);
+	    }
+	    clearActions(attackingCreep) {
+	        this.standardClearActions(attackingCreep);
+	    }
+	}
+	exports.BrawlerMission = BrawlerMission;
+
+
+/***/ },
+/* 44 */
 /*!********************************************!*\
   !*** ./src/ai/operations/QuadOperation.ts ***!
   \********************************************/
@@ -7635,7 +9073,7 @@ module.exports =
 
 	"use strict";
 	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 11);
-	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 39);
+	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 45);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	const QUAD_RADIUS = 6;
 	class QuadOperation extends ControllerOperation_1.ControllerOperation {
@@ -7778,7 +9216,7 @@ module.exports =
 
 
 /***/ },
-/* 39 */
+/* 45 */
 /*!**************************************************!*\
   !*** ./src/ai/operations/ControllerOperation.ts ***!
   \**************************************************/
@@ -7798,11 +9236,14 @@ module.exports =
 	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
 	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
-	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 40);
-	const MasonMission_1 = __webpack_require__(/*! ../missions/MasonMission */ 41);
+	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 46);
+	const MasonMission_1 = __webpack_require__(/*! ../missions/MasonMission */ 47);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 25);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 23);
+	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 26);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
+	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 28);
+	const RadarMission_1 = __webpack_require__(/*! ../missions/RadarMission */ 48);
 	const GEO_SPAWN_COST = 5000;
 	class ControllerOperation extends Operation_1.Operation {
 	    constructor(flag, name, type, empire) {
@@ -7814,22 +9255,25 @@ module.exports =
 	    }
 	    initOperation() {
 	        this.autoLayout();
-	        if (!this.flag.room)
-	            return; // TODO: remote revival
-	        // initOperation FortOperation variables
-	        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+	        // scout room
+	        this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
 	        if (!this.spawnGroup) {
-	            this.spawnGroup = this.findBackupSpawn();
-	            if (!this.spawnGroup)
+	            if (!this.memory.spawnRooms) {
 	                return;
+	            }
+	            this.spawnGroup = this.getRemoteSpawnGroup(8);
+	            this.addMission(new ScoutMission_1.ScoutMission(this));
+	            this.addMission(new ClaimMission_1.ClaimMission(this));
 	            this.addMission(new BodyguardMission_1.BodyguardMission(this));
 	            this.addMission(new RemoteBuildMission_1.RemoteBuildMission(this, false));
 	        }
 	        this.empire.register(this.flag.room);
-	        // spawn emergency miner if needed
-	        this.addMission(new EmergencyMission_1.EmergencyMinerMission(this));
-	        // refill spawning energy - will spawn small spawnCart if needed
-	        this.addMission(new RefillMission_1.RefillMission(this));
+	        if (this.flag.room.findStructures(STRUCTURE_SPAWN).length > 0) {
+	            // spawn emergency miner if needed
+	            this.addMission(new EmergencyMission_1.EmergencyMinerMission(this));
+	            // refill spawning energy - will spawn small spawnCart if needed
+	            this.addMission(new RefillMission_1.RefillMission(this));
+	        }
 	        this.addDefense();
 	        if (this.memory.powerMining) {
 	            this.addMission(new PowerMission_1.PowerMission(this));
@@ -7838,8 +9282,10 @@ module.exports =
 	        if (this.flag.room.terminal && this.flag.room.storage) {
 	            this.addMission(new TerminalNetworkMission_1.TerminalNetworkMission(this));
 	            this.addMission(new IgorMission_1.IgorMission(this));
+	            this.addMission(new RadarMission_1.RadarMission(this));
 	        }
 	        // harvest energy
+	        let miningMissions = [];
 	        for (let i = 0; i < this.sources.length; i++) {
 	            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0)
 	                continue;
@@ -7851,7 +9297,9 @@ module.exports =
 	                    continue;
 	                }
 	            }
-	            this.addMission(new MiningMission_1.MiningMission(this, "miner" + i, source));
+	            let miningMission = new MiningMission_1.MiningMission(this, "miner" + i, source);
+	            miningMissions.push(miningMission);
+	            this.addMission(miningMission);
 	        }
 	        // build construction
 	        let buildMission = new BuildMission_1.BuildMission(this);
@@ -7869,19 +9317,43 @@ module.exports =
 	        // repair walls
 	        this.addMission(new MasonMission_1.MasonMission(this));
 	        this.towerRepair();
+	        // reassign spawngroups for remote boosting
 	        if (this.flag.room.controller.level < 6) {
-	            let boostSpawnGroup = this.findRemoteSpawn(4);
+	            if (!this.memory.spawnRooms)
+	                return;
+	            let boostSpawnGroup = this.getRemoteSpawnGroup(6);
 	            if (boostSpawnGroup) {
-	                upgradeMission.setSpawnGroup(boostSpawnGroup);
-	                buildMission.setSpawnGroup(boostSpawnGroup);
+	                if (this.flag.room.controller.level < 4) {
+	                    let bodyguard = new BodyguardMission_1.BodyguardMission(this);
+	                    this.addMission(bodyguard);
+	                    bodyguard.setSpawnGroup(boostSpawnGroup);
+	                    let remoteBuilder = new RemoteBuildMission_1.RemoteBuildMission(this, false);
+	                    this.addMission(remoteBuilder);
+	                    remoteBuilder.setSpawnGroup(boostSpawnGroup);
+	                }
+	                if (Game.map.getRoomLinearDistance(this.flag.room.name, boostSpawnGroup.room.name) > 4) {
+	                    return;
+	                }
+	                if (boostSpawnGroup.room.controller.level >= 8) {
+	                    upgradeMission.setSpawnGroup(boostSpawnGroup);
+	                    buildMission.setSpawnGroup(boostSpawnGroup);
+	                }
+	                // remote spawn miners
+	                if (this.spawnGroup.maxSpawnEnergy < 1300) {
+	                    for (let miningMission of miningMissions) {
+	                        miningMission.setSpawnGroup(boostSpawnGroup);
+	                    }
+	                }
 	            }
 	        }
 	    }
 	    finalizeOperation() {
+	        this.getRemoteSpawnGroup(8);
 	    }
 	    invalidateOperationCache() {
-	        this.memory.masonPotency = undefined;
-	        this.memory.builderPotency = undefined;
+	        if (Math.random() < .01) {
+	            this.memory.spawnRooms = undefined;
+	        }
 	    }
 	    nuke(x, y, roomName) {
 	        let nuker = _.head(this.flag.room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_NUKER } }));
@@ -7895,12 +9367,70 @@ module.exports =
 	        }
 	    }
 	    addAllyRoom(roomName) {
-	        if (_.includes(this.memory.network.scanData.roomNames, roomName)) {
+	        if (_.includes(this.empire.memory.allyRooms, roomName)) {
 	            return "NETWORK: " + roomName + " is already being scanned by " + this.name;
 	        }
-	        this.memory.network.scanData.roomNames.push(roomName);
-	        this.empire.addAllyForts([roomName]);
+	        this.empire.addAllyRoom(roomName);
 	        return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
+	    }
+	    moveLayout(x, y, rotation) {
+	        this.memory.centerPosition = new RoomPosition(x, y, this.flag.pos.roomName);
+	        this.memory.rotation = rotation;
+	        this.memory.layoutMap = undefined;
+	        this.showLayout(false);
+	        return `moving layout, run command ${this.name}.showLayout(true) to display`;
+	    }
+	    showLayout(show) {
+	        if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
+	            return "No layout defined";
+	        }
+	        if (!show) {
+	            for (let flagName in Game.flags) {
+	                let flag = Game.flags[flagName];
+	                if (flag.name.indexOf(`${this.name}_layout`) >= 0) {
+	                    flag.remove();
+	                }
+	            }
+	            return "removing layout flags";
+	        }
+	        for (let structureType of Object.keys(CONSTRUCTION_COST)) {
+	            let coords = this.layoutCoords(structureType);
+	            let order = 0;
+	            for (let coord of coords) {
+	                let flagName = `${this.name}_layout_${structureType}_${order++}`;
+	                let flag = Game.flags[flagName];
+	                if (flag) {
+	                    flag.setPosition(coord.x, coord.y);
+	                    continue;
+	                }
+	                let position = helper_1.helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+	                let color = COLOR_WHITE;
+	                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
+	                    || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
+	                    color = COLOR_YELLOW;
+	                }
+	                else if (structureType === STRUCTURE_TOWER) {
+	                    color = COLOR_BLUE;
+	                }
+	                else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
+	                    color = COLOR_CYAN;
+	                }
+	                else if (structureType === STRUCTURE_POWER_SPAWN) {
+	                    color = COLOR_RED;
+	                }
+	                else if (structureType === STRUCTURE_OBSERVER) {
+	                    color = COLOR_BROWN;
+	                }
+	                else if (structureType === STRUCTURE_ROAD) {
+	                    color = COLOR_GREY;
+	                }
+	                else if (structureType === STRUCTURE_RAMPART) {
+	                    color = COLOR_GREEN;
+	                }
+	                position.createFlag(flagName, color);
+	            }
+	        }
+	        return "showing layout flags";
 	    }
 	    autoLayout() {
 	        this.initWithSpawn();
@@ -7910,6 +9440,8 @@ module.exports =
 	        this.buildLayout();
 	    }
 	    buildLayout() {
+	        if (!this.flag.room)
+	            return;
 	        let structureTypes = Object.keys(CONSTRUCTION_COST);
 	        if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= structureTypes.length) {
 	            this.memory.checkLayoutIndex = 0;
@@ -7920,7 +9452,10 @@ module.exports =
 	    }
 	    fixedPlacement(structureType) {
 	        let controllerLevel = this.flag.room.controller.level;
-	        let constructionPriority = controllerLevel * 10;
+	        let constructionPriority = Math.max(controllerLevel * 10, 40);
+	        if (controllerLevel === 1) {
+	            constructionPriority = 90;
+	        }
 	        if (Object.keys(Game.constructionSites).length > constructionPriority)
 	            return;
 	        if (structureType === STRUCTURE_RAMPART && controllerLevel < 5)
@@ -7936,9 +9471,11 @@ module.exports =
 	                break;
 	            let coord = coords[i];
 	            let position = helper_1.helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-	            let hasStructure = position.lookForStructure(structureType);
-	            if (hasStructure)
+	            let structure = position.lookForStructure(structureType);
+	            if (structure) {
+	                this.repairLayout(structure);
 	                continue;
+	            }
 	            let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
 	            if (hasConstruction)
 	                continue;
@@ -7987,7 +9524,8 @@ module.exports =
 	        }
 	    }
 	    allowedCount(structureType, level) {
-	        if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL)) {
+	        if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL
+	            || structureType === STRUCTURE_ROAD)) {
 	            return 0;
 	        }
 	        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length);
@@ -8004,6 +9542,8 @@ module.exports =
 	        }
 	    }
 	    initWithSpawn() {
+	        if (!this.flag.room)
+	            return;
 	        if (!this.memory.centerPosition || this.memory.rotation === undefined) {
 	            let structureCount = this.flag.room.find(FIND_STRUCTURES).length;
 	            if (structureCount === 1) {
@@ -8016,42 +9556,26 @@ module.exports =
 	        }
 	    }
 	    towerRepair() {
-	        let towers = this.flag.room.findStructures(STRUCTURE_TOWER);
-	        if (towers.length === 0)
-	            return;
-	        if (Game.time % 4 === 0) {
-	            // repair ramparts
-	            let ramparts = this.flag.room.findStructures(STRUCTURE_RAMPART);
-	            if (towers.length === 0 || ramparts.length === 0)
-	                return;
-	            let rampart = _(ramparts).sortBy("hits").head();
-	            rampart.pos.findClosestByRange(towers).repair(rampart);
+	        let structureType = STRUCTURE_RAMPART;
+	        if (Game.time % 2 === 0) {
+	            structureType = STRUCTURE_ROAD;
 	        }
-	        else if (Game.time % 4 === 2) {
-	            // repair roads
-	            let centerPosition = helper_1.helper.deserializeRoomPosition(this.memory.centerPosition);
-	            let roadsInRange = centerPosition.findInRange(this.flag.room.findStructures(STRUCTURE_ROAD), this.memory.radius);
-	            if (this.memory.roadRepairIndex === undefined || this.memory.roadRepairIndex >= roadsInRange.length) {
-	                this.memory.roadRepairIndex = 0;
-	            }
-	            let road = roadsInRange[this.memory.roadRepairIndex++];
-	            let repairsNeeded = Math.floor((road.hitsMax - road.hits) / 800);
-	            if (repairsNeeded === 1) {
-	                let tower = road.pos.findClosestByRange(towers);
-	                tower.repair(road);
-	            }
-	            else if (repairsNeeded > 1) {
-	                console.log(`significant road repair needed in ${this.name}, damage to road: ${road.hitsMax - road.hits}`);
-	                towers = _.sortBy(towers, (t) => road.pos.getRangeTo(t));
-	                for (let tower of towers) {
-	                    repairsNeeded--;
-	                    tower.repair(road);
-	                    if (repairsNeeded === 0)
-	                        break;
-	                }
-	            }
+	        let coords = this.layoutCoords(structureType);
+	        if (!this.memory.repairIndices) {
+	            this.memory.repairIndices = {};
+	        }
+	        if (this.memory.repairIndices[structureType] === undefined ||
+	            this.memory.repairIndices[structureType] >= coords.length) {
+	            this.memory.repairIndices[structureType] = 0;
+	        }
+	        let coord = coords[this.memory.repairIndices[structureType]++];
+	        let position = helper_1.helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+	        let structure = position.lookForStructure(structureType);
+	        if (structure) {
+	            this.repairLayout(structure);
 	        }
 	    }
+	    // deprecated
 	    findRemoteSpawn(distanceLimit, levelRequirement = 8) {
 	        let remoteSpawn = _(this.empire.spawnGroups)
 	            .filter((s) => {
@@ -8066,22 +9590,34 @@ module.exports =
 	            .head();
 	        return remoteSpawn;
 	    }
-	    findBackupSpawn() {
-	        if (this.memory.backupSpawnRoom) {
-	            let spawnGroup = this.empire.getSpawnGroup(this.memory.backupSpawnRoom);
-	            if (spawnGroup) {
-	                return spawnGroup;
-	            }
-	            else {
-	                this.memory.backupSpawnRoom = undefined;
+	    repairLayout(structure) {
+	        let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
+	        if (structure.structureType === STRUCTURE_RAMPART) {
+	            if (structure.hits >= 100000) {
+	                return;
 	            }
 	        }
 	        else {
-	            let remoteSpawnGroup = this.findRemoteSpawn(6, 4);
-	            if (remoteSpawnGroup) {
-	                this.memory.backupSpawnRoom = remoteSpawnGroup.room.name;
-	                return this.findBackupSpawn();
+	            if (repairsNeeded === 0) {
+	                return;
 	            }
+	        }
+	        let towers = this.flag.room.findStructures(STRUCTURE_TOWER);
+	        for (let tower of towers) {
+	            if (repairsNeeded === 0) {
+	                return;
+	            }
+	            if (tower.alreadyFired) {
+	                continue;
+	            }
+	            if (!tower.pos.inRangeTo(structure, Math.max(5, this.memory.radius - 3))) {
+	                continue;
+	            }
+	            let outcome = tower.repair(structure);
+	            repairsNeeded--;
+	        }
+	        if (repairsNeeded > 0 && towers.length > 0) {
+	            structure.pos.findClosestByRange(towers).repair(structure);
 	        }
 	    }
 	}
@@ -8089,7 +9625,7 @@ module.exports =
 
 
 /***/ },
-/* 40 */
+/* 46 */
 /*!********************************!*\
   !*** ./src/ai/SeedAnalysis.ts ***!
   \********************************/
@@ -8301,7 +9837,7 @@ module.exports =
 
 
 /***/ },
-/* 41 */
+/* 47 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/MasonMission.ts ***!
   \*****************************************/
@@ -8309,7 +9845,7 @@ module.exports =
 
 	"use strict";
 	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
-	const MIN_RAMPART_HITS = 5000000;
+	const MIN_RAMPART_HITS = 50000000;
 	class MasonMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "mason");
@@ -8433,7 +9969,113 @@ module.exports =
 
 
 /***/ },
-/* 42 */
+/* 48 */
+/*!*****************************************!*\
+  !*** ./src/ai/missions/RadarMission.ts ***!
+  \*****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
+	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
+	class RadarMission extends Mission_1.Mission {
+	    constructor(operation) {
+	        super(operation, "radar");
+	    }
+	    initMission() {
+	    }
+	    roleCall() {
+	    }
+	    missionActions() {
+	        let observer = this.findObserver();
+	        if (!observer) {
+	            return;
+	        }
+	        if (!this.memory.fullScanComplete) {
+	            this.fullScan(observer);
+	            return;
+	        }
+	        this.allyScan(observer);
+	    }
+	    finalizeMission() {
+	    }
+	    invalidateMissionCache() {
+	        if (Game.time > this.memory.tickLastScanned + 10000) {
+	            this.memory.fullScanComplete = false;
+	        }
+	    }
+	    findObserver() {
+	        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
+	        if (!observer) {
+	            if (this.room.controller.level === 8 && Game.time % 100 === 0) {
+	                console.log("NETWORK: please add an observer to", this.opName, "to participate in network");
+	            }
+	            return;
+	        }
+	        return observer;
+	    }
+	    allyScan(observer) {
+	        if (observer.observation && observer.observation.purpose === constants_1.OBSERVER_PURPOSE_ALLYTRADE) {
+	            let room = observer.observation.room;
+	            if (!room.controller.owner || !constants_1.TRADE_PARTNERS[room.controller.owner.username]) {
+	                this.empire.removeAllyRoom(room.name);
+	            }
+	        }
+	        if (observer.currentPurpose === undefined) {
+	            this.memory.scanIndex = this.empire.observeAllyRoom(observer, this.memory.scanIndex);
+	        }
+	    }
+	    fullScan(observer) {
+	        if (!this.memory.fullScanData) {
+	            console.log("NETWORK: Beginning full radar scan for", this.opName);
+	            this.memory.fullScanData = {
+	                x: -10,
+	                y: -10,
+	            };
+	        }
+	        let scanData = this.memory.fullScanData;
+	        if (observer.observation && observer.observation.purpose === "allySearch") {
+	            let room = observer.observation.room;
+	            if (room.controller) {
+	                if (room.controller.owner && !constants_1.ALLIES[room.controller.owner.username]) {
+	                    console.log(`RADAR: ${this.opName} found hostile room at ${room.name}`);
+	                    this.empire.addHostileRoom(room.name, room.controller.level);
+	                }
+	                else {
+	                    this.empire.removeHostileRoom(room.name);
+	                    if (room.storage && room.terminal && room.controller.level >= 6 && !room.terminal.my &&
+	                        constants_1.TRADE_PARTNERS[room.terminal.owner.username]) {
+	                        console.log(`RADAR: ${this.opName} found ally room at ${room.name}`);
+	                        this.empire.addAllyRoom(room.name);
+	                    }
+	                }
+	            }
+	            // increment
+	            scanData.x++;
+	            if (scanData.x > 10) {
+	                scanData.x = -10;
+	                scanData.y++;
+	                if (scanData.y > 10) {
+	                    this.memory.tickLastScanned = Game.time;
+	                    this.memory.fullScanComplete = true;
+	                    this.memory.fullScanData = undefined;
+	                    console.log(`NETWORK: Scan of ally rooms complete at ${this.opName}`);
+	                    return;
+	                }
+	            }
+	        }
+	        if (observer.currentPurpose === undefined) {
+	            let roomName = helper_1.helper.findRelativeRoomName(this.room, scanData.x, scanData.y);
+	            observer.observeRoom(roomName, "allySearch");
+	        }
+	    }
+	}
+	exports.RadarMission = RadarMission;
+
+
+/***/ },
+/* 49 */
 /*!********************************************!*\
   !*** ./src/ai/operations/AutoOperation.ts ***!
   \********************************************/
@@ -8441,9 +10083,9 @@ module.exports =
 
 	"use strict";
 	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 40);
+	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 46);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 22);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
 	const MAX_SOURCE_DISTANCE = 100;
 	const PATHFINDER_RANGE_ALLOWANCE = 20;
 	class AutoOperation extends Operation_1.Operation {
@@ -8607,15 +10249,15 @@ module.exports =
 
 
 /***/ },
-/* 43 */
+/* 50 */
 /*!********************************************!*\
   !*** ./src/ai/operations/FlexOperation.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 39);
-	const FlexGenerator_1 = __webpack_require__(/*! ../FlexGenerator */ 44);
+	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 45);
+	const FlexGenerator_1 = __webpack_require__(/*! ../FlexGenerator */ 51);
 	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 11);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class FlexOperation extends ControllerOperation_1.ControllerOperation {
@@ -8691,7 +10333,7 @@ module.exports =
 	            }
 	            else {
 	                let map = new FlexGenerator_1.FlexGenerator(this.memory.centerPosition, this.memory.rotation, this.staticStructures);
-	                this.memory.layoutMap = map.generate(true);
+	                this.memory.layoutMap = map.generate();
 	                this.memory.radius = map.radius + 1;
 	            }
 	        }
@@ -8701,7 +10343,7 @@ module.exports =
 
 
 /***/ },
-/* 44 */
+/* 51 */
 /*!*********************************!*\
   !*** ./src/ai/FlexGenerator.ts ***!
   \*********************************/
@@ -8737,15 +10379,11 @@ module.exports =
 	        this.bottomMost = centerPosition.y;
 	        this.coreStructureCoordinates = staticStructures;
 	    }
-	    generate(debug) {
-	        let room = Game.rooms[this.roomName];
-	        if (!room)
-	            return;
+	    generate() {
 	        this.addFixedStructuresToMap();
 	        this.addUsingExpandingRadius();
 	        this.addWalls();
-	        if (debug)
-	            this.debugMap();
+	        this.removeStragglingRoads();
 	        return this.generateCoords();
 	    }
 	    addFixedStructuresToMap() {
@@ -8799,29 +10437,40 @@ module.exports =
 	        let x = this.centerPosition.x + xDelta;
 	        let y = this.centerPosition.y + yDelta;
 	        let alreadyUsed = this.checkIfUsed(x, y);
+	        console.log(`alreadyUsed: ${alreadyUsed} x: ${xDelta}, y: ${yDelta}`);
 	        if (alreadyUsed)
 	            return;
 	        let position = new RoomPosition(x, y, this.roomName);
-	        if (position.inRangeTo(position.findClosestByRange(FIND_SOURCES), 2))
-	            return;
-	        if (position.inRangeTo(Game.rooms[this.roomName].controller, 2))
-	            return;
-	        if (position.isNearTo(position.findClosestByRange(this.roadPositions))) {
-	            let structureType = this.findStructureType(xDelta, yDelta);
-	            if (structureType) {
-	                this.addStructurePosition(position, structureType);
-	                this.remaining[structureType]--;
+	        if (Game.rooms[this.roomName]) {
+	            if (position.inRangeTo(position.findClosestByRange(FIND_SOURCES), 2))
+	                return;
+	            if (position.inRangeTo(Game.rooms[this.roomName].controller, 2))
+	                return;
+	        }
+	        let foundRoad = false;
+	        for (let roadPos of this.roadPositions) {
+	            if (position.isNearTo(roadPos)) {
+	                let structureType = this.findStructureType(xDelta, yDelta);
+	                console.log("findStructureType: " + structureType);
+	                if (structureType) {
+	                    this.addStructurePosition(position, structureType);
+	                    this.remaining[structureType]--;
+	                    foundRoad = true;
+	                    break;
+	                }
 	            }
 	        }
-	        else if (save) {
+	        if (!foundRoad && save) {
 	            this.noRoadAccess.push({ x: xDelta, y: yDelta });
 	        }
 	    }
 	    recheckNonAccess() {
-	        if (this.recheckCount > 100)
-	            return;
+	        // if (this.recheckCount > 100) return;
 	        this.recheckCount++;
-	        console.log("rechecking" + this.recheckCount, this.noRoadAccess.length);
+	        if (this.recheckCount > 100)
+	            throw "too fucking long";
+	        console.log("rechecking " + this.recheckCount, this.noRoadAccess.length);
+	        this.noRoadAccess = _.filter(this.noRoadAccess, (c) => !this.checkIfUsed(c.x, c.y));
 	        for (let coord of this.noRoadAccess) {
 	            this.addRemaining(coord.x, coord.y, false);
 	        }
@@ -8841,7 +10490,9 @@ module.exports =
 	                return;
 	            }
 	        }
+	        this.map[pos.x][pos.y] = structureType;
 	        if (structureType === STRUCTURE_ROAD) {
+	            console.log("foundRoad, add pos and recheck: " + pos);
 	            this.roadPositions.push(pos);
 	            this.recheckNonAccess();
 	        }
@@ -8859,7 +10510,6 @@ module.exports =
 	                this.bottomMost = pos.y;
 	            }
 	        }
-	        this.map[pos.x][pos.y] = structureType;
 	    }
 	    findStructureType(xDelta, yDelta) {
 	        let isRoadCoord = this.checkValidRoadCoord(xDelta, yDelta);
@@ -8994,13 +10644,10 @@ module.exports =
 	        else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
 	            let pos = helper_1.helper.coordToPosition({ x: xDelta, y: yDelta }, this.centerPosition);
 	            // check narrow passage due to natural walls
-	            if (pos.getPositionAtDirection(2).lookFor(LOOK_TERRAIN)[0] === "wall"
-	                && pos.getPositionAtDirection(6).lookFor(LOOK_TERRAIN)[0] === "wall") {
-	                return true;
-	            }
-	            else if (pos.getPositionAtDirection(4).lookFor(LOOK_TERRAIN)[0] === "wall"
-	                && pos.getPositionAtDirection(8).lookFor(LOOK_TERRAIN)[0] === "wall") {
-	                return true;
+	            for (let direction = 2; direction <= 8; direction += 2) {
+	                if (pos.getPositionAtDirection(direction).lookFor(LOOK_TERRAIN)[0] === "wall") {
+	                    return true;
+	                }
 	            }
 	            return false;
 	        }
@@ -9008,35 +10655,15 @@ module.exports =
 	            return true;
 	        }
 	    }
-	    debugMap() {
+	    removeStragglingRoads() {
 	        for (let x in this.map) {
 	            for (let y in this.map[x]) {
-	                let structureType = this.map[x][y];
-	                let position = new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.roomName);
-	                let color = COLOR_WHITE;
-	                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
-	                    || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
-	                    color = COLOR_YELLOW;
+	                let xInt = Number.parseInt(x);
+	                let yInt = Number.parseInt(y);
+	                if (xInt < this.leftMost - 1 || xInt > this.rightMost + 1
+	                    || yInt < this.topMost - 1 || yInt > this.bottomMost + 1) {
+	                    this.map[x][y] = undefined;
 	                }
-	                else if (structureType === STRUCTURE_TOWER) {
-	                    color = COLOR_BLUE;
-	                }
-	                else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
-	                    color = COLOR_CYAN;
-	                }
-	                else if (structureType === STRUCTURE_POWER_SPAWN) {
-	                    color = COLOR_RED;
-	                }
-	                else if (structureType === STRUCTURE_OBSERVER) {
-	                    color = COLOR_BROWN;
-	                }
-	                else if (structureType === STRUCTURE_ROAD) {
-	                    color = COLOR_GREY;
-	                }
-	                else if (structureType === STRUCTURE_RAMPART) {
-	                    color = COLOR_GREEN;
-	                }
-	                position.createFlag("layout_" + x + y + structureType, color);
 	            }
 	        }
 	    }
@@ -9045,7 +10672,7 @@ module.exports =
 
 
 /***/ },
-/* 45 */
+/* 52 */
 /*!******************************************!*\
   !*** ./src/prototypes/initPrototypes.ts ***!
   \******************************************/
@@ -9053,9 +10680,9 @@ module.exports =
 
 	"use strict";
 	const helper_1 = __webpack_require__(/*! ../helpers/helper */ 5);
-	const initRoomPrototype_1 = __webpack_require__(/*! ./initRoomPrototype */ 46);
-	const initRoomPositionPrototype_1 = __webpack_require__(/*! ./initRoomPositionPrototype */ 47);
-	const initCreepPrototype_1 = __webpack_require__(/*! ./initCreepPrototype */ 48);
+	const initRoomPrototype_1 = __webpack_require__(/*! ./initRoomPrototype */ 53);
+	const initRoomPositionPrototype_1 = __webpack_require__(/*! ./initRoomPositionPrototype */ 54);
+	const initCreepPrototype_1 = __webpack_require__(/*! ./initCreepPrototype */ 55);
 	function initPrototypes() {
 	    initRoomPrototype_1.initRoomPrototype();
 	    initRoomPositionPrototype_1.initRoomPositionPrototype();
@@ -9112,11 +10739,8 @@ module.exports =
 	                }
 	                else {
 	                    if (structure.structureType === STRUCTURE_CONTAINER || structure.structureType === STRUCTURE_LINK) {
-	                        let sourceInRange = structure.pos.findInRange(FIND_SOURCES, 2)[0];
-	                        if (sourceInRange)
-	                            return false;
-	                        else
-	                            return true;
+	                        let sourcesInRange = structure.pos.findInRange(FIND_SOURCES, 2);
+	                        return sourcesInRange.length === 0;
 	                    }
 	                }
 	            })
@@ -9196,12 +10820,22 @@ module.exports =
 	            return this._send(resourceType, amount, roomName, description);
 	        }
 	    };
+	    StructureTower.prototype._repair = StructureTower.prototype.repair;
+	    StructureTower.prototype.repair = function (target) {
+	        if (!this.alreadyFired) {
+	            this.alreadyFired = true;
+	            return this._repair(target);
+	        }
+	        else {
+	            return ERR_BUSY;
+	        }
+	    };
 	}
 	exports.initPrototypes = initPrototypes;
 
 
 /***/ },
-/* 46 */
+/* 53 */
 /*!*********************************************!*\
   !*** ./src/prototypes/initRoomPrototype.ts ***!
   \*********************************************/
@@ -9334,7 +10968,7 @@ module.exports =
 
 
 /***/ },
-/* 47 */
+/* 54 */
 /*!*****************************************************!*\
   !*** ./src/prototypes/initRoomPositionPrototype.ts ***!
   \*****************************************************/
@@ -9615,7 +11249,7 @@ module.exports =
 
 
 /***/ },
-/* 48 */
+/* 55 */
 /*!**********************************************!*\
   !*** ./src/prototypes/initCreepPrototype.ts ***!
   \**********************************************/
@@ -9796,9 +11430,6 @@ module.exports =
 	            else {
 	                ops.reusePath = 5;
 	            }
-	            if (this.name === "swat1_gammaHealer") {
-	                console.log(destination);
-	            }
 	            return this.moveTo(destination, ops);
 	        }
 	        else {
@@ -9834,13 +11465,13 @@ module.exports =
 	                        occupier.transfer(this, resourceType);
 	                    }
 	                }
-	                this.say("my spot!", true);
+	                this.say("my spot!");
 	                occupier.suicide();
 	            }
 	            else {
 	                let direction = occupier.pos.getDirectionTo(this);
 	                occupier.move(direction);
-	                this.say("move it", true);
+	                this.say("move it");
 	            }
 	        }
 	        // move
@@ -10156,21 +11787,80 @@ module.exports =
 
 
 /***/ },
-/* 49 */
+/* 56 */
 /*!************************!*\
   !*** ./src/sandbox.ts ***!
   \************************/
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
+	const profiler_1 = __webpack_require__(/*! ./profiler */ 57);
 	exports.sandBox = {
 	    run: function () {
+	        let claimerFlag = Game.flags["claimerFlag"];
+	        if (claimerFlag) {
+	            let claimer = Game.creeps["claimer"];
+	            if (!claimer) {
+	                let closest;
+	                let bestDistance = Number.MAX_VALUE;
+	                for (let roomName in global.emp.spawnGroups) {
+	                    let distance = Game.map.getRoomLinearDistance(claimerFlag.pos.roomName, roomName);
+	                    if (distance < bestDistance) {
+	                        bestDistance = distance;
+	                        closest = global.emp.spawnGroups[roomName];
+	                    }
+	                }
+	                closest.spawn([CLAIM, MOVE], "claimer", undefined, undefined);
+	                return;
+	            }
+	            if (claimer.pos.inRangeTo(claimerFlag, 0)) {
+	                claimer.claimController(claimer.room.controller);
+	                console.log("### claimer waiting");
+	            }
+	            else {
+	                claimer.avoidSK(claimerFlag);
+	            }
+	        }
+	        let testFlag = Game.flags["testerFlag"];
+	        if (testFlag) {
+	            let creepNames = ["blindMoveTo", "travelTo"];
+	            for (let creepName of creepNames) {
+	                let creep = Game.creeps[creepName];
+	                if (!creep) {
+	                    let closest;
+	                    let bestDistance = Number.MAX_VALUE;
+	                    for (let roomName in global.emp.spawnGroups) {
+	                        let distance = Game.map.getRoomLinearDistance(testFlag.pos.roomName, roomName);
+	                        if (distance < bestDistance) {
+	                            bestDistance = distance;
+	                            closest = global.emp.spawnGroups[roomName];
+	                        }
+	                    }
+	                    closest.spawn([MOVE], creepName, undefined, undefined);
+	                    continue;
+	                }
+	                if (creepName === "blindMoveTo") {
+	                    if (!creep.pos.inRangeTo(testFlag, 1)) {
+	                        profiler_1.profiler.start("blindMoveTo");
+	                        creep.blindMoveTo(testFlag);
+	                        profiler_1.profiler.end("blindMoveTo");
+	                    }
+	                }
+	                if (creepName === "travelTo") {
+	                    if (!creep.pos.inRangeTo(testFlag, 1)) {
+	                        profiler_1.profiler.start("travelTo");
+	                        emp.travelTo(creep, testFlag);
+	                        profiler_1.profiler.end("travelTo");
+	                    }
+	                }
+	            }
+	        }
 	    }
 	};
 
 
 /***/ },
-/* 50 */
+/* 57 */
 /*!*************************!*\
   !*** ./src/profiler.ts ***!
   \*************************/
@@ -10178,33 +11868,38 @@ module.exports =
 
 	"use strict";
 	exports.profiler = {
-	    start(identifier) {
-	        this.cpu = Game.cpu.getUsed();
-	        if (!Memory.profiler[identifier])
-	            Memory.profiler[identifier] = {
-	                startOfPeriod: Game.time,
-	                lastTickTracked: undefined,
-	                total: 0,
-	                count: 0,
-	                costPerCall: undefined,
-	                costPerTick: undefined,
-	                callsPerTick: undefined,
-	            };
+	    start(identifier, consoleReport = false, period = 5) {
+	        if (!Memory.profiler[identifier]) {
+	            Memory.profiler[identifier] = {};
+	        }
+	        _.defaults(Memory.profiler[identifier], { total: 0, count: 0, startOfPeriod: Game.time - 1 });
+	        Memory.profiler[identifier].period = period;
+	        Memory.profiler[identifier].consoleReport = consoleReport;
 	        Memory.profiler[identifier].lastTickTracked = Game.time;
+	        Memory.profiler[identifier].cpu = Game.cpu.getUsed();
 	    },
-	    end(identifier, period = 10) {
+	    end(identifier) {
 	        let profile = Memory.profiler[identifier];
-	        profile.total += Game.cpu.getUsed() - this.cpu;
+	        profile.total += Game.cpu.getUsed() - profile.cpu;
 	        profile.count++;
-	        if (Game.time - profile.tickBegin >= period - 1) {
-	            profile.costPerCall = _.round(profile.total / profile.count, 2);
-	            profile.costPerTick = _.round(profile.total / period, 2);
-	            profile.callsPerTick = _.round(profile.count / period, 2);
-	            // console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:",
-	            //    profile.costPerCall, "calls per tick:", profile.callsPerTick);
-	            profile.tickBegin = Game.time + 1;
-	            profile.total = 0;
-	            profile.count = 0;
+	    },
+	    finalize() {
+	        for (let identifier in Memory.profiler) {
+	            let profile = Memory.profiler[identifier];
+	            if (Game.time - profile.startOfPeriod >= profile.period) {
+	                profile.costPerCall = _.round(profile.total / profile.count, 2);
+	                profile.costPerTick = _.round(profile.total / profile.period, 2);
+	                profile.callsPerTick = _.round(profile.count / profile.period, 2);
+	                if (profile.consoleReport) {
+	                    console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:", profile.costPerCall, "calls per tick:", profile.callsPerTick);
+	                }
+	                profile.startOfPeriod = Game.time;
+	                profile.total = 0;
+	                profile.count = 0;
+	            }
+	            if (Game.time - profile.lastTickTracked > 10000) {
+	                delete Memory.profiler[identifier];
+	            }
 	        }
 	    }
 	};
