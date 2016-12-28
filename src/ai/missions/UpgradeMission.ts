@@ -330,20 +330,20 @@ export class UpgradeMission extends Mission {
         if (!hasLoad) {
             if (influxCart.pos.isNearTo(originStorage)) {
                 influxCart.withdraw(originStorage, RESOURCE_ENERGY);
-                influxCart.avoidSK(this.room.storage);
+                this.empire.travelTo(influxCart, this.room.storage, {ignoreRoads: true});
             }
             else {
-                influxCart.avoidSK(originStorage, {ignoreRoads: true});
+                this.empire.travelTo(influxCart, originStorage, {ignoreRoads: true});
             }
             return;
         }
 
         if (influxCart.pos.isNearTo(this.room.storage)) {
             influxCart.transfer(this.room.storage, RESOURCE_ENERGY);
-            influxCart.avoidSK(originStorage);
+            this.empire.travelTo(influxCart, originStorage, {ignoreRoads: true});
         }
         else {
-            influxCart.avoidSK(this.room.storage);
+            this.empire.travelTo(influxCart, this.room.storage, {ignoreRoads: true});
         }
     }
 
