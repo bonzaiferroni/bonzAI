@@ -120,6 +120,8 @@ export interface TravelData {
 }
 
 export interface TravelToOptions {
-    preferHighway: boolean;
-    ignoreRoads: boolean;
+    preferHighway?: boolean;
+    ignoreRoads?: boolean;
+    ignoreCreeps?: boolean;
+    ignoreStructures?: boolean;
 }
