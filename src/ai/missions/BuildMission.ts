@@ -82,8 +82,12 @@ export class BuildMission extends Mission {
             let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
             let cartCarryCount = Math.floor((analysis.body.length * 2) / 3);
             let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
-
-            return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
+            if (this.spawnGroup.room === this.room) {
+                return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
+            }
+            else {
+                return this.workerBody(potency, carryCount, potency);
+            }
         };
 
         let builderMemory;

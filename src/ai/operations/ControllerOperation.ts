@@ -84,12 +84,12 @@ export abstract class ControllerOperation extends Operation {
 
         this.empire.register(this.flag.room);
 
-        // spawn emergency miner if needed
-        this.addMission(new EmergencyMinerMission(this));
-
-        // refill spawning energy - will spawn small spawnCart if needed
-
-        this.addMission(new RefillMission(this));
+        if (this.flag.room.findStructures(STRUCTURE_SPAWN).length > 0) {
+            // spawn emergency miner if needed
+            this.addMission(new EmergencyMinerMission(this));
+            // refill spawning energy - will spawn small spawnCart if needed
+            this.addMission(new RefillMission(this));
+        }
 
         this.addDefense();
 
@@ -146,16 +146,7 @@ export abstract class ControllerOperation extends Operation {
         if (this.flag.room.controller.level < 6) {
             if (!this.memory.spawnRooms) return;
             let boostSpawnGroup = this.getRemoteSpawnGroup(6);
-            if (boostSpawnGroup && boostSpawnGroup.room.controller.level >= 7) {
-                upgradeMission.setSpawnGroup(boostSpawnGroup);
-                buildMission.setSpawnGroup(boostSpawnGroup);
-
-                // remote spawn miners
-                if (this.spawnGroup.maxSpawnEnergy < 1300) {
-                    for (let miningMission of miningMissions) {
-                        miningMission.setSpawnGroup(boostSpawnGroup);
-                    }
-                }
+            if (boostSpawnGroup) {
 
                 if (this.flag.room.controller.level < 4) {
                     let bodyguard = new BodyguardMission(this);
@@ -164,6 +155,18 @@ export abstract class ControllerOperation extends Operation {
                     let remoteBuilder = new RemoteBuildMission(this, false);
                     this.addMission(remoteBuilder);
                     remoteBuilder.setSpawnGroup(boostSpawnGroup);
+                }
+
+                if (boostSpawnGroup.room.controller.level >= 8) {
+                    upgradeMission.setSpawnGroup(boostSpawnGroup);
+                    buildMission.setSpawnGroup(boostSpawnGroup);
+                }
+
+                // remote spawn miners
+                if (this.spawnGroup.maxSpawnEnergy < 1300) {
+                    for (let miningMission of miningMissions) {
+                        miningMission.setSpawnGroup(boostSpawnGroup);
+                    }
                 }
             }
         }
