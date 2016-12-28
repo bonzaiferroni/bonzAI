@@ -124,6 +124,12 @@ export class IgorMission extends Mission {
         if (_.sum(igor.carry) === 0) {
             let origin = Game.getObjectById<Structure>(command.origin);
             if (igor.pos.isNearTo(origin)) {
+                if (origin instanceof StructureTerminal) {
+                    if (!origin.store[command.resourceType]) {
+                        console.log(`IGOR: I can't find that resource in terminal, opName: ${this.opName}`);
+                        this.memory.command = undefined;
+                    }
+                }
                 igor.withdraw(origin, command.resourceType, command.amount);
                 let destination = Game.getObjectById<Structure>(command.destination);
                 if (!igor.pos.isNearTo(destination)) {
