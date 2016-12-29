@@ -130,4 +130,14 @@ export function initRoomPrototype() {
             return this.memory.coordinates;
         }
     });
+
+    Object.defineProperty(Room.prototype, "defaultMatrix", {
+        get: function myProperty() {
+            if (!this.memory._defaultMatrix) {
+                let matrix = new PathFinder.CostMatrix();
+                this.memory._defaultMatrix = helper.addStructuresToMatrix(matrix, this);
+            }
+            return this.memory._defaultMatrix;
+        }
+    });
 }

@@ -658,6 +658,7 @@ export class Empire {
             ignoreCreeps: true,
             preferHighway: false,
             ignoreStructures: false,
+            range: 1,
         });
 
         let allowedRooms;
@@ -678,7 +679,7 @@ export class Empire {
             return matrix;
         };
 
-        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: 1}, {
+        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
             swampCost: options.ignoreRoads ? 5 : 10,
             plainCost: options.ignoreRoads ? 1 : 2,
             maxOps: 20000,

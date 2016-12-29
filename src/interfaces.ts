@@ -59,10 +59,12 @@ export interface RaidData {
     raidCreeps: Creep[];
     injuredCreeps: {[creepName: string]: number};
     breachFlags: Flag[];
-    positions: RaidPositions;
-    breachStructure: Structure;
+    breachStructures: Structure[];
+    attackRoom: Room;
+    fallbackFlag: Flag;
     targetStructures: Structure[];
     fallback: boolean;
+    obstacles: RoomObject[];
 }
 
 export interface RaidPositions {
@@ -124,4 +126,5 @@ export interface TravelToOptions {
     ignoreRoads?: boolean;
     ignoreCreeps?: boolean;
     ignoreStructures?: boolean;
+    range?: number;
 }

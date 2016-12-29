@@ -22,6 +22,8 @@ interface Room {
     hostilesAndLairs: RoomObject[];
     coords: RoomCoord;
     roomType: number;
+    _defaultMatrix: CostMatrix;
+    defaultMatrix: CostMatrix;
 }
 
 interface RoomCoord {
