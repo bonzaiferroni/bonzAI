@@ -1345,12 +1345,7 @@ interface PathFinder {
     search(origin: RoomPosition, goal: RoomPosition[] | {
         pos: RoomPosition;
         range: number;
-    }[], opts?: PathFinderOpts): {
-        path: RoomPosition[];
-        ops: number;
-        cost: number;
-        incomplete: boolean;
-    };
+    }[], opts?: PathFinderOpts): PathfinderReturn
     /**
      * Specify whether to use this new experimental pathfinder in game objects methods.
      * This method should be invoked every tick. It affects the following methods behavior:
@@ -1359,6 +1354,13 @@ interface PathFinder {
      * @param isEnabled Whether to activate the new pathfinder or deactivate.
      */
     use(isEnabled: boolean): any;
+}
+
+interface PathfinderReturn {
+    path: RoomPosition[],
+    ops: number,
+    cost: number,
+    incomplete: boolean,
 }
 /**
  * An object containing additional pathfinding flags.

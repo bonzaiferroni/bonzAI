@@ -648,7 +648,7 @@ export class Empire {
         return creep.move(nextDirection);
     }
 
-    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}, options?: TravelToOptions) {
+    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}, options?: TravelToOptions): PathfinderReturn {
         if (!options) {
             options = {};
         }
@@ -659,6 +659,7 @@ export class Empire {
             preferHighway: false,
             ignoreStructures: false,
             range: 1,
+            obstacles: [],
         });
 
         let allowedRooms;
@@ -669,12 +670,20 @@ export class Empire {
             if (!allowedRooms[roomName]) return false;
             let room = Game.rooms[roomName];
             if (!room) return;
-            let matrix = new PathFinder.CostMatrix();
-            if (!options.ignoreStructures) {
-                helper.addStructuresToMatrix(matrix, room);
+            let matrix: CostMatrix;
+            if (options.ignoreStructures) {
+                matrix = new PathFinder.CostMatrix();
+            }
+            else {
+                matrix = room.defaultMatrix;
             }
             if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
                 helper.addCreepsToMatrix(matrix, room);
+            }
+            for (let obstacle of options.obstacles) {
+                if (obstacle.pos.roomName === origin.pos.roomName) {
+                    matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
+                }
             }
             return matrix;
         };

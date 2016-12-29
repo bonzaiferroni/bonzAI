@@ -547,20 +547,7 @@ export abstract class RaidMission extends Mission {
 
     private hasValidPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}): boolean {
         let obstacles = _.filter(this.raidData.obstacles, (c: Creep) => c !== this.attacker);
-        let callback = (roomName: string): CostMatrix => {
-            let room = Game.rooms[roomName];
-            if (!room) return;
-            let matrix = _.clone(room.defaultMatrix);
-            for (let obstacle of obstacles) {
-                if (obstacle.pos.roomName === roomName) {
-                    matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
-                }
-            }
-        };
-        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: this.attackRange}, {
-            maxRooms: 1,
-            roomCallback: callback,
-        });
+        let ret = this.empire.findTravelPath(origin, destination, {obstacles: obstacles});
         return !ret.incomplete;
     }
 }

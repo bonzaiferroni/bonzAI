@@ -127,4 +127,5 @@ export interface TravelToOptions {
     ignoreCreeps?: boolean;
     ignoreStructures?: boolean;
     range?: number;
+    obstacles?: {pos: RoomPosition}[];
 }
