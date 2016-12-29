@@ -31,7 +31,7 @@ export class MasonMission extends Mission {
         if (this.memory.needMason) {
             max = 1;
         }
-        this.masons = this.headCount("mason", () => this.workerBody(20, 8, 7), max);
+        this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), max);
     }
 
     missionActions() {
@@ -75,6 +75,7 @@ export class MasonMission extends Mission {
             if (extension) {
                 if (mason.pos.isNearTo(extension)) {
                     mason.withdraw(extension, RESOURCE_ENERGY);
+                    delete mason.memory.extensionId;
                 }
                 else {
                     mason.blindMoveTo(extension);
@@ -99,7 +100,7 @@ export class MasonMission extends Mission {
                 .head();
             if (myRampart) return myRampart;
         };
-        let forgetRampart = (s: Structure) => mason.ticksToLive % 300 === 0;
+        let forgetRampart = (s: Structure) => mason.ticksToLive % 500 === 0;
         return mason.rememberStructure<StructureRampart>(findRampart, forgetRampart, "rampartId");
     }
 

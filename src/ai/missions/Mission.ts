@@ -407,7 +407,10 @@ export abstract class Mission {
     }
 
     moveToFlag(creep: Creep) {
-        if (!creep.pos.isNearTo(this.flag)) {
+        if (creep.pos.inRangeTo(this.flag, 3)) {
+            creep.yieldRoad(this.flag)
+        }
+        else {
             creep.blindMoveTo(this.flag);
         }
     }
@@ -629,6 +632,7 @@ export abstract class Mission {
 
         if (!road) {
             console.log(`this is ${this.opName} paver, checking out with ${paver.ticksToLive} ticks to live`);
+            delete Memory.creeps[paver.name];
             paver.idleOffRoad(this.room.controller);
             return;
         }
