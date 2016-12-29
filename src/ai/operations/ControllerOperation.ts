@@ -77,6 +77,7 @@ export abstract class ControllerOperation extends Operation {
             if (!this.memory.spawnRooms) { return; }
             this.spawnGroup = this.getRemoteSpawnGroup(8);
             this.addMission(new ScoutMission(this));
+            if (!this.hasVision) return;
             this.addMission(new ClaimMission(this));
             this.addMission(new BodyguardMission(this));
             this.addMission(new RemoteBuildMission(this, false));
