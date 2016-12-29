@@ -6,20 +6,19 @@ import {
 } from "../config/constants";
 import {helper} from "../helpers/helper";
 import {TravelData, TravelToOptions} from "../interfaces";
-import {profiler} from "../profiler";
 export class Empire {
 
     storages: StructureStorage[] = [];
     terminals: StructureTerminal[] = [];
     swapTerminals: StructureTerminal[] = [];
     spawnGroups: {[roomName: string]: SpawnGroup} = {};
-    energyTraded: boolean;
-    mineralTraded: boolean;
     memory: {
         allyRooms: string[];
-        hostileRooms: {[roomName: string]: number }
+        hostileRooms: {[roomName: string]: number };
         tradeIndex: number;
         activeNukes: {tick: number, roomName: string }[];
+        safe: {[username: string]: boolean};
+        danger: {[username: string]: boolean};
     };
     tradeResource: string;
     shortages: StructureTerminal[] = [];
@@ -29,7 +28,13 @@ export class Empire {
 
     constructor() {
         if (!Memory.empire) Memory.empire = {};
-        _.defaults(Memory.empire, { allyRooms: [], hostileRooms: {}, tradeIndex: 0, activeNukes: [] });
+        _.defaults(Memory.empire, {
+            allyRooms: [],
+            hostileRooms: {},
+            tradeIndex: 0,
+            activeNukes: [],
+            safe: {},
+            danger: {} });
         this.memory = Memory.empire;
     }
 
@@ -705,18 +710,38 @@ export class Empire {
 
         if (Game.time % 10 !== 0) return;
 
-        function kFormatter(num: number) {
+        let kFormatter = (num: number) => {
             return num > 999 ? (num/1000).toFixed(1) + 'k' : num
-        }
+        };
 
-        function consoleReport(item: Transaction) {
+        let consoleReport = (item: Transaction) => {
             let distance = Game.map.getRoomLinearDistance(item.from, item.to);
             let cost = Game.market.calcTransactionCost(item.amount, item.from, item.to);
             console.log(`TRADE: ${_.padLeft(`${item.from} ${item.sender.username}`.substr(0, 12), 12)} ` +
-                `→ ${_.pad(`${kFormatter(item.amount)} ${item.resourceType}`, 11)} → ` +
+                `→ ${_.pad(`${kFormatter(item.amount)} ${item.resourceType}`.substr(0, 12), 12)} → ` +
                 `${_.padRight(`${item.to} ${item.recipient.username}`.substr(0, 12), 12)} (dist: ${distance}, cost: ${kFormatter(cost)})`);
-        }
+        };
 
+        let decipher = (item: Transaction) => {
+            if (item.description === "safe") {
+                this.memory.safe[item.sender.username] = true;
+                console.log(`EMPIRE: ${item.sender.username} requested to be added to safe list`);
+            }
+            else if (item.description === "removeSafe") {
+                delete this.memory.safe[item.sender.username];
+                console.log(`EMPIRE: ${item.sender.username} requested to be removed from safe list`);
+            }
+            else if (item.description === "danger") {
+                this.memory.danger[item.sender.username] = true;
+                console.log(`EMPIRE: ${item.sender.username} requested to be added to danger list`);
+            }
+            else if (item.description === "removeDanger") {
+                delete this.memory.danger[item.sender.username];
+                console.log(`EMPIRE: ${item.sender.username} requested to be removed from danger list`);
+            }
+        };
+
+        let decipheredMessage = false;
         for (let item of Game.market.incomingTransactions) {
             if (item.time >= Game.time - 10) {
                 if (!Memory.traders[item.sender.username]) {
@@ -727,6 +752,10 @@ export class Empire {
                 }
                 Memory.traders[item.sender.username][item.resourceType] += item.amount;
                 consoleReport(item);
+                if (item.amount === 111 && !decipheredMessage) {
+                    decipheredMessage = true;
+                    decipher(item);
+                }
             }
             else {
                 break;
