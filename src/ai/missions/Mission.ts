@@ -146,18 +146,27 @@ export abstract class Mission {
         let employerName = this.opName + this.name;
         let creep;
         if (spawnMemory.communityRoles[roleName]) {
-            creep = Game.creeps[spawnMemory.communityRoles[roleName]];
-            if (creep) {
+            let creepName = spawnMemory.communityRoles[roleName];
+            creep = Game.creeps[creepName];
+            if (creep && Game.map.getRoomLinearDistance(this.spawnGroup.room.name, creep.room.name) <= 3) {
                 if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed || Game.time - creep.memory.lastTickEmployed > 1)) {
                     creep.memory.employer = employerName;
                     creep.memory.lastTickEmployed = Game.time;
                     return creep;
                 }
             }
+            else {
+                delete Memory.creeps[creepName];
+                delete spawnMemory.communityRoles[roleName];
+            }
         }
 
         if (!creep && this.spawnGroup.isAvailable) {
-            let outcome = this.spawnGroup.spawn(getBody(), "community_" + roleName + "_" + Math.floor(Math.random() * 100), undefined, undefined);
+            let creepName = "community_" + roleName;
+            while (Game.creeps[creepName]) {
+                creepName = "community_" + roleName + "_" + Math.floor(Math.random() * 100);
+            }
+            let outcome = this.spawnGroup.spawn(getBody(), creepName, undefined, undefined);
             if (_.isString(outcome)) {
                 spawnMemory.communityRoles[roleName] = outcome;
             }
