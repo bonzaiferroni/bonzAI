@@ -675,7 +675,7 @@ export class Empire {
                 matrix = new PathFinder.CostMatrix();
             }
             else {
-                matrix = room.defaultMatrix;
+                matrix = room.defaultMatrix.clone();
             }
             if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
                 helper.addCreepsToMatrix(matrix, room);
