@@ -38,7 +38,6 @@ module.exports.loop = function () {
     try { empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
     try { loopHelper.scavangeResources(); } catch (e) { console.log("error scavanging:\n", e.stack); }
     try { loopHelper.sendResourceOrder(empire); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
-    try { loopHelper.reportTransactions(); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
     try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
     profiler.end("postOperations");

@@ -228,4 +228,26 @@ export var consoleCommands = {
             }
         })
     },
+
+    patchTraderMemory() {
+        for (let username in Memory.traders) {
+            let data = Memory.traders[username] as any;
+            if (data.recieved) {
+                for (let resourceType in data.recieved) {
+                    let amount = data.recieved[resourceType];
+                    if (data[resourceType] === undefined) data[resourceType] = 0;
+                    data[resourceType] += amount;
+                }
+            }
+            if (data.sent) {
+                for (let resourceType in data.sent) {
+                    let amount = data.sent[resourceType];
+                    if (data[resourceType] === undefined) data[resourceType] = 0;
+                    data[resourceType] -= amount;
+                }
+            }
+            delete data.recieved;
+            delete data.sent;
+        }
+    },
 };

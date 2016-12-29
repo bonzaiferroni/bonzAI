@@ -2,7 +2,7 @@ import {SpawnGroup} from "./SpawnGroup";
 import {
     RESOURCE_VALUE, MINERALS_RAW, RESERVE_AMOUNT, PRODUCT_LIST, PRODUCT_PRICE, TRADE_RESOURCES, NEED_ENERGY_THRESHOLD,
     SUPPLY_ENERGY_THRESHOLD, SWAP_RESERVE, TRADE_ENERGY_AMOUNT, TRADE_MAX_DISTANCE, TICK_FULL_REPORT,
-    OBSERVER_PURPOSE_ALLYTRADE, ALLIES
+    OBSERVER_PURPOSE_ALLYTRADE, ALLIES, USERNAME
 } from "../config/constants";
 import {helper} from "../helpers/helper";
 import {TravelData, TravelToOptions} from "../interfaces";
@@ -53,6 +53,7 @@ export class Empire {
         this.buyShortages();
         this.sellCompounds();
         this.reportNukes();
+        this.reportTransactions();
     }
 
     // should only be accessed after Init()
@@ -513,8 +514,8 @@ export class Empire {
         let outcome = localTerminal.send(resourceType, amount, otherTerminal.room.name);
         if (outcome === OK) {
             let distance = Game.map.getRoomLinearDistance(otherTerminal.room.name, localTerminal.room.name, true);
-            console.log("NETWORK:", localTerminal.room.name, "→",
-                otherTerminal.room.name + ":", amount, resourceType, "(" + otherTerminal.owner.username.substring(0, 3) + ", dist: " + distance + ")");
+            // console.log("NETWORK:", localTerminal.room.name, "→",
+            //    otherTerminal.room.name + ":", amount, resourceType, "(" + otherTerminal.owner.username.substring(0, 3) + ", dist: " + distance + ")");
         }
         else {
             console.log(`NETWORK: error sending resource in ${localTerminal.room.name}, outcome: ${outcome}`);
@@ -698,6 +699,56 @@ export class Empire {
             roomCallback: callback
         } );
         return ret;
+    }
+
+    reportTransactions() {
+
+        if (Game.time % 10 !== 0) return;
+
+        function kFormatter(num: number) {
+            return num > 999 ? (num/1000).toFixed(1) + 'k' : num
+        }
+
+        function consoleReport(item: Transaction) {
+            let distance = Game.map.getRoomLinearDistance(item.from, item.to);
+            let cost = Game.market.calcTransactionCost(item.amount, item.from, item.to);
+            console.log(`TRADE: ${_.padLeft(`${item.from} ${item.sender.username}`.substr(0, 12), 12)} ` +
+                `→ ${_.pad(`${kFormatter(item.amount)} ${item.resourceType}`, 11)} → ` +
+                `${_.padRight(`${item.to} ${item.recipient.username}`.substr(0, 12), 12)} (dist: ${distance}, cost: ${kFormatter(cost)})`);
+        }
+
+        for (let item of Game.market.incomingTransactions) {
+            if (item.time >= Game.time - 10) {
+                if (!Memory.traders[item.sender.username]) {
+                    Memory.traders[item.sender.username] = {};
+                }
+                if (Memory.traders[item.sender.username][item.resourceType] === undefined) {
+                    Memory.traders[item.sender.username][item.resourceType] = 0;
+                }
+                Memory.traders[item.sender.username][item.resourceType] += item.amount;
+                consoleReport(item);
+            }
+            else {
+                break;
+            }
+        }
+
+        for (let item of Game.market.outgoingTransactions) {
+            if (item.time >= Game.time - 10) {
+                if (!Memory.traders[item.recipient.username]) {
+                    Memory.traders[item.recipient.username] = {};
+                }
+                if (!Memory.traders[item.recipient.username][item.resourceType] === undefined) {
+                    Memory.traders[item.recipient.username][item.resourceType] = 0;
+                }
+                Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
+                if (item.recipient.username === USERNAME) { continue; }
+                consoleReport(item);
+            }
+            else {
+                break;
+            }
+        }
     }
 }
 

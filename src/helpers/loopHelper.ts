@@ -88,6 +88,7 @@ export var loopHelper = {
                 powerMinimum: 9000,
             },
             profiler: {},
+            traders: {},
         });
     },
 
@@ -159,42 +160,6 @@ export var loopHelper = {
         Memory.stats["game.cpu.tickLimit"] = Game.cpu.tickLimit;
         Memory.stats["game.cpu.bucket"] = Game.cpu.bucket;
         Memory.stats["game.cpu.used"] = Game.cpu.getUsed();
-    },
-
-    reportTransactions: function() {
-        for (let item of Game.market.incomingTransactions) {
-            if (item.time === Game.time - 1) {
-                if (item.sender.username !== USERNAME) {
-                    if (!Memory.traders) Memory.traders = {};
-                    if (!Memory.traders[item.sender.username]) {
-                        Memory.traders[item.sender.username] = { recieved: {}, sent: {} };
-                    }
-                    if (!Memory.traders[item.sender.username].recieved[item.resourceType]) {
-                        Memory.traders[item.sender.username].recieved[item.resourceType] = 0;
-                    }
-
-                    Memory.traders[item.sender.username].recieved[item.resourceType] += item.amount;
-
-                    console.log("MARKET: received", item.amount, "of", item.resourceType, "from", item.sender.username);
-                }
-                else if (item.recipient.username !== USERNAME) {
-                    if (!Memory.traders) Memory.traders = {};
-                    if (!Memory.traders[item.recipient.username]) {
-                        Memory.traders[item.recipient.username] = { recieved: {}, sent: {} };
-                    }
-                    if (!Memory.traders[item.recipient.username].sent[item.resourceType]) {
-                        Memory.traders[item.recipient.username].sent[item.resourceType] = 0;
-                    }
-
-                    Memory.traders[item.recipient.username].sent[item.resourceType] += item.amount;
-
-                    console.log("MARKET: sent", item.amount, "of", item.resourceType, "to", item.recipient.username);
-                }
-            }
-            else {
-                break;
-            }
-        }
     },
 
     sendResourceOrder: function(empire: Empire) {

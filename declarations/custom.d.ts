@@ -88,10 +88,7 @@ interface Memory {
     temp: any;
     strangerDanger: {[username: string]: StrangerReport[] };
     stats: any;
-    traders: {[username: string]: {
-        recieved: {[resourceType: string]: number},
-        sent: {[resourceType: string]: number}
-    }};
+    traders: {[username: string]: { [resourceType: string]: number; }};
     resourceOrder: {[time: number]: ResourceOrder};
     playerConfig: {
         terminalNetworkRange: number;
