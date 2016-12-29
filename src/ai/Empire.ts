@@ -629,7 +629,7 @@ export class Empire {
             if (!options) {
                 options = {};
             }
-            options.ignoreCreeps = travelData.stuck >= 5;
+            options.ignoreCreeps = travelData.stuck < 5;
             let ret = this.findTravelPath(creep, destination, options);
             // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
             travelData.path = helper.serializePath(creep.pos, ret.path);
@@ -676,6 +676,9 @@ export class Empire {
             }
             else {
                 matrix = room.defaultMatrix.clone();
+            }
+            if (origin instanceof Creep) {
+                if (origin.name === "vigo9_scout_98") console.log(options.ignoreCreeps);
             }
             if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
                 helper.addCreepsToMatrix(matrix, room);
