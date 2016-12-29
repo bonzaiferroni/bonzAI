@@ -34,6 +34,7 @@ export const ALLIES = {
     "Ashburnie": true,
     "ricane": true,
     "trebbettes": true,
+    "bovius": true,
 };
 
 export const TRADE_PARTNERS = {

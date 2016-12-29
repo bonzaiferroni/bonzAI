@@ -723,19 +723,20 @@ export class Empire {
         };
 
         let decipher = (item: Transaction) => {
-            if (item.description === "safe") {
+            let description = item.description.toLocaleLowerCase();
+            if (description === "safe") {
                 this.memory.safe[item.sender.username] = true;
                 console.log(`EMPIRE: ${item.sender.username} requested to be added to safe list`);
             }
-            else if (item.description === "removeSafe") {
+            else if (description === "removesafe") {
                 delete this.memory.safe[item.sender.username];
                 console.log(`EMPIRE: ${item.sender.username} requested to be removed from safe list`);
             }
-            else if (item.description === "danger") {
+            else if (description === "danger") {
                 this.memory.danger[item.sender.username] = true;
                 console.log(`EMPIRE: ${item.sender.username} requested to be added to danger list`);
             }
-            else if (item.description === "removeDanger") {
+            else if (description === "removedanger") {
                 delete this.memory.danger[item.sender.username];
                 console.log(`EMPIRE: ${item.sender.username} requested to be removed from danger list`);
             }
@@ -767,7 +768,7 @@ export class Empire {
                 if (!Memory.traders[item.recipient.username]) {
                     Memory.traders[item.recipient.username] = {};
                 }
-                if (!Memory.traders[item.recipient.username][item.resourceType] === undefined) {
+                if (Memory.traders[item.recipient.username][item.resourceType] === undefined) {
                     Memory.traders[item.recipient.username][item.resourceType] = 0;
                 }
                 Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
