@@ -2,6 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
+import {ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
 
 export class MiningMission extends Mission {
 
@@ -12,13 +13,14 @@ export class MiningMission extends Mission {
     source: Source;
     container: StructureContainer;
     analysis: TransportAnalysis;
-    needsEnergyTransport: boolean;
     positionsAvailable: number;
     storage: {
         pos: RoomPosition
         store: StoreDefinition
         room: Room;
     };
+    minersNeeded: number;
+    remoteSpawning: boolean;
 
     memory: {
         potencyPerMiner: number;
@@ -34,18 +36,25 @@ export class MiningMission extends Mission {
      * @param operation
      * @param name
      * @param source
+     * @param remoteSpawning
      */
 
-    constructor(operation: Operation, name: string, source: Source) {
+    constructor(operation: Operation, name: string, source: Source, remoteSpawning = false) {
         super(operation, name);
         this.source = source;
+        this.remoteSpawning = remoteSpawning;
     }
 
     // return-early
     initMission() {
         if (!this.hasVision) return;
 
-        this.distanceToSpawn = this.findDistanceToSpawn(this.source.pos);
+        if (this.remoteSpawning) {
+            this.distanceToSpawn = this.empire.roomTravelDistance(this.spawnGroup.room.name, this.room.name) * 50;
+        }
+        else {
+            this.distanceToSpawn = this.findDistanceToSpawn(this.source.pos);
+        }
         this.storage = this.findMinerStorage();
 
         if (!this.memory.positionsAvailable) { this.memory.positionsAvailable = this.source.pos.openAdjacentSpots(true).length; }
@@ -53,25 +62,21 @@ export class MiningMission extends Mission {
 
         this.container = this.source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
         if (!this.container) {
-            this.placeContainer()
+            this.placeContainer();
         }
 
-        this.needsEnergyTransport = this.storage !== undefined;
-        if (this.needsEnergyTransport) {
-            this.runTransportAnalysis();
-        }
-        else {
-
+        this.minersNeeded = 1;
+        if (this.spawnGroup.maxSpawnEnergy < 1050 && !this.remoteSpawning) {
+            this.minersNeeded = 2;
+            if (this.spawnGroup.maxSpawnEnergy < 450) {
+                this.minersNeeded = 3;
+            }
         }
     }
 
     roleCall() {
         // below a certain amount of maxSpawnEnergy, BootstrapMission will harvest energy
-        if (!this.memory.potencyPerMiner) this.memory.potencyPerMiner = 2;
-        let maxMiners = this.needsEnergyTransport ? 1 : Math.min(Math.ceil(5 / this.memory.potencyPerMiner), this.positionsAvailable);
-        if (maxMiners > 1 && this.spawnGroup.maxSpawnEnergy < 800) {
-            this.container = undefined;
-        }
+        let maxMiners = Math.min(this.minersNeeded, this.positionsAvailable);
 
         let getMinerBody = () => {
             return this.getMinerBody();
@@ -83,9 +88,12 @@ export class MiningMission extends Mission {
             this.paver = this.spawnPaver();
         }
 
-        if (!this.needsEnergyTransport) return;
-
+        if (!this.storage) return;
+        this.analysis = this.miningTransportAnalysis();
         let maxCarts = _.sum(this.storage.store) < 950000 ? this.analysis.cartsNeeded : 0;
+        if (!this.container) {
+            maxCarts = 0;
+        }
         let memory = { scavanger: RESOURCE_ENERGY };
         this.minerCarts = this.headCount(this.name + "cart", () => this.analysis.body, maxCarts,
             {prespawn: this.analysis.distance, memory: memory});
@@ -93,8 +101,10 @@ export class MiningMission extends Mission {
 
     missionActions() {
 
+        let order = 0;
         for (let miner of this.miners) {
-            this.minerActions(miner);
+            this.minerActions(miner, order);
+            order++;
         }
 
         if (this.minerCarts) {
@@ -125,7 +135,14 @@ export class MiningMission extends Mission {
         }
     }
 
-    private minerActions(miner: Creep) {
+    finalizeMission() {
+    }
+    invalidateMissionCache() {
+        this.memory.transportAnalysis = undefined;
+        this.memory.distanceToSpawn = undefined;
+    }
+
+    private minerActions(miner: Creep, order: number) {
 
         let fleeing = miner.fleeHostiles();
         if (fleeing) {
@@ -140,103 +157,88 @@ export class MiningMission extends Mission {
             return; // early
         }
 
-        if (this.container && !miner.pos.inRangeTo(this.container, 0)) {
-            miner.moveItOrLoseIt(this.container.pos, "miner");
-            return; // early
-        }
-        else if (!miner.pos.isNearTo(this.source)) {
-            miner.blindMoveTo(this.source);
-            return; // early
+        if (!this.container) {
+            this.buildContainer(miner, order);
+            return;
         }
 
-        if (!this.container && miner.carry.energy >= miner.carryCapacity) {
-            let container = this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1)[0] as ConstructionSite;
-            if (container) {
-                miner.build(container);
-                return;
+        if (order === 0) {
+            this.leadMinerActions(miner);
+        }
+        else {
+            this.backupMinerActions(miner);
+        }
+    }
+
+    private leadMinerActions(miner: Creep) {
+        if (miner.pos.inRangeTo(this.container, 0)) {
+            if (this.container.hits < this.container.hitsMax * .90 && miner.carry.energy >= 20) {
+                miner.repair(this.container);
+            }
+            else if (this.container.store.energy < this.container.storeCapacity) {
+                miner.harvest(this.source);
             }
         }
+        else {
+            if (this.minersNeeded === 1) {
+                miner.moveItOrLoseIt(this.container.pos);
+            }
+            else {
+                miner.blindMoveTo(this.container);
+            }
+        }
+    }
 
-        let myStore = this.container ? this.container : miner;
+    private backupMinerActions(miner: Creep) {
+        if (!miner.pos.isNearTo(this.source) || !miner.pos.isNearTo(this.container)) {
+            let position = _.filter(this.container.pos.openAdjacentSpots(), (p: RoomPosition) => p.isNearTo(this.source))[0];
+            if (position) {
+                miner.blindMoveTo(position);
+            }
+            else {
+                this.idleNear(miner, this.source, 3);
+            }
+            return;
+        }
 
-        miner.memory.donatesEnergy = true;
-        miner.memory.scavanger = RESOURCE_ENERGY;
-        if (this.container && this.container.hits < this.container.hitsMax * .9 && miner.carry.energy > 0) {
-            // container maintainer
+        if (this.container.hits < this.container.hitsMax * .90 && miner.carry.energy >= 20) {
             miner.repair(this.container);
         }
-        else if (!this.needsEnergyTransport || myStore.store.energy < myStore.storeCapacity) {
-            // will stop mining if this is a full miner with full energy
+        else {
             miner.harvest(this.source);
         }
-    }
 
-    finalizeMission() {
-    }
-    invalidateMissionCache() {
-        this.memory.transportAnalysis = undefined;
-        this.memory.distanceToSpawn = undefined;
+        if (miner.carry.energy >= 40) {
+            miner.transfer(this.container, RESOURCE_ENERGY);
+        }
     }
 
     private getMinerBody(): string[] {
-        if (this.room.controller && this.room.controller.my && this.spawnGroup.room !== this.room
-            && this.spawnGroup.maxSpawnEnergy >= 1250) {
-            if (this.container) {
-                return this.workerBody(6, 1, 6);
-            }
-            else {
-                return this.workerBody(5, 10, 5);
-            }
+        if (this.remoteSpawning) {
+            return this.workerBody(6, 1, 6);
         }
 
-        let body;
-        if ((this.container || this.needsEnergyTransport) && this.spawnGroup.maxSpawnEnergy >= 800) {
-
+        if (this.minersNeeded === 1) {
             let work = Math.ceil((Math.max(this.source.energyCapacity,
-                    SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);
-            if (this.opType === "keeper") { work++; }
-            if (this.container) { work++; }
-
-            let move = Math.ceil(work / 2);
-            if (this.waypoints) { move = work; } // waypoints often mean offroad travel
-
-            let carry;
-            if (this.container) { carry = 1; }
-            else {
-                let workCost = work * BODYPART_COST[WORK];
-                let moveCost = move * BODYPART_COST[MOVE];
-                let remainingSpawnEnergy = this.spawnGroup.maxSpawnEnergy - (workCost + moveCost);
-                carry = Math.min(this.analysis.carryCount, Math.floor(remainingSpawnEnergy / BODYPART_COST[CARRY]));
-            }
-
-            body = this.workerBody(work, carry, move);
+                    SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER) + 1
+            return this.workerBody(work, 1, Math.ceil(work / 2));
         }
-
-        // doesn't have a structure to delivery energy to
+        else if (this.minersNeeded === 2) {
+            return this.workerBody(3, 1, 2);
+        }
         else {
-            if (this.spawnGroup.maxSpawnEnergy < 400) {
-                body = this.workerBody(2, 1, 1);
-            }
-            else {
-                body = this.bodyRatio(1, 1, .5, 1, 5);
-            }
-            if (this.spawnGroup.maxSpawnEnergy >= 1300 && this.container) {
-                body = body.concat([WORK, MOVE]);
-            }
-
+            return this.workerBody(2, 1, 1);
         }
-        this.memory.potencyPerMiner = _.filter(body, (part: string) => part === WORK).length;
-        return body;
     }
 
-    private runTransportAnalysis() {
+    private miningTransportAnalysis(): TransportAnalysis {
         if (!this.memory.distanceToStorage) {
             let path = PathFinder.search(this.storage.pos, {pos: this.source.pos, range: 1}).path;
             this.memory.distanceToStorage = path.length;
         }
         let distance = this.memory.distanceToStorage;
         let load = Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
-        this.analysis = this.analyzeTransport(distance, load);
+        return this.analyzeTransport(distance, load);
     }
 
     private cartActions(cart: Creep) {
@@ -357,5 +359,22 @@ export class MiningMission extends Mission {
         let position = ret.path[0];
         console.log(`MINER: placed container in ${this.opName}`);
         position.createConstructionSite(STRUCTURE_CONTAINER);
+    }
+
+    private buildContainer(miner: Creep, order: number) {
+        if (miner.pos.isNearTo(this.source)) {
+            if (miner.carry.energy < miner.carryCapacity || (this.minersNeeded > 1 && order === 1)) {
+                miner.harvest(this.source);
+            }
+            else {
+                let construction = this.source.pos.findInRange<ConstructionSite>(FIND_CONSTRUCTION_SITES, 1)[0];
+                if (construction) {
+                    miner.build(construction);
+                }
+            }
+        }
+        else {
+            miner.blindMoveTo(this.source);
+        }
     }
 }
