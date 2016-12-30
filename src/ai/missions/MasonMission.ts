@@ -56,7 +56,10 @@ export class MasonMission extends Mission {
         }
 
         if (mason.carry.energy < mason.carryCapacity * .25) {
-            mason.memory.hasLoad = false;
+            if (mason.memory.hasLoad) {
+                mason.memory.hasLoad = false;
+                delete mason.memory.extensionId;
+            }
         }
 
         let hasLoad = this.masonHasLoad(mason);
@@ -75,13 +78,13 @@ export class MasonMission extends Mission {
             if (extension) {
                 if (mason.pos.isNearTo(extension)) {
                     mason.withdraw(extension, RESOURCE_ENERGY);
-                    delete mason.memory.extensionId;
                 }
                 else {
                     mason.blindMoveTo(extension);
                 }
             }
             else {
+                if (mason.name === "vigo5_mason_61") console.log("none");
                 mason.idleOffRoad(this.flag);
             }
         }
@@ -104,7 +107,7 @@ export class MasonMission extends Mission {
         return mason.rememberStructure<StructureRampart>(findRampart, forgetRampart, "rampartId");
     }
 
-    private findFullExtension(mason: Creep): StructureExtension {
+    findFullExtension(mason: Creep): StructureExtension {
         let findExtension = () => {
             let fullExtensions = _.filter(this.room.findStructures<StructureExtension>(STRUCTURE_EXTENSION),
                 (e: StructureExtension) => e.energy > 0);
@@ -112,19 +115,17 @@ export class MasonMission extends Mission {
         };
         let forgetExtension = (extension: StructureExtension) => extension.energy === 0;
 
-        return mason.rememberStructure<StructureExtension>(findExtension, forgetExtension, "extensionId");
+        return mason.rememberStructure<StructureExtension>(findExtension, forgetExtension, "extensionId", true);
     }
 
     private findMasonPosition(mason: Creep, rampart: StructureRampart) {
         if (mason.pos.lookForStructure(STRUCTURE_ROAD)) {
             let position = rampart.pos;
             if (position.lookFor(LOOK_STRUCTURES).length > 1) {
-                for (let direction = 1; direction <= 8; direction++) {
-                    let testPosition = position.getPositionAtDirection(direction);
-                    if (testPosition.isPassible() && !testPosition.lookForStructure(STRUCTURE_ROAD)) {
-                        position = testPosition;
-                        break;
-                    }
+                let testPosition = mason.pos.findClosestByRange(_.filter(position.openAdjacentSpots(),
+                    (p: RoomPosition) => !p.lookForStructure(STRUCTURE_ROAD)));
+                if (testPosition) {
+                    position = testPosition;
                 }
             }
             if (!mason.pos.inRangeTo(position, 0)) {

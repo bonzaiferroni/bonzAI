@@ -68,7 +68,8 @@ interface Creep {
     withdrawEverything(target: { store: StoreDefinition, pos: RoomPosition }): number;
     rememberBattery(): Creep | StructureContainer;
     rememberCreep(findCreep: () => Creep, forget: (creep: Creep) => boolean): Creep;
-    rememberStructure<T>(findStructure: () => Structure, forget: (structure: Structure) => boolean, propertyName?: string): T;
+    rememberStructure<T>(findStructure: () => Structure, forget: (structure: Structure) => boolean,
+                         propertyName?: string, immediate?: boolean): T;
     isNearExit(range: number): boolean;
     travelByWaypoint(flag: Flag[]): number;
     avoidSK(destination: {pos: RoomPosition}, opts?: any): number;
@@ -138,10 +139,15 @@ interface StructureKeeperLair {
 }
 
 interface StructureObserver {
-    observation: { purpose: string, room: Room };
-    currentPurpose: string;
+    observation: Observation;
     _observeRoom(roomName: string): number;
     observeRoom(roomName: string, purpose?: string, override?: boolean): number;
+}
+
+interface Observation {
+    purpose: string,
+    roomName: string,
+    room?: Room,
 }
 
 interface StructureTerminal {

@@ -94,17 +94,17 @@ export class UpgradeMission extends Mission {
             }
         };
 
-        this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
-            prespawn: this.distanceToSpawn,
-            memory: memory
-        } );
-
         if (this.battery instanceof StructureContainer) {
             let analysis = this.analyzeTransport(25, totalPotency);
             this.batterySupplyCarts = this.headCount("upgraderCart", () => analysis.body, analysis.cartsNeeded, {
                 prespawn: this.distanceToSpawn,
             });
         }
+
+        this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
+            prespawn: this.distanceToSpawn,
+            memory: memory
+        } );
 
         if (this.memory.roadRepairIds && !this.remoteSpawning) {
             this.paver = this.spawnPaver();

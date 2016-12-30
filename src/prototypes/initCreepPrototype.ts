@@ -253,13 +253,13 @@ export function initCreepPrototype() {
             return OK;
         }
 
-        let offRoad = this.pos.lookFor(LOOK_STRUCTURES).length === 0;
+        let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
         if (offRoad) return OK;
 
         let positions = this.pos.openAdjacentSpots();
         let swampPosition;
         for (let position of positions) {
-            if (position.lookFor(LOOK_STRUCTURES).length === 0) {
+            if (position.lookForStructure(STRUCTURE_ROAD) === undefined) {
                 let terrain = position.lookFor(LOOK_TERRAIN)[0] as string;
                 if (terrain === "swamp") {
                     swampPosition = position;
@@ -386,13 +386,13 @@ export function initCreepPrototype() {
      * Find a structure, cache, and invalidate cache based on the functions provided
      * @param findStructure
      * @param forget
-     * @param recursion
+     * @param immediate
      * @param prop
      * @returns {Structure}
      */
 
     Creep.prototype.rememberStructure = function(findStructure: () => Structure, forget: (structure: Structure) => boolean,
-                                                 prop = "remStructureId", recursion = false): Structure {
+                                                 prop = "remStructureId", immediate = false): Structure {
         if (this.memory[prop]) {
             let structure = Game.getObjectById(this.memory[prop]) as Structure;
             if (structure && !forget(structure)) {
@@ -403,7 +403,7 @@ export function initCreepPrototype() {
                 return this.rememberStructure(findStructure, forget, prop, true);
             }
         }
-        else if (Game.time % 10 === 0 || recursion) {
+        else if (Game.time % 10 === 0 || immediate) {
             let object = findStructure();
             if (object) {
                 this.memory[prop] = object.id;

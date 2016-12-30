@@ -40,7 +40,8 @@ export class LairMission extends Mission {
     roleCall() {
         let maxTrappers = this.lairs && this.lairs.length > 0 ? 1 : 0;
         this.trappers = this.headCount("trapper", () => this.configBody({move: 25, attack: 19, heal: 6}), maxTrappers, {
-            prespawn: this.distanceToSpawn + 100
+            prespawn: this.distanceToSpawn + 100,
+            skipMoveToRoom: true,
         });
 
         let maxScavengers = this.lairs && this.lairs.length >= 3 && this.storeStructure ? 1 : 0;

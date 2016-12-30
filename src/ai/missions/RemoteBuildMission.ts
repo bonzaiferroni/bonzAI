@@ -68,11 +68,6 @@ export class RemoteBuildMission extends Mission {
             return; // early
         }
 
-        if (builder.room !== this.room) {
-            builder.blindMoveTo(this.flag);
-            return; // early
-        }
-
         let hasLoad = this.hasLoad(builder);
         if (!hasLoad) {
             this.procureEnergy(builder, undefined, true, true);
@@ -81,9 +76,7 @@ export class RemoteBuildMission extends Mission {
 
         let closest = builder.pos.findClosestByRange(this.construction);
         if (!closest) {
-            if (!builder.pos.isNearTo(this.flag)) {
-                builder.blindMoveTo(this.flag);
-            }
+            this.moveToFlag(builder);
             return; // early
         }
 
