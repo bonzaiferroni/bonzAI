@@ -317,7 +317,7 @@ export class GeologyMission extends Mission {
         if (fleeing) return;
 
         if (repairer.room.name !== this.flag.pos.roomName) {
-            this.moveToFlag(repairer);
+            this.idleNear(repairer, this.flag);
             return;
         }
 

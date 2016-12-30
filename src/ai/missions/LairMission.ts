@@ -117,7 +117,7 @@ export class LairMission extends Mission {
         }
 
         if (scavenger.room.name !== this.flag.pos.roomName) {
-            this.moveToFlag(scavenger);
+            this.idleNear(scavenger, this.flag);
             return; // early;
         }
 
@@ -128,13 +128,11 @@ export class LairMission extends Mission {
                 scavenger.say("yoink!", true);
             }
             else {
-                scavenger.blindMoveTo(closest, {maxRooms: 0});
+                scavenger.blindMoveTo(closest, {maxRooms: 1});
             }
         }
         else {
-            if (!scavenger.pos.isNearTo(this.flag)) {
-                scavenger.blindMoveTo(this.flag);
-            }
+            this.idleNear(scavenger, this.flag);
         }
     }
 

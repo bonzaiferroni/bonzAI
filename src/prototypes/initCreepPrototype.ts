@@ -242,9 +242,13 @@ export function initCreepPrototype() {
      * Can be used to keep idling creeps out of the way, like when a road repairer doesn't have any roads needing repair
      * or a spawn refiller who currently has full extensions. Clear roads allow for better creep.BlindMoveTo() behavior
      * @param defaultPoint
+     * @param maintainDistance
      * @returns {any}
      */
-    Creep.prototype.idleOffRoad = function(defaultPoint: RoomObject): number {
+    Creep.prototype.idleOffRoad = function(defaultPoint: {pos: RoomPosition}, maintainDistance = false): number {
+        let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
+        if (offRoad) return OK;
+
         if (this.memory.idlePosition) {
             let pos = helper.deserializeRoomPosition(this.memory.idlePosition);
             if (!this.pos.inRangeTo(pos, 0)) {
@@ -253,20 +257,20 @@ export function initCreepPrototype() {
             return OK;
         }
 
-        let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
-        if (offRoad) return OK;
-
-        let positions = this.pos.openAdjacentSpots();
+        let positions = _.sortBy(this.pos.openAdjacentSpots(), (p: RoomPosition) => p.getRangeTo(defaultPoint));
+        if (maintainDistance) {
+            let currentRange = this.pos.getRangeTo(defaultPoint);
+            positions = _.filter(positions, (p: RoomPosition) => p.getRangeTo(defaultPoint) <= currentRange);
+        }
         let swampPosition;
         for (let position of positions) {
-            if (position.lookForStructure(STRUCTURE_ROAD) === undefined) {
-                let terrain = position.lookFor(LOOK_TERRAIN)[0] as string;
-                if (terrain === "swamp") {
-                    swampPosition = position;
-                }
-                else {
-                    return this.move(this.pos.getDirectionTo(position));
-                }
+            if (position.lookForStructure(STRUCTURE_ROAD)) continue;
+            let terrain = position.lookFor(LOOK_TERRAIN)[0] as string;
+            if (terrain === "swamp") {
+                swampPosition = position;
+            }
+            else {
+                return this.move(this.pos.getDirectionTo(position));
             }
         }
 
@@ -281,33 +285,34 @@ export function initCreepPrototype() {
      * another function for keeping roads clear, this one is more useful for builders and road repairers that are
      * currently working, will move off road without going out of range of target
      * @param target - target for which you do not want to move out of range
+     * @param allowSwamps
      * @returns {number}
      */
     Creep.prototype.yieldRoad = function(target: RoomObject, allowSwamps = true): number  {
-        let isOnRoad = this.pos.lookFor(LOOK_STRUCTURES).length > 0;
-        if (isOnRoad) {
-            let swampPosition;
-            // find movement options
-            let direction = this.pos.getDirectionTo(target);
-            for (let i = -2; i <= 2; i++) {
-                let relDirection = direction + i;
-                relDirection = helper.clampDirection(relDirection);
-                let position = this.pos.getPositionAtDirection(relDirection);
-                if (!position.inRangeTo(target, 3)) continue;
-                if (position.lookFor(LOOK_STRUCTURES).length > 0) continue;
-                if (!position.isPassible()) continue;
-                if (position.isNearExit(0)) continue;
-                if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
-                    swampPosition = position;
-                    continue;
-                }
-                return this.move(relDirection);
+        let isOffRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
+        if (isOffRoad) return OK;
+
+        let swampPosition;
+        // find movement options
+        let direction = this.pos.getDirectionTo(target);
+        for (let i = -2; i <= 2; i++) {
+            let relDirection = direction + i;
+            relDirection = helper.clampDirection(relDirection);
+            let position = this.pos.getPositionAtDirection(relDirection);
+            if (!position.inRangeTo(target, 3)) continue;
+            if (position.lookFor(LOOK_STRUCTURES).length > 0) continue;
+            if (!position.isPassible()) continue;
+            if (position.isNearExit(0)) continue;
+            if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
+                swampPosition = position;
+                continue;
             }
-            if (swampPosition && allowSwamps) {
-                return this.move(this.pos.getDirectionTo(swampPosition));
-            }
-            return this.blindMoveTo(target);
+            return this.move(relDirection);
         }
+        if (swampPosition && allowSwamps) {
+            return this.move(this.pos.getDirectionTo(swampPosition));
+        }
+        return this.blindMoveTo(target);
     };
 
     Creep.prototype._withdraw = Creep.prototype.withdraw;

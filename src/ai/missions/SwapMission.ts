@@ -176,7 +176,7 @@ export class SwapMission extends Mission {
     private swapMasonActions(mason: Creep) {
         let ramparts = _.sortBy(this.room.findStructures(STRUCTURE_RAMPART), "hits") as StructureRampart[];
         if (ramparts.length === 0 || mason.pos.roomName !== this.flag.pos.roomName) {
-            this.moveToFlag(mason);
+            this.idleNear(mason, this.flag);
             return;
         }
 

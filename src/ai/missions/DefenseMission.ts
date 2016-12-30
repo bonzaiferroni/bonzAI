@@ -156,7 +156,7 @@ export class DefenseMission extends Mission {
 
     private defenderActions(defender: Creep, order: number) {
         if (this.enemySquads.length === 0) {
-            this.moveToFlag(defender);
+            this.idleNear(defender, this.flag);
             defender.say("none :(");
             return; // early
         }

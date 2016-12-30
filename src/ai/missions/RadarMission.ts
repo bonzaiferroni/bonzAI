@@ -64,9 +64,7 @@ export class RadarMission extends Mission {
             }
         }
 
-        if (observer.currentPurpose === undefined) {
-            this.memory.scanIndex = this.empire.observeAllyRoom(observer, this.memory.scanIndex)
-        }
+        this.memory.scanIndex = this.empire.observeAllyRoom(observer, this.memory.scanIndex)
     }
 
     private fullScan(observer: StructureObserver) {
@@ -113,9 +111,7 @@ export class RadarMission extends Mission {
             }
         }
 
-        if (observer.currentPurpose === undefined) {
-            let roomName = helper.findRelativeRoomName(this.room, scanData.x, scanData.y);
-            observer.observeRoom(roomName, "allySearch");
-        }
+        let roomName = helper.findRelativeRoomName(this.room, scanData.x, scanData.y);
+        observer.observeRoom(roomName, "allySearch");
     }
 }

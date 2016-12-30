@@ -106,7 +106,6 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // harvest energy
-        let miningMissions: MiningMission[] = [];
         for (let i = 0; i < this.sources.length; i++) {
             if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) continue;
             let source = this.sources[i];
@@ -117,9 +116,7 @@ export abstract class ControllerOperation extends Operation {
                     continue;
                 }
             }
-            let miningMission = new MiningMission(this, "miner" + i, source);
-            miningMissions.push(miningMission);
-            this.addMission(miningMission);
+            this.addMission(new MiningMission(this, "miner" + i, source));
         }
 
         // build construction
@@ -165,13 +162,6 @@ export abstract class ControllerOperation extends Operation {
                 if (boostSpawnGroup.room.controller.level >= 8) {
                     upgradeMission.setSpawnGroup(boostSpawnGroup);
                     buildMission.setSpawnGroup(boostSpawnGroup);
-                }
-
-                // remote spawn miners
-                if (this.spawnGroup.maxSpawnEnergy < 1300) {
-                    for (let miningMission of miningMissions) {
-                        miningMission.setSpawnGroup(boostSpawnGroup);
-                    }
                 }
             }
         }

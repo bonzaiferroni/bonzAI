@@ -107,15 +107,15 @@ export class MasonMission extends Mission {
         return mason.rememberStructure<StructureRampart>(findRampart, forgetRampart, "rampartId");
     }
 
-    findFullExtension(mason: Creep): StructureExtension {
+    findFullExtension(mason: Creep): Structure {
         let findExtension = () => {
             let fullExtensions = _.filter(this.room.findStructures<StructureExtension>(STRUCTURE_EXTENSION),
                 (e: StructureExtension) => e.energy > 0);
             return mason.pos.findClosestByRange<StructureExtension>(fullExtensions);
         };
         let forgetExtension = (extension: StructureExtension) => extension.energy === 0;
-
-        return mason.rememberStructure<StructureExtension>(findExtension, forgetExtension, "extensionId", true);
+        let extension = mason.rememberStructure<StructureExtension>(findExtension, forgetExtension, "extensionId", true);
+        return mason.pos.findClosestByRange([this.room.storage, extension])
     }
 
     private findMasonPosition(mason: Creep, rampart: StructureRampart) {

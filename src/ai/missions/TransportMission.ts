@@ -72,7 +72,7 @@ export class TransportMission extends Mission {
 
         for (let cart of this.carts) {
             if (!this.memory.originPos || !this.memory.destinationPos) {
-                this.moveToFlag(cart);
+                this.idleNear(cart, this.flag);
             }
 
             this.cartActions(cart);

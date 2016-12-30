@@ -81,7 +81,7 @@ export class BodyguardMission extends Mission {
 
     private defenderActions(defender: Creep) {
         if (!this.hasVision || this.hostiles.length === 0) {
-            this.moveToFlag(defender);
+            this.idleNear(defender, this.flag);
             if (defender.hits < defender.hitsMax) {
                 defender.heal(defender);
             }

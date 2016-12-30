@@ -59,7 +59,7 @@ interface Creep {
     blindMoveTo(target: RoomPosition, ops?: any, dareDevil?: boolean): number;
     blindMoveTo(target: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
     moveItOrLoseIt(position: RoomPosition, name?: string): number;
-    idleOffRoad(defaultPoint: RoomObject): number;
+    idleOffRoad(defaultPoint: {pos: RoomPosition}, maintainDistance?: boolean): number;
     yieldRoad(target: RoomObject, allowSwamps?: boolean): number;
     _withdraw(target: Structure, resourceType: string, amount?: number): number;
     withdraw(target: Structure | Creep, resourceType: string, amount?: number): number;

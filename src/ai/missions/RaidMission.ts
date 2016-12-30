@@ -253,23 +253,24 @@ export abstract class RaidMission extends Mission {
             range = 1;
         }
 
-        if (leader.room !== follower.room) {
-            if (leader.isNearExit(1)) {
+        if (leader.room === follower.room) {
+            if (follower.pos.isNearTo(leader)) {
                 this.empire.travelTo(leader, destination, {range: range});
-                if (follower.room.name !== destination.pos.roomName) {
-                    this.empire.travelTo(follower, leader);
+                if (!leader.isNearExit(0) || !this.raidData.attackRoom || this.raidData.attackRoom !== destination.room) {
+                    follower.move(follower.pos.getDirectionTo(leader));
                 }
             }
-        }
-
-        if (follower.pos.isNearTo(leader)) {
-            this.empire.travelTo(leader, destination, {range: range});
-            if (!leader.isNearExit(0) || follower.room.name !== destination.pos.roomName) {
-                follower.move(follower.pos.getDirectionTo(leader));
+            else {
+                this.empire.travelTo(follower, leader);
             }
         }
         else {
-            this.empire.travelTo(follower, leader);
+            if (leader.isNearExit(1)) {
+                this.empire.travelTo(leader, destination, {range: range});
+            }
+            if (!this.raidData.attackRoom || this.raidData.attackRoom !== destination.room) {
+                this.empire.travelTo(follower, leader);
+            }
         }
     }
 

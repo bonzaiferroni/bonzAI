@@ -121,21 +121,6 @@ export class EnhancedBodyguardMission extends Mission {
         for (let creep of this.squadHealers) {
             this.memory.ticksToLive[creep.id] = creep.ticksToLive;
         }
-
-        if (this.hostiles && this.hostiles.length > 0 && !this.memory.hostilesPresent) {
-            this.memory.hostilesPresent = Game.time;
-        }
-        if (this.hostiles && this.hostiles.length === 0 && this.memory.hostilesPresent) {
-            if (!Memory.temp.invaderDuration) {
-                Memory.temp.invaderDuration = [];
-            }
-            let duration = Game.time - this.memory.hostilesPresent;
-            Memory.temp.invaderDuration.push(duration);
-            if (duration > 100) {
-                console.log("ATTN: invader in", this.room.name, "duration:", duration, "time:", Game.time);
-            }
-            this.memory.hostilesPresent = undefined;
-        }
     }
 
     invalidateMissionCache() {
@@ -152,7 +137,7 @@ export class EnhancedBodyguardMission extends Mission {
                 let fleeing = attacker.fleeHostiles();
                 if (fleeing) return;
             }
-            this.moveToFlag(attacker);
+            this.idleNear(attacker, this.flag);
             return;
         }
 
@@ -169,7 +154,7 @@ export class EnhancedBodyguardMission extends Mission {
         // room is safe
         if (!this.hostiles || this.hostiles.length === 0) {
             healer.memory.mindControl = false;
-            this.moveToFlag(attacker);
+            this.idleNear(attacker, this.flag);
             return;
         }
 
@@ -351,7 +336,7 @@ export class EnhancedBodyguardMission extends Mission {
     private healHurtCreeps(defender: Creep) {
         let hurtCreep = this.findHurtCreep(defender);
         if (!hurtCreep) {
-            this.moveToFlag(defender);
+            this.idleNear(defender, this.flag);
             return;
         }
 

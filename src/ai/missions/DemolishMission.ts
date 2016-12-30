@@ -109,7 +109,7 @@ export class DemolishMission extends Mission {
                 scavanger.blindMoveTo(this.demoFlags[0]);
             }
             else {
-                this.moveToFlag(scavanger);
+                this.idleNear(scavanger, this.flag);
             }
             return;
         }

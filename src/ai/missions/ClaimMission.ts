@@ -38,7 +38,7 @@ export class ClaimMission extends Mission {
     private claimerActions(claimer: Creep) {
 
         if (!this.controller) {
-            this.moveToFlag(claimer);
+            this.idleNear(claimer, this.flag);
             return; // early
         }
 

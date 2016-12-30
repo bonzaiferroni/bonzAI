@@ -115,27 +115,39 @@ export function initPrototypes() {
     StructureObserver.prototype._observeRoom = StructureObserver.prototype.observeRoom;
 
     StructureObserver.prototype.observeRoom = function(roomName: string, purpose = "unknown", override = false): number {
-        if (this.currentPurpose && !override) {
-            return ERR_BUSY;
+
+        let makeObservation = (observation: Observation): number => {
+            this.observation; // load the current observation before overwriting
+            this.room.memory.observation = observation;
+            return this._observeRoom(roomName);
+        };
+
+        if (override) {
+            return makeObservation({roomName: roomName, purpose: purpose});
         }
         else {
-            this.room.memory.observation = { purpose: purpose, roomName: roomName };
-            this.currentPurpose = purpose;
-            return this._observeRoom(roomName);
+            if (!this.room.memory.obsQueue) this.room.memory.obsQueue = [];
+            let queue = this.room.memory.obsQueue as Observation[];
+            if (!_.find(queue, (item) => item.purpose === purpose)) {
+                queue.push({purpose: purpose, roomName: roomName});
+            }
+            return makeObservation(queue.shift());
         }
     };
 
     Object.defineProperty(StructureObserver.prototype, "observation", {
         get: function() {
-            if (this.room.memory.observation) {
-                let room = Game.rooms[this.room.memory.observation.roomName];
-                if (room) {
-                    return { purpose: this.room.memory.observation.purpose, room: room };
-                }
-                else {
-                    this.room.memory.observation = undefined;
+            if (!this._observation) {
+                let observation = this.room.memory.observation as Observation;
+                if (observation) {
+                    let room = Game.rooms[observation.roomName];
+                    if (room) {
+                        observation.room = room;
+                        this._observation = observation;
+                    }
                 }
             }
+            return this._observation;
         }
     });
 

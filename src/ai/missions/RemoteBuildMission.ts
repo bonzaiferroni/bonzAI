@@ -76,7 +76,7 @@ export class RemoteBuildMission extends Mission {
 
         let closest = builder.pos.findClosestByRange(this.construction);
         if (!closest) {
-            this.moveToFlag(builder);
+            this.idleNear(builder, this.flag);
             return; // early
         }
 

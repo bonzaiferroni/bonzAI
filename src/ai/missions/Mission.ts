@@ -315,8 +315,15 @@ export abstract class Mission {
                     creep.blindMoveTo(this.flag);
                 }
             }
-            else if (!creep.pos.isNearTo(this.flag)) {
-                creep.blindMoveTo(this.flag);
+            else {
+                if (creep.memory._move) {
+                    let moveData = creep.memory._move.dest;
+                    let dest = new RoomPosition(moveData.x, moveData.y, moveData.room);
+                    creep.idleOffRoad({pos: dest}, true);
+                }
+                else {
+                    creep.idleOffRoad(this.flag, true);
+                }
             }
         }
     }
@@ -406,12 +413,17 @@ export abstract class Mission {
         }
     }
 
-    moveToFlag(creep: Creep) {
-        if (creep.pos.inRangeTo(this.flag, 3)) {
-            creep.yieldRoad(this.flag)
+    idleNear(creep: Creep, place: {pos: RoomPosition}, desiredRange = 3) {
+        let range = creep.pos.getRangeTo(place);
+
+        if (range < desiredRange) {
+            creep.idleOffRoad(place);
+        }
+        else if (range === desiredRange) {
+            creep.idleOffRoad(place, true);
         }
         else {
-            creep.blindMoveTo(this.flag);
+            creep.blindMoveTo(place);
         }
     }
 

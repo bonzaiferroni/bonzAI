@@ -58,6 +58,7 @@ export var sandBox = {
                     if (!creep.pos.inRangeTo(testFlag, 1)) {
                         profiler.start("travelTo");
                         emp.travelTo(creep, testFlag);
+                        console.log(creep.memory._move.path)
                         profiler.end("travelTo");
                     }
                 }

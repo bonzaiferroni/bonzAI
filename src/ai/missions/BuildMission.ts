@@ -59,11 +59,12 @@ export class BuildMission extends Mission {
         let maxBuilders = 0;
         let potency = 0;
         if (this.sites.length > 0) {
-            maxBuilders = 1;
             potency = this.findBuilderPotency();
             if (this.room.storage && this.room.storage.store.energy < 50000) {
                 potency = 1;
             }
+            let builderCost = potency * 100 + Math.ceil(potency / 2) * 50 + 150 * potency;
+            maxBuilders = Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy);
         }
 
         let distance = 20;
