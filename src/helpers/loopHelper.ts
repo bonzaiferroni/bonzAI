@@ -15,6 +15,7 @@ import {RaidOperation} from "../ai/operations/RaidOperation";
 import {QuadOperation} from "../ai/operations/QuadOperation";
 import {AutoOperation} from "../ai/operations/AutoOperation";
 import {FlexOperation} from "../ai/operations/FlexOperation";
+import {notifier} from "../ai/missions/notifier";
 
 const OPERATION_CLASSES = {
     conquest: ConquestOperation,
@@ -212,5 +213,6 @@ export var loopHelper = {
         // command functions found in consoleCommands.ts can be executed from the game console
         // example: cc.minv()
         global.cc = consoleCommands;
+        global.notifier = notifier;
     },
 };

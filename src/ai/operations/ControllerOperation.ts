@@ -463,6 +463,7 @@ export abstract class ControllerOperation extends Operation {
 
     private placeLink(source: Source) {
         if (source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) return;
+        if (source.pos.findInRange(source.room.findStructures(STRUCTURE_LINK), 2).length > 0) return;
 
         let positions: RoomPosition[] = [];
         for (let xDelta = -2; xDelta <= 2; xDelta++) {
