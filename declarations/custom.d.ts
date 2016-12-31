@@ -48,7 +48,7 @@ interface RoomPosition {
 }
 
 interface RoomObject {
-    findMemoStructure<T>(structureType: string, range: number): T;
+    findMemoStructure<T>(structureType: string, range: number, immediate?: boolean): T;
 }
 
 interface Creep {
@@ -100,7 +100,12 @@ interface Memory {
     };
     empire: any;
     profiler: {[identifier: string]: ProfilerData };
+    notifier: {
+        time: number,
+        message: string,
+    }[];
     roomAttacks: any;
+    powerObservers: {[scanningRoomName: string]: {[roomName: string]: number}}
 }
 
 interface ProfilerData {

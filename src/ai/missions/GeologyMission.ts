@@ -276,10 +276,13 @@ export class GeologyMission extends Mission {
                 }
                 return;
             }
-            let waitPosition = this.container.pos;
-            if (this.memory.cartWaitPosition)
-                waitPosition = new RoomPosition(this.memory.cartWaitPosition.x, this.memory.cartWaitPosition.y,
-                    this.memory.cartWaitPosition.roomName);
+
+            if (_.sum(this.container.store) < cart.carryCapacity &&
+                this.container.pos.lookFor(LOOK_CREEPS).length === 0) {
+                this.idleNear(cart, this.container, 3);
+                return;
+            }
+
             if (cart.pos.isNearTo(this.container)) {
                 if (this.container.store.energy > 0) {
                     cart.withdraw(this.container, RESOURCE_ENERGY);
@@ -292,7 +295,7 @@ export class GeologyMission extends Mission {
                 }
             }
             else {
-                cart.blindMoveTo(waitPosition);
+                cart.blindMoveTo(this.container);
             }
             return; // early
         }

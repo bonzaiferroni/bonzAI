@@ -6,6 +6,7 @@ import {
 } from "../config/constants";
 import {helper} from "../helpers/helper";
 import {TravelData, TravelToOptions} from "../interfaces";
+import {notifier} from "./missions/notifier";
 export class Empire {
 
     storages: StructureStorage[] = [];
@@ -717,12 +718,19 @@ export class Empire {
         let consoleReport = (item: Transaction) => {
             let distance = Game.map.getRoomLinearDistance(item.from, item.to);
             let cost = Game.market.calcTransactionCost(item.amount, item.from, item.to);
-            console.log(`TRADE: ${_.padLeft(`${item.from} ${item.sender.username}`.substr(0, 12), 12)} ` +
+            console.log(
+                `TRADE: ${_.padLeft(`${item.from} ${item.sender ? item.sender.username : "npc"}`.substr(0, 12), 12)} ` +
                 `→ ${_.pad(`${kFormatter(item.amount)} ${item.resourceType}`.substr(0, 12), 12)} → ` +
-                `${_.padRight(`${item.to} ${item.recipient.username}`.substr(0, 12), 12)} (dist: ${distance}, cost: ${kFormatter(cost)})`);
+                `${_.padRight(`${item.to} ${item.recipient ? item.recipient.username : "npc"}`.substr(0, 12), 12)} ` +
+                `(dist: ${distance}, cost: ${kFormatter(cost)})`
+            );
         };
 
         let decipher = (item: Transaction) => {
+            if (!item.description) {
+                notifier.add(`EMPIRE: no description on decipher from ${item.sender.username}.`)
+                return;
+            }
             let description = item.description.toLocaleLowerCase();
             if (description === "safe") {
                 this.memory.safe[item.sender.username] = true;
@@ -740,18 +748,21 @@ export class Empire {
                 delete this.memory.danger[item.sender.username];
                 console.log(`EMPIRE: ${item.sender.username} requested to be removed from danger list`);
             }
+            else {
+                notifier.add(`EMPIRE: invalid description on decipher from ${item.sender.username}: ${_.escape(item.description)}`)
+            }
         };
 
         let decipheredMessage = false;
         for (let item of Game.market.incomingTransactions) {
             if (item.time >= Game.time - 10) {
-                if (!Memory.traders[item.sender.username]) {
-                    Memory.traders[item.sender.username] = {};
+                let username = item.sender.username;
+                if (!username) { username = "npc"; }
+                if (!Memory.traders[username]) { Memory.traders[username] = {}; }
+                if (Memory.traders[username][item.resourceType] === undefined) {
+                    Memory.traders[username][item.resourceType] = 0;
                 }
-                if (Memory.traders[item.sender.username][item.resourceType] === undefined) {
-                    Memory.traders[item.sender.username][item.resourceType] = 0;
-                }
-                Memory.traders[item.sender.username][item.resourceType] += item.amount;
+                Memory.traders[username][item.resourceType] += item.amount;
                 consoleReport(item);
                 if (item.amount === 111 && !decipheredMessage) {
                     decipheredMessage = true;
@@ -765,11 +776,11 @@ export class Empire {
 
         for (let item of Game.market.outgoingTransactions) {
             if (item.time >= Game.time - 10) {
-                if (!Memory.traders[item.recipient.username]) {
-                    Memory.traders[item.recipient.username] = {};
-                }
-                if (Memory.traders[item.recipient.username][item.resourceType] === undefined) {
-                    Memory.traders[item.recipient.username][item.resourceType] = 0;
+                let username = item.recipient.username;
+                if (!username) { username = "npc"; }
+                if (!Memory.traders[username]) { Memory.traders[username] = {}; }
+                if (Memory.traders[username][item.resourceType] === undefined) {
+                    Memory.traders[username][item.resourceType] = 0;
                 }
                 Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
                 if (item.recipient.username === USERNAME) { continue; }

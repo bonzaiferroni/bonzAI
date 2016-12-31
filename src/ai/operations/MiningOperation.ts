@@ -44,15 +44,16 @@ export class MiningOperation extends Operation {
 
         // it is not ideal to return early if no vision, but i'm having a hard time figuring out how to do
         // miningmission without vision
-        if (!this.flag.room) return;
 
         // defense
-        if (this.flag.room.roomType === ROOMTYPE_CORE) {
+        if (this.flag.room && this.flag.room.roomType === ROOMTYPE_CORE) {
             this.addMission(new EnhancedBodyguardMission(this));
         }
         else {
-            this.addMission(new BodyguardMission(this, !this.memory.swapMining || this.flag.room.controller.level < 3));
+            this.addMission(new BodyguardMission(this));
         }
+
+        if (!this.flag.room) return;
 
         // swap mining
         if (this.memory.swapMining) {

@@ -76,6 +76,7 @@ export class RefillMission extends Mission {
 
         let hasLoad = this.hasLoad(cart);
         if (!hasLoad) {
+            cart.memory.emptyId = undefined;
             this.procureEnergy(cart, this.findNearestEmpty(cart), true);
             return;
         }
@@ -94,12 +95,17 @@ export class RefillMission extends Mission {
         // has target
         if (!cart.pos.isNearTo(target)) {
             cart.blindMoveTo(target, {maxRooms: 1});
+            if (this.room.storage && cart.pos.isNearTo(this.room.storage) &&
+                cart.carry.energy <= cart.carryCapacity - 50) {
+                cart.withdraw(this.room.storage, RESOURCE_ENERGY);
+            }
             return;
         }
 
         // is near to target
         let outcome = cart.transfer(target, RESOURCE_ENERGY);
         if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
+            cart.memory.emptyId = undefined;
             target = this.findNearestEmpty(cart, target);
             if (target && !cart.pos.isNearTo(target)) {
                 cart.blindMoveTo(target, {maxRooms: 1});
@@ -113,20 +119,26 @@ export class RefillMission extends Mission {
     }
 
     findNearestEmpty(cart: Creep, pullTarget?: EnergyStructure): EnergyStructure {
-        if (!this.empties) {
-            this.empties = _.filter(this.room.findStructures(STRUCTURE_SPAWN)
-                .concat(this.room.findStructures(STRUCTURE_EXTENSION)), (s: StructureSpawn) => {
-                return s.energy < s.energyCapacity;
-            }) as EnergyStructure[];
-            this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s: StructureTower) => {
-                return s.energy < s.energyCapacity * .5;
-            }) as EnergyStructure[]);
-        }
+        let findEmpty = (): Structure => {
+            if (!this.empties) {
+                this.empties = _.filter(this.room.findStructures(STRUCTURE_SPAWN)
+                    .concat(this.room.findStructures(STRUCTURE_EXTENSION)), (s: StructureSpawn) => {
+                    return s.energy < s.energyCapacity;
+                }) as EnergyStructure[];
+                this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s: StructureTower) => {
+                    return s.energy < s.energyCapacity * .5;
+                }) as EnergyStructure[]);
+            }
 
-        if (pullTarget) {
-            _.pull(this.empties, pullTarget);
-        }
+            if (pullTarget) {
+                _.pull(this.empties, pullTarget);
+            }
 
-        return cart.pos.findClosestByRange(this.empties);
+            return cart.pos.findClosestByRange(this.empties);
+        };
+
+        let forgetEmpty = (s: EnergyStructure): boolean => s.energy === s.energyCapacity || Game.time % 5 === 0;
+
+        return cart.rememberStructure<EnergyStructure>(findEmpty, forgetEmpty, "emptyId", true);
     }
 }

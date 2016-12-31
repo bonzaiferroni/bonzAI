@@ -1,7 +1,9 @@
-export var profiler = {
+export const profiler = {
 
     start(identifier: string, consoleReport = false, period = 5) {
-        if (!Memory.profiler[identifier]) { Memory.profiler[identifier] = {} as ProfilerData; }
+        if (!Memory.profiler[identifier]) {
+            Memory.profiler[identifier] = {} as ProfilerData;
+        }
         _.defaults(Memory.profiler[identifier], {total: 0, count: 0, startOfPeriod: Game.time - 1});
         Memory.profiler[identifier].period = period;
         Memory.profiler[identifier].consoleReport = consoleReport;

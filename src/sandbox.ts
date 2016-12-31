@@ -65,5 +65,13 @@ export var sandBox = {
             }
         }
 
+        // let obs = global.cali5.flag.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
+        // obs.observeRoom('E20S19', "foo");
+        // obs.observeRoom('E20S20', "bar");
+        // obs.observeRoom('E20S21', "whiz");
+        // console.log(JSON.stringify(global.cali5.flag.room.memory.obsQueue));
+        // console.log(JSON.stringify(global.cali5.flag.room._observation));
+        // console.log(JSON.stringify(obs.observation));
+
     }
 };

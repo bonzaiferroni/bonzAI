@@ -19,9 +19,10 @@ export function initPrototypes() {
      * There should only be one instance of that structureType within range, per object
      * @param structureType
      * @param range
+     * @param immediate
      * @returns {T}
      */
-    RoomObject.prototype.findMemoStructure = function<T>(structureType: string, range: number): T {
+    RoomObject.prototype.findMemoStructure = function<T>(structureType: string, range: number, immediate = false): T {
         if (!this.room.memory[structureType]) this.room.memory[structureType] = {};
         if (this.room.memory[structureType][this.id]) {
             let structure = Game.getObjectById(this.room.memory[structureType][this.id]);
@@ -30,12 +31,11 @@ export function initPrototypes() {
             }
             else {
                 this.room.memory[structureType][this.id] = undefined;
+                return this.findMemoStructure(structureType, range, immediate);
             }
         }
-        else if (Game.time % 10 === 7) {
-            let structures = _.filter(this.pos.findInRange(FIND_STRUCTURES, range), (s: Structure) => {
-                return s.structureType === structureType;
-            });
+        else if (Game.time % 10 === 7 || immediate) {
+            let structures = this.pos.findInRange(this.room.findStructures(structureType), range);
             if (structures.length > 0) {
                this.room.memory[structureType][this.id] = structures[0].id;
             }
@@ -119,7 +119,8 @@ export function initPrototypes() {
         let makeObservation = (observation: Observation): number => {
             this.observation; // load the current observation before overwriting
             this.room.memory.observation = observation;
-            return this._observeRoom(roomName);
+            this.alreadyObserved = true;
+            return this._observeRoom(observation.roomName);
         };
 
         if (override) {
@@ -131,7 +132,12 @@ export function initPrototypes() {
             if (!_.find(queue, (item) => item.purpose === purpose)) {
                 queue.push({purpose: purpose, roomName: roomName});
             }
-            return makeObservation(queue.shift());
+            if (!this.alreadyObserved) {
+                return makeObservation(queue.shift());
+            }
+            else {
+                return OK;
+            }
         }
     };
 
@@ -144,6 +150,9 @@ export function initPrototypes() {
                     if (room) {
                         observation.room = room;
                         this._observation = observation;
+                    }
+                    else {
+                        // console.log("bad observation:", JSON.stringify(observation));
                     }
                 }
             }

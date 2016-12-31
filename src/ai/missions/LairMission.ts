@@ -8,6 +8,10 @@ export class LairMission extends Mission {
     targetLair: StructureKeeperLair;
     storeStructure: StructureStorage | StructureContainer | StructureTerminal;
 
+    memory: {
+        travelOrder: number[];
+    };
+
     constructor(operation: Operation) {
         super(operation, "lair");
     }
@@ -15,8 +19,12 @@ export class LairMission extends Mission {
     initMission() {
         if (!this.hasVision) return; // early
         // should be ordered in a preferable travel order
-        this.lairs = this.flagLook(LOOK_STRUCTURES, "_lair:", 4) as StructureKeeperLair[];
-        if (this.lairs.length === 0) { this.lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR) as StructureKeeperLair[]; }
+        this.lairs = _.filter(this.room.findStructures<StructureKeeperLair>(STRUCTURE_KEEPER_LAIR),
+            (s: Structure) => s.pos.lookFor(LOOK_FLAGS).length === 0) as StructureKeeperLair[];
+
+        if (!this.memory.travelOrder || this.memory.travelOrder.length !== this.lairs.length) {
+            // this.memory.travelOrder = this.findTravelOrder(this.lairs);
+        }
 
         this.distanceToSpawn = this.findDistanceToSpawn(this.flag.pos);
 
@@ -138,16 +146,11 @@ export class LairMission extends Mission {
 
     private assignKeepers() {
         if (!this.lairs) return;
-
-        if (!this.memory.allLairIds) {
-            this.memory.allLairIds = _.map(this.room.findStructures(STRUCTURE_KEEPER_LAIR), (s: Structure) => { return s.id; } );
-        }
-        let allLairs = _.map(this.memory.allLairIds, (id: string) => { return Game.getObjectById(id); } ) as StructureKeeperLair[];
-
+        let lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR);
         let hostiles = this.room.hostiles;
         for (let hostile of hostiles) {
             if (hostile.owner.username === "Source Keeper") {
-                let closestLair = hostile.pos.findClosestByRange(allLairs) as StructureKeeperLair;
+                let closestLair = hostile.pos.findClosestByRange(lairs) as StructureKeeperLair;
                 if (!_.includes(this.lairs, closestLair)) continue;
                 closestLair.keeper = hostile;
             }
@@ -199,5 +202,9 @@ export class LairMission extends Mission {
                 return resource;
             }
         }
+    }
+
+    private findTravelOrder(lairs: StructureKeeperLair[]) {
+
     }
 }

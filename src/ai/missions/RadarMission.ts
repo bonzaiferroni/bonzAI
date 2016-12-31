@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {TRADE_PARTNERS, ALLIES, OBSERVER_PURPOSE_ALLYTRADE} from "../../config/constants";
+import {TRADE_PARTNERS, ALLIES, OBSERVER_PURPOSE_ALLYTRADE, USERNAME} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 export class RadarMission extends Mission {
 
@@ -64,6 +64,8 @@ export class RadarMission extends Mission {
             }
         }
 
+        if (Math.random() > .2) { return; }
+
         this.memory.scanIndex = this.empire.observeAllyRoom(observer, this.memory.scanIndex)
     }
 
@@ -81,18 +83,18 @@ export class RadarMission extends Mission {
         if (observer.observation && observer.observation.purpose === "allySearch") {
             let room = observer.observation.room;
 
-            if (room.controller) {
-                if (room.controller.owner && !ALLIES[room.controller.owner.username]) {
+            if (room.controller && room.controller.owner) {
+                if (room.controller.owner.username !== USERNAME) {
                     console.log(`RADAR: ${this.opName} found hostile room at ${room.name}`);
                     this.empire.addHostileRoom(room.name, room.controller.level);
                 }
                 else {
                     this.empire.removeHostileRoom(room.name);
-                    if (room.storage && room.terminal && room.controller.level >= 6 && !room.terminal.my &&
-                        TRADE_PARTNERS[room.terminal.owner.username]) {
-                        console.log(`RADAR: ${this.opName} found ally room at ${room.name}`);
-                        this.empire.addAllyRoom(room.name);
-                    }
+                }
+                if (TRADE_PARTNERS[room.controller.owner.username] && room.storage && room.terminal
+                    && room.controller.level >= 6 && !room.terminal.my) {
+                    console.log(`RADAR: ${this.opName} found ally room at ${room.name}`);
+                    this.empire.addAllyRoom(room.name);
                 }
             }
 

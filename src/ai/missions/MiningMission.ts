@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
+import {notifier} from "./notifier";
 
 export class MiningMission extends Mission {
 
@@ -353,12 +354,20 @@ export class MiningMission extends Mission {
             }
         });
         if (ret.incomplete || ret.path.length === 0) {
-            console.log(`path used for container placement in ${this.opName} incomplete, please investigate`);
+            notifier.add(`path used for container placement in ${this.opName} incomplete, please investigate`);
         }
 
         let position = ret.path[0];
-        console.log(`MINER: placed container in ${this.opName}`);
-        position.createConstructionSite(STRUCTURE_CONTAINER);
+        let testPositions = _.sortBy(this.source.pos.openAdjacentSpots(true), (p: RoomPosition) => p.getRangeTo(position));
+        for (let testPosition of testPositions) {
+            let sourcesInRange = testPosition.findInRange(FIND_SOURCES, 1);
+            if (sourcesInRange.length > 1) { continue; }
+            console.log(`MINER: placed container in ${this.opName}`);
+            testPosition.createConstructionSite(STRUCTURE_CONTAINER);
+            return;
+        }
+
+        console.log(`MINER: Unable to place container in ${this.opName}`);
     }
 
     private buildContainer(miner: Creep, order: number) {

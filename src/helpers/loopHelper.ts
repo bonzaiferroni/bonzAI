@@ -89,6 +89,8 @@ export var loopHelper = {
             },
             profiler: {},
             traders: {},
+            powerObservers: {},
+            notifier: [],
         });
     },
 

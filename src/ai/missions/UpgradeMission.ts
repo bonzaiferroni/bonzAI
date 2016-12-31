@@ -78,10 +78,6 @@ export class UpgradeMission extends Mission {
                 return this.workerBody(30, 4, 15);
             }
 
-            if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
-                return this.workerBody(1, 1, 1);
-            }
-
             if (this.remoteSpawning) {
                 return this.workerBody(potencyPerCreep, 4, potencyPerCreep);
             }
@@ -268,6 +264,11 @@ export class UpgradeMission extends Mission {
                 }
             }
 
+            if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 &&
+                (!this.room.storage || this.room.storage.store.energy < 50000)) {
+                return 1;
+            }
+
             let storageCapacity;
             if (this.room.storage) {
                 storageCapacity = Math.floor(this.room.storage.store.energy / 1500);
@@ -358,9 +359,6 @@ export class UpgradeMission extends Mission {
         let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
         if (this.room.controller.getUpgraderPositions()) {
             max = Math.min(this.room.controller.getUpgraderPositions().length, max)
-        }
-        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
-            max = 1;
         }
 
         return max

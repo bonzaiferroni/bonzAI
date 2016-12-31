@@ -129,3 +129,12 @@ export interface TravelToOptions {
     range?: number;
     obstacles?: {pos: RoomPosition}[];
 }
+
+export interface BankData {
+    pos: RoomPosition;
+    hits: number;
+    power: number;
+    assisting?: boolean;
+    finishing?: boolean;
+    distance: number;
+}
