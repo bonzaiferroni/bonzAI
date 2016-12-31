@@ -1,8 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {PowerFlagScan} from "../../interfaces";
+import {PowerFlagScan, BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {ALLIES} from "../../config/constants";
+import {notifier} from "./notifier";
 
 export class PowerMission extends Mission {
 
@@ -10,32 +11,10 @@ export class PowerMission extends Mission {
     bonnies: Creep[];
     carts: Creep[];
 
-    scanFlags: Flag[];
-    observer: StructureObserver;
-
-    currentFlag: Flag;
-    bank: StructurePowerBank;
-
     memory: {
-        avoidRooms: string[];
-        currentBank: {
-            flagName: string;
-            roomName: string;
-            assisting: boolean;
-            finishing: boolean;
-            distance: number;
-        }
-
-        flagScan: PowerFlagScan;
-
-        removeFlags: boolean;
-        flagPlacement: {
-            pos: RoomPosition;
-            distance: number;
-        }
-
-        observedRoom: string;
-        scanFlagIndex: number;
+        currentBank: BankData;
+        scanIndex: number;
+        scanData: {[roomName: string]: number}
     };
 
     constructor(operation: Operation) {
@@ -44,40 +23,41 @@ export class PowerMission extends Mission {
 
     initMission() {
 
-        this.observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
+        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
+        if (!observer) return;
 
-        if (this.memory.flagScan) {
-            this.continueScan();
+        if (!Memory.powerObservers[this.room.name]) {
+            Memory.powerObservers[this.room.name] = this.generateScanData();
+            return;
+        }
+
+        if (this.memory.currentBank) {
+            this.monitorBank(this.memory.currentBank);
         }
         else {
-            this.scanFlags = this.getFlagSet("_scan_", 30);
+            this.scanForBanks(observer);
         }
-
-        if (!this.memory.currentBank) return; // early
-        this.currentFlag = Game.flags[this.memory.currentBank.flagName];
-        if (!this.currentFlag.room) return; // early
-        this.bank = this.currentFlag.room.findStructures(STRUCTURE_POWER_BANK)[0] as StructurePowerBank;
     }
 
     roleCall() {
-        if (!this.memory.currentBank) return; // early
-
-        let max = this.memory.currentBank.finishing || this.memory.currentBank.assisting ? 0 : 1;
+        let max = 0;
+        let distance;
+        if (this.memory.currentBank && !this.memory.currentBank.finishing && !this.memory.currentBank.assisting) {
+            max = 1;
+            distance = this.memory.currentBank.distance;
+        }
 
         this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25}), max, {
-            prespawn: this.memory.currentBank.distance,
+            prespawn: distance,
             reservation: { spawns: 2, currentEnergy: 8000 }
         });
 
         this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}), this.bonnies.length);
 
-
-        if (!this.memory.currentBank.finishing || this.memory.currentBank.assisting) return; // early
-
         let unitsPerCart = 1;
         let maxCarts = 0;
-        if (this.bank) {
-            let unitsNeeded = Math.ceil(this.bank.power / 100);
+        if (this.memory.currentBank && this.memory.currentBank.finishing && !this.memory.currentBank.assisting) {
+            let unitsNeeded = Math.ceil(this.memory.currentBank.power / 100);
             maxCarts = Math.ceil(unitsNeeded / 16);
             unitsPerCart = Math.ceil(unitsNeeded / maxCarts);
         }
@@ -86,75 +66,48 @@ export class PowerMission extends Mission {
     }
 
     missionActions() {
-        if (this.memory.currentBank) {
-            this.observer.observeRoom(this.memory.currentBank.roomName);
-
-            for (let i = 0; i < 2; i++) {
-                let clyde = this.clydes[i];
-                if (clyde) {
-                    if (!clyde.memory.myBonnieName) {
-                        if (this.clydes.length === this.bonnies.length) {
-                            clyde.memory.myBonnieName = this.bonnies[i].name;
-                        }
-                    }
-                    else {
-                        this.clydeActions(clyde);
-                        this.checkForAlly(clyde);
+        for (let i = 0; i < 2; i++) {
+            let clyde = this.clydes[i];
+            if (clyde) {
+                if (!clyde.memory.myBonnieName) {
+                    if (this.clydes.length === this.bonnies.length) {
+                        clyde.memory.myBonnieName = this.bonnies[i].name;
                     }
                 }
-                let bonnie = this.bonnies[i];
-                if (bonnie) {
-                    if (!bonnie.memory.myClydeName) {
-                        if (this.clydes.length === this.bonnies.length) {
-                            bonnie.memory.myClydeName = this.clydes[i].name;
-                        }
-                    }
-                    else {
-                        this.bonnieActions(bonnie);
-                    }
+                else {
+                    this.clydeActions(clyde);
+                    this.checkForAlly(clyde);
                 }
             }
-
-            if (this.carts) {
-                let order = 0;
-                for (let cart of this.carts) {
-                    this.powerCartActions(cart, order);
-                    order++;
+            let bonnie = this.bonnies[i];
+            if (bonnie) {
+                if (!bonnie.memory.myClydeName) {
+                    if (this.clydes.length === this.bonnies.length) {
+                        bonnie.memory.myClydeName = this.clydes[i].name;
+                    }
+                }
+                else {
+                    this.bonnieActions(bonnie);
                 }
             }
         }
-        else {
-            this.scanForBanks();
+
+        if (this.carts) {
+            let order = 0;
+            for (let cart of this.carts) {
+                this.powerCartActions(cart, order);
+                order++;
+            }
         }
     }
 
     finalizeMission() {
-        if (!this.memory.currentBank) return;
-        this.checkFinishingPhase();
-        this.checkCompletion();
     }
 
     invalidateMissionCache() {
     }
 
-    placeScanFlags() {
-        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
-        if (!observer) return "ERROR: Can't scan for flags without an observer";
-
-        this.scanFlags.forEach(f => f.remove());
-        this.memory.removeFlags = true;
-        this.memory.flagPlacement = undefined;
-        let allyRoomNames = this.getAlleysInRange(5);
-        this.memory.flagScan = {
-            alleyRoomNames: allyRoomNames,
-            alleyIndex: 0,
-            flagIndex: 0,
-            avoidRooms: [],
-            matrices: {}
-        } as PowerFlagScan;
-    }
-
-    getAlleysInRange(range: number) {
+    findAlleysInRange(range: number) {
 
         let roomNames = [];
 
@@ -181,137 +134,6 @@ export class PowerMission extends Mission {
         return roomNames;
     }
 
-    private continueScan() {
-        let scanCache = this.memory.flagScan;
-
-        // remove all existing scanFlags before starting the process
-        if (this.memory.removeFlags) {
-            let flags = this.getFlagSet("_scan_", 30);
-            if (flags.length === 0) {
-                console.log("POWER: all current flags removed, initating scan");
-                this.memory.removeFlags = undefined;
-            }
-            else {
-                console.log("POWER: removing", flags.length, "flags");
-                return; // early
-            }
-        }
-
-        // place new flags
-        if (this.memory.flagPlacement) {
-            let remotePos = helper.deserializeRoomPosition(this.memory.flagPlacement.pos);
-            let distance = this.memory.flagPlacement.distance;
-            let room = Game.rooms[remotePos.roomName];
-            if (!room) {
-                console.log("POWER: cannot detect room for some reason, retrying");
-                this.observer.observeRoom(remotePos.roomName);
-                return; // early
-            }
-            let existingFlag = _.filter(room.find(FIND_FLAGS), (flag: Flag) => flag.name.indexOf("_scan_") >= 0)[0] as Flag;
-            let placeNewFlag = true;
-            if (existingFlag) {
-                if (existingFlag.memory.distance > distance) {
-                    console.log("POWER: removing flag with greater distance (" + distance + "):", existingFlag.name);
-                    existingFlag.remove();
-                }
-                else {
-                    placeNewFlag = false;
-                    this.memory.flagPlacement = undefined;
-                }
-            }
-
-            if (placeNewFlag) {
-                let outcome = remotePos.createFlag(this.opName + "_scan_" + scanCache.flagIndex);
-                if (_.isString(outcome)) {
-                    Memory.flags[outcome] = { distance: this.memory.flagPlacement.distance };
-                    console.log("POWER: flag placement successful:", outcome);
-                    this.memory.flagPlacement = undefined;
-                    scanCache.flagIndex++;
-                }
-            }
-
-            scanCache.alleyIndex++;
-        }
-
-        if (scanCache.alleyIndex === scanCache.alleyRoomNames.length) {
-            console.log("POWER: Scan proces complete, cleaning up memory and assigning rooms to avoid");
-            this.memory.avoidRooms = scanCache.avoidRooms;
-            this.memory.flagScan = undefined;
-            return; // conclude process
-        }
-
-        let alleyName = scanCache.alleyRoomNames[scanCache.alleyIndex];
-        if (_.includes(scanCache.avoidRooms, alleyName)) {
-            scanCache.alleyIndex++;
-            return; // avoidRooms pathing to rooms you've indicated as off limits in memory.avoidRooms
-        }
-
-        // engage pathfinding
-        let remotePos = new RoomPosition(25, 25, alleyName);
-        let ret = helper.findSightedPath(this.spawnGroup.pos, remotePos, 20, this.observer, scanCache);
-        if (!ret) return; // pathfinding still in progress
-
-        console.log("POWER: Pathing complete for", alleyName);
-        if (ret.incomplete) {
-            console.log("POWER: No valid path was found");
-            scanCache.alleyIndex++;
-            return; // early
-        }
-
-        if (ret.path.length > 250) {
-            console.log("POWER: Path found but distance exceeded 250");
-            scanCache.alleyIndex++;
-            return; // early
-        }
-
-        console.log("POWER: Valid path found, initiating placement scan");
-        this.memory.flagPlacement = {
-            distance: ret.path.length,
-            pos: remotePos,
-        };
-        this.observer.observeRoom(remotePos.roomName);
-    }
-
-    private scanForBanks() {
-        if (!this.scanFlags || this.scanFlags.length === 0) return;
-
-        if (this.memory.observedRoom) {
-            let room = Game.rooms[this.memory.observedRoom];
-            if (room) {
-                let walls = room.findStructures(STRUCTURE_WALL);
-                if (walls.length > 0) return;
-                let powerBank = room.findStructures(STRUCTURE_POWER_BANK)[0] as StructurePowerBank;
-                if (powerBank && powerBank.ticksToDecay > 4500 && powerBank.power > Memory.playerConfig.powerMinimum) {
-                    console.log("\\o/ \\o/ \\o/", powerBank.power, "power found at", room, "\\o/ \\o/ \\o/");
-                    this.memory.currentBank = {
-                        flagName: this.scanFlags[this.memory.scanFlagIndex].name,
-                        roomName: this.memory.observedRoom,
-                        distance: this.scanFlags[this.memory.scanFlagIndex].memory.distance,
-                        finishing: false,
-                        assisting: undefined,
-                    };
-                    this.observer.observeRoom(room.name);
-                    return;
-                }
-            }
-        }
-        if (Math.random() < .5) {
-            this.memory.scanFlagIndex++;
-            if (this.memory.scanFlagIndex >= this.scanFlags.length) this.memory.scanFlagIndex = 0;
-            let flag = this.scanFlags[this.memory.scanFlagIndex];
-            if (flag) {
-                this.memory.observedRoom = flag.pos.roomName;
-                this.observer.observeRoom(this.memory.observedRoom);
-            }
-            else {
-                console.log("POWER: didn't find a flag in", this.opName, "(might be flag lag)");
-            }
-        }
-        else {
-            this.memory.observedRoom = undefined;
-        }
-    }
-
     private clydeActions(clyde: Creep) {
 
         let myBonnie = Game.creeps[clyde.memory.myBonnieName];
@@ -320,38 +142,40 @@ export class PowerMission extends Mission {
             return;
         }
 
-        if (!this.bank) {
-            if (clyde.room.name === this.currentFlag.pos.roomName) {
-                clyde.suicide();
-                myBonnie.suicide();
-            }
-            else {
-                clyde.blindMoveTo(this.currentFlag);
-            }
+        if (!this.memory.currentBank) {
+            console.log(`POWER: clyde checking out: ${clyde.room.name}`);
+            clyde.suicide();
+            myBonnie.suicide();
             return;
         }
 
-        if (clyde.pos.isNearTo(this.bank)) {
+        let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
+
+        if (clyde.pos.isNearTo(bankPos)) {
             clyde.memory.inPosition = true;
-            if (this.bank.hits > 600 || clyde.ticksToLive < 5) {
-                clyde.attack(this.bank);
-            }
-            else {
-                for (let cart of this.carts) {
-                    if (cart.room !== this.bank.room) {
-                        return;
-                    }
+            let bank = bankPos.lookForStructure(STRUCTURE_POWER_BANK);
+            if (bank) {
+                if (bank.hits > 600 || clyde.ticksToLive < 5) {
+                    clyde.attack(bank);
                 }
-                clyde.attack(this.bank);
+                else {
+                    // wait for carts
+                    for (let cart of this.carts) {
+                        if (!bankPos.inRangeTo(cart, 5)) {
+                            return;
+                        }
+                    }
+                    clyde.attack(bank);
+                }
             }
         }
         else if (myBonnie.fatigue === 0) {
             if (this.memory.currentBank.assisting === undefined) {
                 // traveling from spawn
-                clyde.blindMoveTo(this.bank, this.powerMoveOps);
+                this.empire.travelTo(clyde, {pos: bankPos}, {ignoreRoads: true});
             }
             else {
-                clyde.moveTo(this.bank, {reusePath: 0});
+                clyde.moveTo(bankPos, {reusePath: 0});
             }
         }
     }
@@ -382,42 +206,52 @@ export class PowerMission extends Mission {
 
     private powerCartActions(cart: Creep, order: number) {
         if (!cart.carry.power) {
-            if (cart.room.name !== this.currentFlag.pos.roomName) {
-                if (this.bank) {
-                    // traveling from spawn
-                    cart.blindMoveTo(this.currentFlag, this.powerMoveOps);
-                }
-                else {
-                    this.recycleCreep(cart);
-                }
+            if (this.memory.currentBank && this.memory.currentBank.finishing) {
+                this.powerCartApproachBank(cart, order);
                 return;
             }
-
-            let power = cart.room.find(FIND_DROPPED_RESOURCES,
-                { filter: (r: Resource) => r.resourceType === RESOURCE_POWER})[0] as Resource;
-            if (power) {
-                if (cart.pos.isNearTo(power)) {
-                    cart.pickup(power);
-                    cart.blindMoveTo(this.room.storage);
+            else {
+                let power = cart.room.find(FIND_DROPPED_RESOURCES,
+                    { filter: (r: Resource) => r.resourceType === RESOURCE_POWER})[0] as Resource;
+                if (power) {
+                    if (cart.pos.isNearTo(power)) {
+                        cart.pickup(power);
+                        cart.blindMoveTo(this.room.storage);
+                    }
+                    else {
+                        cart.blindMoveTo(power);
+                    }
+                    return; //  early;
                 }
-                else {
-                    cart.blindMoveTo(power);
-                }
-                return; //  early;
             }
 
-            if (!this.bank) {
-                this.recycleCreep(cart);
-                return;
-            }
+            this.recycleCreep(cart);
+            return; // early
+        }
 
+        if (cart.pos.isNearTo(this.room.storage)) {
+            cart.transfer(this.room.storage, RESOURCE_POWER);
+        }
+        else {
+            // traveling to storage
+            this.empire.travelTo(cart, this.room.storage);
+        }
+    }
+
+    private powerCartApproachBank(cart: Creep, order: number) {
+        let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
+        if (!cart.pos.inRangeTo(bankPos, 5)) {
+            // traveling from spawn
+            this.empire.travelTo(cart, {pos: bankPos}, {ignoreRoads: true});
+        }
+        else {
             if (!cart.memory.inPosition) {
-                if (this.bank.pos.openAdjacentSpots().length > 0) {
-                    if (cart.pos.isNearTo(this.bank)) {
+                if (bankPos.openAdjacentSpots().length > 0) {
+                    if (cart.pos.isNearTo(bankPos)) {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        cart.blindMoveTo(this.bank);
+                        cart.blindMoveTo(bankPos);
                     }
                 }
                 else if (order > 0) {
@@ -437,49 +271,22 @@ export class PowerMission extends Mission {
                     }
                 }
             }
-            return; // early
-        }
-
-        if (cart.pos.isNearTo(this.room.storage)) {
-            cart.transfer(this.room.storage, RESOURCE_POWER);
-        }
-        else {
-            // traveling to storage
-            cart.blindMoveTo(this.room.storage, this.powerMoveOps);
-        }
-    }
-
-    private checkFinishingPhase() {
-        if (!this.bank || this.clydes.length === 0 || this.memory.currentBank.finishing) return;
-        let attackTicksNeeded = Math.ceil(this.bank.hits / 600);
-        let clyde = _.last<Creep>(this.clydes);
-        let ttlEstimate = clyde.memory.inPosition ? clyde.ticksToLive : 1000;
-        if (ttlEstimate > attackTicksNeeded) {
-            this.memory.currentBank.finishing = true;
-        }
-    }
-
-    private checkCompletion() {
-        if (this.memory.currentBank && Game.rooms[this.memory.currentBank.roomName] &&
-            ((this.memory.currentBank.finishing && !this.bank && this.carts && this.carts.length === 0) ||
-            (this.memory.currentBank.assisting && this.clydes && this.clydes.length === 0))) {
-            this.memory.currentBank = undefined;
         }
     }
 
     private checkForAlly(clyde: Creep) {
-        if (!this.bank || clyde.pos.roomName !== this.bank.pos.roomName || clyde.isNearExit(1) ||
-            this.memory.currentBank.assisting !== undefined) return;
+        if (clyde.isNearExit(1) || !this.memory.currentBank || !this.memory.currentBank.assisting !== undefined) return;
 
-        let allyClyde = this.bank.room.find(FIND_HOSTILE_CREEPS, {
+        let bank = clyde.room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
+        if (!bank) return;
+
+        let allyClyde = bank.room.find(FIND_HOSTILE_CREEPS, {
             filter: (c: Creep) => c.partCount(ATTACK) === 20 && ALLIES[c.owner.username] && !c.isNearExit(1)
         })[0] as Creep;
 
         if (!allyClyde) {
             return;
         }
-
-        Memory["playEvent"] = { time: Game.time, roomName: this.bank.room.name };
 
         if (clyde.memory.play) {
             let myPlay = clyde.memory.play;
@@ -491,19 +298,19 @@ export class PowerMission extends Mission {
             }
             else if ((allyPlay === "rock" && myPlay === "scissors") || (allyPlay === "scissors" && myPlay === "paper") ||
                 (allyPlay === "paper" && myPlay === "rock")) {
-                if (this.bank.pos.openAdjacentSpots(true).length === 1) {
+                if (bank.pos.openAdjacentSpots(true).length === 1) {
                     let bonnie = Game.creeps[clyde.memory.myBonnieName];
                     bonnie.suicide();
                     clyde.suicide();
                 }
-                console.log("POWER: ally gets the power!");
                 this.memory.currentBank.assisting = true;
                 clyde.say("damn", true);
+                notifier.add(`"POWER: ally gets the power! ${bank.room.name}`);
             }
             else {
-                console.log("POWER: I get the power!");
                 this.memory.currentBank.assisting = false;
                 clyde.say("yay!", true);
+                notifier.add(`"POWER: I get the power! ${bank.room.name}`);
             }
         }
         else {
@@ -524,11 +331,86 @@ export class PowerMission extends Mission {
         }
     }
 
-    powerMoveOps = {
-        costCallback: (roomName: string, matrix: CostMatrix) => {
-            if (_.includes(this.memory.avoidRooms, roomName)) {
-                return helper.blockOffExits(matrix);
+    private generateScanData(): {[roomName: string]: number} {
+        if (Game.cpu.bucket < 10000) return;
+
+        let scanData: {[roomName: string]: number} = {};
+        let spawn = this.spawnGroup.spawns[0];
+        let possibleRoomNames = this.findAlleysInRange(5);
+        for (let roomName of possibleRoomNames) {
+            let position = helper.pathablePosition(roomName);
+            let ret = this.empire.findTravelPath(spawn, {pos: position});
+            if (ret.incomplete) {
+                notifier.add(`POWER: incomplete path generating scanData (op: ${this.opName}, roomName: ${roomName})`);
+                continue;
+            }
+
+            let currentObserver = _.find(Memory.powerObservers, (value) => value[roomName]);
+            let distance = ret.path.length;
+            if (distance > 250) continue;
+
+            if (currentObserver) {
+                if (currentObserver[roomName] > distance) {
+                    console.log(`POWER: found better distance for ${roomName} at ${this.opName}, ` +
+                        `${currentObserver[roomName]} => ${distance}`);
+                    delete currentObserver[roomName];
+                }
+                else {
+                    continue;
+                }
+            }
+
+            scanData[roomName] = distance;
+        }
+
+        console.log(`POWER: found ${Object.keys(scanData).length} rooms for power scan in ${this.opName}`);
+        return scanData;
+    }
+
+    private monitorBank(currentBank: BankData) {
+        let room = Game.rooms[currentBank.pos.roomName];
+        if (room) {
+            let bank = room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
+            if (bank) {
+                currentBank.hits = bank.hits;
+                if (!currentBank.finishing && bank.hits < 500000) {
+                    let clyde = bank.pos.findInRange<Creep>(
+                        _.filter(room.find<Creep>(FIND_MY_CREEPS), (c: Creep) => c.partCount(ATTACK) === 20), 1)[0];
+                    if (clyde && bank.hits < clyde.ticksToLive * 600) {
+                        console.log(`POWER: last wave needed for bank has arrived, ${this.opName}`);
+                        currentBank.finishing = true;
+                    }
+                }
+            }
+            else {
+                this.memory.currentBank = undefined;
             }
         }
-    };
+    }
+
+    private scanForBanks(observer: StructureObserver) {
+
+        if (observer.observation && observer.observation.purpose === this.name) {
+            let room = observer.observation.room;
+            let bank = observer.observation.room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
+            if (bank && bank.ticksToDecay > 4500 && room.findStructures(STRUCTURE_WALL).length === 0
+                && bank.power >= Memory.playerConfig.powerMinimum) {
+                console.log("\\o/ \\o/ \\o/", bank.power, "power found at", room, "\\o/ \\o/ \\o/");
+                this.memory.currentBank = {
+                    pos: bank.pos,
+                    hits: bank.hits,
+                    power: bank.power,
+                    distance: Memory.powerObservers[this.room.name][room.name],
+                };
+                return;
+            }
+        }
+
+        if (this.spawnGroup.averageAvailability() < .5 || Math.random() > .2) { return; }
+
+        let scanData = Memory.powerObservers[this.room.name];
+        if (this.memory.scanIndex >= Object.keys(scanData).length) { this.memory.scanIndex = 0; }
+        let roomName = Object.keys(scanData)[this.memory.scanIndex++];
+        observer.observeRoom(roomName, this.name);
+    }
 }
