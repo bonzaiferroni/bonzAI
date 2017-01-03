@@ -67,13 +67,13 @@ export class SurveyAnalyzer {
 
         let chosenRoom;
         let readyList = this.checkReady();
-        if (Object.keys(readyList).length > 0) {
+        if (readyList && Object.keys(readyList).length > 0) {
             chosenRoom = this.chooseRoom(readyList);
         }
         if (chosenRoom) {
             this.memory.chosenRoom = chosenRoom;
         }
-        else {
+        else if (this.memory.nextAnalysis < Game.time) {
             this.memory.nextAnalysis = Game.time + 1000;
         }
 
@@ -266,15 +266,22 @@ export class SurveyAnalyzer {
 
         if (!this.empire.underCPULimit()) {
             notifier.add(`SURVEY: avoiding placement, cpu is over limit`);
+            this.memory.nextAnalysis = Game.time + 10000;
             return;
         }
+
+
 
         let readyList = {};
 
         for (let roomName in this.memory.surveyRooms) {
             let data = this.memory.surveyRooms[roomName];
             // owner
-            if (data.owner || !data.sourceCount ) { continue; }
+            if (!data.sourceCount ) { continue; }
+            // don't claim rooms if any nearby rooms with another owner
+            if (data.owner) {
+                return;
+            }
 
             // spawning availability
             let availabilityRequired = this.spawnGroup.spawns.length / 3;
