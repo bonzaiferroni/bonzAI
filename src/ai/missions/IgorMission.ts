@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {
     IGOR_CAPACITY, PRODUCT_LIST, RESERVE_AMOUNT,
-    PRODUCTION_AMOUNT, REAGENT_LIST, MINERALS_RAW
+    PRODUCTION_AMOUNT, REAGENT_LIST, MINERALS_RAW, POWER_PROCESS_THRESHOLD
 } from "../../config/constants";
 import {IgorCommand, LabProcess, Shortage, BoostRequests} from "../../interfaces";
 import {helper} from "../../helpers/helper";
@@ -72,7 +72,8 @@ export class IgorMission extends Mission {
             this.doSynthesis();
         }
 
-        if (this.powerSpawn && this.powerSpawn.energy > 50 && this.powerSpawn.power > 0) {
+        if (this.powerSpawn && this.powerSpawn.energy > 50 && this.powerSpawn.power > 0
+            && this.storage.store.energy > POWER_PROCESS_THRESHOLD) {
             this.powerSpawn.processPower();
         }
 
@@ -191,7 +192,7 @@ export class IgorMission extends Mission {
                 return {origin: storage.id, destination: powerSpawn.id, resourceType: RESOURCE_ENERGY};
             }
             // load power
-            else if (_.sum(this.storage.store) > 900000 && powerSpawn.power === 0 && terminal.store[RESOURCE_POWER] >= 100) {
+            else if (powerSpawn.power === 0 && terminal.store[RESOURCE_POWER] >= 100) {
                 return {origin: terminal.id, destination: powerSpawn.id, resourceType: RESOURCE_POWER, amount: 100};
             }
         }

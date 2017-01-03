@@ -1182,6 +1182,7 @@ declare class GameMap {
      * @returns A boolean value.
      */
     isRoomProtected(roomName: string): boolean;
+    isRoomAvailable(roomName: string): boolean;
 }
 /**
  * A global object representing the in-game market. You can use this object to track resource transactions to/from your
@@ -1329,12 +1330,7 @@ interface PathFinder {
     search(origin: RoomPosition, goal: RoomPosition | {
         pos: RoomPosition;
         range: number;
-    }, opts?: PathFinderOpts): {
-        path: RoomPosition[];
-        ops: number;
-        cost: number;
-        incomplete: boolean;
-    };
+    }, opts?: PathFinderOpts): PathfinderReturn;
     /**
      * Find an optimal path between origin and goal.
      *
@@ -1345,7 +1341,7 @@ interface PathFinder {
     search(origin: RoomPosition, goal: RoomPosition[] | {
         pos: RoomPosition;
         range: number;
-    }[], opts?: PathFinderOpts): PathfinderReturn
+    }[], opts?: PathFinderOpts): PathfinderReturn;
     /**
      * Specify whether to use this new experimental pathfinder in game objects methods.
      * This method should be invoked every tick. It affects the following methods behavior:

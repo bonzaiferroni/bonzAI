@@ -36,5 +36,18 @@ export const profiler = {
                 delete Memory.profiler[identifier];
             }
         }
+
+        if (Game.time % 10 === 0) {
+            // Memory serialization will cause additional CPU use, better to err on the conservative side
+            Memory.cpu.history.push(Game.cpu.getUsed() + Game.gcl.level / 5);
+            Memory.cpu.average = _.sum(Memory.cpu.history) / Memory.cpu.history.length;
+            while (Memory.cpu.history.length > 100) {
+                Memory.cpu.history.shift();
+            }
+        }
+    },
+
+    proportionUsed() {
+        return Memory.cpu.average / (Game.gcl.level * 10 + 20);
     }
 };

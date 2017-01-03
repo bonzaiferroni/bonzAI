@@ -72,7 +72,7 @@ export class BuildMission extends Mission {
             distance = 10;
         }
 
-        let analysis = this.analyzeTransport(distance, potency * 5);
+        let analysis = this.cacheTransportAnalysis(distance, potency * 5);
 
         let builderBody = () => {
             if (this.spawnGroup.maxSpawnEnergy < 550) {
@@ -81,7 +81,7 @@ export class BuildMission extends Mission {
 
             let potencyCost = potency * 100 + Math.ceil(potency / 2) * 50;
             let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
-            let cartCarryCount = Math.floor((analysis.body.length * 2) / 3);
+            let cartCarryCount = analysis.carryCount;
             let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
             if (this.spawnGroup.room === this.room) {
                 return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
@@ -109,7 +109,8 @@ export class BuildMission extends Mission {
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
-        this.supplyCarts = this.headCount(this.name + "Cart", () => analysis.body, analysis.cartsNeeded,
+        this.supplyCarts = this.headCount(this.name + "Cart",
+            () => this.workerBody(0, analysis.carryCount, analysis.moveCount), analysis.cartsNeeded,
             {prespawn: analysis.distance, memory: cartMemory });
     }
 

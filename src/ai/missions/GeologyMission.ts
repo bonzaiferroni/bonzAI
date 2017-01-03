@@ -69,7 +69,7 @@ export class GeologyMission extends Mission {
             (this.mineral.ticksToRegeneration < 1000 || this.mineral.mineralAmount > 0)) {
             this.buildContainer();
         }
-        this.analysis = this.analyzeTransport(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
+        this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
     }
 
     roleCall() {
@@ -89,7 +89,9 @@ export class GeologyMission extends Mission {
         this.geologists = this.headCount("geologist", geoBody, maxGeologists, this.distanceToSpawn);
 
         let maxCarts = maxGeologists > 0 ? this.analysis.cartsNeeded : 0;
-        this.carts = this.headCount("geologyCart", () => this.analysis.body, maxCarts, {prespawn: this.distanceToSpawn});
+        this.carts = this.headCount("geologyCart",
+            () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount),
+            maxCarts, {prespawn: this.distanceToSpawn});
 
         let maxRepairers = this.mineral.mineralAmount > 5000 && this.container && this.container.hits < 50000 ? 1 : 0;
         this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), maxRepairers);

@@ -35,7 +35,7 @@ export abstract class Operation {
         // variables that require vision (null check where appropriate)
         if (this.flag.room) {
             this.hasVision = true;
-            this.sources = this.flag.room.find<Source>(FIND_SOURCES);
+            this.sources = _.sortBy(this.flag.room.find<Source>(FIND_SOURCES), (s: Source) => s.pos.getRangeTo(this.flag));
             this.mineral = _.head(this.flag.room.find<Mineral>(FIND_MINERALS));
         }
     }
@@ -156,7 +156,7 @@ export abstract class Operation {
     addMission(mission: Mission) {
         // it is important for every mission belonging to an operation to have
         // a unique name or they will be overwritten here
-        this.missions[mission.name] = mission;
+        this.missions[mission.getName()] = mission;
     }
 
     getRemoteSpawnGroup(distanceLimit = 4): SpawnGroup {
@@ -184,7 +184,7 @@ export abstract class Operation {
         let spawnRoom = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
             let spawnGroup = this.empire.getSpawnGroup(roomName);
             if (spawnGroup) {
-                return spawnGroup.averageAvailability();
+                return spawnGroup.averageAvailability;
             }
             else {
                 _.pull(this.memory.spawnRooms, roomName);

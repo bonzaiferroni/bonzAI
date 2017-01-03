@@ -2,7 +2,7 @@ import {Operation} from "../operations/Operation";
 import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
-import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
+import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 export abstract class Mission {
 
@@ -13,15 +13,13 @@ export abstract class Mission {
     protected memory: any;
     protected spawnGroup: SpawnGroup;
     protected sources: Source[];
-
-    room: Room;
-    name: string;
-    allowSpawn: boolean;
-    hasVision: boolean;
-    waypoints: Flag[];
-
-    partnerPairing: {[role: string]: Creep[]} = {};
-    distanceToSpawn: number;
+    protected room: Room;
+    protected name: string;
+    protected allowSpawn: boolean;
+    protected hasVision: boolean;
+    protected waypoints: Flag[];
+    protected partnerPairing: {[role: string]: Creep[]} = {};
+    protected distanceToSpawn: number;
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.name = name;
@@ -42,6 +40,13 @@ export abstract class Mission {
             this.waypoints = operation.waypoints;
         }
     }
+
+    getEmpire(): Empire { return this.empire };
+    getRoom(): Room { return this.room };
+    getSpawnGroup(): SpawnGroup { return this.spawnGroup };
+    getMemory(): any { return this.memory };
+    getName(): string { return this.name };
+    getOpName(): string { return this.opName };
 
     /**
      * Init Phase - Used to initialize values for the following phases
@@ -130,7 +135,7 @@ export abstract class Mission {
             }
         }
 
-        if (this.allowSpawn && this.spawnGroup.isAvailable && (count < max) && (this.hasVision || options.blindSpawn)) {
+        if (count < max && this.allowSpawn && this.spawnGroup.isAvailable && (this.hasVision || options.blindSpawn)) {
             let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
@@ -246,24 +251,33 @@ export abstract class Mission {
      * @param load - how many resource units need to be transported per tick (example: 10 for an energy source)
      * @returns {{body: string[], cartsNeeded: number}}
      */
-    protected analyzeTransport(distance: number, load: number): TransportAnalysis {
-        if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load) {
-            // this value is multiplied by 2.1 to account for travel both ways and a small amount of error for traffic/delays
-            let bandwidthNeeded = distance * load * 2.1;
-            // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100
-            let cargoUnitsNeeded = Math.ceil(bandwidthNeeded / 100);
-            let maxUnitsPossible = this.spawnGroup.maxUnits([CARRY, CARRY, MOVE]);
-            let cartsNeeded = Math.ceil(cargoUnitsNeeded / maxUnitsPossible );
-            let cargoUnitsPerCart = Math.ceil(cargoUnitsNeeded / cartsNeeded);
-            let body = this.workerBody(0, cargoUnitsPerCart * 2, cargoUnitsPerCart);
-            this.memory.transportAnalysis = {
-                load: load,
-                distance: distance,
-                body: body,
-                cartsNeeded: cartsNeeded,
-                carryCount: cargoUnitsPerCart * 2 };
+    protected cacheTransportAnalysis(distance: number, load: number): TransportAnalysis {
+        if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load
+            || distance !== this.memory.transportAnalysis.distance) {
+            this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy)
         }
         return this.memory.transportAnalysis;
+    }
+
+    static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number): TransportAnalysis {
+        // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100 and costs 150
+        let maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
+            ((BODYPART_COST[CARRY] * 2) + BODYPART_COST[MOVE])), 16);
+        let bandwidthNeeded = distance * load * 2.1;
+        let cargoUnitsNeeded = Math.ceil(bandwidthNeeded / (CARRY_CAPACITY * 2));
+        let cartsNeeded = Math.ceil(cargoUnitsNeeded / maxUnitsPossible);
+        let cargoUnitsPerCart = Math.floor(cargoUnitsNeeded / cartsNeeded);
+        return {
+            load: load,
+            distance: distance,
+            cartsNeeded: cartsNeeded,
+            carryCount: cargoUnitsPerCart * 2,
+            moveCount: cargoUnitsPerCart,
+        };
+    }
+
+    static loadFromSource(source: Source): number {
+        return Math.max(source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
     }
 
     /**
@@ -559,21 +573,38 @@ export abstract class Mission {
         const SWAMP_COST = 5;
         const AVOID_COST = 7;
 
+        let maxDistance = Game.map.getRoomLinearDistance(start.roomName, finish.roomName);
         let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
             plainCost: PLAIN_COST,
             swampCost: SWAMP_COST,
             maxOps: 8000,
-            roomCallback: (roomName: string): CostMatrix => {
-                let roomCoords = helper.getRoomCoordinates(roomName);
-                if (roomCoords && (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0)) {
-                    let matrix = new PathFinder.CostMatrix();
-                    helper.blockOffExits(matrix, AVOID_COST);
-                    return matrix;
-                }
-                let room = Game.rooms[roomName];
-                if (!room) return;
+            roomCallback: (roomName: string): CostMatrix | boolean => {
 
-                let matrix = new PathFinder.CostMatrix();
+                // disqualify enemy rooms
+                if (this.empire.memory.hostileRooms[roomName]) {
+                    return false;
+                }
+
+                // disqualify rooms that involve a circuitous path
+                if (Game.map.getRoomLinearDistance(start.roomName, roomName) > maxDistance) {
+                    return false;
+                }
+
+                let matrix;
+                let room = Game.rooms[roomName];
+                if (!room) {
+                    let roomType = helper.roomTypeFromName(roomName);
+                    if (roomType === ROOMTYPE_ALLEY) {
+                        matrix = new PathFinder.CostMatrix();
+                        helper.blockOffExits(matrix, AVOID_COST);
+                        return matrix;
+                    }
+                    else {
+                        return;
+                    }
+                }
+
+                matrix = new PathFinder.CostMatrix();
                 helper.addStructuresToMatrix(matrix, room, ROAD_COST);
 
                 // avoid controller
@@ -591,10 +622,13 @@ export abstract class Mission {
                 }
 
                 // add construction sites too
-                let constructionSites = room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES);
+                let constructionSites = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
                 for (let site of constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
                         matrix.set(site.pos.x, site.pos.y, ROAD_COST);
+                    }
+                    else {
+                        matrix.set(site.pos.x, site.pos.y, 0xff);
                     }
                 }
 
@@ -627,7 +661,7 @@ export abstract class Mission {
                 continue;
             }
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
-            if (construction && construction.structureType === STRUCTURE_ROAD) continue;
+            if (construction) continue;
             return position;
         }
     }

@@ -91,10 +91,10 @@ export class UpgradeMission extends Mission {
         };
 
         if (this.battery instanceof StructureContainer) {
-            let analysis = this.analyzeTransport(25, totalPotency);
-            this.batterySupplyCarts = this.headCount("upgraderCart", () => analysis.body, analysis.cartsNeeded, {
-                prespawn: this.distanceToSpawn,
-            });
+            let analysis = this.cacheTransportAnalysis(25, totalPotency);
+            this.batterySupplyCarts = this.headCount("upgraderCart",
+                () => this.workerBody(0, analysis.carryCount, analysis.moveCount),
+                analysis.cartsNeeded, { prespawn: this.distanceToSpawn,});
         }
 
         this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {

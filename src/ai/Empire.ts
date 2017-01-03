@@ -5,8 +5,9 @@ import {
     OBSERVER_PURPOSE_ALLYTRADE, ALLIES, USERNAME
 } from "../config/constants";
 import {helper} from "../helpers/helper";
-import {TravelData, TravelToOptions} from "../interfaces";
-import {notifier} from "./missions/notifier";
+import {TravelData, TravelToOptions, AllowedRoomsOptions} from "../interfaces";
+import {notifier} from "../notifier";
+import {profiler} from "../profiler";
 export class Empire {
 
     storages: StructureStorage[] = [];
@@ -553,34 +554,38 @@ export class Empire {
         }
     }
 
-    findAllowedRooms(origin: string, destination: string, preferHighway = false,
-                     avoidEnemyRooms = true, avoidSKrooms = true): {[roomName: string]: boolean } {
-        // Use `findRoute` to calculate a high-level plan for this path,
-        // prioritizing highways and owned rooms
+    findAllowedRooms(origin: string, destination: string,
+                     options: AllowedRoomsOptions = {}): {[roomName: string]: boolean } {
+        _.defaults(options, { restrictDistance: 20 });
+        if (Game.map.getRoomLinearDistance(origin, destination) > options.restrictDistance) { return; }
         let allowedRooms = { [ origin ]: true, [ destination ]: true };
         let ret = Game.map.findRoute(origin, destination, {
             routeCallback: (roomName: string) => {
-                if (preferHighway) {
+                if (Game.map.getRoomLinearDistance(origin, roomName) > options.restrictDistance) return false;
+                if (options.preferHighway) {
                     let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
                     let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
                     if (isHighway) {
                         return 1;
                     }
                 }
-                if (avoidSKrooms && !Game.rooms[roomName]) {
+                if (!options.allowSK && !Game.rooms[roomName]) {
                     let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
-                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) && ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
+                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) &&
+                        ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
                     if (isSK) {
                         return 20;
                     }
                 }
-                if (avoidEnemyRooms && this.memory.hostileRooms[roomName] && roomName !== destination && roomName !== origin) {
+                if (!options.allowHostile && this.memory.hostileRooms[roomName] &&
+                    roomName !== destination && roomName !== origin) {
                     return Number.POSITIVE_INFINITY;
                 }
             }
         });
-        if (_.isNumber(ret)) {
+        if (!_.isArray(ret)) {
             console.log(`couldn't findRoute to ${destination}`);
+            return;
         }
         for (let value of ret) {
             allowedRooms[value.room] = true;
@@ -670,11 +675,16 @@ export class Empire {
         });
 
         let allowedRooms;
+        let searchedAlready = false;
         let callback = (roomName: string): CostMatrix | boolean => {
-            if (!allowedRooms) {
+            if (!allowedRooms && !searchedAlready) {
+                searchedAlready = true;
                 allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options.preferHighway);
+                if (!allowedRooms) {
+                    notifier.add(`couldn't find allowed rooms for path from ${origin} to ${destination}`)
+                }
             }
-            if (!allowedRooms[roomName]) return false;
+            if (allowedRooms && !allowedRooms[roomName]) return false;
             let room = Game.rooms[roomName];
             if (!room) return;
             let matrix: CostMatrix;
@@ -683,9 +693,6 @@ export class Empire {
             }
             else {
                 matrix = room.defaultMatrix.clone();
-            }
-            if (origin instanceof Creep) {
-                if (origin.name === "vigo9_scout_98") console.log(options.ignoreCreeps);
             }
             if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
                 helper.addCreepsToMatrix(matrix, room);
@@ -755,6 +762,7 @@ export class Empire {
 
         let decipheredMessage = false;
         for (let item of Game.market.incomingTransactions) {
+            if (!item.sender) continue;
             if (item.time >= Game.time - 10) {
                 let username = item.sender.username;
                 if (!username) { username = "npc"; }
@@ -775,6 +783,7 @@ export class Empire {
         }
 
         for (let item of Game.market.outgoingTransactions) {
+            if (!item.recipient) continue;
             if (item.time >= Game.time - 10) {
                 let username = item.recipient.username;
                 if (!username) { username = "npc"; }
@@ -790,6 +799,10 @@ export class Empire {
                 break;
             }
         }
+    }
+
+    underCPULimit() {
+        return profiler.proportionUsed() < .9;
     }
 }
 

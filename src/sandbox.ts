@@ -1,6 +1,7 @@
 import {SpawnGroup} from "./ai/SpawnGroup";
 import {helper} from "./helpers/helper";
 import {profiler} from "./profiler";
+import {ROOMTYPE_ALLEY} from "./config/constants";
 export var sandBox = {
     run: function() {
         let claimerFlag = Game.flags["claimerFlag"];
@@ -30,7 +31,7 @@ export var sandBox = {
 
         let testFlag = Game.flags["testerFlag"];
         if (testFlag) {
-            let creepNames = ["blindMoveTo", "travelTo"];
+            let creepNames = ["travelTo"];
             for (let creepName of creepNames) {
                 let creep = Game.creeps[creepName];
                 if (!creep) {
@@ -58,20 +59,10 @@ export var sandBox = {
                     if (!creep.pos.inRangeTo(testFlag, 1)) {
                         profiler.start("travelTo");
                         emp.travelTo(creep, testFlag);
-                        console.log(creep.memory._move.path)
                         profiler.end("travelTo");
                     }
                 }
             }
         }
-
-        // let obs = global.cali5.flag.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
-        // obs.observeRoom('E20S19', "foo");
-        // obs.observeRoom('E20S20', "bar");
-        // obs.observeRoom('E20S21', "whiz");
-        // console.log(JSON.stringify(global.cali5.flag.room.memory.obsQueue));
-        // console.log(JSON.stringify(global.cali5.flag.room._observation));
-        // console.log(JSON.stringify(obs.observation));
-
     }
 };

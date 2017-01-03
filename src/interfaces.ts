@@ -1,9 +1,10 @@
+import {Operation} from "./ai/operations/Operation";
 export interface TransportAnalysis {
     load: number;
     distance: number;
-    body: string[];
     cartsNeeded: number;
     carryCount: number;
+    moveCount: number;
 }
 
 export interface IgorCommand {
@@ -137,4 +138,12 @@ export interface BankData {
     assisting?: boolean;
     finishing?: boolean;
     distance: number;
+    timeout: number;
+}
+
+export interface AllowedRoomsOptions {
+    preferHighway?: boolean;
+    allowHostile?: boolean;
+    allowSK?: boolean;
+    restrictDistance?: number;
 }

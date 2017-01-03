@@ -23,7 +23,8 @@ import {profiler} from "../../profiler";
 import {ScoutMission} from "../missions/ScoutMission";
 import {ClaimMission} from "../missions/ClaimMission";
 import {RadarMission} from "../missions/RadarMission";
-import {notifier} from "../missions/notifier";
+import {notifier} from "../../notifier";
+import {SurveyMission} from "../missions/SurveyMission";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -69,7 +70,6 @@ export abstract class ControllerOperation extends Operation {
     protected abstract temporaryPlacement(controllerLevel: number);
 
     initOperation() {
-
         this.autoLayout();
 
         // scout room
@@ -130,6 +130,8 @@ export abstract class ControllerOperation extends Operation {
             this.addMission(new LinkNetworkMission(this));
             // mine minerals
             this.addMission(new GeologyMission(this));
+            // scout and place harvest flags
+            this.addMission(new SurveyMission(this));
         }
 
         // upgrader controller
@@ -139,7 +141,6 @@ export abstract class ControllerOperation extends Operation {
 
         // repair walls
         this.addMission(new MasonMission(this));
-
         this.towerRepair();
 
         // reassign spawngroups for remote boosting
@@ -426,7 +427,7 @@ export abstract class ControllerOperation extends Operation {
             .filter((s: SpawnGroup) => {
                 return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
                     && s.room.controller.level >= levelRequirement
-                    && s.averageAvailability() > .3
+                    && s.averageAvailability > .3
                     && s.isAvailable
             })
             .sortBy((s: SpawnGroup) => {

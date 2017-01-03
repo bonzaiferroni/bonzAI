@@ -1,9 +1,14 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {ARTROOMS} from "../../config/constants";
 export class ReserveMission extends Mission {
 
     reservers: Creep[];
     controller: StructureController;
+
+    memory: {
+        wallCheck: boolean;
+    };
 
     constructor(operation: Operation) {
         super(operation, "claimer");
@@ -46,9 +51,34 @@ export class ReserveMission extends Mission {
 
         if (reserver.pos.isNearTo(this.controller)) {
             reserver.reserveController(this.controller);
+            if (!this.memory.wallCheck) {
+                this.memory.wallCheck = this.destroyWalls(reserver, this.room)
+            }
         }
         else {
             reserver.blindMoveTo(this.controller);
+        }
+    }
+
+    private destroyWalls(surveyor: Creep, room: Room): boolean {
+        if (!room.controller) return true;
+
+        if (room.controller.my) {
+            room.findStructures(STRUCTURE_WALL).forEach((w: Structure) => w.destroy());
+            if (room.controller.level === 1) {
+                room.controller.unclaim();
+            }
+            return true;
+        }
+        else {
+            let roomAvailable = Game.gcl.level - _.filter(Game.rooms, (r: Room) => r.controller && r.controller.my).length;
+            if (this.room.findStructures(STRUCTURE_WALL).length > 0 && !ARTROOMS[room.name] && roomAvailable > 0) {
+                surveyor.claimController(room.controller);
+                return false;
+            }
+            else {
+                return true;
+            }
         }
     }
 }

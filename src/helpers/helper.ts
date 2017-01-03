@@ -1,4 +1,4 @@
-import {ALLIES} from "../config/constants";
+import {ALLIES, ROOMTYPE_ALLEY, ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CONTROLLER} from "../config/constants";
 import {PowerFlagScan, Coord} from "../interfaces";
 export var helper = {
     getStoredAmount(target: any, resourceType: string) {
@@ -107,7 +107,7 @@ export var helper = {
      * @returns {{x: (string|any), y: (string|any), x_dir: (string|any), y_dir: (string|any)}}
      */
 
-    getRoomCoordinates(roomName: string): {x: number, y: number, xDir: string, yDir: string } {
+    getRoomCoordinates(roomName: string): RoomCoord {
 
         let coordinateRegex = /(E|W)(\d+)(N|S)(\d+)/g;
         let match = coordinateRegex.exec(roomName);
@@ -262,13 +262,12 @@ export var helper = {
         return;
     },
 
-    findRelativeRoomName(room: Room, xDelta: number, yDelta: number): string {
-        if (!room) return;
-
-        let xDir = room.coords.xDir;
-        let yDir = room.coords.yDir;
-        let x = room.coords.x + xDelta;
-        let y = room.coords.y + yDelta;
+    findRelativeRoomName(roomName: string, xDelta: number, yDelta: number): string {
+        let coords = this.getRoomCoordinates(roomName);
+        let xDir = coords.xDir;
+        let yDir = coords.yDir;
+        let x = coords.x + xDelta;
+        let y = coords.y + yDelta;
         if (x < 0) {
             x = Math.abs(x) - 1;
             xDir = this.negaDirection(xDir);
@@ -279,6 +278,80 @@ export var helper = {
         }
 
         return xDir + x + yDir + y;
+    },
+
+    findRoomCoordDeltas(origin: string, otherRoom: string): Coord {
+        let originCoords = this.getRoomCoordinates(origin);
+        let otherCoords = this.getRoomCoordinates(otherRoom);
+        let xDelta = otherCoords.x - originCoords.x;
+        if (originCoords.xDir === otherCoords.xDir) {
+            if (originCoords.xDir === "W") {
+                xDelta = -xDelta;
+            }
+        }
+        else {
+            xDelta = otherCoords.x + originCoords.x + 1;
+            if (originCoords.xDir === "E") {
+                xDelta = -xDelta;
+            }
+        }
+        let yDelta = otherCoords.y - originCoords.y;
+        if (originCoords.yDir === otherCoords.yDir) {
+            if (originCoords.yDir === "S") {
+                yDelta = -yDelta;
+            }
+        }
+        else {
+            yDelta = otherCoords.y + originCoords.y + 1;
+            if (originCoords.yDir === "N") {
+                yDelta = -yDelta
+            }
+        }
+        return {x: xDelta, y: yDelta};
+    },
+
+    findRelativeRoomDir(origin: string, otherRoom: string): number {
+        let coordDeltas = this.findRoomCoordDeltas(origin, otherRoom);
+        if (Math.abs(coordDeltas.x) === Math.abs(coordDeltas.y)) {
+            if (coordDeltas.x > 0) {
+                if (coordDeltas.y > 0) {
+                    return 2;
+                }
+                else {
+                    return 4;
+                }
+            }
+            else if (coordDeltas.x < 0) {
+                if (coordDeltas.y > 0) {
+                    return 8;
+                }
+                else {
+                    return 6;
+                }
+            }
+            else {
+                // must be the same room, no direction
+                return 0;
+            }
+        }
+        else {
+            if (Math.abs(coordDeltas.x) > Math.abs(coordDeltas.y)) {
+                if (coordDeltas.x > 0) {
+                    return 3;
+                }
+                else {
+                    return 7;
+                }
+            }
+            else {
+                if (coordDeltas.y > 0) {
+                    return 1;
+                }
+                else {
+                    return 5;
+                }
+            }
+        }
     },
 
     blockOffExits(matrix: CostMatrix, cost = 0xff): CostMatrix {
@@ -374,5 +447,21 @@ export var helper = {
                 }
             }
         }
-    }
+    },
+
+    roomTypeFromName(roomName: string): number {
+        let coords = this.getRoomCoordinates(roomName);
+        if (coords.x % 10 === 0 || coords.y % 10 === 0) {
+            return ROOMTYPE_ALLEY;
+        }
+        else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
+            return ROOMTYPE_CORE;
+        }
+        else if (coords.x % 10 === 6 || coords.x % 10 === 4 || coords.y % 10 === 6 || coords.y % 10 === 4) {
+            return ROOMTYPE_SOURCEKEEPER;
+        }
+        else {
+            return ROOMTYPE_CONTROLLER;
+        }
+    },
 };

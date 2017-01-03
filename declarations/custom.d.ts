@@ -12,6 +12,7 @@ interface Game {
         activeLabCount: number;
         placedRoad: boolean;
     };
+    operations: {[opName: string]: any }
 }
 
 interface Room {
@@ -106,6 +107,10 @@ interface Memory {
     }[];
     roomAttacks: any;
     powerObservers: {[scanningRoomName: string]: {[roomName: string]: number}}
+    cpu: {
+        history: number[];
+        average: number;
+    }
 }
 
 interface ProfilerData {

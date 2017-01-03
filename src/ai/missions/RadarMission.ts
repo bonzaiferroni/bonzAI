@@ -2,6 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {TRADE_PARTNERS, ALLIES, OBSERVER_PURPOSE_ALLYTRADE, USERNAME} from "../../config/constants";
 import {helper} from "../../helpers/helper";
+import {notifier} from "../../notifier";
 export class RadarMission extends Mission {
 
     memory: {
@@ -85,15 +86,16 @@ export class RadarMission extends Mission {
 
             if (room.controller && room.controller.owner) {
                 if (room.controller.owner.username !== USERNAME) {
-                    console.log(`RADAR: ${this.opName} found hostile room at ${room.name}`);
                     this.empire.addHostileRoom(room.name, room.controller.level);
                 }
                 else {
-                    this.empire.removeHostileRoom(room.name);
+                    if (this.empire.memory.hostileRooms[room.name]) {
+                        notifier.add(`RADAR: previously hostile room found empty: ${room.name}`);
+                        this.empire.removeHostileRoom(room.name);
+                    }
                 }
                 if (TRADE_PARTNERS[room.controller.owner.username] && room.storage && room.terminal
                     && room.controller.level >= 6 && !room.terminal.my) {
-                    console.log(`RADAR: ${this.opName} found ally room at ${room.name}`);
                     this.empire.addAllyRoom(room.name);
                 }
             }
@@ -113,7 +115,7 @@ export class RadarMission extends Mission {
             }
         }
 
-        let roomName = helper.findRelativeRoomName(this.room, scanData.x, scanData.y);
+        let roomName = helper.findRelativeRoomName(this.room.name, scanData.x, scanData.y);
         observer.observeRoom(roomName, "allySearch");
     }
 }

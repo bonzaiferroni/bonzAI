@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
-import {notifier} from "./notifier";
+import {notifier} from "../../notifier";
 
 export class MiningMission extends Mission {
 
@@ -96,8 +96,9 @@ export class MiningMission extends Mission {
             maxCarts = 0;
         }
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.minerCarts = this.headCount(this.name + "cart", () => this.analysis.body, maxCarts,
-            {prespawn: this.analysis.distance, memory: memory});
+        this.minerCarts = this.headCount(this.name + "cart",
+            () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount),
+            maxCarts, {prespawn: this.analysis.distance, memory: memory});
     }
 
     missionActions() {
@@ -238,8 +239,8 @@ export class MiningMission extends Mission {
             this.memory.distanceToStorage = path.length;
         }
         let distance = this.memory.distanceToStorage;
-        let load = Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
-        return this.analyzeTransport(distance, load);
+        let load = Mission.loadFromSource(this.source);
+        return this.cacheTransportAnalysis(distance, load);
     }
 
     private cartActions(cart: Creep) {

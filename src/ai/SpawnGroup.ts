@@ -140,7 +140,7 @@ export class SpawnGroup {
         if (Game.time % 500 !== 0) return; // early
         let longAverage = _.sum(log.history) / 5;
         log.longHistory.push(longAverage);
-        while (log.history.length > 5) log.history.shift();
+        while (log.longHistory.length > 5) log.longHistory.shift();
     }
 
     public showHistory() {
@@ -150,7 +150,7 @@ export class SpawnGroup {
         console.log(this.memory.log.longHistory);
     }
 
-    public averageAvailability(): number {
+    get averageAvailability(): number {
         if (this.memory.log.history.length === 0) {
             return .1;
         }

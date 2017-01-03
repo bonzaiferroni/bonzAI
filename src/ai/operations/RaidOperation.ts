@@ -81,12 +81,12 @@ export class RaidOperation extends Operation {
                 spawnCount++;
             }
             else {
-                if (this.memory.queue[mission.name]) {
-                    this.memory.squadConfig[mission.name] = this.memory.queue[mission.name];
-                    let config = this.memory.squadConfig[mission.name] as SquadConfig;
-                    console.log("RAID: updating", mission.name, "to be of type", config.type,
+                if (this.memory.queue[mission.getName()]) {
+                    this.memory.squadConfig[mission.getName()] = this.memory.queue[mission.getName()];
+                    let config = this.memory.squadConfig[mission.getName()] as SquadConfig;
+                    console.log("RAID: updating", mission.getName(), "to be of type", config.type,
                         "with boostLevel", config.boostLevel);
-                    delete this.memory.queue[mission.name];
+                    delete this.memory.queue[mission.getName()];
                 }
             }
         }

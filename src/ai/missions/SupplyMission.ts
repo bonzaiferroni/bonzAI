@@ -30,7 +30,7 @@ export class SupplyMission extends Mission {
     }
 
     roleCall() {
-        let cartBody = () => { return this.analysis.body; };
+        let cartBody = () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount);
         let memory = { scavanger: RESOURCE_ENERGY };
         this.carts = this.headCount(this.name, cartBody, this.analysis.cartsNeeded, {prespawn: 10, memory: memory} );
     }

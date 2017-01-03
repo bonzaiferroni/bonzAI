@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {PowerFlagScan, BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {ALLIES} from "../../config/constants";
-import {notifier} from "./notifier";
+import {notifier} from "../../notifier";
 
 export class PowerMission extends Mission {
 
@@ -125,8 +125,9 @@ export class PowerMission extends Mission {
                     y = Math.abs(y) - 1;
                     yDir = helper.negaDirection(yDir);
                 }
-                if (x % 10 === 0 || y % 10 === 0) {
-                    roomNames.push(xDir + x + yDir + y);
+                let roomName = xDir + x + yDir + y;
+                if ((x % 10 === 0 || y % 10 === 0) && Game.map.isRoomAvailable(roomName)) {
+                    roomNames.push(roomName);
                 }
             }
         }
@@ -386,6 +387,10 @@ export class PowerMission extends Mission {
                 this.memory.currentBank = undefined;
             }
         }
+        if (Game.time > currentBank.timeout) {
+            notifier.add(`POWER: bank timed out ${JSON.stringify(currentBank)}`);
+            this.memory.currentBank = undefined;
+        }
     }
 
     private scanForBanks(observer: StructureObserver) {
@@ -401,12 +406,13 @@ export class PowerMission extends Mission {
                     hits: bank.hits,
                     power: bank.power,
                     distance: Memory.powerObservers[this.room.name][room.name],
+                    timeout: Game.time + bank.ticksToDecay,
                 };
                 return;
             }
         }
 
-        if (this.spawnGroup.averageAvailability() < .5 || Math.random() > .2) { return; }
+        if (this.spawnGroup.averageAvailability < .5 || Math.random() > .2) { return; }
 
         let scanData = Memory.powerObservers[this.room.name];
         if (this.memory.scanIndex >= Object.keys(scanData).length) { this.memory.scanIndex = 0; }

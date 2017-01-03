@@ -1,6 +1,7 @@
 import {MINERALS_RAW, PRODUCT_LIST} from "../config/constants";
 import {Empire} from "../ai/Empire";
 import {Operation} from "../ai/operations/Operation";
+import {helper} from "./helper";
 
 declare var emp: Empire;
 
@@ -112,7 +113,28 @@ export var consoleCommands = {
         delete Memory.empire["allySwaps"];
 
         for (let flagName in Memory.flags) {
-            delete Memory.flags[flagName]["network"];
+            let flag = Game.flags[flagName];
+            if (flag) {
+                let mem = Memory.flags[flagName];
+                delete mem.network;
+                // delete mem.survey;
+            }
+            else {
+                delete Memory.flags[flagName];
+            }
+        }
+
+        for (let creepName in Memory.creeps) {
+            let creep = Game.creeps[creepName];
+            if (!creep) {
+                delete Memory.creeps[creepName];
+            }
+        }
+    },
+
+    removeMissionData(missionName: string) {
+        for (let flagName in Memory.flags) {
+            delete Memory.flags[flagName][missionName];
         }
     },
 
@@ -170,7 +192,7 @@ export var consoleCommands = {
      */
 
     changeOpName(opName: string, newOpName: string) {
-        let operation = global[opName] as Operation;
+        let operation = Game.operations[opName] as Operation;
         if (!operation) return "you don't have an operation by that name";
 
         let newFlagName = operation.type + "_" + newOpName;
@@ -178,7 +200,7 @@ export var consoleCommands = {
         if (_.isString(outcome)) {
             Memory.flags[newFlagName] = operation.memory;
             operation.flag.remove();
-            return "operation name change successfully, removing old flag";
+            return `success, changed ${opName} to ${newOpName} (removing old flag)`;
         }
         else {
             return "error changing name: " + outcome;
@@ -250,4 +272,60 @@ export var consoleCommands = {
             delete data.sent;
         }
     },
+
+    /**
+     * If this looks silly it is because it is, I used to it go from one naming convention to another
+     * @param opName
+     * @returns {any}
+     */
+
+    roomConvention(opName: string, alternate?: string): string {
+        let controllerOp = Game.operations[opName + 0];
+        if (!controllerOp) {
+            return "owned room doesn't exist";
+        }
+
+        for (let direction = 1; direction <= 8; direction++) {
+            let tempName = opName + "temp" + direction;
+            if (!Game.operations[tempName]) continue;
+            console.log(`found temp ${tempName}`);
+            let desiredName = opName + direction;
+            let currentOp = Game.operations[desiredName];
+            if (currentOp) {
+                console.log(`current op with that name, changing name to temp`);
+                let tempDir = helper.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
+                return this.changeOpName(desiredName, opName + "temp" + tempDir);
+            }
+            console.log(`no temp conflicts`);
+            return this.changeOpName(tempName, desiredName);
+        }
+
+        for (let direction = 1; direction <= 9; direction++) {
+            let testOpName = opName + direction;
+            let testOp = Game.operations[testOpName];
+            if (!testOp && alternate) {
+                testOp = Game.operations[alternate + direction];
+                if (testOp) {
+                    testOpName = alternate + direction;
+                }
+            }
+            if (!testOp) { continue; }
+            let correctDir = helper.findRelativeRoomDir(controllerOp.flag.room.name, testOp.flag.room.name);
+            if (correctDir === direction) { continue; }
+            let correctOpName = opName + correctDir;
+            console.log(`inconsistent name (${testOpName} at dir ${correctDir} should be ${correctOpName})`);
+            let currentOp = Game.operations[correctOpName];
+            if (currentOp) {
+                console.log(`current op with that name, changing name to temp`);
+                let tempDir = helper.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
+                return this.changeOpName(correctOpName, opName + "temp" + tempDir);
+            }
+            else {
+                console.log(`no current op with that name`);
+                return this.changeOpName(testOpName, correctOpName);
+            }
+        }
+
+        return `all flags consistent`;
+    }
 };

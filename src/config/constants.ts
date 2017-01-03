@@ -141,3 +141,15 @@ export const REAGENT_LIST = {
     XZH2O: ["ZH2O", "X"],
     XKHO2: ["KHO2", "X"]
 };
+
+export const OPERATION_NAMES = [
+    "domo", "boca", "lima", "root", "lima", "gato", "fret", "thad", "colo", "pony",
+    "moon", "oslo", "pita", "gaol", "snek", "kiev", "bonn", "dili", "cali", "nuuk",
+    "suva", "lome", "bern", "mija", "mano", "casa", "flor", "baja", "jefe", "flux",
+    "jeux", "cozy", "lupe", "hazy", "jugs", "quip", "jibs", "quay", "zany", "mojo",
+    "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "chic"
+];
+
+export const ARTROOMS = {
+
+};
