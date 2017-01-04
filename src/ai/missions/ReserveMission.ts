@@ -122,9 +122,8 @@ export class ReserveMission extends Mission {
 
         if (dozer.pos.isNearTo(this.room.controller)) {
             this.memory.needBulldozer = false;
-            console.log(`cleared path`);
-            // notifier.add(`RESERVER: bulldozer cleared path in ${this.opName}`);
-            // dozer.suicide();
+            notifier.add(`RESERVER: bulldozer cleared path in ${this.opName}`);
+            dozer.suicide();
         }
         else {
             if (dozer.room === this.room) {

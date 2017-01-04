@@ -600,8 +600,13 @@ export class Empire {
 
     travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): RoomPosition | number {
         // register hostile rooms entered
-        if (creep.room.controller && creep.room.controller.owner && !creep.room.controller.my) {
-            this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+        if (creep.room.controller) {
+            if (creep.room.controller.owner && !creep.room.controller.my) {
+                this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+            }
+            else {
+                this.memory.hostileRooms[creep.room.name] = undefined;
+            }
         }
 
         if (!creep.memory._travel) {
@@ -696,6 +701,14 @@ export class Empire {
         let allowedRooms;
         let searchedAlready = false;
         let callback = (roomName: string): CostMatrix | boolean => {
+
+            if (options.roomCallback) {
+                let outcome = options.roomCallback(roomName);
+                if (outcome !== undefined) {
+                    return outcome;
+                }
+            }
+
             if (!allowedRooms && !searchedAlready) {
                 searchedAlready = true;
                 allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options.preferHighway);
@@ -706,6 +719,9 @@ export class Empire {
             if (allowedRooms && !allowedRooms[roomName]) return false;
             let room = Game.rooms[roomName];
             if (!room) return;
+
+
+
             let matrix: CostMatrix;
             if (options.ignoreStructures) {
                 matrix = new PathFinder.CostMatrix();
@@ -723,10 +739,6 @@ export class Empire {
             }
             return matrix;
         };
-
-        if (options.roomCallback) {
-            callback = options.roomCallback;
-        }
 
         let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
             swampCost: options.ignoreRoads ? 5 : 10,
