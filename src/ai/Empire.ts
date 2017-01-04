@@ -21,6 +21,7 @@ export class Empire {
         activeNukes: {tick: number, roomName: string }[];
         safe: {[username: string]: boolean};
         danger: {[username: string]: boolean};
+        errantConstructionRooms: {};
     };
     tradeResource: string;
     shortages: StructureTerminal[] = [];
@@ -36,7 +37,9 @@ export class Empire {
             tradeIndex: 0,
             activeNukes: [],
             safe: {},
-            danger: {} });
+            danger: {},
+            errantConstructionRooms: {},
+        });
         this.memory = Memory.empire;
     }
 
@@ -61,6 +64,7 @@ export class Empire {
         this.sellCompounds();
         this.reportNukes();
         this.reportTransactions();
+        this.clearErrantConstruction();
     }
 
     // should only be accessed after Init()
@@ -594,9 +598,9 @@ export class Empire {
         return allowedRooms;
     }
 
-    travelTo(creep: Creep, destination: {pos: RoomPosition}, options?: TravelToOptions): number {
+    travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): RoomPosition | number {
         // register hostile rooms entered
-        if (creep.room.controller && creep.room.controller.owner && !ALLIES[creep.room.controller.owner.username]) {
+        if (creep.room.controller && creep.room.controller.owner && !creep.room.controller.my) {
             this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
         }
 
@@ -614,7 +618,13 @@ export class Empire {
                 return OK;
             }
             if (destination.pos.isPassible()) {
-                return creep.move(creep.pos.getDirectionTo(destination));
+                let outcome = creep.move(creep.pos.getDirectionTo(destination));
+                if (!options.returnPosition || outcome !== OK) {
+                    return outcome;
+                }
+                else {
+                    return destination.pos;
+                }
             }
             else {
                 return OK;
@@ -624,23 +634,25 @@ export class Empire {
         if (travelData.lastPos) {
             travelData.lastPos = helper.deserializeRoomPosition(travelData.lastPos);
             if (creep.pos.inRangeTo(travelData.lastPos, 0)) {
-                travelData.stuck++;
+                if (options.ignoreStuck) {
+                    travelData.stuck = 1;
+                }
+                else {
+                    travelData.stuck++;
+                }
             }
             else {
                 travelData.stuck = 0;
             }
         }
 
-        if (travelData.destination) {
-            travelData.destination = helper.deserializeRoomPosition(travelData.destination);
-        }
-        if (!travelData.path || !travelData.destination.inRangeTo(destination, 0)
-            || travelData.stuck >= 5) {
+        let sameDestination = travelData.destination &&
+            travelData.destination.x === destination.pos.x &&
+            travelData.destination.y === destination.pos.y &&
+            travelData.destination.roomName === destination.pos.roomName;
+        if (!travelData.path || !sameDestination || (travelData.stuck >= 5)) {
             travelData.destination = destination.pos;
             travelData.lastPos = undefined;
-            if (!options) {
-                options = {};
-            }
             options.ignoreCreeps = travelData.stuck < 5;
             let ret = this.findTravelPath(creep, destination, options);
             // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
@@ -657,10 +669,17 @@ export class Empire {
         }
         travelData.lastPos = creep.pos;
         let nextDirection = parseInt(travelData.path[0]);
-        return creep.move(nextDirection);
+        let outcome = creep.move(nextDirection);
+        if (!options.returnPosition || outcome !== OK) {
+            return outcome;
+        }
+        else {
+            return creep.pos.getPositionAtDirection(nextDirection);
+        }
     }
 
-    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}, options?: TravelToOptions): PathfinderReturn {
+    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition},
+                          options?: TravelToOptions): PathfinderReturn {
         if (!options) {
             options = {};
         }
@@ -704,6 +723,10 @@ export class Empire {
             }
             return matrix;
         };
+
+        if (options.roomCallback) {
+            callback = options.roomCallback;
+        }
 
         let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
             swampCost: options.ignoreRoads ? 5 : 10,
@@ -803,6 +826,37 @@ export class Empire {
 
     underCPULimit() {
         return profiler.proportionUsed() < .9;
+    }
+
+    private clearErrantConstruction() {
+        if (Game.time % 1000 !== 0) { return; }
+
+        let removeErrantStatus = {};
+        let addErrantStatus = {};
+        for (let siteName in Game.constructionSites) {
+            let site = Game.constructionSites[siteName];
+            if (site.room) {
+                delete this.memory.errantConstructionRooms[site.pos.roomName];
+            }
+            else {
+                if (this.memory.errantConstructionRooms[site.pos.roomName]) {
+                    site.remove();
+                    removeErrantStatus[site.pos.roomName];
+                }
+                else {
+                    addErrantStatus[site.pos.roomName] = true;
+                }
+            }
+        }
+
+        for (let roomName in addErrantStatus) {
+            this.memory.errantConstructionRooms[roomName] = true;
+        }
+
+        for (let roomName in removeErrantStatus) {
+            notifier.add(`EMPIRE: removed construction sites in ${roomName}`);
+            delete this.memory.errantConstructionRooms[roomName];
+        }
     }
 }
 

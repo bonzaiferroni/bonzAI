@@ -71,8 +71,11 @@ export class MiningOperation extends Operation {
             this.addMission(new UpgradeMission(this, true, spawnUpgraders, false));
         }
         else {
-            this.addMission(new ReserveMission(this));
+            if (this.flag.room.controller) {
+                this.addMission(new ReserveMission(this));
+            }
         }
+
 
         for (let i = 0; i < this.sources.length; i++) {
             if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) continue;

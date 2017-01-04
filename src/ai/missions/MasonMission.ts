@@ -55,10 +55,14 @@ export class MasonMission extends Mission {
             mason.repair(rampart);
         }
 
-        if (mason.carry.energy < mason.carryCapacity * .25) {
-            if (mason.memory.hasLoad) {
-                mason.memory.hasLoad = false;
-                delete mason.memory.extensionId;
+
+
+        if (mason.carry.energy < mason.carryCapacity - 200) {
+            let fullExtensions = _.filter(mason.pos.findInRange(
+                mason.room.findStructures<StructureExtension>(STRUCTURE_EXTENSION), 1),
+                (e: StructureExtension) => e.energy > 0);
+            if (fullExtensions.length > 0) {
+                mason.withdraw(fullExtensions[0], RESOURCE_ENERGY);
             }
         }
 
@@ -137,6 +141,7 @@ export class MasonMission extends Mission {
     private masonHasLoad(mason: Creep) {
         if (mason.memory.hasLoad && mason.carry.energy <= mason.carryCapacity * .25) {
             mason.memory.hasLoad = false;
+            delete mason.memory.extensionId;
         }
         else if (!mason.memory.hasLoad && mason.carry.energy >= mason.carryCapacity *.9) {
             mason.memory.hasLoad = true;

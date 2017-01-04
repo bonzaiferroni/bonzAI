@@ -580,13 +580,13 @@ export abstract class Mission {
             maxOps: 8000,
             roomCallback: (roomName: string): CostMatrix | boolean => {
 
-                // disqualify enemy rooms
-                if (this.empire.memory.hostileRooms[roomName]) {
+                // disqualify rooms that involve a circuitous path
+                if (Game.map.getRoomLinearDistance(start.roomName, roomName) > maxDistance) {
                     return false;
                 }
 
-                // disqualify rooms that involve a circuitous path
-                if (Game.map.getRoomLinearDistance(start.roomName, roomName) > maxDistance) {
+                // disqualify enemy rooms
+                if (this.empire.memory.hostileRooms[roomName]) {
                     return false;
                 }
 

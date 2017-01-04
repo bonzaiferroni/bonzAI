@@ -128,7 +128,10 @@ export interface TravelToOptions {
     ignoreCreeps?: boolean;
     ignoreStructures?: boolean;
     range?: number;
+    ignoreStuck?: boolean;
     obstacles?: {pos: RoomPosition}[];
+    roomCallback?: (roomName: string) => CostMatrix | boolean;
+    returnPosition?: boolean;
 }
 
 export interface BankData {

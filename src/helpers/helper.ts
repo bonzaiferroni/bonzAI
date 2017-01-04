@@ -464,4 +464,35 @@ export var helper = {
             return ROOMTYPE_CONTROLLER;
         }
     },
+
+    debugPath(path: RoomPosition[], identifier = "") {
+        let count = 0;
+        for (let position of path) {
+            let room = Game.rooms[position.roomName];
+            if (room) {
+                let name = "debugPath" + identifier + count;
+                count++;
+                let flag = Game.flags[name];
+                if (flag) {
+                    flag.setPosition(position);
+                }
+                else {
+                    position.createFlag(name, COLOR_ORANGE);
+                }
+            }
+        }
+
+        for (let i = count; i < 1000; i++) {
+            let name = "debugPath" + identifier + count;
+            let flag = Game.flags[name];
+            if (flag) {
+                flag.remove();
+            }
+            else {
+                break;
+            }
+        }
+
+        return `placed ${count} out of ${path.length} flags`;
+    },
 };

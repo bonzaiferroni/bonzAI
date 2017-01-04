@@ -202,7 +202,7 @@ export class SurveyAnalyzer {
             let cartsNeeded = Mission.analyzeTransport(distance, Mission.loadFromSource(source), 12900).cartsNeeded;
 
             // disqualify due to source distance
-            if ((roomType === ROOMTYPE_CONTROLLER && cartsNeeded > 2) || cartsNeeded > 3){
+            if (cartsNeeded > data.sourceCount){
                 delete this.memory.surveyRooms[room.name];
                 return;
             }
