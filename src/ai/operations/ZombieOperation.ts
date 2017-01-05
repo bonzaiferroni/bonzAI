@@ -1,7 +1,7 @@
-import {Operation} from "./operations/Operation";
-import {Empire} from "./Empire";
-import {OperationPriority} from "../config/constants";
-import {ZombieMission} from "./ZombieMission";
+import {Operation} from "./Operation";
+import {Empire} from "../Empire";
+import {OperationPriority} from "../../config/constants";
+import {ZombieMission} from "../missions/ZombieMission";
 export class ZombieOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {

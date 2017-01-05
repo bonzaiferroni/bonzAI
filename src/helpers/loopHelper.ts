@@ -17,7 +17,7 @@ import {AutoOperation} from "../ai/operations/AutoOperation";
 import {FlexOperation} from "../ai/operations/FlexOperation";
 import {notifier} from "../notifier";
 import {helper} from "./helper";
-import {ZombieOperation} from "../ai/ZombieOperation";
+import {ZombieOperation} from "../ai/operations/ZombieOperation";
 
 const OPERATION_CLASSES = {
     conquest: ConquestOperation,

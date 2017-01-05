@@ -1,7 +1,7 @@
-import {Mission} from "./missions/Mission";
-import {Operation} from "./operations/Operation";
-import {helper} from "../helpers/helper";
-import {notifier} from "../notifier";
+import {Mission} from "./Mission";
+import {Operation} from "../operations/Operation";
+import {helper} from "../../helpers/helper";
+import {notifier} from "../../notifier";
 export class ZombieMission extends Mission {
 
     zombies: Creep[];
