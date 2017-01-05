@@ -17,6 +17,7 @@ import {AutoOperation} from "../ai/operations/AutoOperation";
 import {FlexOperation} from "../ai/operations/FlexOperation";
 import {notifier} from "../notifier";
 import {helper} from "./helper";
+import {ZombieOperation} from "../ai/ZombieOperation";
 
 const OPERATION_CLASSES = {
     conquest: ConquestOperation,
@@ -29,6 +30,7 @@ const OPERATION_CLASSES = {
     quad: QuadOperation,
     auto: AutoOperation,
     flex: FlexOperation,
+    zombie: ZombieOperation,
 };
 
 export var loopHelper = {

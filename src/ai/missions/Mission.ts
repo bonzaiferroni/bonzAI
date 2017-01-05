@@ -596,7 +596,7 @@ export abstract class Mission {
                     let roomType = helper.roomTypeFromName(roomName);
                     if (roomType === ROOMTYPE_ALLEY) {
                         matrix = new PathFinder.CostMatrix();
-                        helper.blockOffExits(matrix, AVOID_COST);
+                        helper.blockOffExits(matrix, AVOID_COST, roomName);
                         return matrix;
                     }
                     else {
@@ -609,7 +609,7 @@ export abstract class Mission {
 
                 // avoid controller
                 if (room.controller) {
-                    helper.blockOffMatrix(matrix, room.controller, 3, AVOID_COST);
+                    helper.blockOffPosition(matrix, room.controller, 3, AVOID_COST);
                 }
 
                 // avoid container adjacency
@@ -617,7 +617,7 @@ export abstract class Mission {
                 for (let source of sources) {
                     let container = source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
                     if (container) {
-                        helper.blockOffMatrix(matrix, container, 1, AVOID_COST);
+                        helper.blockOffPosition(matrix, container, 1, AVOID_COST);
                     }
                 }
 

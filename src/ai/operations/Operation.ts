@@ -159,7 +159,7 @@ export abstract class Operation {
         this.missions[mission.getName()] = mission;
     }
 
-    getRemoteSpawnGroup(distanceLimit = 4): SpawnGroup {
+    getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
         // invalidated periodically
         if (!this.memory.spawnRooms) {
             let closestRoomRange = Number.MAX_VALUE;
@@ -168,6 +168,8 @@ export abstract class Operation {
                 let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
                 if (roomLinearDistance === 0) continue;
                 if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
+                let spawnGroup = this.empire.spawnGroups[roomName];
+                if (spawnGroup.room.controller.level < levelRequirement) continue;
                 let distance = this.empire.roomTravelDistance(this.flag.pos.roomName, roomName);
                 if (distance < closestRoomRange) {
                     closestRoomRange = distance;

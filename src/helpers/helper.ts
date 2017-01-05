@@ -197,7 +197,7 @@ export var helper = {
         }
     },
 
-    blockOffMatrix(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30) {
+    blockOffPosition(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
             for (let yDelta = -range; yDelta <= range; yDelta++) {
                 if (Game.map.getTerrainAt(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, roomObject.room.name) === "wall") continue;
@@ -354,15 +354,23 @@ export var helper = {
         }
     },
 
-    blockOffExits(matrix: CostMatrix, cost = 0xff): CostMatrix {
-        for (let i = 0; i < 50; i += 49) {
-            for (let j = 0; j < 50; j++) {
-                matrix.set(i, j, cost);
+    blockOffExits(matrix: CostMatrix, cost = 0xff, roomName?: string): CostMatrix {
+        for (let x = 0; x < 50; x += 49) {
+            for (let y = 0; y < 50; y++) {
+                if (roomName) {
+                    let terrain = Game.map.getTerrainAt(x, y, roomName);
+                    if (terrain !== "wall") { matrix.set(x, y, cost); }
+                }
+                else { matrix.set(x, y, 0xff); }
             }
         }
-        for (let i = 0; i < 50; i++) {
-            for (let j = 0; j < 50; j += 49) {
-                matrix.set(i, j, cost);
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y += 49) {
+                if (roomName) {
+                    let terrain = Game.map.getTerrainAt(x, y, roomName);
+                    if (terrain !== "wall") { matrix.set(x, y, cost); }
+                }
+                else { matrix.set(x, y, 0xff); }
             }
         }
         return matrix;
@@ -495,4 +503,10 @@ export var helper = {
 
         return `placed ${count} out of ${path.length} flags`;
     },
+
+    towerDamageAtRange(range: number): number {
+        if (range <= 5) { return 600; }
+        if (range >= 20) { return 150; }
+        return 3000 / range;
+    }
 };
