@@ -163,15 +163,19 @@ export class MiningMission extends Mission {
         else {
             this.backupMinerActions(miner);
         }
+
+        if (!miner.memory.setDistance) {
+            if (order === this.miners.length - 1 && miner.pos.isNearTo(this.source)) {
+                miner.memory.setDistance = true;
+                if (miner.ticksToLive > 1000) {
+                    this.setPrespawn(miner)
+                }
+            }
+        }
     }
 
     private leadMinerActions(miner: Creep) {
         if (miner.pos.inRangeTo(this.container, 0)) {
-
-            if (!miner.memory.setDistance) {
-                miner.memory.setDistance = true;
-                this.setPrespawn(miner)
-            }
 
             if (this.container.hits < this.container.hitsMax * .90 && miner.carry.energy >= 20) {
                 miner.repair(this.container);

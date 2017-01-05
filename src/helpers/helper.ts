@@ -491,7 +491,7 @@ export var helper = {
         }
 
         for (let i = count; i < 1000; i++) {
-            let name = "debugPath" + identifier + count;
+            let name = "debugPath" + identifier + i;
             let flag = Game.flags[name];
             if (flag) {
                 flag.remove();
@@ -505,8 +505,9 @@ export var helper = {
     },
 
     towerDamageAtRange(range: number): number {
-        if (range <= 5) { return 600; }
-        if (range >= 20) { return 150; }
-        return 3000 / range;
+        if (range <= TOWER_OPTIMAL_RANGE) { return TOWER_POWER_ATTACK; }
+        if (range >= TOWER_FALLOFF_RANGE) { range = TOWER_FALLOFF_RANGE; }
+        return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
+            (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE))
     }
 };

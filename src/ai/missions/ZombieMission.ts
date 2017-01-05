@@ -10,6 +10,8 @@ export class ZombieMission extends Mission {
         matrix: number[];
         expectedDamage: number;
         prespawn: number;
+        bestExit: RoomPosition;
+        fallback: RoomPosition;
     };
 
     constructor(operation: Operation) {
@@ -33,6 +35,7 @@ export class ZombieMission extends Mission {
                 prespawn: this.memory.prespawn,
                 skipMoveToRoom: true,
                 blindSpawn: true});
+
     }
 
     missionActions() {
@@ -53,25 +56,33 @@ export class ZombieMission extends Mission {
             zombie.heal(zombie);
         }
 
-        if (!zombie.memory.enteredRoom) {
-            zombie.memory.enteredRoom = zombie.room.name === this.flag.pos.roomName
-            this.memory.prespawn = 1500 - zombie.ticksToLive;
+        if (this.memory.fallback && !zombie.memory.reachedFallback) {
+            let fallback = helper.deserializeRoomPosition(this.memory.fallback);
+            if (zombie.pos.isNearTo(fallback) || (zombie.room === this.room && zombie.hits === zombie.hitsMax)) {
+                if (!zombie.memory.prespawn) {
+                    zombie.memory.prespawn = true;
+                    this.memory.prespawn = 1500 - zombie.ticksToLive;
+                }
+                zombie.memory.reachedFallback = true;
+            }
+            this.empire.travelTo(zombie, {pos: fallback});
+            return;
         }
 
-        if (zombie.memory.enteredRoom && zombie.pos.isNearExit(0)) {
-            if (zombie.hits > zombie.hitsMax - 500) {
-                zombie.memory.safeCount++;
-            }
-            else {
-                zombie.memory.safeCount = 0;
-            }
-            if (zombie.memory.safeCount < 10 || zombie.room.name === this.flag.pos.roomName) {
+        if (zombie.pos.isNearExit(0)) {
+            if (zombie.hits > zombie.hitsMax - 500) {zombie.memory.safeCount++; }
+            else {zombie.memory.safeCount = 0;}
+            if (zombie.memory.safeCount < 10 || zombie.room.name !== this.flag.pos.roomName) {
                 return;
             }
         }
 
+        if (zombie.hits < zombie.hitsMax - 500) {
+            zombie.memory.reachedFallback = false;
+        }
+
         let destination: {pos: RoomPosition} = this.flag;
-        if (zombie.hits > zombie.hitsMax - Math.min(this.memory.expectedDamage, 500)) {
+        if (!zombie.memory.retreat) {
             if (zombie.pos.roomName === this.flag.pos.roomName) {
                 let closestSpawn = zombie.pos.findClosestByRange<Structure>(
                     this.room.findStructures<Structure>(STRUCTURE_SPAWN));
@@ -80,13 +91,20 @@ export class ZombieMission extends Mission {
                 }
             }
         }
-        else {
-            destination = this.spawnGroup;
+
+        let position = this.moveZombie(zombie, destination, zombie.memory.demolishing);
+        zombie.memory.demolishing = false;
+        if (zombie.hits === zombie.hitsMax && position instanceof RoomPosition &&
+            zombie.room == this.room && !zombie.pos.isNearExit(0)) {
+            let structure = position.lookFor<Structure>(LOOK_STRUCTURES)[0];
+            if (structure && structure.structureType !== STRUCTURE_CONTAINER && structure.structureType !== STRUCTURE_ROAD) {
+                zombie.memory.demolishing = true;
+                zombie.dismantle(structure)
+            }
         }
-        this.moveZombie(zombie, destination)
     }
 
-    private moveZombie(zombie: Creep, destination: {pos: RoomPosition}): number | RoomPosition {
+    private moveZombie(zombie: Creep, destination: {pos: RoomPosition}, ignoreStuck): number | RoomPosition {
         let roomCallback = (roomName: string) => {
             if (roomName === this.flag.pos.roomName) {
                 let matrix = PathFinder.CostMatrix.deserialize(this.memory.matrix);
@@ -95,7 +113,7 @@ export class ZombieMission extends Mission {
         };
 
         return this.empire.travelTo(zombie, destination, {
-            ignoreStuck: true,
+            ignoreStuck: ignoreStuck,
             returnPosition: true,
             roomCallback: roomCallback,
         })
@@ -144,7 +162,35 @@ export class ZombieMission extends Mission {
             expectedDamage += helper.towerDamageAtRange(range);
         }
         this.memory.expectedDamage = expectedDamage / 2;
-        helper.showMatrix(matrix);
+        this.memory.bestExit = bestExit;
+
+        if (this.room.storage) {
+            matrix.set(this.room.storage.pos.x, this.room.storage.pos.y, 0xff);
+        }
+
+        if (this.room.terminal) {
+            matrix.set(this.room.terminal.pos.x, this.room.terminal.pos.y, 0xff);
+        }
+
+        let fallback = _.clone(bestExit);
+        if (fallback.x === 0) {
+            fallback.x = 48;
+            fallback.roomName = helper.findRelativeRoomName(fallback.roomName, -1, 0);
+        }
+        else if (fallback.x === 49) {
+            fallback.x = 1;
+            fallback.roomName = helper.findRelativeRoomName(fallback.roomName, 1, 0);
+        }
+        else if (fallback.y === 0) {
+            fallback.y = 48;
+            fallback.roomName = helper.findRelativeRoomName(fallback.roomName, 0, -1);
+        }
+        else {
+            fallback.y = 1;
+            fallback.roomName = helper.findRelativeRoomName(fallback.roomName, 0, 1);
+        }
+        this.memory.fallback = fallback;
+
         notifier.add(`ZOMBIE: init zombie at ${this.room.name}, expectedDamage: ${this.memory.expectedDamage}, bestExit: ${bestExit}`);
         return matrix.serialize();
     }
@@ -157,15 +203,17 @@ export class ZombieMission extends Mission {
         if (this.memory.expectedDamage <= 360) {
             let healCount = Math.ceil(this.memory.expectedDamage / 12);
             let dismantleCount = 40 - healCount;
-            return this.configBody({[MOVE]: 10, [WORK]: dismantleCount, [HEAL]: healCount })
+            return this.configBody({[WORK]: dismantleCount, [MOVE]: 10, [HEAL]: healCount })
         }
         if (this.memory.expectedDamage <= 1000) {
             let healCount = Math.ceil((this.memory.expectedDamage * .3) / 12);
-            let dismantleCount = 32 - healCount;
-            return this.configBody({[TOUGH]: 5, [MOVE]: 13, [WORK]: dismantleCount, [HEAL]: healCount});
+            let dismantleCount = 35 - healCount;
+            return this.configBody({[TOUGH]: 5, [WORK]: dismantleCount, [MOVE]: 10,  [HEAL]: healCount});
         }
         if (this.memory.expectedDamage <= 2000) {
-            return this.configBody({[TOUGH]: 10, [MOVE]: 10, [WORK]: 15, [HEAL]: 15})
+            let healCount = Math.ceil((this.memory.expectedDamage * .3) / (12 * 4));
+            let dismantleCount = 30 - healCount;
+            return this.configBody({[TOUGH]: 10, [WORK]: dismantleCount, [MOVE]: 10, [HEAL]: healCount})
         }
     };
 

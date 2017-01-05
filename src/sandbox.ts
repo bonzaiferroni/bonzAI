@@ -25,7 +25,7 @@ export var sandBox = {
                 console.log("### claimer waiting");
             }
             else {
-                claimer.avoidSK(claimerFlag);
+                emp.travelTo(claimer, claimerFlag);
             }
         }
 

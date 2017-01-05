@@ -655,6 +655,7 @@ export class Empire {
             travelData.destination.x === destination.pos.x &&
             travelData.destination.y === destination.pos.y &&
             travelData.destination.roomName === destination.pos.roomName;
+
         if (!travelData.path || !sameDestination || (travelData.stuck >= 5)) {
             travelData.destination = destination.pos;
             travelData.lastPos = undefined;
@@ -662,6 +663,10 @@ export class Empire {
             let ret = this.findTravelPath(creep, destination, options);
             // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
             travelData.path = helper.serializePath(creep.pos, ret.path);
+            if (creep.name === "brains_zombie_43") {
+                helper.debugPath(ret.path);
+                if (ret.incomplete) { console.log(`incomplete`)}
+            }
             travelData.stuck = 0;
         }
 
