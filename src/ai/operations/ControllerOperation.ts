@@ -149,7 +149,7 @@ export abstract class ControllerOperation extends Operation {
             let boostSpawnGroup = this.getRemoteSpawnGroup(6);
             if (boostSpawnGroup) {
 
-                if (this.flag.room.controller.level < 4) {
+                if (this.flag.room.controller.level < 3) {
                     let bodyguard = new BodyguardMission(this);
                     this.addMission(bodyguard);
                     bodyguard.setSpawnGroup(boostSpawnGroup);
@@ -163,6 +163,7 @@ export abstract class ControllerOperation extends Operation {
                 }
 
                 if (boostSpawnGroup.room.controller.level >= 8) {
+                    buildMission.activateBoost = true;
                     upgradeMission.setSpawnGroup(boostSpawnGroup);
                     buildMission.setSpawnGroup(boostSpawnGroup);
                 }

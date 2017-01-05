@@ -11,26 +11,26 @@ export class BuildMission extends Mission {
     prioritySites: ConstructionSite[];
     walls: StructureRampart[];
     remoteSpawn: boolean;
+    activateBoost: boolean;
 
     memory: {
         maxHitsToBuild: number
         max: number
-        activateBoost: boolean
         transportAnalysis: TransportAnalysis
         rampartPos: RoomPosition
         manualTargetId: string
         manualTargetHits: number
+        prespawn: number
     };
 
     /**
      * Spawns a creep to build construction and repair walls. Construction will take priority over walls
      * @param operation
-     * @param name
-     * @param potency
-     * @param allowSpawn
+     * @param activateBoost
      */
-    constructor(operation: Operation) {
+    constructor(operation: Operation, activateBoost = false) {
         super(operation, "builder");
+        this.activateBoost = activateBoost;
     }
 
     initMission() {
@@ -92,7 +92,7 @@ export class BuildMission extends Mission {
         };
 
         let builderMemory;
-        if (this.memory.activateBoost) {
+        if (this.activateBoost) {
             builderMemory = {
                 scavanger: RESOURCE_ENERGY,
                 boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
@@ -103,7 +103,8 @@ export class BuildMission extends Mission {
             builderMemory = { scavanger: RESOURCE_ENERGY };
         }
 
-        this.builders = this.headCount(this.name, builderBody, maxBuilders, {prespawn: 10, memory: builderMemory });
+        this.builders = this.headCount(this.name, builderBody, maxBuilders,
+            {prespawn: this.memory.prespawn, memory: builderMemory });
         this.builders = _.sortBy(this.builders, (c: Creep) => c.carry.energy);
 
         let cartMemory = {
@@ -111,7 +112,7 @@ export class BuildMission extends Mission {
         };
         this.supplyCarts = this.headCount(this.name + "Cart",
             () => this.workerBody(0, analysis.carryCount, analysis.moveCount), analysis.cartsNeeded,
-            {prespawn: analysis.distance, memory: cartMemory });
+            {prespawn: this.memory.prespawn, memory: cartMemory });
     }
 
     missionActions() {
@@ -133,6 +134,12 @@ export class BuildMission extends Mission {
     }
 
     private builderActions(builder: Creep) {
+
+        if (!builder.memory.setPrespawn) {
+            builder.memory.setPrespawn = true;
+            this.setPrespawn(builder);
+        }
+
         let hasLoad = _.filter(this.supplyCarts, (c: Creep) => !c.spawning).length > 0 || this.hasLoad(builder);
         if (!hasLoad) {
             this.procureEnergy(builder);

@@ -120,16 +120,16 @@ export class ZombieMission extends Mission {
         let exitPositions: RoomPosition[] = [];
         for (let x = 0; x < 50; x += 49) {
             for (let y = 0; y < 50; y++) {
-                if (Game.map.getTerrainAt(x, y, this.room.name) == "wall") { continue; }
+                if (Game.map.getTerrainAt(x, y, this.room.name) === "wall") { continue; }
                 exitPositions.push(new RoomPosition(x, y, this.room.name));
-                matrix.set(x, y, 250);
+                matrix.set(x, y, 0xff);
             }
         }
         for (let x = 0; x < 50; x++) {
             for (let y = 0; y < 50; y += 49) {
-                if (Game.map.getTerrainAt(x, y, this.room.name) == "wall") { continue; }
+                if (Game.map.getTerrainAt(x, y, this.room.name) === "wall") { continue; }
                 exitPositions.push(new RoomPosition(x, y, this.room.name));
-                matrix.set(x, y, 250);
+                matrix.set(x, y, 0xff);
             }
         }
 
@@ -144,6 +144,7 @@ export class ZombieMission extends Mission {
             expectedDamage += helper.towerDamageAtRange(range);
         }
         this.memory.expectedDamage = expectedDamage / 2;
+        helper.showMatrix(matrix);
         notifier.add(`ZOMBIE: init zombie at ${this.room.name}, expectedDamage: ${this.memory.expectedDamage}, bestExit: ${bestExit}`);
         return matrix.serialize();
     }
@@ -155,8 +156,8 @@ export class ZombieMission extends Mission {
         }
         if (this.memory.expectedDamage <= 360) {
             let healCount = Math.ceil(this.memory.expectedDamage / 12);
-            let dismantleCount = 37 - healCount;
-            return this.configBody({[MOVE]: 13, [WORK]: dismantleCount, [HEAL]: healCount })
+            let dismantleCount = 40 - healCount;
+            return this.configBody({[MOVE]: 10, [WORK]: dismantleCount, [HEAL]: healCount })
         }
         if (this.memory.expectedDamage <= 1000) {
             let healCount = Math.ceil((this.memory.expectedDamage * .3) / 12);

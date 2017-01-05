@@ -735,4 +735,8 @@ export abstract class Mission {
         let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
         return this.spawnSharedCreep("paver", paverBody);
     }
+
+    protected setPrespawn(creep: Creep) {
+        this.memory.prespawn = 1500 - creep.ticksToLive;
+    }
 }

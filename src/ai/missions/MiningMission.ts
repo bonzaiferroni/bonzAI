@@ -28,8 +28,8 @@ export class MiningMission extends Mission {
         positionsAvailable: number;
         transportAnalysis: TransportAnalysis;
         distanceToStorage: number;
-        distanceToSpawn: number;
         roadRepairIds: string[];
+        prespawn: number;
     };
 
     /**
@@ -50,12 +50,6 @@ export class MiningMission extends Mission {
     initMission() {
         if (!this.hasVision) return;
 
-        if (this.remoteSpawning) {
-            this.distanceToSpawn = this.empire.roomTravelDistance(this.spawnGroup.room.name, this.room.name) * 50;
-        }
-        else {
-            this.distanceToSpawn = this.findDistanceToSpawn(this.source.pos);
-        }
         this.storage = this.findMinerStorage();
 
         if (!this.memory.positionsAvailable) { this.memory.positionsAvailable = this.source.pos.openAdjacentSpots(true).length; }
@@ -83,7 +77,7 @@ export class MiningMission extends Mission {
             return this.getMinerBody();
         };
 
-        this.miners = this.headCount(this.name, getMinerBody, maxMiners, {prespawn: this.distanceToSpawn});
+        this.miners = this.headCount(this.name, getMinerBody, maxMiners, {prespawn: this.memory.prespawn});
 
         if (this.memory.roadRepairIds) {
             this.paver = this.spawnPaver();
@@ -141,7 +135,6 @@ export class MiningMission extends Mission {
     }
     invalidateMissionCache() {
         this.memory.transportAnalysis = undefined;
-        this.memory.distanceToSpawn = undefined;
     }
 
     private minerActions(miner: Creep, order: number) {
@@ -174,6 +167,12 @@ export class MiningMission extends Mission {
 
     private leadMinerActions(miner: Creep) {
         if (miner.pos.inRangeTo(this.container, 0)) {
+
+            if (!miner.memory.setDistance) {
+                miner.memory.setDistance = true;
+                this.setPrespawn(miner)
+            }
+
             if (this.container.hits < this.container.hitsMax * .90 && miner.carry.energy >= 20) {
                 miner.repair(this.container);
             }
