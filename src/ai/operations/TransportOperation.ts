@@ -9,7 +9,7 @@ export class TransportOperation extends Operation {
     }
 
     initOperation() {
-        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this._spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
         this.findOperationWaypoints();
 
         let max = this.memory.max !== undefined ? this.memory.max : 1;

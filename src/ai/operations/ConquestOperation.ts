@@ -30,7 +30,7 @@ export class ConquestOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super (flag, name, type, empire);
-        this.priority = OperationPriority.Medium;
+        this._priority = OperationPriority.Medium;
     }
 
     initOperation() {
@@ -42,7 +42,7 @@ export class ConquestOperation extends Operation {
             return; // early
         }
 
-        this.spawnGroup = this.empire.getSpawnGroup(this.memory.spawnRoom);
+        this._spawnGroup = this.empire.getSpawnGroup(this.memory.spawnRoom);
         if (!this.spawnGroup) {
             console.log("Invalid spawn room specified for", this.name);
             return;
@@ -89,8 +89,8 @@ export class ConquestOperation extends Operation {
         // the following can be spawned locally
         let localSpawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
         if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= CONQUEST_LOCAL_MIN_SPAWN_ENERGY) {
-            this.waypoints = undefined;
-            this.spawnGroup = localSpawnGroup;
+            this._waypoints = undefined;
+            this._spawnGroup = localSpawnGroup;
             this.addMission(new RefillMission(this));
         }
 

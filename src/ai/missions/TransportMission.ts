@@ -9,7 +9,7 @@ export class TransportMission extends Mission {
     destination: StructureContainer | StructureStorage | StructureTerminal;
     resourceType: string;
     offroad: boolean;
-    waypoints: Flag[];
+    _waypoints: Flag[];
 
     constructor(operation: Operation, maxCarts: number,
                 origin?: StructureContainer | StructureStorage | StructureTerminal,
@@ -30,7 +30,7 @@ export class TransportMission extends Mission {
     }
 
     initMission() {
-        this.waypoints = [];
+        this._waypoints = [];
         if (!this.origin) {
             let originFlag = Game.flags[this.opName + "_origin"];
             if (originFlag) {
@@ -50,7 +50,7 @@ export class TransportMission extends Mission {
             }
         }
 
-        this.waypoints = this.getFlagSet("_waypoints_", 1);
+        this._waypoints = this.getFlagSet("_waypoints_", 1);
     }
 
     roleCall() {

@@ -5,18 +5,19 @@ import {OperationPriority} from "../../config/constants";
 import {profiler} from "../../profiler";
 
 export abstract class Operation {
-    flag: Flag;
-    name: string;
-    type: string;
-    empire: Empire;
-    memory: any;
-    priority: OperationPriority;
-    hasVision: boolean;
-    sources: Source[];
-    mineral: Mineral;
-    spawnGroup: SpawnGroup;
-    missions: {[roleName: string]: Mission};
-    waypoints: Flag[];
+
+    protected _flag: Flag;
+    protected _name: string;
+    protected _type: string;
+    protected _empire: Empire;
+    protected _memory: any;
+    protected _priority: OperationPriority;
+    protected _hasVision: boolean;
+    protected _sources: Source[];
+    protected _mineral: Mineral;
+    protected _spawnGroup: SpawnGroup;
+    protected _missions: {[roleName: string]: Mission};
+    protected _waypoints: Flag[];
 
     /**
      *
@@ -26,19 +27,33 @@ export abstract class Operation {
      * @param empire - object used for empire-scoped behavior (terminal transmission, etc.)
      */
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        this.flag = flag;
-        this.name = name;
-        this.type = type;
+        this._flag = flag;
+        this._name = name;
+        this._type = type;
         Object.defineProperty(this, "empire", { enumerable: false, value: empire });
         Object.defineProperty(this, "memory", { enumerable: false, value: flag.memory });
-        if (!this.missions) { this.missions = {}; }
+        if (!this._missions) { this._missions = {}; }
         // variables that require vision (null check where appropriate)
-        if (this.flag.room) {
-            this.hasVision = true;
-            this.sources = _.sortBy(this.flag.room.find<Source>(FIND_SOURCES), (s: Source) => s.pos.getRangeTo(this.flag));
-            this.mineral = _.head(this.flag.room.find<Mineral>(FIND_MINERALS));
+        if (this._flag.room) {
+            this._hasVision = true;
+            this._sources = _.sortBy(flag.room.find<Source>(FIND_SOURCES), (s: Source) => s.pos.getRangeTo(flag));
+            this._mineral = _.head(flag.room.find<Mineral>(FIND_MINERALS));
         }
     }
+
+    get flag() { return this._flag; }
+    get name() { return this._name; }
+    get type() { return this._type; }
+    get empire() { return this._empire; }
+    get memory() { return this._memory; }
+    get priority() { return this._priority; }
+    get hasVision() { return this._hasVision; }
+    get sources() { return this._sources; }
+    get mineral() { return this._mineral; }
+    get room() { return this.flag.room; }
+    get spawnGroup() { return this._spawnGroup; }
+    get waypoints() { return this._waypoints; }
+
 
     /**
      * Init Phase - initialize operation variables and instantiate missions
@@ -52,9 +67,9 @@ export abstract class Operation {
             console.log(e.stack);
         }
 
-        for (let missionName in this.missions) {
+        for (let missionName in this._missions) {
             try {
-                this.missions[missionName].initMission();
+                this._missions[missionName].initMission();
             }
             catch (e) {
                 console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
@@ -69,9 +84,9 @@ export abstract class Operation {
      */
     roleCall() {
         // mission roleCall
-        for (let missionName in this.missions) {
+        for (let missionName in this._missions) {
             try {
-                this.missions[missionName].roleCall();
+                this._missions[missionName].roleCall();
             }
             catch (e) {
                 console.log("error caught in roleCall phase, operation:", this.name, "mission:", missionName);
@@ -85,9 +100,9 @@ export abstract class Operation {
      */
     actions() {
         // mission actions
-        for (let missionName in this.missions) {
+        for (let missionName in this._missions) {
             try {
-                this.missions[missionName].missionActions();
+                this._missions[missionName].missionActions();
             }
             catch (e) {
                 console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName, "in room ", this.flag.pos.roomName);
@@ -101,9 +116,9 @@ export abstract class Operation {
      */
     finalize() {
         // mission actions
-        for (let missionName in this.missions) {
+        for (let missionName in this._missions) {
             try {
-                this.missions[missionName].finalizeMission();
+                this._missions[missionName].finalizeMission();
             }
             catch (e) {
                 console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);
@@ -128,9 +143,9 @@ export abstract class Operation {
     invalidateCache() {
         // base rate of 1 proc out of 100 ticks
         if (Math.random() < .01) {
-            for (let missionName in this.missions) {
+            for (let missionName in this._missions) {
                 try {
-                    this.missions[missionName].invalidateMissionCache();
+                    this._missions[missionName].invalidateMissionCache();
                 }
                 catch (e) {
                     console.log("error caught in invalidateMissionCache phase, operation:", this.name, "mission:", missionName);
@@ -156,7 +171,7 @@ export abstract class Operation {
     addMission(mission: Mission) {
         // it is important for every mission belonging to an operation to have
         // a unique name or they will be overwritten here
-        this.missions[mission.getName()] = mission;
+        this._missions[mission.name] = mission;
     }
 
     getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
@@ -205,11 +220,11 @@ export abstract class Operation {
     }
 
     protected findOperationWaypoints() {
-        this.waypoints = [];
+        this._waypoints = [];
         for (let i = 0; i < 100; i++) {
             let flag = Game.flags[this.name + "_waypoints_" + i];
             if (flag) {
-                this.waypoints.push(flag);
+                this._waypoints.push(flag);
             }
             else {
                 break;
@@ -227,17 +242,17 @@ export abstract class Operation {
             return "SPAWN: that room doesn't appear to host a valid spawnGroup";
         }
 
-        if (!this.waypoints || !this.waypoints[0]) {
+        if (!this._waypoints || !this._waypoints[0]) {
             if (portalTravel) {
-                return "SPAWN: please set up waypoints before setting spawn room with portal travel";
+                return "SPAWN: please set up _waypoints before setting spawn room with portal travel";
             }
         }
         else {
-            this.waypoints[0].memory.portalTravel = portalTravel;
+            this._waypoints[0].memory.portalTravel = portalTravel;
         }
 
         this.memory.spawnRoom = roomName;
-        _.each(this.missions, (mission) => mission.invalidateSpawnDistance());
+        _.each(this._missions, (mission) => mission.invalidateSpawnDistance());
         return "SPAWN: spawnRoom for " + this.name + " set to " + roomName + " (map range: " +
             Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName) + ")";
     }

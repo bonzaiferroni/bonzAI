@@ -1,13 +1,15 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-
-const MIN_RAMPART_HITS = 50000000;
+import {MasonAnalyzer} from "./MasonResearch";
 
 export class MasonMission extends Mission {
 
     masons: Creep[];
+    hostiles: Creep[];
+    analyzer: MasonAnalyzer;
     memory: {
-        needMason: boolean
+        needMason: boolean;
+        turtlePositions: RoomPosition[];
     };
 
     constructor(operation: Operation) {
@@ -15,20 +17,14 @@ export class MasonMission extends Mission {
     }
 
     initMission() {
-        if (!this.memory.needMason) {
-            if (this.room.controller.level < 8) {
-                this.memory.needMason = false;
-            }
-            else {
-                let lowestRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)).sortBy("hits").head();
-                this.memory.needMason = lowestRampart && lowestRampart.hits < MIN_RAMPART_HITS;
-            }
-        }
+
+        this.analyzer = new MasonAnalyzer(this);
+        this.analyzer.init();
     }
 
     roleCall() {
         let max = 0;
-        if (this.memory.needMason) {
+        if (this.analyzer.needMason()) {
             max = 1;
         }
         this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), max);
@@ -37,7 +33,12 @@ export class MasonMission extends Mission {
     missionActions() {
 
         for (let mason of this.masons) {
-            this.masonActions(mason);
+            if (this.hostiles) {
+                this.turtleActions(mason);
+            }
+            else {
+                this.masonActions(mason);
+            }
         }
     }
 
@@ -147,5 +148,9 @@ export class MasonMission extends Mission {
             mason.memory.hasLoad = true;
         }
         return mason.memory.hasLoad;
+    }
+
+    private turtleActions(mason: Creep) {
+
     }
 }

@@ -40,7 +40,7 @@ export abstract class RaidMission extends Mission {
     constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number, allowSpawn: boolean) {
         super(operation, name, allowSpawn);
         this.raidData = raidData;
-        this.spawnGroup = spawnGroup;
+        this._spawnGroup = spawnGroup;
         this.boostLevel = boostLevel;
     }
 
@@ -157,7 +157,7 @@ export abstract class RaidMission extends Mission {
         }
         this.spawned = this.memory.spawned;
 
-        if (Game.time % 10 === 0  && !this.spawned && this.allowSpawn) {
+        if (Game.time % 10 === 0  && !this.spawned && this._allowSpawn) {
             console.log(`RAID: ${this.opName} ${this.name} squad ready (reservation)`);
         }
 

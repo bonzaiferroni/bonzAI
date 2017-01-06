@@ -44,10 +44,10 @@ export class UpgradeMission extends Mission {
         if (!this.memory.cartCount) { this.memory.cartCount = 0; }
         if (this.spawnGroup.room !== this.room) {
             this.remoteSpawning = true;
-            this.distanceToSpawn = Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name);
+            this._distanceToSpawn = Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name);
         }
         else {
-            this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
+            this._distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
         }
         this.battery = this.findControllerBattery();
     }
@@ -94,11 +94,11 @@ export class UpgradeMission extends Mission {
             let analysis = this.cacheTransportAnalysis(25, totalPotency);
             this.batterySupplyCarts = this.headCount("upgraderCart",
                 () => this.workerBody(0, analysis.carryCount, analysis.moveCount),
-                analysis.cartsNeeded, { prespawn: this.distanceToSpawn,});
+                analysis.cartsNeeded, { prespawn: this._distanceToSpawn,});
         }
 
         this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
-            prespawn: this.distanceToSpawn,
+            prespawn: this._distanceToSpawn,
             memory: memory
         } );
 

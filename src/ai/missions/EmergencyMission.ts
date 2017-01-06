@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 export class EmergencyMinerMission extends Mission {
 
-    protected memory: {
+    memory: {
         lastTick: number
     };
 

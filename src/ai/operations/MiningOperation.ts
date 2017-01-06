@@ -24,17 +24,17 @@ export class MiningOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
-        this.priority = OperationPriority.Low;
+        this._priority = OperationPriority.Low;
     }
 
     initOperation() {
         this.findOperationWaypoints();
         if (this.waypoints.length > 0 && !this.memory.spawnRoom) {
-            console.log("SPAWN: waypoints detected, manually set spawn room, example:", this.name +
+            console.log("SPAWN: _waypoints detected, manually set spawn room, example:", this.name +
                 ".setSpawnRoom(otherOpName.flag.room.name)");
             return;
         }
-        this.spawnGroup = this.getRemoteSpawnGroup();
+        this._spawnGroup = this.getRemoteSpawnGroup();
         if (!this.spawnGroup) {
             console.log("ATTN: no spawnGroup found for", this.name);
             return; // early

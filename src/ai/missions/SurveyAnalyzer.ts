@@ -31,11 +31,11 @@ export class SurveyAnalyzer {
     };
 
     constructor(mission: SurveyMission) {
-        this.room = mission.getRoom();
-        this.empire = mission.getEmpire();
-        this.spawnGroup = mission.getSpawnGroup();
-        this.memory = mission.getMemory();
-        this.opName = mission.getOpName();
+        this.room = mission.room;
+        this.empire = mission.empire;
+        this.spawnGroup = mission.spawnGroup;
+        this.memory = mission.memory as any;
+        this.opName = mission.opName;
     }
 
     public run(): string {

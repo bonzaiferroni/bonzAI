@@ -64,5 +64,7 @@ export var sandBox = {
                 }
             }
         }
+
+        if (Game.time % 10 === 0) console.log(Memory.cpu.average);
     }
 };

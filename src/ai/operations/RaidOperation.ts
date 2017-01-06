@@ -44,13 +44,13 @@ export class RaidOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
-        this.priority = OperationPriority.VeryHigh;
+        this._priority = OperationPriority.VeryHigh;
     }
 
     initOperation() {
         this.flagPlacement();
         this.checkNewPlacement();
-        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this._spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
         if (!this.raidData) return;
 
@@ -81,12 +81,12 @@ export class RaidOperation extends Operation {
                 spawnCount++;
             }
             else {
-                if (this.memory.queue[mission.getName()]) {
-                    this.memory.squadConfig[mission.getName()] = this.memory.queue[mission.getName()];
-                    let config = this.memory.squadConfig[mission.getName()] as SquadConfig;
-                    console.log("RAID: updating", mission.getName(), "to be of type", config.type,
+                if (this.memory.queue[mission.name]) {
+                    this.memory.squadConfig[mission.name] = this.memory.queue[mission.name];
+                    let config = this.memory.squadConfig[mission.name] as SquadConfig;
+                    console.log("RAID: updating", mission.name, "to be of type", config.type,
                         "with boostLevel", config.boostLevel);
-                    delete this.memory.queue[mission.getName()];
+                    delete this.memory.queue[mission.name];
                 }
             }
         }
@@ -486,8 +486,8 @@ export class RaidOperation extends Operation {
     }
 
     waypointProgress(index?: number) {
-        for (let missionName in this.missions) {
-            let mission = this.missions[missionName];
+        for (let missionName in this._missions) {
+            let mission = this._missions[missionName];
             if (mission["healer"]) {
                 mission["healer"].memory.waypointsCovered = false;
                 if (index !== undefined) {

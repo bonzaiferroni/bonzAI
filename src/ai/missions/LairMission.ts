@@ -26,12 +26,12 @@ export class LairMission extends Mission {
             // this.memory.travelOrder = this.findTravelOrder(this.lairs);
         }
 
-        this.distanceToSpawn = this.findDistanceToSpawn(this.flag.pos);
+        this._distanceToSpawn = this.findDistanceToSpawn(this.flag.pos);
 
         this.assignKeepers();
         this.targetLair = this.findTargetLair();
 
-        if (this.waypoints) {
+        if (this._waypoints) {
             let destination = Game.flags[this.opName + "_sourceDestination"];
             if (destination) {
                 let structure = destination.pos.lookFor(LOOK_STRUCTURES)[0] as StructureStorage;
@@ -48,7 +48,7 @@ export class LairMission extends Mission {
     roleCall() {
         let maxTrappers = this.lairs && this.lairs.length > 0 ? 1 : 0;
         this.trappers = this.headCount("trapper", () => this.configBody({move: 25, attack: 19, heal: 6}), maxTrappers, {
-            prespawn: this.distanceToSpawn + 100,
+            prespawn: this._distanceToSpawn + 100,
             skipMoveToRoom: true,
         });
 
