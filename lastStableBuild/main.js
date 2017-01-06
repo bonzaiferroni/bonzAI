@@ -50,14 +50,14 @@ module.exports =
 
 	"use strict";
 	const loopHelper_1 = __webpack_require__(/*! ./helpers/loopHelper */ 1);
-	const initPrototypes_1 = __webpack_require__(/*! ./prototypes/initPrototypes */ 52);
-	const sandbox_1 = __webpack_require__(/*! ./sandbox */ 56);
-	const profiler_1 = __webpack_require__(/*! ./profiler */ 57);
+	const initPrototypes_1 = __webpack_require__(/*! ./prototypes/initPrototypes */ 58);
+	const sandbox_1 = __webpack_require__(/*! ./sandbox */ 62);
+	const profiler_1 = __webpack_require__(/*! ./profiler */ 7);
 	loopHelper_1.loopHelper.initMemory();
 	initPrototypes_1.initPrototypes();
 	module.exports.loop = function () {
 	    Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
-	        activeLabCount: 0, placedRoad: false };
+	        activeLabCount: 0, placedRoad: false, };
 	    // Init phase - Information is gathered about the game state and game objects instantiated
 	    profiler_1.profiler.start("init");
 	    let empire = loopHelper_1.loopHelper.initEmpire();
@@ -103,12 +103,6 @@ module.exports =
 	        console.log("error reporting transactions:\n", e.stack);
 	    }
 	    try {
-	        loopHelper_1.loopHelper.reportTransactions();
-	    }
-	    catch (e) {
-	        console.log("error reporting transactions:\n", e.stack);
-	    }
-	    try {
 	        loopHelper_1.loopHelper.initConsoleCommands();
 	    }
 	    catch (e) {
@@ -145,18 +139,21 @@ module.exports =
 
 	"use strict";
 	const Empire_1 = __webpack_require__(/*! ../ai/Empire */ 2);
-	const FortOperation_1 = __webpack_require__(/*! ../ai/operations/FortOperation */ 6);
-	const MiningOperation_1 = __webpack_require__(/*! ../ai/operations/MiningOperation */ 22);
+	const FortOperation_1 = __webpack_require__(/*! ../ai/operations/FortOperation */ 8);
+	const MiningOperation_1 = __webpack_require__(/*! ../ai/operations/MiningOperation */ 24);
 	const constants_1 = __webpack_require__(/*! ../config/constants */ 4);
-	const KeeperOperation_1 = __webpack_require__(/*! ../ai/operations/KeeperOperation */ 30);
-	const ConquestOperation_1 = __webpack_require__(/*! ../ai/operations/ConquestOperation */ 32);
-	const consoleCommands_1 = __webpack_require__(/*! ./consoleCommands */ 34);
-	const DemolishOperation_1 = __webpack_require__(/*! ../ai/operations/DemolishOperation */ 35);
-	const TransportOperation_1 = __webpack_require__(/*! ../ai/operations/TransportOperation */ 37);
-	const RaidOperation_1 = __webpack_require__(/*! ../ai/operations/RaidOperation */ 38);
-	const QuadOperation_1 = __webpack_require__(/*! ../ai/operations/QuadOperation */ 44);
-	const AutoOperation_1 = __webpack_require__(/*! ../ai/operations/AutoOperation */ 49);
-	const FlexOperation_1 = __webpack_require__(/*! ../ai/operations/FlexOperation */ 50);
+	const KeeperOperation_1 = __webpack_require__(/*! ../ai/operations/KeeperOperation */ 32);
+	const ConquestOperation_1 = __webpack_require__(/*! ../ai/operations/ConquestOperation */ 34);
+	const consoleCommands_1 = __webpack_require__(/*! ./consoleCommands */ 36);
+	const DemolishOperation_1 = __webpack_require__(/*! ../ai/operations/DemolishOperation */ 37);
+	const TransportOperation_1 = __webpack_require__(/*! ../ai/operations/TransportOperation */ 39);
+	const RaidOperation_1 = __webpack_require__(/*! ../ai/operations/RaidOperation */ 40);
+	const QuadOperation_1 = __webpack_require__(/*! ../ai/operations/QuadOperation */ 46);
+	const AutoOperation_1 = __webpack_require__(/*! ../ai/operations/AutoOperation */ 53);
+	const FlexOperation_1 = __webpack_require__(/*! ../ai/operations/FlexOperation */ 54);
+	const notifier_1 = __webpack_require__(/*! ../notifier */ 6);
+	const helper_1 = __webpack_require__(/*! ./helper */ 5);
+	const ZombieOperation_1 = __webpack_require__(/*! ../ai/operations/ZombieOperation */ 56);
 	const OPERATION_CLASSES = {
 	    conquest: ConquestOperation_1.ConquestOperation,
 	    fort: FortOperation_1.FortOperation,
@@ -168,6 +165,7 @@ module.exports =
 	    quad: QuadOperation_1.QuadOperation,
 	    auto: AutoOperation_1.AutoOperation,
 	    flex: FlexOperation_1.FlexOperation,
+	    zombie: ZombieOperation_1.ZombieOperation,
 	};
 	exports.loopHelper = {
 	    initEmpire: function () {
@@ -206,6 +204,7 @@ module.exports =
 	                }
 	            }
 	        }
+	        Game.operations = operationList;
 	        return _.sortBy(operationList, (operation) => operation.priority);
 	    },
 	    initMemory: function () {
@@ -220,6 +219,13 @@ module.exports =
 	                powerMinimum: 9000,
 	            },
 	            profiler: {},
+	            traders: {},
+	            powerObservers: {},
+	            notifier: [],
+	            cpu: {
+	                history: [],
+	                average: Game.cpu.getUsed(),
+	            },
 	        });
 	    },
 	    scavangeResources: function () {
@@ -281,39 +287,6 @@ module.exports =
 	        Memory.stats["game.cpu.bucket"] = Game.cpu.bucket;
 	        Memory.stats["game.cpu.used"] = Game.cpu.getUsed();
 	    },
-	    reportTransactions: function () {
-	        for (let item of Game.market.incomingTransactions) {
-	            if (item.time === Game.time - 1) {
-	                if (item.sender.username !== constants_1.USERNAME) {
-	                    if (!Memory.traders)
-	                        Memory.traders = {};
-	                    if (!Memory.traders[item.sender.username]) {
-	                        Memory.traders[item.sender.username] = { recieved: {}, sent: {} };
-	                    }
-	                    if (!Memory.traders[item.sender.username].recieved[item.resourceType]) {
-	                        Memory.traders[item.sender.username].recieved[item.resourceType] = 0;
-	                    }
-	                    Memory.traders[item.sender.username].recieved[item.resourceType] += item.amount;
-	                    console.log("MARKET: received", item.amount, "of", item.resourceType, "from", item.sender.username);
-	                }
-	                else if (item.recipient.username !== constants_1.USERNAME) {
-	                    if (!Memory.traders)
-	                        Memory.traders = {};
-	                    if (!Memory.traders[item.recipient.username]) {
-	                        Memory.traders[item.recipient.username] = { recieved: {}, sent: {} };
-	                    }
-	                    if (!Memory.traders[item.recipient.username].sent[item.resourceType]) {
-	                        Memory.traders[item.recipient.username].sent[item.resourceType] = 0;
-	                    }
-	                    Memory.traders[item.recipient.username].sent[item.resourceType] += item.amount;
-	                    console.log("MARKET: sent", item.amount, "of", item.resourceType, "to", item.recipient.username);
-	                }
-	            }
-	            else {
-	                break;
-	            }
-	        }
-	    },
 	    sendResourceOrder: function (empire) {
 	        if (!Memory.resourceOrder) {
 	            Memory.resourceOrder = {};
@@ -358,6 +331,8 @@ module.exports =
 	        // command functions found in consoleCommands.ts can be executed from the game console
 	        // example: cc.minv()
 	        global.cc = consoleCommands_1.consoleCommands;
+	        global.note = notifier_1.notifier;
+	        global.helper = helper_1.helper;
 	    },
 	};
 
@@ -373,6 +348,8 @@ module.exports =
 	const SpawnGroup_1 = __webpack_require__(/*! ./SpawnGroup */ 3);
 	const constants_1 = __webpack_require__(/*! ../config/constants */ 4);
 	const helper_1 = __webpack_require__(/*! ../helpers/helper */ 5);
+	const notifier_1 = __webpack_require__(/*! ../notifier */ 6);
+	const profiler_1 = __webpack_require__(/*! ../profiler */ 7);
 	class Empire {
 	    constructor() {
 	        this.storages = [];
@@ -384,7 +361,15 @@ module.exports =
 	        this.surpluses = [];
 	        if (!Memory.empire)
 	            Memory.empire = {};
-	        _.defaults(Memory.empire, { allyRooms: [], hostileRooms: {}, tradeIndex: 0, activeNukes: [] });
+	        _.defaults(Memory.empire, {
+	            allyRooms: [],
+	            hostileRooms: {},
+	            tradeIndex: 0,
+	            activeNukes: [],
+	            safe: {},
+	            danger: {},
+	            errantConstructionRooms: {},
+	        });
 	        this.memory = Memory.empire;
 	    }
 	    /**
@@ -404,6 +389,8 @@ module.exports =
 	        this.buyShortages();
 	        this.sellCompounds();
 	        this.reportNukes();
+	        this.reportTransactions();
+	        this.clearErrantConstruction();
 	    }
 	    get inventory() {
 	        if (!this._inventory) {
@@ -807,7 +794,6 @@ module.exports =
 	        let outcome = localTerminal.send(resourceType, amount, otherTerminal.room.name);
 	        if (outcome === OK) {
 	            let distance = Game.map.getRoomLinearDistance(otherTerminal.room.name, localTerminal.room.name, true);
-	            console.log("NETWORK:", localTerminal.room.name, "→", otherTerminal.room.name + ":", amount, resourceType, "(" + otherTerminal.owner.username.substring(0, 3) + ", dist: " + distance + ")");
 	        }
 	        else {
 	            console.log(`NETWORK: error sending resource in ${localTerminal.room.name}, outcome: ${outcome}`);
@@ -834,43 +820,55 @@ module.exports =
 	            return Object.keys(allowedRooms).length;
 	        }
 	    }
-	    findAllowedRooms(origin, destination, preferHighway = false, avoidEnemyRooms = true, avoidSKrooms = true) {
-	        // Use `findRoute` to calculate a high-level plan for this path,
-	        // prioritizing highways and owned rooms
+	    findAllowedRooms(origin, destination, options = {}) {
+	        _.defaults(options, { restrictDistance: 20 });
+	        if (Game.map.getRoomLinearDistance(origin, destination) > options.restrictDistance) {
+	            return;
+	        }
 	        let allowedRooms = { [origin]: true, [destination]: true };
 	        let ret = Game.map.findRoute(origin, destination, {
 	            routeCallback: (roomName) => {
-	                if (preferHighway) {
+	                if (Game.map.getRoomLinearDistance(origin, roomName) > options.restrictDistance)
+	                    return false;
+	                if (options.preferHighway) {
 	                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
 	                    let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
 	                    if (isHighway) {
 	                        return 1;
 	                    }
 	                }
-	                if (avoidSKrooms && !Game.rooms[roomName]) {
+	                if (!options.allowSK && !Game.rooms[roomName]) {
 	                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-	                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) && ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
+	                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) &&
+	                        ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
 	                    if (isSK) {
-	                        return 20;
+	                        return 10;
 	                    }
 	                }
-	                if (avoidEnemyRooms && this.memory.hostileRooms[roomName] && roomName !== destination && roomName !== origin) {
+	                if (!options.allowHostile && this.memory.hostileRooms[roomName] &&
+	                    roomName !== destination && roomName !== origin) {
 	                    return Number.POSITIVE_INFINITY;
 	                }
 	            }
 	        });
-	        if (_.isNumber(ret)) {
+	        if (!_.isArray(ret)) {
 	            console.log(`couldn't findRoute to ${destination}`);
+	            return;
 	        }
 	        for (let value of ret) {
 	            allowedRooms[value.room] = true;
 	        }
 	        return allowedRooms;
 	    }
-	    travelTo(creep, destination, options) {
+	    travelTo(creep, destination, options = {}) {
 	        // register hostile rooms entered
-	        if (creep.room.controller && creep.room.controller.owner && !constants_1.ALLIES[creep.room.controller.owner.username]) {
-	            this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+	        if (creep.room.controller) {
+	            if (creep.room.controller.owner && !creep.room.controller.my) {
+	                this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+	            }
+	            else {
+	                this.memory.hostileRooms[creep.room.name] = undefined;
+	            }
 	        }
 	        if (!creep.memory._travel) {
 	            creep.memory._travel = { stuck: 0, destination: destination.pos, lastPos: undefined, path: undefined };
@@ -881,38 +879,40 @@ module.exports =
 	        }
 	        let rangeToDestination = creep.pos.getRangeTo(destination);
 	        if (rangeToDestination <= 1) {
-	            if (rangeToDestination === 0) {
-	                return OK;
+	            let outcome = OK;
+	            if (rangeToDestination === 1 && destination.pos.isPassible()) {
+	                outcome = creep.move(creep.pos.getDirectionTo(destination));
 	            }
-	            if (destination.pos.isPassible()) {
-	                return creep.move(creep.pos.getDirectionTo(destination));
+	            if (options.returnPosition && outcome === OK) {
+	                return destination.pos;
 	            }
 	            else {
-	                return OK;
+	                return outcome;
 	            }
 	        }
 	        if (travelData.lastPos) {
 	            travelData.lastPos = helper_1.helper.deserializeRoomPosition(travelData.lastPos);
 	            if (creep.pos.inRangeTo(travelData.lastPos, 0)) {
-	                travelData.stuck++;
+	                if (options.ignoreStuck) {
+	                    travelData.stuck = 1;
+	                }
+	                else {
+	                    travelData.stuck++;
+	                }
 	            }
 	            else {
 	                travelData.stuck = 0;
 	            }
 	        }
-	        if (travelData.destination) {
-	            travelData.destination = helper_1.helper.deserializeRoomPosition(travelData.destination);
-	        }
-	        if (!travelData.path || !travelData.destination.inRangeTo(destination, 0)
-	            || travelData.stuck >= 5) {
+	        let sameDestination = travelData.destination &&
+	            travelData.destination.x === destination.pos.x &&
+	            travelData.destination.y === destination.pos.y &&
+	            travelData.destination.roomName === destination.pos.roomName;
+	        if (!travelData.path || !sameDestination || (travelData.stuck >= 5)) {
 	            travelData.destination = destination.pos;
 	            travelData.lastPos = undefined;
-	            if (!options) {
-	                options = {};
-	            }
-	            options.ignoreCreeps = travelData.stuck >= 5;
+	            options.ignoreCreeps = travelData.stuck < 5;
 	            let ret = this.findTravelPath(creep, destination, options);
-	            // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
 	            travelData.path = helper_1.helper.serializePath(creep.pos, ret.path);
 	            travelData.stuck = 0;
 	        }
@@ -924,7 +924,13 @@ module.exports =
 	        }
 	        travelData.lastPos = creep.pos;
 	        let nextDirection = parseInt(travelData.path[0]);
-	        return creep.move(nextDirection);
+	        let outcome = creep.move(nextDirection);
+	        if (!options.returnPosition || outcome !== OK) {
+	            return outcome;
+	        }
+	        else {
+	            return creep.pos.getPositionAtDirection(nextDirection);
+	        }
 	    }
 	    findTravelPath(origin, destination, options) {
 	        if (!options) {
@@ -935,33 +941,177 @@ module.exports =
 	            ignoreCreeps: true,
 	            preferHighway: false,
 	            ignoreStructures: false,
+	            range: 1,
+	            obstacles: [],
 	        });
 	        let allowedRooms;
+	        let searchedAlready = false;
 	        let callback = (roomName) => {
-	            if (!allowedRooms) {
-	                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options.preferHighway);
+	            if (options.roomCallback) {
+	                let outcome = options.roomCallback(roomName);
+	                if (outcome !== undefined) {
+	                    return outcome;
+	                }
 	            }
-	            if (!allowedRooms[roomName])
+	            if (!allowedRooms && !searchedAlready) {
+	                searchedAlready = true;
+	                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options);
+	                if (!allowedRooms) {
+	                    notifier_1.notifier.add(`couldn't find allowed rooms for path from ${origin} to ${destination}`);
+	                }
+	            }
+	            if (allowedRooms && !allowedRooms[roomName])
 	                return false;
 	            let room = Game.rooms[roomName];
 	            if (!room)
 	                return;
-	            let matrix = new PathFinder.CostMatrix();
-	            if (!options.ignoreStructures) {
-	                helper_1.helper.addStructuresToMatrix(matrix, room);
+	            let matrix;
+	            if (options.ignoreStructures) {
+	                matrix = new PathFinder.CostMatrix();
+	            }
+	            else {
+	                matrix = room.defaultMatrix.clone();
 	            }
 	            if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
 	                helper_1.helper.addCreepsToMatrix(matrix, room);
 	            }
+	            for (let obstacle of options.obstacles) {
+	                if (obstacle.pos.roomName === origin.pos.roomName) {
+	                    matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
+	                }
+	            }
 	            return matrix;
 	        };
-	        let ret = PathFinder.search(origin.pos, { pos: destination.pos, range: 1 }, {
+	        let ret = PathFinder.search(origin.pos, { pos: destination.pos, range: options.range }, {
 	            swampCost: options.ignoreRoads ? 5 : 10,
 	            plainCost: options.ignoreRoads ? 1 : 2,
 	            maxOps: 20000,
 	            roomCallback: callback
 	        });
 	        return ret;
+	    }
+	    reportTransactions() {
+	        if (Game.time % 10 !== 0)
+	            return;
+	        let kFormatter = (num) => {
+	            return num > 999 ? (num / 1000).toFixed(1) + 'k' : num;
+	        };
+	        let consoleReport = (item) => {
+	            let distance = Game.map.getRoomLinearDistance(item.from, item.to);
+	            let cost = Game.market.calcTransactionCost(item.amount, item.from, item.to);
+	            console.log(`TRADE: ${_.padLeft(`${item.from} ${item.sender ? item.sender.username : "npc"}`.substr(0, 12), 12)} ` +
+	                `→ ${_.pad(`${kFormatter(item.amount)} ${item.resourceType}`.substr(0, 12), 12)} → ` +
+	                `${_.padRight(`${item.to} ${item.recipient ? item.recipient.username : "npc"}`.substr(0, 12), 12)} ` +
+	                `(dist: ${distance}, cost: ${kFormatter(cost)})`);
+	        };
+	        let decipher = (item) => {
+	            if (!item.description) {
+	                notifier_1.notifier.add(`EMPIRE: no description on decipher from ${item.sender.username}.`);
+	                return;
+	            }
+	            let description = item.description.toLocaleLowerCase();
+	            if (description === "safe") {
+	                this.memory.safe[item.sender.username] = true;
+	                console.log(`EMPIRE: ${item.sender.username} requested to be added to safe list`);
+	            }
+	            else if (description === "removesafe") {
+	                delete this.memory.safe[item.sender.username];
+	                console.log(`EMPIRE: ${item.sender.username} requested to be removed from safe list`);
+	            }
+	            else if (description === "danger") {
+	                this.memory.danger[item.sender.username] = true;
+	                console.log(`EMPIRE: ${item.sender.username} requested to be added to danger list`);
+	            }
+	            else if (description === "removedanger") {
+	                delete this.memory.danger[item.sender.username];
+	                console.log(`EMPIRE: ${item.sender.username} requested to be removed from danger list`);
+	            }
+	            else {
+	                notifier_1.notifier.add(`EMPIRE: invalid description on decipher from ${item.sender.username}: ${_.escape(item.description)}`);
+	            }
+	        };
+	        let decipheredMessage = false;
+	        for (let item of Game.market.incomingTransactions) {
+	            if (!item.sender)
+	                continue;
+	            if (item.time >= Game.time - 10) {
+	                let username = item.sender.username;
+	                if (!username) {
+	                    username = "npc";
+	                }
+	                if (!Memory.traders[username]) {
+	                    Memory.traders[username] = {};
+	                }
+	                if (Memory.traders[username][item.resourceType] === undefined) {
+	                    Memory.traders[username][item.resourceType] = 0;
+	                }
+	                Memory.traders[username][item.resourceType] += item.amount;
+	                consoleReport(item);
+	                if (item.amount === 111 && !decipheredMessage) {
+	                    decipheredMessage = true;
+	                    decipher(item);
+	                }
+	            }
+	            else {
+	                break;
+	            }
+	        }
+	        for (let item of Game.market.outgoingTransactions) {
+	            if (!item.recipient)
+	                continue;
+	            if (item.time >= Game.time - 10) {
+	                let username = item.recipient.username;
+	                if (!username) {
+	                    username = "npc";
+	                }
+	                if (!Memory.traders[username]) {
+	                    Memory.traders[username] = {};
+	                }
+	                if (Memory.traders[username][item.resourceType] === undefined) {
+	                    Memory.traders[username][item.resourceType] = 0;
+	                }
+	                Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
+	                if (item.recipient.username === constants_1.USERNAME) {
+	                    continue;
+	                }
+	                consoleReport(item);
+	            }
+	            else {
+	                break;
+	            }
+	        }
+	    }
+	    underCPULimit() {
+	        return profiler_1.profiler.proportionUsed() < .9;
+	    }
+	    clearErrantConstruction() {
+	        if (Game.time % 1000 !== 0) {
+	            return;
+	        }
+	        let removeErrantStatus = {};
+	        let addErrantStatus = {};
+	        for (let siteName in Game.constructionSites) {
+	            let site = Game.constructionSites[siteName];
+	            if (site.room) {
+	                delete this.memory.errantConstructionRooms[site.pos.roomName];
+	            }
+	            else {
+	                if (this.memory.errantConstructionRooms[site.pos.roomName]) {
+	                    site.remove();
+	                    removeErrantStatus[site.pos.roomName];
+	                }
+	                else {
+	                    addErrantStatus[site.pos.roomName] = true;
+	                }
+	            }
+	        }
+	        for (let roomName in addErrantStatus) {
+	            this.memory.errantConstructionRooms[roomName] = true;
+	        }
+	        for (let roomName in removeErrantStatus) {
+	            notifier_1.notifier.add(`EMPIRE: removed construction sites in ${roomName}`);
+	            delete this.memory.errantConstructionRooms[roomName];
+	        }
 	    }
 	}
 	exports.Empire = Empire;
@@ -1091,8 +1241,8 @@ module.exports =
 	            return; // early
 	        let longAverage = _.sum(log.history) / 5;
 	        log.longHistory.push(longAverage);
-	        while (log.history.length > 5)
-	            log.history.shift();
+	        while (log.longHistory.length > 5)
+	            log.longHistory.shift();
 	    }
 	    showHistory() {
 	        console.log("Average availability in", this.room.name, "the last 5 creep generations (1500 ticks):");
@@ -1100,7 +1250,7 @@ module.exports =
 	        console.log("Average availability over the last 75000 ticks (each represents a period of 15000 ticks)");
 	        console.log(this.memory.log.longHistory);
 	    }
-	    averageAvailability() {
+	    get averageAvailability() {
 	        if (this.memory.log.history.length === 0) {
 	            return .1;
 	        }
@@ -1150,6 +1300,7 @@ module.exports =
 	    "Ashburnie": true,
 	    "ricane": true,
 	    "trebbettes": true,
+	    "bovius": true,
 	};
 	exports.TRADE_PARTNERS = {
 	    "bonzaiferroni": true,
@@ -1195,7 +1346,7 @@ module.exports =
 	exports.ENERGYSINK_THRESHOLD = 450000;
 	exports.SWAP_RESERVE = 950000;
 	exports.MINERALS_RAW = ["H", "O", "Z", "U", "K", "L", "X"];
-	exports.PRODUCT_LIST = ["XUH2O", "XLHO2", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XLH2O", "XGH2O"];
+	exports.PRODUCT_LIST = ["XUH2O", "XLHO2", "XLH2O", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XGH2O"];
 	exports.TRADE_RESOURCES = exports.PRODUCT_LIST.concat(exports.MINERALS_RAW).concat([RESOURCE_POWER, RESOURCE_ENERGY]);
 	exports.TRADE_MAX_DISTANCE = 6;
 	exports.TRADE_ENERGY_AMOUNT = 10000;
@@ -1266,6 +1417,14 @@ module.exports =
 	    XZH2O: ["ZH2O", "X"],
 	    XKHO2: ["KHO2", "X"]
 	};
+	exports.OPERATION_NAMES = [
+	    "domo", "boca", "lima", "root", "lima", "gato", "fret", "thad", "colo", "pony",
+	    "moon", "oslo", "pita", "gaol", "snek", "kiev", "bonn", "dili", "cali", "nuuk",
+	    "suva", "lome", "bern", "mija", "mano", "casa", "flor", "baja", "jefe", "flux",
+	    "jeux", "cozy", "lupe", "hazy", "jugs", "quip", "jibs", "quay", "zany", "mojo",
+	    "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "chic"
+	];
+	exports.ARTROOMS = {};
 
 
 /***/ },
@@ -1454,7 +1613,7 @@ module.exports =
 	                return "N";
 	        }
 	    },
-	    blockOffMatrix(costs, roomObject, range, cost = 30) {
+	    blockOffPosition(costs, roomObject, range, cost = 30) {
 	        for (let xDelta = -range; xDelta <= range; xDelta++) {
 	            for (let yDelta = -range; yDelta <= range; yDelta++) {
 	                if (Game.map.getTerrainAt(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, roomObject.room.name) === "wall")
@@ -1518,13 +1677,12 @@ module.exports =
 	        }
 	        return;
 	    },
-	    findRelativeRoomName(room, xDelta, yDelta) {
-	        if (!room)
-	            return;
-	        let xDir = room.coords.xDir;
-	        let yDir = room.coords.yDir;
-	        let x = room.coords.x + xDelta;
-	        let y = room.coords.y + yDelta;
+	    findRelativeRoomName(roomName, xDelta, yDelta) {
+	        let coords = this.getRoomCoordinates(roomName);
+	        let xDir = coords.xDir;
+	        let yDir = coords.yDir;
+	        let x = coords.x + xDelta;
+	        let y = coords.y + yDelta;
 	        if (x < 0) {
 	            x = Math.abs(x) - 1;
 	            xDir = this.negaDirection(xDir);
@@ -1535,15 +1693,103 @@ module.exports =
 	        }
 	        return xDir + x + yDir + y;
 	    },
-	    blockOffExits(matrix, cost = 0xff) {
-	        for (let i = 0; i < 50; i += 49) {
-	            for (let j = 0; j < 50; j++) {
-	                matrix.set(i, j, cost);
+	    findRoomCoordDeltas(origin, otherRoom) {
+	        let originCoords = this.getRoomCoordinates(origin);
+	        let otherCoords = this.getRoomCoordinates(otherRoom);
+	        let xDelta = otherCoords.x - originCoords.x;
+	        if (originCoords.xDir === otherCoords.xDir) {
+	            if (originCoords.xDir === "W") {
+	                xDelta = -xDelta;
 	            }
 	        }
-	        for (let i = 0; i < 50; i++) {
-	            for (let j = 0; j < 50; j += 49) {
-	                matrix.set(i, j, cost);
+	        else {
+	            xDelta = otherCoords.x + originCoords.x + 1;
+	            if (originCoords.xDir === "E") {
+	                xDelta = -xDelta;
+	            }
+	        }
+	        let yDelta = otherCoords.y - originCoords.y;
+	        if (originCoords.yDir === otherCoords.yDir) {
+	            if (originCoords.yDir === "S") {
+	                yDelta = -yDelta;
+	            }
+	        }
+	        else {
+	            yDelta = otherCoords.y + originCoords.y + 1;
+	            if (originCoords.yDir === "N") {
+	                yDelta = -yDelta;
+	            }
+	        }
+	        return { x: xDelta, y: yDelta };
+	    },
+	    findRelativeRoomDir(origin, otherRoom) {
+	        let coordDeltas = this.findRoomCoordDeltas(origin, otherRoom);
+	        if (Math.abs(coordDeltas.x) === Math.abs(coordDeltas.y)) {
+	            if (coordDeltas.x > 0) {
+	                if (coordDeltas.y > 0) {
+	                    return 2;
+	                }
+	                else {
+	                    return 4;
+	                }
+	            }
+	            else if (coordDeltas.x < 0) {
+	                if (coordDeltas.y > 0) {
+	                    return 8;
+	                }
+	                else {
+	                    return 6;
+	                }
+	            }
+	            else {
+	                // must be the same room, no direction
+	                return 0;
+	            }
+	        }
+	        else {
+	            if (Math.abs(coordDeltas.x) > Math.abs(coordDeltas.y)) {
+	                if (coordDeltas.x > 0) {
+	                    return 3;
+	                }
+	                else {
+	                    return 7;
+	                }
+	            }
+	            else {
+	                if (coordDeltas.y > 0) {
+	                    return 1;
+	                }
+	                else {
+	                    return 5;
+	                }
+	            }
+	        }
+	    },
+	    blockOffExits(matrix, cost = 0xff, roomName) {
+	        for (let x = 0; x < 50; x += 49) {
+	            for (let y = 0; y < 50; y++) {
+	                if (roomName) {
+	                    let terrain = Game.map.getTerrainAt(x, y, roomName);
+	                    if (terrain !== "wall") {
+	                        matrix.set(x, y, cost);
+	                    }
+	                }
+	                else {
+	                    matrix.set(x, y, 0xff);
+	                }
+	            }
+	        }
+	        for (let x = 0; x < 50; x++) {
+	            for (let y = 0; y < 50; y += 49) {
+	                if (roomName) {
+	                    let terrain = Game.map.getTerrainAt(x, y, roomName);
+	                    if (terrain !== "wall") {
+	                        matrix.set(x, y, cost);
+	                    }
+	                }
+	                else {
+	                    matrix.set(x, y, 0xff);
+	                }
 	            }
 	        }
 	        return matrix;
@@ -1608,33 +1854,223 @@ module.exports =
 	            lastPosition = position;
 	        }
 	        return serializedPath;
+	    },
+	    pathablePosition(roomName) {
+	        for (let radius = 0; radius < 20; radius++) {
+	            for (let xDelta = -radius; xDelta <= radius; xDelta++) {
+	                for (let yDelta = -radius; yDelta <= radius; yDelta++) {
+	                    if (Math.abs(yDelta) !== radius && Math.abs(xDelta) !== radius) {
+	                        continue;
+	                    }
+	                    let x = 25 + xDelta;
+	                    let y = 25 + yDelta;
+	                    let terrain = Game.map.getTerrainAt(x, y, roomName);
+	                    if (terrain !== "wall") {
+	                        return new RoomPosition(x, y, roomName);
+	                    }
+	                }
+	            }
+	        }
+	    },
+	    roomTypeFromName(roomName) {
+	        let coords = this.getRoomCoordinates(roomName);
+	        if (coords.x % 10 === 0 || coords.y % 10 === 0) {
+	            return constants_1.ROOMTYPE_ALLEY;
+	        }
+	        else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
+	            return constants_1.ROOMTYPE_CORE;
+	        }
+	        else if (coords.x % 10 === 6 || coords.x % 10 === 4 || coords.y % 10 === 6 || coords.y % 10 === 4) {
+	            return constants_1.ROOMTYPE_SOURCEKEEPER;
+	        }
+	        else {
+	            return constants_1.ROOMTYPE_CONTROLLER;
+	        }
+	    },
+	    debugPath(path, identifier = "") {
+	        let count = 0;
+	        for (let position of path) {
+	            let room = Game.rooms[position.roomName];
+	            if (room) {
+	                let name = "debugPath" + identifier + count;
+	                count++;
+	                let flag = Game.flags[name];
+	                if (flag) {
+	                    flag.setPosition(position);
+	                }
+	                else {
+	                    position.createFlag(name, COLOR_ORANGE);
+	                }
+	            }
+	        }
+	        for (let i = count; i < 1000; i++) {
+	            let name = "debugPath" + identifier + i;
+	            let flag = Game.flags[name];
+	            if (flag) {
+	                flag.remove();
+	            }
+	            else {
+	                break;
+	            }
+	        }
+	        return `placed ${count} out of ${path.length} flags`;
+	    },
+	    towerDamageAtRange(range) {
+	        if (range <= TOWER_OPTIMAL_RANGE) {
+	            return TOWER_POWER_ATTACK;
+	        }
+	        if (range >= TOWER_FALLOFF_RANGE) {
+	            range = TOWER_FALLOFF_RANGE;
+	        }
+	        return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
+	            (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE));
 	    }
 	};
 
 
 /***/ },
 /* 6 */
+/*!*************************!*\
+  !*** ./src/notifier.ts ***!
+  \*************************/
+/***/ function(module, exports) {
+
+	"use strict";
+	exports.notifier = {
+	    add(message) {
+	        console.log(message);
+	        Memory.notifier.push({ time: Game.time, message: message });
+	    },
+	    review(limit = Number.MAX_VALUE, burnAfterReading = false) {
+	        let messageCount = Memory.notifier.length;
+	        let count = 0;
+	        for (let value of Memory.notifier) {
+	            let secondsElapsed = (Game.time - value.time) * 3;
+	            let seconds = secondsElapsed % 60;
+	            let minutes = Math.floor(secondsElapsed / 60);
+	            let hours = Math.floor(secondsElapsed / 3600);
+	            console.log(`\n${value.time} (roughly ${hours > 0 ? `${hours} hours, ` : ""}${minutes > 0 ? `${minutes} minutes, ` : ""}${seconds > 0 ? `${seconds} seconds ` : ""}ago)`);
+	            console.log(`${value.message}`);
+	            count++;
+	            if (count >= limit) {
+	                break;
+	            }
+	        }
+	        let destroyed = 0;
+	        if (burnAfterReading) {
+	            while (Memory.notifier.length > 0) {
+	                Memory.notifier.shift();
+	                destroyed++;
+	                if (destroyed >= limit) {
+	                    break;
+	                }
+	            }
+	        }
+	        return `viewing ${count} of ${messageCount} notifications`;
+	    },
+	    clear(term) {
+	        if (term) {
+	            let count = 0;
+	            term = term.toLocaleLowerCase();
+	            let newArray = [];
+	            for (let value of Memory.notifier) {
+	                if (value.message.toLocaleLowerCase().indexOf(term) < 0) {
+	                    newArray.push(value);
+	                    count++;
+	                }
+	                Memory.notifier = newArray;
+	            }
+	            return `removed ${count} messages;`;
+	        }
+	        else {
+	            let count = Memory.notifier.length;
+	            Memory.notifier = [];
+	            return `removed ${count} messages;`;
+	        }
+	    }
+	};
+
+
+/***/ },
+/* 7 */
+/*!*************************!*\
+  !*** ./src/profiler.ts ***!
+  \*************************/
+/***/ function(module, exports) {
+
+	"use strict";
+	exports.profiler = {
+	    start(identifier, consoleReport = false, period = 5) {
+	        if (!Memory.profiler[identifier]) {
+	            Memory.profiler[identifier] = {};
+	        }
+	        _.defaults(Memory.profiler[identifier], { total: 0, count: 0, startOfPeriod: Game.time - 1 });
+	        Memory.profiler[identifier].period = period;
+	        Memory.profiler[identifier].consoleReport = consoleReport;
+	        Memory.profiler[identifier].lastTickTracked = Game.time;
+	        Memory.profiler[identifier].cpu = Game.cpu.getUsed();
+	    },
+	    end(identifier) {
+	        let profile = Memory.profiler[identifier];
+	        profile.total += Game.cpu.getUsed() - profile.cpu;
+	        profile.count++;
+	    },
+	    finalize() {
+	        for (let identifier in Memory.profiler) {
+	            let profile = Memory.profiler[identifier];
+	            if (Game.time - profile.startOfPeriod >= profile.period) {
+	                profile.costPerCall = _.round(profile.total / profile.count, 2);
+	                profile.costPerTick = _.round(profile.total / profile.period, 2);
+	                profile.callsPerTick = _.round(profile.count / profile.period, 2);
+	                if (profile.consoleReport) {
+	                    console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:", profile.costPerCall, "calls per tick:", profile.callsPerTick);
+	                }
+	                profile.startOfPeriod = Game.time;
+	                profile.total = 0;
+	                profile.count = 0;
+	            }
+	            if (Game.time - profile.lastTickTracked > 10000) {
+	                delete Memory.profiler[identifier];
+	            }
+	        }
+	        if (Game.time % 10 === 0) {
+	            // Memory serialization will cause additional CPU use, better to err on the conservative side
+	            Memory.cpu.history.push(Game.cpu.getUsed() + Game.gcl.level / 5);
+	            Memory.cpu.average = _.sum(Memory.cpu.history) / Memory.cpu.history.length;
+	            while (Memory.cpu.history.length > 100) {
+	                Memory.cpu.history.shift();
+	            }
+	        }
+	    },
+	    proportionUsed() {
+	        return Memory.cpu.average / (Game.gcl.level * 10 + 20);
+	    }
+	};
+
+
+/***/ },
+/* 8 */
 /*!********************************************!*\
   !*** ./src/ai/operations/FortOperation.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const EmergencyMission_1 = __webpack_require__(/*! ../missions/EmergencyMission */ 8);
-	const RefillMission_1 = __webpack_require__(/*! ../missions/RefillMission */ 10);
-	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 11);
-	const PowerMission_1 = __webpack_require__(/*! ../missions/PowerMission */ 12);
-	const TerminalNetworkMission_1 = __webpack_require__(/*! ../missions/TerminalNetworkMission */ 13);
-	const IgorMission_1 = __webpack_require__(/*! ../missions/IgorMission */ 14);
-	const LinkMiningMission_1 = __webpack_require__(/*! ../missions/LinkMiningMission */ 15);
-	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const BuildMission_1 = __webpack_require__(/*! ../missions/BuildMission */ 17);
-	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 18);
-	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
-	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
-	const PaverMission_1 = __webpack_require__(/*! ../missions/PaverMission */ 21);
+	const EmergencyMission_1 = __webpack_require__(/*! ../missions/EmergencyMission */ 10);
+	const RefillMission_1 = __webpack_require__(/*! ../missions/RefillMission */ 12);
+	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 13);
+	const PowerMission_1 = __webpack_require__(/*! ../missions/PowerMission */ 14);
+	const TerminalNetworkMission_1 = __webpack_require__(/*! ../missions/TerminalNetworkMission */ 15);
+	const IgorMission_1 = __webpack_require__(/*! ../missions/IgorMission */ 16);
+	const LinkMiningMission_1 = __webpack_require__(/*! ../missions/LinkMiningMission */ 17);
+	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 18);
+	const BuildMission_1 = __webpack_require__(/*! ../missions/BuildMission */ 19);
+	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 20);
+	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 21);
+	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 22);
+	const PaverMission_1 = __webpack_require__(/*! ../missions/PaverMission */ 23);
 	class FortOperation extends Operation_1.Operation {
 	    /**
 	     * Manages the activities of an owned room, assumes bonzaiferroni's build spec
@@ -1753,7 +2189,7 @@ module.exports =
 
 
 /***/ },
-/* 7 */
+/* 9 */
 /*!****************************************!*\
   !*** ./src/ai/operations/Operation.ts ***!
   \****************************************/
@@ -1780,7 +2216,7 @@ module.exports =
 	        // variables that require vision (null check where appropriate)
 	        if (this.flag.room) {
 	            this.hasVision = true;
-	            this.sources = this.flag.room.find(FIND_SOURCES);
+	            this.sources = _.sortBy(this.flag.room.find(FIND_SOURCES), (s) => s.pos.getRangeTo(this.flag));
 	            this.mineral = _.head(this.flag.room.find(FIND_MINERALS));
 	        }
 	    }
@@ -1889,11 +2325,11 @@ module.exports =
 	    addMission(mission) {
 	        // it is important for every mission belonging to an operation to have
 	        // a unique name or they will be overwritten here
-	        this.missions[mission.name] = mission;
+	        this.missions[mission.getName()] = mission;
 	    }
-	    getRemoteSpawnGroup(distanceLimit = 4) {
+	    getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1) {
 	        // invalidated periodically
-	        if (!this.memory.spawnRooms) {
+	        if (!this.memory.spawnRooms || this.memory.spawnRooms.length === 0) {
 	            let closestRoomRange = Number.MAX_VALUE;
 	            let roomNames = [];
 	            for (let roomName of Object.keys(this.empire.spawnGroups)) {
@@ -1901,6 +2337,9 @@ module.exports =
 	                if (roomLinearDistance === 0)
 	                    continue;
 	                if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange)
+	                    continue;
+	                let spawnGroup = this.empire.spawnGroups[roomName];
+	                if (spawnGroup.room.controller.level < levelRequirement)
 	                    continue;
 	                let distance = this.empire.roomTravelDistance(this.flag.pos.roomName, roomName);
 	                if (distance < closestRoomRange) {
@@ -1917,7 +2356,7 @@ module.exports =
 	        let spawnRoom = _(this.memory.spawnRooms).sortBy((roomName) => {
 	            let spawnGroup = this.empire.getSpawnGroup(roomName);
 	            if (spawnGroup) {
-	                return spawnGroup.averageAvailability();
+	                return spawnGroup.averageAvailability;
 	            }
 	            else {
 	                _.pull(this.memory.spawnRooms, roomName);
@@ -2001,14 +2440,14 @@ module.exports =
 
 
 /***/ },
-/* 8 */
+/* 10 */
 /*!*********************************************!*\
   !*** ./src/ai/missions/EmergencyMission.ts ***!
   \*********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class EmergencyMinerMission extends Mission_1.Mission {
 	    /**
 	     * Checks every 100 ticks if storage is full or a miner is present, if not spawns an emergency miner. Should come
@@ -2068,7 +2507,7 @@ module.exports =
 
 
 /***/ },
-/* 9 */
+/* 11 */
 /*!************************************!*\
   !*** ./src/ai/missions/Mission.ts ***!
   \************************************/
@@ -2101,6 +2540,18 @@ module.exports =
 	            this.waypoints = operation.waypoints;
 	        }
 	    }
+	    getEmpire() { return this.empire; }
+	    ;
+	    getRoom() { return this.room; }
+	    ;
+	    getSpawnGroup() { return this.spawnGroup; }
+	    ;
+	    getMemory() { return this.memory; }
+	    ;
+	    getName() { return this.name; }
+	    ;
+	    getOpName() { return this.opName; }
+	    ;
 	    setBoost(activateBoost) {
 	        let oldValue = this.memory.activateBoost;
 	        this.memory.activateBoost = activateBoost;
@@ -2161,7 +2612,7 @@ module.exports =
 	                i--;
 	            }
 	        }
-	        if (this.allowSpawn && this.spawnGroup.isAvailable && (count < max) && (this.hasVision || options.blindSpawn)) {
+	        if (count < max && this.allowSpawn && this.spawnGroup.isAvailable && (this.hasVision || options.blindSpawn)) {
 	            let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
 	            let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
 	            if (_.isString(outcome))
@@ -2176,17 +2627,26 @@ module.exports =
 	        let employerName = this.opName + this.name;
 	        let creep;
 	        if (spawnMemory.communityRoles[roleName]) {
-	            creep = Game.creeps[spawnMemory.communityRoles[roleName]];
-	            if (creep) {
+	            let creepName = spawnMemory.communityRoles[roleName];
+	            creep = Game.creeps[creepName];
+	            if (creep && Game.map.getRoomLinearDistance(this.spawnGroup.room.name, creep.room.name) <= 3) {
 	                if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed || Game.time - creep.memory.lastTickEmployed > 1)) {
 	                    creep.memory.employer = employerName;
 	                    creep.memory.lastTickEmployed = Game.time;
 	                    return creep;
 	                }
 	            }
+	            else {
+	                delete Memory.creeps[creepName];
+	                delete spawnMemory.communityRoles[roleName];
+	            }
 	        }
 	        if (!creep && this.spawnGroup.isAvailable) {
-	            let outcome = this.spawnGroup.spawn(getBody(), "community_" + roleName + "_" + Math.floor(Math.random() * 100), undefined, undefined);
+	            let creepName = "community_" + roleName;
+	            while (Game.creeps[creepName]) {
+	                creepName = "community_" + roleName + "_" + Math.floor(Math.random() * 100);
+	            }
+	            let outcome = this.spawnGroup.spawn(getBody(), creepName, undefined, undefined);
 	            if (_.isString(outcome)) {
 	                spawnMemory.communityRoles[roleName] = outcome;
 	            }
@@ -2262,25 +2722,31 @@ module.exports =
 	     * @param load - how many resource units need to be transported per tick (example: 10 for an energy source)
 	     * @returns {{body: string[], cartsNeeded: number}}
 	     */
-	    analyzeTransport(distance, load) {
-	        if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load) {
-	            // this value is multiplied by 2.1 to account for travel both ways and a small amount of error for traffic/delays
-	            let bandwidthNeeded = distance * load * 2.1;
-	            // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100
-	            let cargoUnitsNeeded = Math.ceil(bandwidthNeeded / 100);
-	            let maxUnitsPossible = this.spawnGroup.maxUnits([CARRY, CARRY, MOVE]);
-	            let cartsNeeded = Math.ceil(cargoUnitsNeeded / maxUnitsPossible);
-	            let cargoUnitsPerCart = Math.ceil(cargoUnitsNeeded / cartsNeeded);
-	            let body = this.workerBody(0, cargoUnitsPerCart * 2, cargoUnitsPerCart);
-	            this.memory.transportAnalysis = {
-	                load: load,
-	                distance: distance,
-	                body: body,
-	                cartsNeeded: cartsNeeded,
-	                carryCount: cargoUnitsPerCart * 2
-	            };
+	    cacheTransportAnalysis(distance, load) {
+	        if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load
+	            || distance !== this.memory.transportAnalysis.distance) {
+	            this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy);
 	        }
 	        return this.memory.transportAnalysis;
+	    }
+	    static analyzeTransport(distance, load, maxSpawnEnergy) {
+	        // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100 and costs 150
+	        let maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
+	            ((BODYPART_COST[CARRY] * 2) + BODYPART_COST[MOVE])), 16);
+	        let bandwidthNeeded = distance * load * 2.1;
+	        let cargoUnitsNeeded = Math.ceil(bandwidthNeeded / (CARRY_CAPACITY * 2));
+	        let cartsNeeded = Math.ceil(cargoUnitsNeeded / maxUnitsPossible);
+	        let cargoUnitsPerCart = Math.floor(cargoUnitsNeeded / cartsNeeded);
+	        return {
+	            load: load,
+	            distance: distance,
+	            cartsNeeded: cartsNeeded,
+	            carryCount: cargoUnitsPerCart * 2,
+	            moveCount: cargoUnitsPerCart,
+	        };
+	    }
+	    static loadFromSource(source) {
+	        return Math.max(source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
 	    }
 	    /**
 	     * General-purpose energy getting, will look for an energy source in the same room as the operation flag (not creep)
@@ -2329,8 +2795,15 @@ module.exports =
 	                    creep.blindMoveTo(this.flag);
 	                }
 	            }
-	            else if (!creep.pos.isNearTo(this.flag)) {
-	                creep.blindMoveTo(this.flag);
+	            else {
+	                if (creep.memory._move) {
+	                    let moveData = creep.memory._move.dest;
+	                    let dest = new RoomPosition(moveData.x, moveData.y, moveData.room);
+	                    creep.idleOffRoad({ pos: dest }, true);
+	                }
+	                else {
+	                    creep.idleOffRoad(this.flag, true);
+	                }
 	            }
 	        }
 	    }
@@ -2408,9 +2881,16 @@ module.exports =
 	            }
 	        }
 	    }
-	    moveToFlag(creep) {
-	        if (!creep.pos.isNearTo(this.flag)) {
-	            creep.blindMoveTo(this.flag);
+	    idleNear(creep, place, desiredRange = 3) {
+	        let range = creep.pos.getRangeTo(place);
+	        if (range < desiredRange) {
+	            creep.idleOffRoad(place);
+	        }
+	        else if (range === desiredRange) {
+	            creep.idleOffRoad(place, true);
+	        }
+	        else {
+	            creep.blindMoveTo(place);
 	        }
 	    }
 	    findOrphans(roleName) {
@@ -2536,39 +3016,55 @@ module.exports =
 	        const PLAIN_COST = 4;
 	        const SWAMP_COST = 5;
 	        const AVOID_COST = 7;
+	        let maxDistance = Game.map.getRoomLinearDistance(start.roomName, finish.roomName);
 	        let ret = PathFinder.search(start, [{ pos: finish, range: rangeAllowance }], {
 	            plainCost: PLAIN_COST,
 	            swampCost: SWAMP_COST,
 	            maxOps: 8000,
 	            roomCallback: (roomName) => {
-	                let roomCoords = helper_1.helper.getRoomCoordinates(roomName);
-	                if (roomCoords && (roomCoords.x % 10 === 0 || roomCoords.y % 10 === 0)) {
-	                    let matrix = new PathFinder.CostMatrix();
-	                    helper_1.helper.blockOffExits(matrix, AVOID_COST);
-	                    return matrix;
+	                // disqualify rooms that involve a circuitous path
+	                if (Game.map.getRoomLinearDistance(start.roomName, roomName) > maxDistance) {
+	                    return false;
 	                }
+	                // disqualify enemy rooms
+	                if (this.empire.memory.hostileRooms[roomName]) {
+	                    return false;
+	                }
+	                let matrix;
 	                let room = Game.rooms[roomName];
-	                if (!room)
-	                    return;
-	                let matrix = new PathFinder.CostMatrix();
+	                if (!room) {
+	                    let roomType = helper_1.helper.roomTypeFromName(roomName);
+	                    if (roomType === constants_1.ROOMTYPE_ALLEY) {
+	                        matrix = new PathFinder.CostMatrix();
+	                        helper_1.helper.blockOffExits(matrix, AVOID_COST, roomName);
+	                        return matrix;
+	                    }
+	                    else {
+	                        return;
+	                    }
+	                }
+	                matrix = new PathFinder.CostMatrix();
 	                helper_1.helper.addStructuresToMatrix(matrix, room, ROAD_COST);
 	                // avoid controller
 	                if (room.controller) {
-	                    helper_1.helper.blockOffMatrix(matrix, room.controller, 3, AVOID_COST);
+	                    helper_1.helper.blockOffPosition(matrix, room.controller, 3, AVOID_COST);
 	                }
 	                // avoid container adjacency
 	                let sources = room.find(FIND_SOURCES);
 	                for (let source of sources) {
 	                    let container = source.findMemoStructure(STRUCTURE_CONTAINER, 1);
 	                    if (container) {
-	                        helper_1.helper.blockOffMatrix(matrix, container, 1, AVOID_COST);
+	                        helper_1.helper.blockOffPosition(matrix, container, 1, AVOID_COST);
 	                    }
 	                }
 	                // add construction sites too
-	                let constructionSites = room.find(FIND_CONSTRUCTION_SITES);
+	                let constructionSites = room.find(FIND_MY_CONSTRUCTION_SITES);
 	                for (let site of constructionSites) {
 	                    if (site.structureType === STRUCTURE_ROAD) {
 	                        matrix.set(site.pos.x, site.pos.y, ROAD_COST);
+	                    }
+	                    else {
+	                        matrix.set(site.pos.x, site.pos.y, 0xff);
 	                    }
 	                }
 	                return matrix;
@@ -2599,7 +3095,7 @@ module.exports =
 	                continue;
 	            }
 	            let construction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-	            if (construction && construction.structureType === STRUCTURE_ROAD)
+	            if (construction)
 	                continue;
 	            return position;
 	        }
@@ -2613,6 +3109,7 @@ module.exports =
 	        let road = this.findRoadToRepair();
 	        if (!road) {
 	            console.log(`this is ${this.opName} paver, checking out with ${paver.ticksToLive} ticks to live`);
+	            delete Memory.creeps[paver.name];
 	            paver.idleOffRoad(this.room.controller);
 	            return;
 	        }
@@ -2665,19 +3162,22 @@ module.exports =
 	        let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
 	        return this.spawnSharedCreep("paver", paverBody);
 	    }
+	    setPrespawn(creep) {
+	        this.memory.prespawn = 1500 - creep.ticksToLive;
+	    }
 	}
 	exports.Mission = Mission;
 
 
 /***/ },
-/* 10 */
+/* 12 */
 /*!******************************************!*\
   !*** ./src/ai/missions/RefillMission.ts ***!
   \******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class RefillMission extends Mission_1.Mission {
 	    /**
 	     * General-purpose structure refilling. Can be used to refill spawning energy, towers, links, labs, etc.
@@ -2722,18 +3222,14 @@ module.exports =
 	    spawnCartActions(cart) {
 	        let hasLoad = this.hasLoad(cart);
 	        if (!hasLoad) {
+	            cart.memory.emptyId = undefined;
 	            this.procureEnergy(cart, this.findNearestEmpty(cart), true);
 	            return;
 	        }
 	        let target = this.findNearestEmpty(cart);
 	        if (!target) {
 	            if (cart.carry.energy === cart.carryCapacity) {
-	                if (cart.pos.inRangeTo(this.flag, 12)) {
-	                    cart.idleOffRoad(this.flag);
-	                }
-	                else {
-	                    cart.blindMoveTo(this.flag, { maxRooms: 1 });
-	                }
+	                this.idleNear(cart, this.spawnGroup.spawns[0], 12);
 	            }
 	            else {
 	                cart.memory.hasLoad = false;
@@ -2743,11 +3239,16 @@ module.exports =
 	        // has target
 	        if (!cart.pos.isNearTo(target)) {
 	            cart.blindMoveTo(target, { maxRooms: 1 });
+	            if (this.room.storage && cart.pos.isNearTo(this.room.storage) &&
+	                cart.carry.energy <= cart.carryCapacity - 50) {
+	                cart.withdraw(this.room.storage, RESOURCE_ENERGY);
+	            }
 	            return;
 	        }
 	        // is near to target
 	        let outcome = cart.transfer(target, RESOURCE_ENERGY);
 	        if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
+	            cart.memory.emptyId = undefined;
 	            target = this.findNearestEmpty(cart, target);
 	            if (target && !cart.pos.isNearTo(target)) {
 	                cart.blindMoveTo(target, { maxRooms: 1 });
@@ -2759,33 +3260,37 @@ module.exports =
 	    invalidateMissionCache() {
 	    }
 	    findNearestEmpty(cart, pullTarget) {
-	        if (!this.empties) {
-	            this.empties = _.filter(this.room.findStructures(STRUCTURE_SPAWN)
-	                .concat(this.room.findStructures(STRUCTURE_EXTENSION)), (s) => {
-	                return s.energy < s.energyCapacity;
-	            });
-	            this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s) => {
-	                return s.energy < s.energyCapacity * .5;
-	            }));
-	        }
-	        if (pullTarget) {
-	            _.pull(this.empties, pullTarget);
-	        }
-	        return cart.pos.findClosestByRange(this.empties);
+	        let findEmpty = () => {
+	            if (!this.empties) {
+	                this.empties = _.filter(this.room.findStructures(STRUCTURE_SPAWN)
+	                    .concat(this.room.findStructures(STRUCTURE_EXTENSION)), (s) => {
+	                    return s.energy < s.energyCapacity;
+	                });
+	                this.empties = this.empties.concat(_.filter(this.room.findStructures(STRUCTURE_TOWER), (s) => {
+	                    return s.energy < s.energyCapacity * .5;
+	                }));
+	            }
+	            if (pullTarget) {
+	                _.pull(this.empties, pullTarget);
+	            }
+	            return cart.pos.findClosestByRange(this.empties);
+	        };
+	        let forgetEmpty = (s) => s.energy === s.energyCapacity || Game.time % 5 === 0;
+	        return cart.rememberStructure(findEmpty, forgetEmpty, "emptyId", true);
 	    }
 	}
 	exports.RefillMission = RefillMission;
 
 
 /***/ },
-/* 11 */
+/* 13 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/DefenseMission.ts ***!
   \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class DefenseMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "defense");
@@ -2905,7 +3410,7 @@ module.exports =
 	    }
 	    defenderActions(defender, order) {
 	        if (this.enemySquads.length === 0) {
-	            this.moveToFlag(defender);
+	            this.idleNear(defender, this.flag);
 	            defender.say("none :(");
 	            return; // early
 	        }
@@ -3055,127 +3560,96 @@ module.exports =
 
 
 /***/ },
-/* 12 */
+/* 14 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/PowerMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
 	class PowerMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "power");
-	        this.powerMoveOps = {
-	            costCallback: (roomName, matrix) => {
-	                if (_.includes(this.memory.avoidRooms, roomName)) {
-	                    return helper_1.helper.blockOffExits(matrix);
-	                }
-	            }
-	        };
 	    }
 	    initMission() {
-	        this.observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
-	        if (this.memory.flagScan) {
-	            this.continueScan();
+	        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
+	        if (!observer)
+	            return;
+	        if (!Memory.powerObservers[this.room.name]) {
+	            Memory.powerObservers[this.room.name] = this.generateScanData();
+	            return;
+	        }
+	        if (this.memory.currentBank) {
+	            this.monitorBank(this.memory.currentBank);
 	        }
 	        else {
-	            this.scanFlags = this.getFlagSet("_scan_", 30);
+	            this.scanForBanks(observer);
 	        }
-	        if (!this.memory.currentBank)
-	            return; // early
-	        this.currentFlag = Game.flags[this.memory.currentBank.flagName];
-	        if (!this.currentFlag.room)
-	            return; // early
-	        this.bank = this.currentFlag.room.findStructures(STRUCTURE_POWER_BANK)[0];
 	    }
 	    roleCall() {
-	        if (!this.memory.currentBank)
-	            return; // early
-	        let max = this.memory.currentBank.finishing || this.memory.currentBank.assisting ? 0 : 1;
+	        let max = 0;
+	        let distance;
+	        if (this.memory.currentBank && !this.memory.currentBank.finishing && !this.memory.currentBank.assisting) {
+	            max = 1;
+	            distance = this.memory.currentBank.distance;
+	        }
 	        this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25 }), max, {
-	            prespawn: this.memory.currentBank.distance,
+	            prespawn: distance,
 	            reservation: { spawns: 2, currentEnergy: 8000 }
 	        });
 	        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20 }), this.bonnies.length);
-	        if (!this.memory.currentBank.finishing || this.memory.currentBank.assisting)
-	            return; // early
 	        let unitsPerCart = 1;
 	        let maxCarts = 0;
-	        if (this.bank) {
-	            let unitsNeeded = Math.ceil(this.bank.power / 100);
+	        if (this.memory.currentBank && this.memory.currentBank.finishing && !this.memory.currentBank.assisting) {
+	            let unitsNeeded = Math.ceil(this.memory.currentBank.power / 100);
 	            maxCarts = Math.ceil(unitsNeeded / 16);
 	            unitsPerCart = Math.ceil(unitsNeeded / maxCarts);
 	        }
 	        this.carts = this.headCount("powerCart", () => this.workerBody(0, unitsPerCart * 2, unitsPerCart), maxCarts);
 	    }
 	    missionActions() {
-	        if (this.memory.currentBank) {
-	            this.observer.observeRoom(this.memory.currentBank.roomName);
-	            for (let i = 0; i < 2; i++) {
-	                let clyde = this.clydes[i];
-	                if (clyde) {
-	                    if (!clyde.memory.myBonnieName) {
-	                        if (this.clydes.length === this.bonnies.length) {
-	                            clyde.memory.myBonnieName = this.bonnies[i].name;
-	                        }
-	                    }
-	                    else {
-	                        this.clydeActions(clyde);
-	                        this.checkForAlly(clyde);
+	        for (let i = 0; i < 2; i++) {
+	            let clyde = this.clydes[i];
+	            if (clyde) {
+	                if (!clyde.memory.myBonnieName) {
+	                    if (this.clydes.length === this.bonnies.length) {
+	                        clyde.memory.myBonnieName = this.bonnies[i].name;
 	                    }
 	                }
-	                let bonnie = this.bonnies[i];
-	                if (bonnie) {
-	                    if (!bonnie.memory.myClydeName) {
-	                        if (this.clydes.length === this.bonnies.length) {
-	                            bonnie.memory.myClydeName = this.clydes[i].name;
-	                        }
-	                    }
-	                    else {
-	                        this.bonnieActions(bonnie);
-	                    }
+	                else {
+	                    this.clydeActions(clyde);
+	                    this.checkForAlly(clyde);
 	                }
 	            }
-	            if (this.carts) {
-	                let order = 0;
-	                for (let cart of this.carts) {
-	                    this.powerCartActions(cart, order);
-	                    order++;
+	            let bonnie = this.bonnies[i];
+	            if (bonnie) {
+	                if (!bonnie.memory.myClydeName) {
+	                    if (this.clydes.length === this.bonnies.length) {
+	                        bonnie.memory.myClydeName = this.clydes[i].name;
+	                    }
+	                }
+	                else {
+	                    this.bonnieActions(bonnie);
 	                }
 	            }
 	        }
-	        else {
-	            this.scanForBanks();
+	        if (this.carts) {
+	            let order = 0;
+	            for (let cart of this.carts) {
+	                this.powerCartActions(cart, order);
+	                order++;
+	            }
 	        }
 	    }
 	    finalizeMission() {
-	        if (!this.memory.currentBank)
-	            return;
-	        this.checkFinishingPhase();
-	        this.checkCompletion();
 	    }
 	    invalidateMissionCache() {
 	    }
-	    placeScanFlags() {
-	        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
-	        if (!observer)
-	            return "ERROR: Can't scan for flags without an observer";
-	        this.scanFlags.forEach(f => f.remove());
-	        this.memory.removeFlags = true;
-	        this.memory.flagPlacement = undefined;
-	        let allyRoomNames = this.getAlleysInRange(5);
-	        this.memory.flagScan = {
-	            alleyRoomNames: allyRoomNames,
-	            alleyIndex: 0,
-	            flagIndex: 0,
-	            avoidRooms: [],
-	            matrices: {}
-	        };
-	    }
-	    getAlleysInRange(range) {
+	    findAlleysInRange(range) {
 	        let roomNames = [];
 	        for (let i = this.room.coords.x - range; i <= this.room.coords.x + range; i++) {
 	            for (let j = this.room.coords.y - range; j <= this.room.coords.y + range; j++) {
@@ -3191,134 +3665,13 @@ module.exports =
 	                    y = Math.abs(y) - 1;
 	                    yDir = helper_1.helper.negaDirection(yDir);
 	                }
-	                if (x % 10 === 0 || y % 10 === 0) {
-	                    roomNames.push(xDir + x + yDir + y);
+	                let roomName = xDir + x + yDir + y;
+	                if ((x % 10 === 0 || y % 10 === 0) && Game.map.isRoomAvailable(roomName)) {
+	                    roomNames.push(roomName);
 	                }
 	            }
 	        }
 	        return roomNames;
-	    }
-	    continueScan() {
-	        let scanCache = this.memory.flagScan;
-	        // remove all existing scanFlags before starting the process
-	        if (this.memory.removeFlags) {
-	            let flags = this.getFlagSet("_scan_", 30);
-	            if (flags.length === 0) {
-	                console.log("POWER: all current flags removed, initating scan");
-	                this.memory.removeFlags = undefined;
-	            }
-	            else {
-	                console.log("POWER: removing", flags.length, "flags");
-	                return; // early
-	            }
-	        }
-	        // place new flags
-	        if (this.memory.flagPlacement) {
-	            let remotePos = helper_1.helper.deserializeRoomPosition(this.memory.flagPlacement.pos);
-	            let distance = this.memory.flagPlacement.distance;
-	            let room = Game.rooms[remotePos.roomName];
-	            if (!room) {
-	                console.log("POWER: cannot detect room for some reason, retrying");
-	                this.observer.observeRoom(remotePos.roomName);
-	                return; // early
-	            }
-	            let existingFlag = _.filter(room.find(FIND_FLAGS), (flag) => flag.name.indexOf("_scan_") >= 0)[0];
-	            let placeNewFlag = true;
-	            if (existingFlag) {
-	                if (existingFlag.memory.distance > distance) {
-	                    console.log("POWER: removing flag with greater distance (" + distance + "):", existingFlag.name);
-	                    existingFlag.remove();
-	                }
-	                else {
-	                    placeNewFlag = false;
-	                    this.memory.flagPlacement = undefined;
-	                }
-	            }
-	            if (placeNewFlag) {
-	                let outcome = remotePos.createFlag(this.opName + "_scan_" + scanCache.flagIndex);
-	                if (_.isString(outcome)) {
-	                    Memory.flags[outcome] = { distance: this.memory.flagPlacement.distance };
-	                    console.log("POWER: flag placement successful:", outcome);
-	                    this.memory.flagPlacement = undefined;
-	                    scanCache.flagIndex++;
-	                }
-	            }
-	            scanCache.alleyIndex++;
-	        }
-	        if (scanCache.alleyIndex === scanCache.alleyRoomNames.length) {
-	            console.log("POWER: Scan proces complete, cleaning up memory and assigning rooms to avoid");
-	            this.memory.avoidRooms = scanCache.avoidRooms;
-	            this.memory.flagScan = undefined;
-	            return; // conclude process
-	        }
-	        let alleyName = scanCache.alleyRoomNames[scanCache.alleyIndex];
-	        if (_.includes(scanCache.avoidRooms, alleyName)) {
-	            scanCache.alleyIndex++;
-	            return; // avoidRooms pathing to rooms you've indicated as off limits in memory.avoidRooms
-	        }
-	        // engage pathfinding
-	        let remotePos = new RoomPosition(25, 25, alleyName);
-	        let ret = helper_1.helper.findSightedPath(this.spawnGroup.pos, remotePos, 20, this.observer, scanCache);
-	        if (!ret)
-	            return; // pathfinding still in progress
-	        console.log("POWER: Pathing complete for", alleyName);
-	        if (ret.incomplete) {
-	            console.log("POWER: No valid path was found");
-	            scanCache.alleyIndex++;
-	            return; // early
-	        }
-	        if (ret.path.length > 250) {
-	            console.log("POWER: Path found but distance exceeded 250");
-	            scanCache.alleyIndex++;
-	            return; // early
-	        }
-	        console.log("POWER: Valid path found, initiating placement scan");
-	        this.memory.flagPlacement = {
-	            distance: ret.path.length,
-	            pos: remotePos,
-	        };
-	        this.observer.observeRoom(remotePos.roomName);
-	    }
-	    scanForBanks() {
-	        if (!this.scanFlags || this.scanFlags.length === 0)
-	            return;
-	        if (this.memory.observedRoom) {
-	            let room = Game.rooms[this.memory.observedRoom];
-	            if (room) {
-	                let walls = room.findStructures(STRUCTURE_WALL);
-	                if (walls.length > 0)
-	                    return;
-	                let powerBank = room.findStructures(STRUCTURE_POWER_BANK)[0];
-	                if (powerBank && powerBank.ticksToDecay > 4500 && powerBank.power > Memory.playerConfig.powerMinimum) {
-	                    console.log("\\o/ \\o/ \\o/", powerBank.power, "power found at", room, "\\o/ \\o/ \\o/");
-	                    this.memory.currentBank = {
-	                        flagName: this.scanFlags[this.memory.scanFlagIndex].name,
-	                        roomName: this.memory.observedRoom,
-	                        distance: this.scanFlags[this.memory.scanFlagIndex].memory.distance,
-	                        finishing: false,
-	                        assisting: undefined,
-	                    };
-	                    this.observer.observeRoom(room.name);
-	                    return;
-	                }
-	            }
-	        }
-	        if (Math.random() < .5) {
-	            this.memory.scanFlagIndex++;
-	            if (this.memory.scanFlagIndex >= this.scanFlags.length)
-	                this.memory.scanFlagIndex = 0;
-	            let flag = this.scanFlags[this.memory.scanFlagIndex];
-	            if (flag) {
-	                this.memory.observedRoom = flag.pos.roomName;
-	                this.observer.observeRoom(this.memory.observedRoom);
-	            }
-	            else {
-	                console.log("POWER: didn't find a flag in", this.opName, "(might be flag lag)");
-	            }
-	        }
-	        else {
-	            this.memory.observedRoom = undefined;
-	        }
 	    }
 	    clydeActions(clyde) {
 	        let myBonnie = Game.creeps[clyde.memory.myBonnieName];
@@ -3326,37 +3679,38 @@ module.exports =
 	            clyde.idleOffRoad(this.flag);
 	            return;
 	        }
-	        if (!this.bank) {
-	            if (clyde.room.name === this.currentFlag.pos.roomName) {
-	                clyde.suicide();
-	                myBonnie.suicide();
-	            }
-	            else {
-	                clyde.blindMoveTo(this.currentFlag);
-	            }
+	        if (!this.memory.currentBank) {
+	            console.log(`POWER: clyde checking out: ${clyde.room.name}`);
+	            clyde.suicide();
+	            myBonnie.suicide();
 	            return;
 	        }
-	        if (clyde.pos.isNearTo(this.bank)) {
+	        let bankPos = helper_1.helper.deserializeRoomPosition(this.memory.currentBank.pos);
+	        if (clyde.pos.isNearTo(bankPos)) {
 	            clyde.memory.inPosition = true;
-	            if (this.bank.hits > 600 || clyde.ticksToLive < 5) {
-	                clyde.attack(this.bank);
-	            }
-	            else {
-	                for (let cart of this.carts) {
-	                    if (cart.room !== this.bank.room) {
-	                        return;
-	                    }
+	            let bank = bankPos.lookForStructure(STRUCTURE_POWER_BANK);
+	            if (bank) {
+	                if (bank.hits > 600 || clyde.ticksToLive < 5) {
+	                    clyde.attack(bank);
 	                }
-	                clyde.attack(this.bank);
+	                else {
+	                    // wait for carts
+	                    for (let cart of this.carts) {
+	                        if (!bankPos.inRangeTo(cart, 5)) {
+	                            return;
+	                        }
+	                    }
+	                    clyde.attack(bank);
+	                }
 	            }
 	        }
 	        else if (myBonnie.fatigue === 0) {
 	            if (this.memory.currentBank.assisting === undefined) {
 	                // traveling from spawn
-	                clyde.blindMoveTo(this.bank, this.powerMoveOps);
+	                this.empire.travelTo(clyde, { pos: bankPos }, { ignoreRoads: true });
 	            }
 	            else {
-	                clyde.moveTo(this.bank, { reusePath: 0 });
+	                clyde.moveTo(bankPos, { reusePath: 0 });
 	            }
 	        }
 	    }
@@ -3383,38 +3737,48 @@ module.exports =
 	    }
 	    powerCartActions(cart, order) {
 	        if (!cart.carry.power) {
-	            if (cart.room.name !== this.currentFlag.pos.roomName) {
-	                if (this.bank) {
-	                    // traveling from spawn
-	                    cart.blindMoveTo(this.currentFlag, this.powerMoveOps);
-	                }
-	                else {
-	                    this.recycleCreep(cart);
-	                }
+	            if (this.memory.currentBank && this.memory.currentBank.finishing) {
+	                this.powerCartApproachBank(cart, order);
 	                return;
 	            }
-	            let power = cart.room.find(FIND_DROPPED_RESOURCES, { filter: (r) => r.resourceType === RESOURCE_POWER })[0];
-	            if (power) {
-	                if (cart.pos.isNearTo(power)) {
-	                    cart.pickup(power);
-	                    cart.blindMoveTo(this.room.storage);
+	            else {
+	                let power = cart.room.find(FIND_DROPPED_RESOURCES, { filter: (r) => r.resourceType === RESOURCE_POWER })[0];
+	                if (power) {
+	                    if (cart.pos.isNearTo(power)) {
+	                        cart.pickup(power);
+	                        cart.blindMoveTo(this.room.storage);
+	                    }
+	                    else {
+	                        cart.blindMoveTo(power);
+	                    }
+	                    return; //  early;
 	                }
-	                else {
-	                    cart.blindMoveTo(power);
-	                }
-	                return; //  early;
 	            }
-	            if (!this.bank) {
-	                this.recycleCreep(cart);
-	                return;
-	            }
+	            this.recycleCreep(cart);
+	            return; // early
+	        }
+	        if (cart.pos.isNearTo(this.room.storage)) {
+	            cart.transfer(this.room.storage, RESOURCE_POWER);
+	        }
+	        else {
+	            // traveling to storage
+	            this.empire.travelTo(cart, this.room.storage);
+	        }
+	    }
+	    powerCartApproachBank(cart, order) {
+	        let bankPos = helper_1.helper.deserializeRoomPosition(this.memory.currentBank.pos);
+	        if (!cart.pos.inRangeTo(bankPos, 5)) {
+	            // traveling from spawn
+	            this.empire.travelTo(cart, { pos: bankPos }, { ignoreRoads: true });
+	        }
+	        else {
 	            if (!cart.memory.inPosition) {
-	                if (this.bank.pos.openAdjacentSpots().length > 0) {
-	                    if (cart.pos.isNearTo(this.bank)) {
+	                if (bankPos.openAdjacentSpots().length > 0) {
+	                    if (cart.pos.isNearTo(bankPos)) {
 	                        cart.memory.inPosition = true;
 	                    }
 	                    else {
-	                        cart.blindMoveTo(this.bank);
+	                        cart.blindMoveTo(bankPos);
 	                    }
 	                }
 	                else if (order > 0) {
@@ -3434,44 +3798,20 @@ module.exports =
 	                    }
 	                }
 	            }
-	            return; // early
-	        }
-	        if (cart.pos.isNearTo(this.room.storage)) {
-	            cart.transfer(this.room.storage, RESOURCE_POWER);
-	        }
-	        else {
-	            // traveling to storage
-	            cart.blindMoveTo(this.room.storage, this.powerMoveOps);
-	        }
-	    }
-	    checkFinishingPhase() {
-	        if (!this.bank || this.clydes.length === 0 || this.memory.currentBank.finishing)
-	            return;
-	        let attackTicksNeeded = Math.ceil(this.bank.hits / 600);
-	        let clyde = _.last(this.clydes);
-	        let ttlEstimate = clyde.memory.inPosition ? clyde.ticksToLive : 1000;
-	        if (ttlEstimate > attackTicksNeeded) {
-	            this.memory.currentBank.finishing = true;
-	        }
-	    }
-	    checkCompletion() {
-	        if (this.memory.currentBank && Game.rooms[this.memory.currentBank.roomName] &&
-	            ((this.memory.currentBank.finishing && !this.bank && this.carts && this.carts.length === 0) ||
-	                (this.memory.currentBank.assisting && this.clydes && this.clydes.length === 0))) {
-	            this.memory.currentBank = undefined;
 	        }
 	    }
 	    checkForAlly(clyde) {
-	        if (!this.bank || clyde.pos.roomName !== this.bank.pos.roomName || clyde.isNearExit(1) ||
-	            this.memory.currentBank.assisting !== undefined)
+	        if (clyde.isNearExit(1) || !this.memory.currentBank || !this.memory.currentBank.assisting !== undefined)
 	            return;
-	        let allyClyde = this.bank.room.find(FIND_HOSTILE_CREEPS, {
+	        let bank = clyde.room.findStructures(STRUCTURE_POWER_BANK)[0];
+	        if (!bank)
+	            return;
+	        let allyClyde = bank.room.find(FIND_HOSTILE_CREEPS, {
 	            filter: (c) => c.partCount(ATTACK) === 20 && constants_1.ALLIES[c.owner.username] && !c.isNearExit(1)
 	        })[0];
 	        if (!allyClyde) {
 	            return;
 	        }
-	        Memory["playEvent"] = { time: Game.time, roomName: this.bank.room.name };
 	        if (clyde.memory.play) {
 	            let myPlay = clyde.memory.play;
 	            let allyPlay = allyClyde.saying;
@@ -3482,19 +3822,19 @@ module.exports =
 	            }
 	            else if ((allyPlay === "rock" && myPlay === "scissors") || (allyPlay === "scissors" && myPlay === "paper") ||
 	                (allyPlay === "paper" && myPlay === "rock")) {
-	                if (this.bank.pos.openAdjacentSpots(true).length === 1) {
+	                if (bank.pos.openAdjacentSpots(true).length === 1) {
 	                    let bonnie = Game.creeps[clyde.memory.myBonnieName];
 	                    bonnie.suicide();
 	                    clyde.suicide();
 	                }
-	                console.log("POWER: ally gets the power!");
 	                this.memory.currentBank.assisting = true;
 	                clyde.say("damn", true);
+	                notifier_1.notifier.add(`"POWER: ally gets the power! ${bank.room.name}`);
 	            }
 	            else {
-	                console.log("POWER: I get the power!");
 	                this.memory.currentBank.assisting = false;
 	                clyde.say("yay!", true);
+	                notifier_1.notifier.add(`"POWER: I get the power! ${bank.room.name}`);
 	            }
 	        }
 	        else {
@@ -3514,19 +3854,101 @@ module.exports =
 	            clyde.say(play, true);
 	        }
 	    }
+	    generateScanData() {
+	        if (Game.cpu.bucket < 10000)
+	            return;
+	        let scanData = {};
+	        let spawn = this.spawnGroup.spawns[0];
+	        let possibleRoomNames = this.findAlleysInRange(5);
+	        for (let roomName of possibleRoomNames) {
+	            let position = helper_1.helper.pathablePosition(roomName);
+	            let ret = this.empire.findTravelPath(spawn, { pos: position });
+	            if (ret.incomplete) {
+	                notifier_1.notifier.add(`POWER: incomplete path generating scanData (op: ${this.opName}, roomName: ${roomName})`);
+	                continue;
+	            }
+	            let currentObserver = _.find(Memory.powerObservers, (value) => value[roomName]);
+	            let distance = ret.path.length;
+	            if (distance > 250)
+	                continue;
+	            if (currentObserver) {
+	                if (currentObserver[roomName] > distance) {
+	                    console.log(`POWER: found better distance for ${roomName} at ${this.opName}, ` +
+	                        `${currentObserver[roomName]} => ${distance}`);
+	                    delete currentObserver[roomName];
+	                }
+	                else {
+	                    continue;
+	                }
+	            }
+	            scanData[roomName] = distance;
+	        }
+	        console.log(`POWER: found ${Object.keys(scanData).length} rooms for power scan in ${this.opName}`);
+	        return scanData;
+	    }
+	    monitorBank(currentBank) {
+	        let room = Game.rooms[currentBank.pos.roomName];
+	        if (room) {
+	            let bank = room.findStructures(STRUCTURE_POWER_BANK)[0];
+	            if (bank) {
+	                currentBank.hits = bank.hits;
+	                if (!currentBank.finishing && bank.hits < 500000) {
+	                    let clyde = bank.pos.findInRange(_.filter(room.find(FIND_MY_CREEPS), (c) => c.partCount(ATTACK) === 20), 1)[0];
+	                    if (clyde && bank.hits < clyde.ticksToLive * 600) {
+	                        console.log(`POWER: last wave needed for bank has arrived, ${this.opName}`);
+	                        currentBank.finishing = true;
+	                    }
+	                }
+	            }
+	            else {
+	                this.memory.currentBank = undefined;
+	            }
+	        }
+	        if (Game.time > currentBank.timeout) {
+	            notifier_1.notifier.add(`POWER: bank timed out ${JSON.stringify(currentBank)}`);
+	            this.memory.currentBank = undefined;
+	        }
+	    }
+	    scanForBanks(observer) {
+	        if (observer.observation && observer.observation.purpose === this.name) {
+	            let room = observer.observation.room;
+	            let bank = observer.observation.room.findStructures(STRUCTURE_POWER_BANK)[0];
+	            if (bank && bank.ticksToDecay > 4500 && room.findStructures(STRUCTURE_WALL).length === 0
+	                && bank.power >= Memory.playerConfig.powerMinimum) {
+	                console.log("\\o/ \\o/ \\o/", bank.power, "power found at", room, "\\o/ \\o/ \\o/");
+	                this.memory.currentBank = {
+	                    pos: bank.pos,
+	                    hits: bank.hits,
+	                    power: bank.power,
+	                    distance: Memory.powerObservers[this.room.name][room.name],
+	                    timeout: Game.time + bank.ticksToDecay,
+	                };
+	                return;
+	            }
+	        }
+	        if (this.spawnGroup.averageAvailability < .5 || Math.random() > .2) {
+	            return;
+	        }
+	        let scanData = Memory.powerObservers[this.room.name];
+	        if (this.memory.scanIndex >= Object.keys(scanData).length) {
+	            this.memory.scanIndex = 0;
+	        }
+	        let roomName = Object.keys(scanData)[this.memory.scanIndex++];
+	        observer.observeRoom(roomName, this.name);
+	    }
 	}
 	exports.PowerMission = PowerMission;
 
 
 /***/ },
-/* 13 */
+/* 15 */
 /*!***************************************************!*\
   !*** ./src/ai/missions/TerminalNetworkMission.ts ***!
   \***************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	class TerminalNetworkMission extends Mission_1.Mission {
 	    constructor(operation) {
@@ -3583,14 +4005,14 @@ module.exports =
 
 
 /***/ },
-/* 14 */
+/* 16 */
 /*!****************************************!*\
   !*** ./src/ai/missions/IgorMission.ts ***!
   \****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class IgorMission extends Mission_1.Mission {
@@ -3630,7 +4052,8 @@ module.exports =
 	        if (this.labProcess) {
 	            this.doSynthesis();
 	        }
-	        if (this.powerSpawn && this.powerSpawn.energy > 50 && this.powerSpawn.power > 0) {
+	        if (this.powerSpawn && this.powerSpawn.energy > 50 && this.powerSpawn.power > 0
+	            && this.storage.store.energy > constants_1.POWER_PROCESS_THRESHOLD) {
 	            this.powerSpawn.processPower();
 	        }
 	        this.checkBoostRequests();
@@ -3734,7 +4157,7 @@ module.exports =
 	            if (powerSpawn.energy < powerSpawn.energyCapacity - constants_1.IGOR_CAPACITY) {
 	                return { origin: storage.id, destination: powerSpawn.id, resourceType: RESOURCE_ENERGY };
 	            }
-	            else if (_.sum(this.storage.store) > 900000 && powerSpawn.power === 0 && terminal.store[RESOURCE_POWER] >= 100) {
+	            else if (powerSpawn.power === 0 && terminal.store[RESOURCE_POWER] >= 100) {
 	                return { origin: terminal.id, destination: powerSpawn.id, resourceType: RESOURCE_POWER, amount: 100 };
 	            }
 	        }
@@ -4133,14 +4556,14 @@ module.exports =
 
 
 /***/ },
-/* 15 */
+/* 17 */
 /*!**********************************************!*\
   !*** ./src/ai/missions/LinkMiningMission.ts ***!
   \**********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class LinkMiningMission extends Mission_1.Mission {
 	    /**
 	     * Sends a miner to a source with a link, energy transfer is managed by LinkNetworkMission
@@ -4208,31 +4631,33 @@ module.exports =
 
 
 /***/ },
-/* 16 */
+/* 18 */
 /*!******************************************!*\
   !*** ./src/ai/missions/MiningMission.ts ***!
   \******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
 	class MiningMission extends Mission_1.Mission {
 	    /**
 	     * General-purpose energy mining, uses a nested TransportMission to transfer energy
 	     * @param operation
 	     * @param name
 	     * @param source
+	     * @param remoteSpawning
 	     */
-	    constructor(operation, name, source) {
+	    constructor(operation, name, source, remoteSpawning = false) {
 	        super(operation, name);
 	        this.source = source;
+	        this.remoteSpawning = remoteSpawning;
 	    }
 	    // return-early
 	    initMission() {
 	        if (!this.hasVision)
 	            return;
-	        this.distanceToSpawn = this.findDistanceToSpawn(this.source.pos);
 	        this.storage = this.findMinerStorage();
 	        if (!this.memory.positionsAvailable) {
 	            this.memory.positionsAvailable = this.source.pos.openAdjacentSpots(true).length;
@@ -4242,37 +4667,39 @@ module.exports =
 	        if (!this.container) {
 	            this.placeContainer();
 	        }
-	        this.needsEnergyTransport = this.storage !== undefined;
-	        if (this.needsEnergyTransport) {
-	            this.runTransportAnalysis();
-	        }
-	        else {
+	        this.minersNeeded = 1;
+	        if (this.spawnGroup.maxSpawnEnergy < 1050 && !this.remoteSpawning) {
+	            this.minersNeeded = 2;
+	            if (this.spawnGroup.maxSpawnEnergy < 450) {
+	                this.minersNeeded = 3;
+	            }
 	        }
 	    }
 	    roleCall() {
 	        // below a certain amount of maxSpawnEnergy, BootstrapMission will harvest energy
-	        if (!this.memory.potencyPerMiner)
-	            this.memory.potencyPerMiner = 2;
-	        let maxMiners = this.needsEnergyTransport ? 1 : Math.min(Math.ceil(5 / this.memory.potencyPerMiner), this.positionsAvailable);
-	        if (maxMiners > 1 && this.spawnGroup.maxSpawnEnergy < 800) {
-	            this.container = undefined;
-	        }
+	        let maxMiners = Math.min(this.minersNeeded, this.positionsAvailable);
 	        let getMinerBody = () => {
 	            return this.getMinerBody();
 	        };
-	        this.miners = this.headCount(this.name, getMinerBody, maxMiners, { prespawn: this.distanceToSpawn });
+	        this.miners = this.headCount(this.name, getMinerBody, maxMiners, { prespawn: this.memory.prespawn });
 	        if (this.memory.roadRepairIds) {
 	            this.paver = this.spawnPaver();
 	        }
-	        if (!this.needsEnergyTransport)
+	        if (!this.storage)
 	            return;
+	        this.analysis = this.miningTransportAnalysis();
 	        let maxCarts = _.sum(this.storage.store) < 950000 ? this.analysis.cartsNeeded : 0;
+	        if (!this.container) {
+	            maxCarts = 0;
+	        }
 	        let memory = { scavanger: RESOURCE_ENERGY };
-	        this.minerCarts = this.headCount(this.name + "cart", () => this.analysis.body, maxCarts, { prespawn: this.analysis.distance, memory: memory });
+	        this.minerCarts = this.headCount(this.name + "cart", () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount), maxCarts, { prespawn: this.analysis.distance, memory: memory });
 	    }
 	    missionActions() {
+	        let order = 0;
 	        for (let miner of this.miners) {
-	            this.minerActions(miner);
+	            this.minerActions(miner, order);
+	            order++;
 	        }
 	        if (this.minerCarts) {
 	            for (let cart of this.minerCarts) {
@@ -4298,7 +4725,12 @@ module.exports =
 	            }
 	        }
 	    }
-	    minerActions(miner) {
+	    finalizeMission() {
+	    }
+	    invalidateMissionCache() {
+	        this.memory.transportAnalysis = undefined;
+	    }
+	    minerActions(miner, order) {
 	        let fleeing = miner.fleeHostiles();
 	        if (fleeing) {
 	            if (miner.carry.energy > 0) {
@@ -4310,96 +4742,87 @@ module.exports =
 	            miner.blindMoveTo(this.flag);
 	            return; // early
 	        }
-	        if (this.container && !miner.pos.inRangeTo(this.container, 0)) {
-	            miner.moveItOrLoseIt(this.container.pos, "miner");
-	            return; // early
+	        if (!this.container) {
+	            this.buildContainer(miner, order);
+	            return;
 	        }
-	        else if (!miner.pos.isNearTo(this.source)) {
-	            miner.blindMoveTo(this.source);
-	            return; // early
-	        }
-	        if (!this.container && miner.carry.energy >= miner.carryCapacity) {
-	            let container = this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1)[0];
-	            if (container) {
-	                miner.build(container);
-	                return;
-	            }
-	        }
-	        let myStore = this.container ? this.container : miner;
-	        miner.memory.donatesEnergy = true;
-	        miner.memory.scavanger = RESOURCE_ENERGY;
-	        if (this.container && this.container.hits < this.container.hitsMax * .9 && miner.carry.energy > 0) {
-	            // container maintainer
-	            miner.repair(this.container);
-	        }
-	        else if (!this.needsEnergyTransport || myStore.store.energy < myStore.storeCapacity) {
-	            // will stop mining if this is a full miner with full energy
-	            miner.harvest(this.source);
-	        }
-	    }
-	    finalizeMission() {
-	    }
-	    invalidateMissionCache() {
-	        this.memory.transportAnalysis = undefined;
-	        this.memory.distanceToSpawn = undefined;
-	    }
-	    getMinerBody() {
-	        if (this.room.controller && this.room.controller.my && this.spawnGroup.room !== this.room
-	            && this.spawnGroup.maxSpawnEnergy >= 1250) {
-	            if (this.container) {
-	                return this.workerBody(6, 1, 6);
-	            }
-	            else {
-	                return this.workerBody(5, 10, 5);
-	            }
-	        }
-	        let body;
-	        if ((this.container || this.needsEnergyTransport) && this.spawnGroup.maxSpawnEnergy >= 800) {
-	            let work = Math.ceil((Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER);
-	            if (this.opType === "keeper") {
-	                work++;
-	            }
-	            if (this.container) {
-	                work++;
-	            }
-	            let move = Math.ceil(work / 2);
-	            if (this.waypoints) {
-	                move = work;
-	            } // waypoints often mean offroad travel
-	            let carry;
-	            if (this.container) {
-	                carry = 1;
-	            }
-	            else {
-	                let workCost = work * BODYPART_COST[WORK];
-	                let moveCost = move * BODYPART_COST[MOVE];
-	                let remainingSpawnEnergy = this.spawnGroup.maxSpawnEnergy - (workCost + moveCost);
-	                carry = Math.min(this.analysis.carryCount, Math.floor(remainingSpawnEnergy / BODYPART_COST[CARRY]));
-	            }
-	            body = this.workerBody(work, carry, move);
+	        if (order === 0) {
+	            this.leadMinerActions(miner);
 	        }
 	        else {
-	            if (this.spawnGroup.maxSpawnEnergy < 400) {
-	                body = this.workerBody(2, 1, 1);
-	            }
-	            else {
-	                body = this.bodyRatio(1, 1, .5, 1, 5);
-	            }
-	            if (this.spawnGroup.maxSpawnEnergy >= 1300 && this.container) {
-	                body = body.concat([WORK, MOVE]);
+	            this.backupMinerActions(miner);
+	        }
+	        if (!miner.memory.setDistance) {
+	            if (order === this.miners.length - 1 && miner.pos.isNearTo(this.source)) {
+	                miner.memory.setDistance = true;
+	                if (miner.ticksToLive > 1000) {
+	                    this.setPrespawn(miner);
+	                }
 	            }
 	        }
-	        this.memory.potencyPerMiner = _.filter(body, (part) => part === WORK).length;
-	        return body;
 	    }
-	    runTransportAnalysis() {
+	    leadMinerActions(miner) {
+	        if (miner.pos.inRangeTo(this.container, 0)) {
+	            if (this.container.hits < this.container.hitsMax * .90 && miner.carry.energy >= 20) {
+	                miner.repair(this.container);
+	            }
+	            else if (this.container.store.energy < this.container.storeCapacity) {
+	                miner.harvest(this.source);
+	            }
+	        }
+	        else {
+	            if (this.minersNeeded === 1) {
+	                miner.moveItOrLoseIt(this.container.pos);
+	            }
+	            else {
+	                miner.blindMoveTo(this.container);
+	            }
+	        }
+	    }
+	    backupMinerActions(miner) {
+	        if (!miner.pos.isNearTo(this.source) || !miner.pos.isNearTo(this.container)) {
+	            let position = _.filter(this.container.pos.openAdjacentSpots(), (p) => p.isNearTo(this.source))[0];
+	            if (position) {
+	                miner.blindMoveTo(position);
+	            }
+	            else {
+	                this.idleNear(miner, this.source, 3);
+	            }
+	            return;
+	        }
+	        if (this.container.hits < this.container.hitsMax * .90 && miner.carry.energy >= 20) {
+	            miner.repair(this.container);
+	        }
+	        else {
+	            miner.harvest(this.source);
+	        }
+	        if (miner.carry.energy >= 40) {
+	            miner.transfer(this.container, RESOURCE_ENERGY);
+	        }
+	    }
+	    getMinerBody() {
+	        if (this.remoteSpawning) {
+	            return this.workerBody(6, 1, 6);
+	        }
+	        if (this.minersNeeded === 1) {
+	            let work = Math.ceil((Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER) + 1;
+	            return this.workerBody(work, 1, Math.ceil(work / 2));
+	        }
+	        else if (this.minersNeeded === 2) {
+	            return this.workerBody(3, 1, 2);
+	        }
+	        else {
+	            return this.workerBody(2, 1, 1);
+	        }
+	    }
+	    miningTransportAnalysis() {
 	        if (!this.memory.distanceToStorage) {
 	            let path = PathFinder.search(this.storage.pos, { pos: this.source.pos, range: 1 }).path;
 	            this.memory.distanceToStorage = path.length;
 	        }
 	        let distance = this.memory.distanceToStorage;
-	        let load = Math.max(this.source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
-	        this.analysis = this.analyzeTransport(distance, load);
+	        let load = Mission_1.Mission.loadFromSource(this.source);
+	        return this.cacheTransportAnalysis(distance, load);
 	    }
 	    cartActions(cart) {
 	        let fleeing = cart.fleeHostiles();
@@ -4498,37 +4921,61 @@ module.exports =
 	            }
 	        });
 	        if (ret.incomplete || ret.path.length === 0) {
-	            console.log(`path used for container placement in ${this.opName} incomplete, please investigate`);
+	            notifier_1.notifier.add(`path used for container placement in ${this.opName} incomplete, please investigate`);
 	        }
 	        let position = ret.path[0];
-	        console.log(`MINER: placed container in ${this.opName}`);
-	        position.createConstructionSite(STRUCTURE_CONTAINER);
+	        let testPositions = _.sortBy(this.source.pos.openAdjacentSpots(true), (p) => p.getRangeTo(position));
+	        for (let testPosition of testPositions) {
+	            let sourcesInRange = testPosition.findInRange(FIND_SOURCES, 1);
+	            if (sourcesInRange.length > 1) {
+	                continue;
+	            }
+	            console.log(`MINER: placed container in ${this.opName}`);
+	            testPosition.createConstructionSite(STRUCTURE_CONTAINER);
+	            return;
+	        }
+	        console.log(`MINER: Unable to place container in ${this.opName}`);
+	    }
+	    buildContainer(miner, order) {
+	        if (miner.pos.isNearTo(this.source)) {
+	            if (miner.carry.energy < miner.carryCapacity || (this.minersNeeded > 1 && order === 1)) {
+	                miner.harvest(this.source);
+	            }
+	            else {
+	                let construction = this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1)[0];
+	                if (construction) {
+	                    miner.build(construction);
+	                }
+	            }
+	        }
+	        else {
+	            miner.blindMoveTo(this.source);
+	        }
 	    }
 	}
 	exports.MiningMission = MiningMission;
 
 
 /***/ },
-/* 17 */
+/* 19 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/BuildMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	class BuildMission extends Mission_1.Mission {
 	    /**
 	     * Spawns a creep to build construction and repair walls. Construction will take priority over walls
 	     * @param operation
-	     * @param name
-	     * @param potency
-	     * @param allowSpawn
+	     * @param activateBoost
 	     */
-	    constructor(operation) {
+	    constructor(operation, activateBoost = false) {
 	        super(operation, "builder");
+	        this.activateBoost = activateBoost;
 	    }
 	    initMission() {
 	        if (this.room !== this.spawnGroup.room) {
@@ -4552,24 +4999,25 @@ module.exports =
 	        let maxBuilders = 0;
 	        let potency = 0;
 	        if (this.sites.length > 0) {
-	            maxBuilders = 1;
 	            potency = this.findBuilderPotency();
 	            if (this.room.storage && this.room.storage.store.energy < 50000) {
 	                potency = 1;
 	            }
+	            let builderCost = potency * 100 + Math.ceil(potency / 2) * 50 + 150 * potency;
+	            maxBuilders = Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy);
 	        }
 	        let distance = 20;
 	        if (this.room.storage) {
 	            distance = 10;
 	        }
-	        let analysis = this.analyzeTransport(distance, potency * 5);
+	        let analysis = this.cacheTransportAnalysis(distance, potency * 5);
 	        let builderBody = () => {
 	            if (this.spawnGroup.maxSpawnEnergy < 550) {
 	                return this.bodyRatio(1, 3, .5, 1, potency);
 	            }
 	            let potencyCost = potency * 100 + Math.ceil(potency / 2) * 50;
 	            let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
-	            let cartCarryCount = Math.floor((analysis.body.length * 2) / 3);
+	            let cartCarryCount = analysis.carryCount;
 	            let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
 	            if (this.spawnGroup.room === this.room) {
 	                return this.workerBody(potency, carryCount, Math.ceil(potency / 2));
@@ -4579,7 +5027,7 @@ module.exports =
 	            }
 	        };
 	        let builderMemory;
-	        if (this.memory.activateBoost) {
+	        if (this.activateBoost) {
 	            builderMemory = {
 	                scavanger: RESOURCE_ENERGY,
 	                boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
@@ -4589,12 +5037,12 @@ module.exports =
 	        else {
 	            builderMemory = { scavanger: RESOURCE_ENERGY };
 	        }
-	        this.builders = this.headCount(this.name, builderBody, maxBuilders, { prespawn: 10, memory: builderMemory });
+	        this.builders = this.headCount(this.name, builderBody, maxBuilders, { prespawn: this.memory.prespawn, memory: builderMemory });
 	        this.builders = _.sortBy(this.builders, (c) => c.carry.energy);
 	        let cartMemory = {
 	            scavanger: RESOURCE_ENERGY
 	        };
-	        this.supplyCarts = this.headCount(this.name + "Cart", () => analysis.body, analysis.cartsNeeded, { prespawn: analysis.distance, memory: cartMemory });
+	        this.supplyCarts = this.headCount(this.name + "Cart", () => this.workerBody(0, analysis.carryCount, analysis.moveCount), analysis.cartsNeeded, { prespawn: this.memory.prespawn, memory: cartMemory });
 	    }
 	    missionActions() {
 	        for (let builder of this.builders) {
@@ -4612,6 +5060,10 @@ module.exports =
 	            this.memory.maxHitsToBuild = undefined;
 	    }
 	    builderActions(builder) {
+	        if (!builder.memory.setPrespawn) {
+	            builder.memory.setPrespawn = true;
+	            this.setPrespawn(builder);
+	        }
 	        let hasLoad = _.filter(this.supplyCarts, (c) => !c.spawning).length > 0 || this.hasLoad(builder);
 	        if (!hasLoad) {
 	            this.procureEnergy(builder);
@@ -4805,14 +5257,14 @@ module.exports =
 
 
 /***/ },
-/* 18 */
+/* 20 */
 /*!***********************************************!*\
   !*** ./src/ai/missions/LinkNetworkMission.ts ***!
   \***********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class LinkNetworkMission extends Mission_1.Mission {
 	    /**
 	     * Manages linknetwork in room to efficiently send energy between the storage, controller, and sources
@@ -5040,14 +5492,14 @@ module.exports =
 
 
 /***/ },
-/* 19 */
+/* 21 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/UpgradeMission.ts ***!
   \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class UpgradeMission extends Mission_1.Mission {
@@ -5097,9 +5549,6 @@ module.exports =
 	            if (this.memory.max !== undefined) {
 	                return this.workerBody(30, 4, 15);
 	            }
-	            if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
-	                return this.workerBody(1, 1, 1);
-	            }
 	            if (this.remoteSpawning) {
 	                return this.workerBody(potencyPerCreep, 4, potencyPerCreep);
 	            }
@@ -5110,16 +5559,14 @@ module.exports =
 	                return this.workerBody(potencyPerCreep, 4, Math.ceil(potencyPerCreep / 2));
 	            }
 	        };
+	        if (this.battery instanceof StructureContainer) {
+	            let analysis = this.cacheTransportAnalysis(25, totalPotency);
+	            this.batterySupplyCarts = this.headCount("upgraderCart", () => this.workerBody(0, analysis.carryCount, analysis.moveCount), analysis.cartsNeeded, { prespawn: this.distanceToSpawn, });
+	        }
 	        this.linkUpgraders = this.headCount("upgrader", linkUpgraderBody, max, {
 	            prespawn: this.distanceToSpawn,
 	            memory: memory
 	        });
-	        if (this.battery instanceof StructureContainer) {
-	            let analysis = this.analyzeTransport(25, totalPotency);
-	            this.batterySupplyCarts = this.headCount("upgraderCart", () => analysis.body, analysis.cartsNeeded, {
-	                prespawn: this.distanceToSpawn,
-	            });
-	        }
 	        if (this.memory.roadRepairIds && !this.remoteSpawning) {
 	            this.paver = this.spawnPaver();
 	        }
@@ -5266,6 +5713,10 @@ module.exports =
 	                    return 1;
 	                }
 	            }
+	            if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 &&
+	                (!this.room.storage || this.room.storage.store.energy < 50000)) {
+	                return 1;
+	            }
 	            let storageCapacity;
 	            if (this.room.storage) {
 	                storageCapacity = Math.floor(this.room.storage.store.energy / 1500);
@@ -5345,9 +5796,6 @@ module.exports =
 	        if (this.room.controller.getUpgraderPositions()) {
 	            max = Math.min(this.room.controller.getUpgraderPositions().length, max);
 	        }
-	        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
-	            max = 1;
-	        }
 	        return max;
 	    }
 	}
@@ -5355,14 +5803,14 @@ module.exports =
 
 
 /***/ },
-/* 20 */
+/* 22 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/GeologyMission.ts ***!
   \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class GeologyMission extends Mission_1.Mission {
@@ -5404,7 +5852,7 @@ module.exports =
 	            (this.mineral.ticksToRegeneration < 1000 || this.mineral.mineralAmount > 0)) {
 	            this.buildContainer();
 	        }
-	        this.analysis = this.analyzeTransport(this.memory.distanceToStorage, constants_1.LOADAMOUNT_MINERAL);
+	        this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, constants_1.LOADAMOUNT_MINERAL);
 	    }
 	    roleCall() {
 	        let maxGeologists = 0;
@@ -5421,7 +5869,7 @@ module.exports =
 	        };
 	        this.geologists = this.headCount("geologist", geoBody, maxGeologists, this.distanceToSpawn);
 	        let maxCarts = maxGeologists > 0 ? this.analysis.cartsNeeded : 0;
-	        this.carts = this.headCount("geologyCart", () => this.analysis.body, maxCarts, { prespawn: this.distanceToSpawn });
+	        this.carts = this.headCount("geologyCart", () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount), maxCarts, { prespawn: this.distanceToSpawn });
 	        let maxRepairers = this.mineral.mineralAmount > 5000 && this.container && this.container.hits < 50000 ? 1 : 0;
 	        this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), maxRepairers);
 	        if (this.memory.roadRepairIds) {
@@ -5583,9 +6031,11 @@ module.exports =
 	                }
 	                return;
 	            }
-	            let waitPosition = this.container.pos;
-	            if (this.memory.cartWaitPosition)
-	                waitPosition = new RoomPosition(this.memory.cartWaitPosition.x, this.memory.cartWaitPosition.y, this.memory.cartWaitPosition.roomName);
+	            if (_.sum(this.container.store) < cart.carryCapacity &&
+	                this.container.pos.lookFor(LOOK_CREEPS).length === 0) {
+	                this.idleNear(cart, this.container, 3);
+	                return;
+	            }
 	            if (cart.pos.isNearTo(this.container)) {
 	                if (this.container.store.energy > 0) {
 	                    cart.withdraw(this.container, RESOURCE_ENERGY);
@@ -5598,7 +6048,7 @@ module.exports =
 	                }
 	            }
 	            else {
-	                cart.blindMoveTo(waitPosition);
+	                cart.blindMoveTo(this.container);
 	            }
 	            return; // early
 	        }
@@ -5620,7 +6070,7 @@ module.exports =
 	        if (fleeing)
 	            return;
 	        if (repairer.room.name !== this.flag.pos.roomName) {
-	            this.moveToFlag(repairer);
+	            this.idleNear(repairer, this.flag);
 	            return;
 	        }
 	        let hasLoad = this.hasLoad(repairer);
@@ -5645,14 +6095,14 @@ module.exports =
 
 
 /***/ },
-/* 21 */
+/* 23 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/PaverMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class PaverMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "paver");
@@ -5775,25 +6225,25 @@ module.exports =
 
 
 /***/ },
-/* 22 */
+/* 24 */
 /*!**********************************************!*\
   !*** ./src/ai/operations/MiningOperation.ts ***!
   \**********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
-	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
-	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 25);
+	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 18);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 26);
+	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 22);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const ReserveMission_1 = __webpack_require__(/*! ../missions/ReserveMission */ 25);
-	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 26);
-	const SwapMission_1 = __webpack_require__(/*! ../missions/SwapMission */ 27);
-	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 28);
-	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
-	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 29);
+	const ReserveMission_1 = __webpack_require__(/*! ../missions/ReserveMission */ 27);
+	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 28);
+	const SwapMission_1 = __webpack_require__(/*! ../missions/SwapMission */ 29);
+	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 30);
+	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 21);
+	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 31);
 	class MiningOperation extends Operation_1.Operation {
 	    /**
 	     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the room. Can also
@@ -5822,15 +6272,15 @@ module.exports =
 	        this.addMission(new ScoutMission_1.ScoutMission(this));
 	        // it is not ideal to return early if no vision, but i'm having a hard time figuring out how to do
 	        // miningmission without vision
-	        if (!this.flag.room)
-	            return;
 	        // defense
-	        if (this.flag.room.roomType === constants_1.ROOMTYPE_CORE) {
+	        if (this.flag.room && this.flag.room.roomType === constants_1.ROOMTYPE_CORE) {
 	            this.addMission(new EnhancedBodyguardMission_1.EnhancedBodyguardMission(this));
 	        }
 	        else {
-	            this.addMission(new BodyguardMission_1.BodyguardMission(this, !this.memory.swapMining || this.flag.room.controller.level < 3));
+	            this.addMission(new BodyguardMission_1.BodyguardMission(this));
 	        }
+	        if (!this.flag.room)
+	            return;
 	        // swap mining
 	        if (this.memory.swapMining) {
 	            this.addMission(new SwapMission_1.SwapMission(this));
@@ -5846,7 +6296,9 @@ module.exports =
 	            this.addMission(new UpgradeMission_1.UpgradeMission(this, true, spawnUpgraders, false));
 	        }
 	        else {
-	            this.addMission(new ReserveMission_1.ReserveMission(this));
+	            if (this.flag.room.controller) {
+	                this.addMission(new ReserveMission_1.ReserveMission(this));
+	            }
 	        }
 	        for (let i = 0; i < this.sources.length; i++) {
 	            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0)
@@ -5871,14 +6323,14 @@ module.exports =
 
 
 /***/ },
-/* 23 */
+/* 25 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/ScoutMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class ScoutMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "scout");
@@ -5908,14 +6360,14 @@ module.exports =
 
 
 /***/ },
-/* 24 */
+/* 26 */
 /*!***********************************************!*\
   !*** ./src/ai/missions/RemoteBuildMission.ts ***!
   \***********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class RemoteBuildMission extends Mission_1.Mission {
 	    /**
 	     * Builds construction in remote locations, can recycle self when finished
@@ -5968,10 +6420,6 @@ module.exports =
 	            }
 	            return; // early
 	        }
-	        if (builder.room !== this.room) {
-	            builder.blindMoveTo(this.flag);
-	            return; // early
-	        }
 	        let hasLoad = this.hasLoad(builder);
 	        if (!hasLoad) {
 	            this.procureEnergy(builder, undefined, true, true);
@@ -5979,9 +6427,7 @@ module.exports =
 	        }
 	        let closest = builder.pos.findClosestByRange(this.construction);
 	        if (!closest) {
-	            if (!builder.pos.isNearTo(this.flag)) {
-	                builder.blindMoveTo(this.flag);
-	            }
+	            this.idleNear(builder, this.flag);
 	            return; // early
 	        }
 	        if (builder.pos.inRangeTo(closest, 3)) {
@@ -6017,14 +6463,17 @@ module.exports =
 
 
 /***/ },
-/* 25 */
+/* 27 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/ReserveMission.ts ***!
   \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
+	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
+	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class ReserveMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "claimer");
@@ -6033,10 +6482,13 @@ module.exports =
 	        if (!this.hasVision)
 	            return; //
 	        this.controller = this.room.controller;
+	        if (this.memory.needBulldozer === undefined) {
+	            this.memory.needBulldozer = this.checkBulldozer();
+	        }
 	    }
 	    roleCall() {
-	        let needReserver = this.controller && !this.controller.my
-	            && (!this.controller.reservation || this.controller.reservation.ticksToEnd < 3000);
+	        let needReserver = !this.controller.my && (!this.controller.reservation ||
+	            this.controller.reservation.ticksToEnd < 3000);
 	        let maxReservers = needReserver ? 1 : 0;
 	        let potency = this.spawnGroup.room.controller.level === 8 ? 5 : 2;
 	        let reserverBody = () => this.configBody({
@@ -6044,10 +6496,14 @@ module.exports =
 	            move: potency
 	        });
 	        this.reservers = this.headCount("claimer", reserverBody, maxReservers);
+	        this.bulldozers = this.headCount("dozer", () => this.bodyRatio(4, 0, 1, 1), this.memory.needBulldozer ? 1 : 0);
 	    }
 	    missionActions() {
 	        for (let reserver of this.reservers) {
 	            this.reserverActions(reserver);
+	        }
+	        for (let dozer of this.bulldozers) {
+	            this.bulldozerActions(dozer);
 	        }
 	    }
 	    finalizeMission() {
@@ -6061,9 +6517,81 @@ module.exports =
 	        }
 	        if (reserver.pos.isNearTo(this.controller)) {
 	            reserver.reserveController(this.controller);
+	            if (!this.memory.wallCheck) {
+	                this.memory.wallCheck = this.destroyWalls(reserver, this.room);
+	            }
 	        }
 	        else {
 	            reserver.blindMoveTo(this.controller);
+	        }
+	    }
+	    destroyWalls(surveyor, room) {
+	        if (!room.controller)
+	            return true;
+	        if (room.controller.my) {
+	            room.findStructures(STRUCTURE_WALL).forEach((w) => w.destroy());
+	            if (room.controller.level === 1) {
+	                room.controller.unclaim();
+	            }
+	            return true;
+	        }
+	        else {
+	            let roomAvailable = Game.gcl.level - _.filter(Game.rooms, (r) => r.controller && r.controller.my).length;
+	            if (this.room.findStructures(STRUCTURE_WALL).length > 0 && !constants_1.ARTROOMS[room.name] && roomAvailable > 0) {
+	                surveyor.claimController(room.controller);
+	                return false;
+	            }
+	            else {
+	                return true;
+	            }
+	        }
+	    }
+	    checkBulldozer() {
+	        let ret = this.empire.findTravelPath(this.spawnGroup, this.room.controller);
+	        if (!ret.incomplete) {
+	            console.log(`RESERVER: No bulldozer necessary in ${this.opName}`);
+	            return false;
+	        }
+	        let ignoredStructures = this.empire.findTravelPath(this.spawnGroup, this.room.controller, { range: 1, ignoreStructures: true });
+	        if (ignoredStructures.incomplete) {
+	            notifier_1.notifier.add(`RESERVER: bad bulldozer path in ${this.opName}, please investigate.`);
+	            console.log(helper_1.helper.debugPath(ret.path, this.opName));
+	            return false;
+	        }
+	        for (let position of ignoredStructures.path) {
+	            if (position.roomName !== this.room.name) {
+	                continue;
+	            }
+	            if (position.isPassible(true)) {
+	                continue;
+	            }
+	            if (position.lookForStructure(STRUCTURE_WALL) || position.lookForStructure(STRUCTURE_RAMPART))
+	                return true;
+	        }
+	    }
+	    bulldozerActions(dozer) {
+	        if (dozer.pos.isNearTo(this.room.controller)) {
+	            this.memory.needBulldozer = false;
+	            notifier_1.notifier.add(`RESERVER: bulldozer cleared path in ${this.opName}`);
+	            dozer.suicide();
+	        }
+	        else {
+	            if (dozer.room === this.room) {
+	                let outcome = this.empire.travelTo(dozer, this.room.controller, {
+	                    ignoreStructures: true,
+	                    ignoreStuck: true,
+	                    returnPosition: true,
+	                });
+	                if (outcome instanceof RoomPosition) {
+	                    let structure = outcome.lookFor(LOOK_STRUCTURES)[0];
+	                    if (structure) {
+	                        dozer.dismantle(structure);
+	                    }
+	                }
+	            }
+	            else {
+	                this.empire.travelTo(dozer, this.room.controller);
+	            }
 	        }
 	    }
 	}
@@ -6071,14 +6599,14 @@ module.exports =
 
 
 /***/ },
-/* 26 */
+/* 28 */
 /*!*********************************************!*\
   !*** ./src/ai/missions/BodyguardMission.ts ***!
   \*********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class BodyguardMission extends Mission_1.Mission {
 	    /**
 	     * Remote defense for non-owned rooms. If boosted invaders are likely, use EnhancedBodyguardMission
@@ -6137,7 +6665,7 @@ module.exports =
 	    }
 	    defenderActions(defender) {
 	        if (!this.hasVision || this.hostiles.length === 0) {
-	            this.moveToFlag(defender);
+	            this.idleNear(defender, this.flag);
 	            if (defender.hits < defender.hitsMax) {
 	                defender.heal(defender);
 	            }
@@ -6211,14 +6739,14 @@ module.exports =
 
 
 /***/ },
-/* 27 */
+/* 29 */
 /*!****************************************!*\
   !*** ./src/ai/missions/SwapMission.ts ***!
   \****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	class SwapMission extends Mission_1.Mission {
 	    constructor(operation) {
@@ -6360,7 +6888,7 @@ module.exports =
 	    swapMasonActions(mason) {
 	        let ramparts = _.sortBy(this.room.findStructures(STRUCTURE_RAMPART), "hits");
 	        if (ramparts.length === 0 || mason.pos.roomName !== this.flag.pos.roomName) {
-	            this.moveToFlag(mason);
+	            this.idleNear(mason, this.flag);
 	            return;
 	        }
 	        let hasLoad = this.hasLoad(mason);
@@ -6382,14 +6910,14 @@ module.exports =
 
 
 /***/ },
-/* 28 */
+/* 30 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/ClaimMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class ClaimMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "claimer");
@@ -6416,7 +6944,7 @@ module.exports =
 	    }
 	    claimerActions(claimer) {
 	        if (!this.controller) {
-	            this.moveToFlag(claimer);
+	            this.idleNear(claimer, this.flag);
 	            return; // early
 	        }
 	        if (claimer.pos.isNearTo(this.controller)) {
@@ -6431,14 +6959,14 @@ module.exports =
 
 
 /***/ },
-/* 29 */
+/* 31 */
 /*!*****************************************************!*\
   !*** ./src/ai/missions/EnhancedBodyguardMission.ts ***!
   \*****************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ../missions/Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ../missions/Mission */ 11);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class EnhancedBodyguardMission extends Mission_1.Mission {
 	    constructor(operation, allowSpawn = true) {
@@ -6542,20 +7070,6 @@ module.exports =
 	        for (let creep of this.squadHealers) {
 	            this.memory.ticksToLive[creep.id] = creep.ticksToLive;
 	        }
-	        if (this.hostiles && this.hostiles.length > 0 && !this.memory.hostilesPresent) {
-	            this.memory.hostilesPresent = Game.time;
-	        }
-	        if (this.hostiles && this.hostiles.length === 0 && this.memory.hostilesPresent) {
-	            if (!Memory.temp.invaderDuration) {
-	                Memory.temp.invaderDuration = [];
-	            }
-	            let duration = Game.time - this.memory.hostilesPresent;
-	            Memory.temp.invaderDuration.push(duration);
-	            if (duration > 100) {
-	                console.log("ATTN: invader in", this.room.name, "duration:", duration, "time:", Game.time);
-	            }
-	            this.memory.hostilesPresent = undefined;
-	        }
 	    }
 	    invalidateMissionCache() {
 	        this.memory.allowUnboosted = undefined;
@@ -6570,7 +7084,7 @@ module.exports =
 	                if (fleeing)
 	                    return;
 	            }
-	            this.moveToFlag(attacker);
+	            this.idleNear(attacker, this.flag);
 	            return;
 	        }
 	        if (healer.spawning) {
@@ -6585,7 +7099,7 @@ module.exports =
 	        // room is safe
 	        if (!this.hostiles || this.hostiles.length === 0) {
 	            healer.memory.mindControl = false;
-	            this.moveToFlag(attacker);
+	            this.idleNear(attacker, this.flag);
 	            return;
 	        }
 	        let attacking = false;
@@ -6758,7 +7272,7 @@ module.exports =
 	    healHurtCreeps(defender) {
 	        let hurtCreep = this.findHurtCreep(defender);
 	        if (!hurtCreep) {
-	            this.moveToFlag(defender);
+	            this.idleNear(defender, this.flag);
 	            return;
 	        }
 	        // move to creep
@@ -6851,20 +7365,20 @@ module.exports =
 
 
 /***/ },
-/* 30 */
+/* 32 */
 /*!**********************************************!*\
   !*** ./src/ai/operations/KeeperOperation.ts ***!
   \**********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
-	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
-	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
-	const LairMission_1 = __webpack_require__(/*! ../missions/LairMission */ 31);
-	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 29);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 25);
+	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 18);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 26);
+	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 22);
+	const LairMission_1 = __webpack_require__(/*! ../missions/LairMission */ 33);
+	const EnhancedBodyguardMission_1 = __webpack_require__(/*! ../missions/EnhancedBodyguardMission */ 31);
 	class KeeperOperation extends Operation_1.Operation {
 	    /**
 	     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the room. Can also
@@ -6959,14 +7473,14 @@ module.exports =
 
 
 /***/ },
-/* 31 */
+/* 33 */
 /*!****************************************!*\
   !*** ./src/ai/missions/LairMission.ts ***!
   \****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class LairMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "lair");
@@ -6975,9 +7489,8 @@ module.exports =
 	        if (!this.hasVision)
 	            return; // early
 	        // should be ordered in a preferable travel order
-	        this.lairs = this.flagLook(LOOK_STRUCTURES, "_lair:", 4);
-	        if (this.lairs.length === 0) {
-	            this.lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR);
+	        this.lairs = _.filter(this.room.findStructures(STRUCTURE_KEEPER_LAIR), (s) => s.pos.lookFor(LOOK_FLAGS).length === 0);
+	        if (!this.memory.travelOrder || this.memory.travelOrder.length !== this.lairs.length) {
 	        }
 	        this.distanceToSpawn = this.findDistanceToSpawn(this.flag.pos);
 	        this.assignKeepers();
@@ -6998,7 +7511,8 @@ module.exports =
 	    roleCall() {
 	        let maxTrappers = this.lairs && this.lairs.length > 0 ? 1 : 0;
 	        this.trappers = this.headCount("trapper", () => this.configBody({ move: 25, attack: 19, heal: 6 }), maxTrappers, {
-	            prespawn: this.distanceToSpawn + 100
+	            prespawn: this.distanceToSpawn + 100,
+	            skipMoveToRoom: true,
 	        });
 	        let maxScavengers = this.lairs && this.lairs.length >= 3 && this.storeStructure ? 1 : 0;
 	        let body = () => this.workerBody(0, 33, 17);
@@ -7062,7 +7576,7 @@ module.exports =
 	            return;
 	        }
 	        if (scavenger.room.name !== this.flag.pos.roomName) {
-	            this.moveToFlag(scavenger);
+	            this.idleNear(scavenger, this.flag);
 	            return; // early;
 	        }
 	        let closest = this.findDroppedEnergy(scavenger);
@@ -7072,26 +7586,21 @@ module.exports =
 	                scavenger.say("yoink!", true);
 	            }
 	            else {
-	                scavenger.blindMoveTo(closest, { maxRooms: 0 });
+	                scavenger.blindMoveTo(closest, { maxRooms: 1 });
 	            }
 	        }
 	        else {
-	            if (!scavenger.pos.isNearTo(this.flag)) {
-	                scavenger.blindMoveTo(this.flag);
-	            }
+	            this.idleNear(scavenger, this.flag);
 	        }
 	    }
 	    assignKeepers() {
 	        if (!this.lairs)
 	            return;
-	        if (!this.memory.allLairIds) {
-	            this.memory.allLairIds = _.map(this.room.findStructures(STRUCTURE_KEEPER_LAIR), (s) => { return s.id; });
-	        }
-	        let allLairs = _.map(this.memory.allLairIds, (id) => { return Game.getObjectById(id); });
+	        let lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR);
 	        let hostiles = this.room.hostiles;
 	        for (let hostile of hostiles) {
 	            if (hostile.owner.username === "Source Keeper") {
-	                let closestLair = hostile.pos.findClosestByRange(allLairs);
+	                let closestLair = hostile.pos.findClosestByRange(lairs);
 	                if (!_.includes(this.lairs, closestLair))
 	                    continue;
 	                closestLair.keeper = hostile;
@@ -7141,30 +7650,32 @@ module.exports =
 	            }
 	        }
 	    }
+	    findTravelOrder(lairs) {
+	    }
 	}
 	exports.LairMission = LairMission;
 
 
 /***/ },
-/* 32 */
+/* 34 */
 /*!************************************************!*\
   !*** ./src/ai/operations/ConquestOperation.ts ***!
   \************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const RefillMission_1 = __webpack_require__(/*! ../missions/RefillMission */ 10);
-	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 11);
-	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 18);
-	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const RefillMission_1 = __webpack_require__(/*! ../missions/RefillMission */ 12);
+	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 13);
+	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 18);
+	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 20);
+	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 21);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
-	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 26);
-	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 33);
-	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 28);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 25);
+	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 28);
+	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 35);
+	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 30);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 26);
 	const CONQUEST_MASON_POTENCY = 4;
 	const CONQUEST_LOCAL_MIN_SPAWN_ENERGY = 1300;
 	class ConquestOperation extends Operation_1.Operation {
@@ -7250,14 +7761,14 @@ module.exports =
 
 
 /***/ },
-/* 33 */
+/* 35 */
 /*!*********************************************!*\
   !*** ./src/ai/missions/TransportMission.ts ***!
   \*********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class TransportMission extends Mission_1.Mission {
 	    constructor(operation, maxCarts, origin, destination, resourceType, offroad = false) {
@@ -7311,7 +7822,7 @@ module.exports =
 	    missionActions() {
 	        for (let cart of this.carts) {
 	            if (!this.memory.originPos || !this.memory.destinationPos) {
-	                this.moveToFlag(cart);
+	                this.idleNear(cart, this.flag);
 	            }
 	            this.cartActions(cart);
 	        }
@@ -7373,7 +7884,7 @@ module.exports =
 
 
 /***/ },
-/* 34 */
+/* 36 */
 /*!****************************************!*\
   !*** ./src/helpers/consoleCommands.ts ***!
   \****************************************/
@@ -7381,6 +7892,7 @@ module.exports =
 
 	"use strict";
 	const constants_1 = __webpack_require__(/*! ../config/constants */ 4);
+	const helper_1 = __webpack_require__(/*! ./helper */ 5);
 	exports.consoleCommands = {
 	    /**
 	     * Remove construction sites from a room
@@ -7482,7 +7994,25 @@ module.exports =
 	        delete Memory.empire["allyForts"];
 	        delete Memory.empire["allySwaps"];
 	        for (let flagName in Memory.flags) {
-	            delete Memory.flags[flagName]["network"];
+	            let flag = Game.flags[flagName];
+	            if (flag) {
+	                let mem = Memory.flags[flagName];
+	                delete mem.network;
+	            }
+	            else {
+	                delete Memory.flags[flagName];
+	            }
+	        }
+	        for (let creepName in Memory.creeps) {
+	            let creep = Game.creeps[creepName];
+	            if (!creep) {
+	                delete Memory.creeps[creepName];
+	            }
+	        }
+	    },
+	    removeMissionData(missionName) {
+	        for (let flagName in Memory.flags) {
+	            delete Memory.flags[flagName][missionName];
 	        }
 	    },
 	    /**
@@ -7533,7 +8063,7 @@ module.exports =
 	     * @returns {any}
 	     */
 	    changeOpName(opName, newOpName) {
-	        let operation = global[opName];
+	        let operation = Game.operations[opName];
 	        if (!operation)
 	            return "you don't have an operation by that name";
 	        let newFlagName = operation.type + "_" + newOpName;
@@ -7541,7 +8071,7 @@ module.exports =
 	        if (_.isString(outcome)) {
 	            Memory.flags[newFlagName] = operation.memory;
 	            operation.flag.remove();
-	            return "operation name change successfully, removing old flag";
+	            return `success, changed ${opName} to ${newOpName} (removing old flag)`;
 	        }
 	        else {
 	            return "error changing name: " + outcome;
@@ -7584,19 +8114,98 @@ module.exports =
 	            }
 	        });
 	    },
+	    patchTraderMemory() {
+	        for (let username in Memory.traders) {
+	            let data = Memory.traders[username];
+	            if (data.recieved) {
+	                for (let resourceType in data.recieved) {
+	                    let amount = data.recieved[resourceType];
+	                    if (data[resourceType] === undefined)
+	                        data[resourceType] = 0;
+	                    data[resourceType] += amount;
+	                }
+	            }
+	            if (data.sent) {
+	                for (let resourceType in data.sent) {
+	                    let amount = data.sent[resourceType];
+	                    if (data[resourceType] === undefined)
+	                        data[resourceType] = 0;
+	                    data[resourceType] -= amount;
+	                }
+	            }
+	            delete data.recieved;
+	            delete data.sent;
+	        }
+	    },
+	    /**
+	     * If this looks silly it is because it is, I used to it go from one naming convention to another
+	     * @param opName
+	     * @returns {any}
+	     */
+	    roomConvention(opName, alternate) {
+	        let controllerOp = Game.operations[opName + 0];
+	        if (!controllerOp) {
+	            return "owned room doesn't exist";
+	        }
+	        for (let direction = 1; direction <= 8; direction++) {
+	            let tempName = opName + "temp" + direction;
+	            if (!Game.operations[tempName])
+	                continue;
+	            console.log(`found temp ${tempName}`);
+	            let desiredName = opName + direction;
+	            let currentOp = Game.operations[desiredName];
+	            if (currentOp) {
+	                console.log(`current op with that name, changing name to temp`);
+	                let tempDir = helper_1.helper.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
+	                return this.changeOpName(desiredName, opName + "temp" + tempDir);
+	            }
+	            console.log(`no temp conflicts`);
+	            return this.changeOpName(tempName, desiredName);
+	        }
+	        for (let direction = 1; direction <= 9; direction++) {
+	            let testOpName = opName + direction;
+	            let testOp = Game.operations[testOpName];
+	            if (!testOp && alternate) {
+	                testOp = Game.operations[alternate + direction];
+	                if (testOp) {
+	                    testOpName = alternate + direction;
+	                }
+	            }
+	            if (!testOp) {
+	                continue;
+	            }
+	            let correctDir = helper_1.helper.findRelativeRoomDir(controllerOp.flag.room.name, testOp.flag.room.name);
+	            if (correctDir === direction) {
+	                continue;
+	            }
+	            let correctOpName = opName + correctDir;
+	            console.log(`inconsistent name (${testOpName} at dir ${correctDir} should be ${correctOpName})`);
+	            let currentOp = Game.operations[correctOpName];
+	            if (currentOp) {
+	                console.log(`current op with that name, changing name to temp`);
+	                let tempDir = helper_1.helper.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
+	                return this.changeOpName(correctOpName, opName + "temp" + tempDir);
+	            }
+	            else {
+	                console.log(`no current op with that name`);
+	                return this.changeOpName(testOpName, correctOpName);
+	            }
+	        }
+	        return `all flags consistent`;
+	    }
 	};
 
 
 /***/ },
-/* 35 */
+/* 37 */
 /*!************************************************!*\
   !*** ./src/ai/operations/DemolishOperation.ts ***!
   \************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const DemolishMission_1 = __webpack_require__(/*! ../missions/DemolishMission */ 36);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const DemolishMission_1 = __webpack_require__(/*! ../missions/DemolishMission */ 38);
 	class DemolishOperation extends Operation_1.Operation {
 	    /**
 	     * Spawn a demolisher when there are flags that match his pattern ("Flag + n"), he will visit those flags and remove the
@@ -7623,14 +8232,14 @@ module.exports =
 
 
 /***/ },
-/* 36 */
+/* 38 */
 /*!********************************************!*\
   !*** ./src/ai/missions/DemolishMission.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	class DemolishMission extends Mission_1.Mission {
 	    /**
 	     * Spawn a demolisher when there are flags that match his pattern ("Flag + n"), he will visit those flags and remove the
@@ -7717,7 +8326,7 @@ module.exports =
 	                scavanger.blindMoveTo(this.demoFlags[0]);
 	            }
 	            else {
-	                this.moveToFlag(scavanger);
+	                this.idleNear(scavanger, this.flag);
 	            }
 	            return;
 	        }
@@ -7788,15 +8397,15 @@ module.exports =
 
 
 /***/ },
-/* 37 */
+/* 39 */
 /*!*************************************************!*\
   !*** ./src/ai/operations/TransportOperation.ts ***!
   \*************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 33);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const TransportMission_1 = __webpack_require__(/*! ../missions/TransportMission */ 35);
 	class TransportOperation extends Operation_1.Operation {
 	    constructor(flag, name, type, empire) {
 	        super(flag, name, type, empire);
@@ -7816,17 +8425,17 @@ module.exports =
 
 
 /***/ },
-/* 38 */
+/* 40 */
 /*!********************************************!*\
   !*** ./src/ai/operations/RaidOperation.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const FireflyMission_1 = __webpack_require__(/*! ../missions/FireflyMission */ 39);
-	const MessMission_1 = __webpack_require__(/*! ../missions/MessMission */ 42);
-	const BrawlerMission_1 = __webpack_require__(/*! ../missions/BrawlerMission */ 43);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const FireflyMission_1 = __webpack_require__(/*! ../missions/FireflyMission */ 41);
+	const WreckerMission_1 = __webpack_require__(/*! ../missions/WreckerMission */ 44);
+	const BrawlerMission_1 = __webpack_require__(/*! ../missions/BrawlerMission */ 45);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class RaidOperation extends Operation_1.Operation {
@@ -7834,7 +8443,7 @@ module.exports =
 	        super(flag, name, type, empire);
 	        this.squadTypes = {
 	            firefly: FireflyMission_1.FireflyMission,
-	            mess: MessMission_1.MesserschmittMission,
+	            wreck: WreckerMission_1.WreckerMission,
 	            brawler: BrawlerMission_1.BrawlerMission,
 	        };
 	        this.squadNames = ["alfa", "bravo", "charlie"];
@@ -7842,6 +8451,7 @@ module.exports =
 	        this.priority = constants_1.OperationPriority.VeryHigh;
 	    }
 	    initOperation() {
+	        this.flagPlacement();
 	        this.checkNewPlacement();
 	        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
 	        this.raidData = this.generateRaidData();
@@ -7871,11 +8481,11 @@ module.exports =
 	                spawnCount++;
 	            }
 	            else {
-	                if (this.memory.queue[mission.name]) {
-	                    this.memory.squadConfig[mission.name] = this.memory.queue[mission.name];
-	                    let config = this.memory.squadConfig[mission.name];
-	                    console.log("RAID: updating", mission.name, "to be of type", config.type, "with boostLevel", config.boostLevel);
-	                    delete this.memory.queue[mission.name];
+	                if (this.memory.queue[mission.getName()]) {
+	                    this.memory.squadConfig[mission.getName()] = this.memory.queue[mission.getName()];
+	                    let config = this.memory.squadConfig[mission.getName()];
+	                    console.log("RAID: updating", mission.getName(), "to be of type", config.type, "with boostLevel", config.boostLevel);
+	                    delete this.memory.queue[mission.getName()];
 	                }
 	            }
 	        }
@@ -7896,6 +8506,9 @@ module.exports =
 	    invalidateOperationCache() {
 	    }
 	    findBreachFlags() {
+	        if (this.raidData && this.raidData.breachFlags) {
+	            return this.raidData.breachFlags;
+	        }
 	        let breachFlags = [];
 	        for (let i = 0; i < 20; i++) {
 	            let flag = Game.flags[this.name + "_breach_" + i];
@@ -7943,7 +8556,7 @@ module.exports =
 	        }
 	        if (this.memory.defaultSquad === undefined) {
 	            if (Game.time % 3 === 0) {
-	                console.log("RAID: please set a default squad type, ex: " + this.name + ".setDefaultType(\"mess\")");
+	                console.log("RAID: please set a default squad type, ex: " + this.name + ".setDefaultType(\"wreck\")");
 	            }
 	            return;
 	        }
@@ -7958,12 +8571,14 @@ module.exports =
 	        }
 	        return {
 	            raidCreeps: [],
+	            obstacles: [],
 	            injuredCreeps: undefined,
 	            breachFlags: breachFlags,
-	            positions: this.findPositions(breachFlags, fallback),
-	            breachStructure: this.findBreachStructure(breachFlags),
+	            attackRoom: breachFlags[0].room,
+	            breachStructures: this.findBreachStructure(breachFlags),
 	            targetStructures: this.findTargetStructures(breachFlags[0].room),
 	            fallback: this.memory.fallback,
+	            fallbackFlag: fallback,
 	        };
 	    }
 	    findSpawnGroups() {
@@ -8105,16 +8720,19 @@ module.exports =
 	        }
 	    }
 	    findBreachStructure(breachFlags) {
-	        if (!breachFlags[0].room)
-	            return; // early
+	        let breachStructures = [];
 	        for (let flag of breachFlags) {
 	            if (!flag.room)
 	                continue;
-	            let structure = flag.pos.lookFor(LOOK_STRUCTURES)[0];
+	            let structure = flag.pos.lookForStructure(STRUCTURE_ROAD);
+	            if (!structure) {
+	                structure = flag.pos.lookForStructure(STRUCTURE_RAMPART);
+	            }
 	            if (structure) {
-	                return structure;
+	                breachStructures.push(structure);
 	            }
 	        }
+	        return breachStructures;
 	    }
 	    setMaxSquads(max) {
 	        let oldValue = this.memory.maxSquads;
@@ -8189,8 +8807,9 @@ module.exports =
 	        }
 	    }
 	    findTargetStructures(attackRoom) {
-	        if (!attackRoom)
+	        if (!attackRoom) {
 	            return;
+	        }
 	        if (!this.memory.manualTargetIds)
 	            this.memory.manualTargetIds = [];
 	        let manualTargets = [];
@@ -8254,7 +8873,7 @@ module.exports =
 	        else if (presetName === "cosmo") {
 	            console.log(this.queueSquad("alfa", "brawler", 2));
 	            console.log(this.queueSquad("bravo", "firefly", 2));
-	            console.log(this.queueSquad("charlie", "mess", 2));
+	            console.log(this.queueSquad("charlie", "wreck", 2));
 	            console.log(this.setDefaultBoostLevel(2));
 	            console.log(this.setMaxSquads(3));
 	            console.log(this.setDefaultType("brawler"));
@@ -8310,9 +8929,6 @@ module.exports =
 	            destination = attackRoom.find(FIND_HOSTILE_SPAWNS)[0];
 	        }
 	        if (!destination) {
-	            destination = this.findTargetStructures(attackRoom)[0];
-	        }
-	        if (!destination) {
 	            console.log(`RAID: ${this.name} automation incomplete, no suitable structure to attack`);
 	            return false;
 	        }
@@ -8333,7 +8949,7 @@ module.exports =
 	                    if (position.isNearExit(1))
 	                        continue;
 	                    if (position.roomName !== this.memory.attackRoomName) {
-	                        position.createFlag(`${this.name}_fallback`, COLOR_GREY);
+	                        this.placeRaidFlag(position, `${this.name}_fallback`, COLOR_GREY);
 	                        break;
 	                    }
 	                }
@@ -8341,7 +8957,11 @@ module.exports =
 	            }
 	        }
 	        let complete = this.placeBreachFlags(stagingPosition, destination, attackRoom);
-	        return complete;
+	        if (!complete)
+	            return;
+	        this.setDefaultBoostLevel(0);
+	        this.setMaxSquads(1);
+	        this.setDefaultType("brawler");
 	    }
 	    placeBreachFlags(stagingPosition, destination, attackRoom) {
 	        let callback = (roomName) => {
@@ -8374,7 +8994,7 @@ module.exports =
 	        let count = 0;
 	        for (let position of ret.path) {
 	            if (position.lookForStructure(STRUCTURE_WALL) || position.lookForStructure(STRUCTURE_RAMPART)) {
-	                position.createFlag(`${this.name}_breach_${count}`);
+	                this.placeRaidFlag(position, `${this.name}_breach_${count}`, COLOR_GREY);
 	                count++;
 	            }
 	        }
@@ -8389,20 +9009,48 @@ module.exports =
 	        }
 	        return true;
 	    }
+	    placeRaidFlag(pos, name, color = COLOR_WHITE) {
+	        let flag = Game.flags[name];
+	        if (flag) {
+	            console.log(`RAID: moving flag to position: ${name}`);
+	            flag.setPosition(pos);
+	            return;
+	        }
+	        let room = Game.rooms[pos.roomName];
+	        if (room) {
+	            pos.createFlag(name, color);
+	            return;
+	        }
+	        else {
+	            this.flag.pos.createFlag(name, color);
+	            this.memory.placeFlags[name] = pos;
+	        }
+	    }
+	    flagPlacement() {
+	        if (!this.memory.placeFlags) {
+	            this.memory.placeFlags = {};
+	        }
+	        for (let flagName in this.memory.placeFlags) {
+	            let position = helper_1.helper.deserializeRoomPosition(this.memory.placeFlags[flagName]);
+	            let flag = Game.flags[flagName];
+	            flag.setPosition(position);
+	            delete this.memory.placeFlags[flagName];
+	        }
+	    }
 	}
 	exports.RaidOperation = RaidOperation;
 
 
 /***/ },
-/* 39 */
+/* 41 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/FireflyMission.ts ***!
   \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 40);
-	const interfaces_1 = __webpack_require__(/*! ../../interfaces */ 41);
+	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 42);
+	const interfaces_1 = __webpack_require__(/*! ../../interfaces */ 43);
 	class FireflyMission extends RaidMission_1.RaidMission {
 	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
 	        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
@@ -8427,15 +9075,13 @@ module.exports =
 	        this.specialistBoost = RESOURCE_CATALYZED_KEANIUM_ALKALIDE;
 	        this.spawnCost = 12440;
 	        this.attackRange = 3;
+	        this.attacksCreeps = true;
 	        this.attackerBoosts = [
 	            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
 	            RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
 	            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
 	        ];
 	        this.killCreeps = operation.memory.killCreeps;
-	    }
-	    breachActions(attackingCreep) {
-	        this.standardBreachActions(attackingCreep);
 	    }
 	    clearActions(attackingCreep) {
 	        this.standardClearActions(attackingCreep);
@@ -8463,15 +9109,15 @@ module.exports =
 
 
 /***/ },
-/* 40 */
+/* 42 */
 /*!****************************************!*\
   !*** ./src/ai/missions/RaidMission.ts ***!
   \****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
-	const interfaces_1 = __webpack_require__(/*! ../../interfaces */ 41);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
+	const interfaces_1 = __webpack_require__(/*! ../../interfaces */ 43);
 	class RaidMission extends Mission_1.Mission {
 	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
 	        super(operation, name, allowSpawn);
@@ -8515,8 +9161,7 @@ module.exports =
 	    }
 	    initMission() {
 	        this.raidWaypoints = this.getFlagSet("_waypoints_", 15);
-	        this.healerFlag = this.raidData.positions[this.name].healer;
-	        this.attackerFlag = this.raidData.positions[this.name].attacker;
+	        this.raidWaypoints.push(this.raidData.fallbackFlag);
 	        if (this.boostLevel === interfaces_1.BoostLevel.Training || this.boostLevel === interfaces_1.BoostLevel.Unboosted) {
 	            this.healerBoosts = [];
 	            this.attackerBoosts = [];
@@ -8540,13 +9185,16 @@ module.exports =
 	            memory: { boosts: this.attackerBoosts },
 	            reservation: reservation
 	        }));
-	        if (this.attacker)
+	        if (this.attacker) {
 	            this.raidData.raidCreeps.push(this.attacker);
+	            this.raidData.obstacles.push(this.attacker);
+	        }
 	        this.healer = _.head(this.headCount(this.name + "Healer", this.healerBody, max, {
 	            memory: { boosts: this.healerBoosts }
 	        }));
-	        if (this.healer)
+	        if (this.healer) {
 	            this.raidData.raidCreeps.push(this.healer);
+	        }
 	    }
 	    missionActions() {
 	        /* ------PREPARE PHASE------ */
@@ -8569,17 +9217,17 @@ module.exports =
 	        if (!waypointsTraveled)
 	            return;
 	        /* --------FALLBACK-------- */
-	        if (!this.healerFlag || !this.attackerFlag || this.raidData.fallback) {
-	            this.squadTravel(this.healer, this.attacker, this.raidData.positions.fallback);
+	        if (this.raidData.fallback) {
+	            this.squadTravel(this.healer, this.attacker, this.raidData.fallbackFlag);
 	            return;
 	        }
-	        /* ------BREACH PHASE------ */
-	        if (!this.raidData.breachFlags[0].room || this.raidData.breachStructure) {
-	            if (!this.healer.memory.breachPhase) {
-	                this.healer.memory.breachPhase = true;
-	                console.log(`RAID: starting breach (${this.opName} ${this.name})`);
-	            }
-	            this.breachActions(attackingCreep);
+	        /* -------ENTRY PHASE------ */
+	        if (this.healer.room !== this.raidData.attackRoom || this.healer.pos.isNearExit(0)) {
+	            this.squadTravel(this.healer, this.attacker, this.raidData.breachFlags[0]);
+	            return;
+	        }
+	        if (this.attacker.room !== this.raidData.attackRoom || this.attacker.pos.isNearExit(0)) {
+	            this.squadTravel(this.attacker, this.healer, this.raidData.breachFlags[0]);
 	            return;
 	        }
 	        /* ------CLEAR PHASE------ */
@@ -8620,114 +9268,24 @@ module.exports =
 	    }
 	    invalidateMissionCache() {
 	    }
-	    standardBreachActions(attackingCreep) {
-	        /* ------- movement ------- */
-	        let leader = this.attacker;
-	        let leaderFlag = this.attackerFlag;
-	        let follower = this.healer;
-	        let followerFlag = this.healerFlag;
-	        if (this.attacker.pos.isNearExit(0) || this.attacker.room !== this.raidData.breachFlags[0].room) {
-	            leader = this.healer;
-	            leaderFlag = this.attackerFlag;
-	            follower = this.attacker;
-	            followerFlag = this.healerFlag;
-	        }
-	        /*
-
-	        if (leader.memory.flagReached) {
-	            if (leader.room !== this.raidData.breachFlags[0].room) {
-	                leader.memory.flagReached = false;
-	            }
-	        }
-	        else {
-	            if (leader.pos.inRangeTo(leaderFlag, 0)) {
-	                leader.memory.flagReached = true;
-	            }
-	        }
-
-	        if (follower.memory.flagReached) {
-	            if (follower.room !== this.raidData.breachFlags[0].room) {
-	                follower.memory.flagReached = false;
-	            }
-	        }
-	        else {
-	            if (follower.pos.inRangeTo(follower, 0)) {
-	                follower.memory.flagReached = true;
-	            }
-	        }
-
-	        if (!leader.memory.flagReached) {
-	            this.squadTravel(this.healer, this.attacker, this.healerFlag);
-	            return;
-	        }
-
-	         */
-	        // chess-mode
-	        if (this.memory.chessMode) {
-	            // move like chess pieces by moving flags, won't squad travel
-	            if (!this.attacker.pos.inRangeTo(this.attackerFlag, 0)) {
-	                this.attacker.blindMoveTo(this.attackerFlag, undefined, true);
-	            }
-	            if (!this.healer.pos.inRangeTo(this.healerFlag, 0)) {
-	                this.healer.blindMoveTo(this.healerFlag, undefined, true);
-	            }
-	        }
-	        else {
-	            // healer is near flag, both move to flags
-	            if (leader.pos.isNearTo(leaderFlag)) {
-	                if (!leader.pos.inRangeTo(leaderFlag, 0)) {
-	                    leader.blindMoveTo(leaderFlag, undefined, true);
-	                }
-	                if (!follower.pos.inRangeTo(followerFlag, 0)) {
-	                    follower.blindMoveTo(followerFlag, undefined, true);
-	                }
-	            }
-	            else {
-	                this.squadTravel(leader, follower, leaderFlag);
-	            }
-	        }
-	        /* ------- actions ------- */
-	        this.attacker.dismantle(this.raidData.breachStructure);
-	        if (!attackingCreep) {
-	            this.attacker.attack(this.raidData.breachStructure);
-	            if (this.attacker.pos.isNearTo(this.raidData.breachStructure)) {
-	                if (this.raidData.breachStructure.structureType !== STRUCTURE_WALL) {
-	                    this.attacker.rangedMassAttack();
-	                }
-	                else {
-	                    this.attacker.rangedAttack(this.raidData.breachStructure);
-	                }
-	            }
-	            else {
-	                let structureInRange = this.attacker.pos.findInRange(FIND_STRUCTURES, 1)[0];
-	                if (structureInRange) {
-	                    this.attacker.dismantle(structureInRange);
-	                    this.attacker.attack(structureInRange);
-	                }
-	                this.attacker.rangedAttack(this.raidData.breachStructure);
-	            }
-	        }
-	    }
 	    standardClearActions(attackingCreep) {
-	        if (this.healer.room !== this.raidData.breachFlags[0].room) {
-	            this.squadTravel(this.attacker, this.healer, this.attackerFlag);
+	        let target;
+	        if (this.raidData.breachStructures.length > 0) {
+	            target = this.findMissionTarget(this.raidData.breachStructures);
 	        }
-	        let closest = this.attacker.pos.findClosestByRange(this.raidData.targetStructures);
-	        if (!closest) {
-	            // do nothing for now
-	            return;
+	        else if (this.raidData.targetStructures.length > 0) {
+	            target = this.findMissionTarget(this.raidData.targetStructures);
 	        }
-	        let hasRampart = closest.pos.lookForStructure(STRUCTURE_RAMPART) !== undefined;
-	        if (!hasRampart) {
-	            this.raidData.targetStructures = _.pull(this.raidData.targetStructures, closest);
+	        else {
+	            target = this.findMissionTarget(this.room.hostiles);
 	        }
-	        if (this.attacker.pos.isNearTo(closest)) {
-	            this.attacker.dismantle(closest);
+	        if (this.attacker.pos.inRangeTo(target, this.attackRange)) {
+	            this.attacker.dismantle(target);
 	            if (!attackingCreep) {
 	                this.attacker.rangedMassAttack();
-	                this.attacker.attack(closest);
-	                if (closest.pos.lookFor(LOOK_TERRAIN)[0] !== "swamp") {
-	                    this.squadTravel(this.attacker, this.healer, closest);
+	                this.attacker.attack(target);
+	                if (target.pos.lookFor(LOOK_TERRAIN)[0] !== "swamp") {
+	                    this.squadTravel(this.attacker, this.healer, target);
 	                }
 	            }
 	            if (!this.healer.pos.isNearTo(this.attacker)) {
@@ -8735,11 +9293,11 @@ module.exports =
 	            }
 	        }
 	        else {
-	            this.squadTravel(this.attacker, this.healer, closest);
+	            this.squadTravel(this.attacker, this.healer, target, this.attackRange);
 	        }
 	    }
 	    finishActions(attackingCreep) {
-	        this.squadTravel(this.healer, this.attacker, this.raidData.positions.fallback);
+	        this.squadTravel(this.healer, this.attacker, this.raidData.fallbackFlag);
 	    }
 	    waypointSquadTravel(healer, attacker, waypoints) {
 	        if (healer.memory.waypointsCovered) {
@@ -8771,24 +9329,30 @@ module.exports =
 	        }
 	        this.squadTravel(leader, follower, waypoint);
 	    }
-	    squadTravel(leader, follower, destination) {
+	    squadTravel(leader, follower, destination, range = 1) {
 	        if (follower.fatigue > 0)
 	            return ERR_BUSY;
-	        let followerOps = { reusePath: 0, maxRooms: undefined };
+	        if (leader.room.name !== destination.pos.roomName || leader.isNearExit(0)) {
+	            range = 1;
+	        }
 	        if (leader.room === follower.room) {
-	            followerOps.maxRooms = 1;
-	        }
-	        if (leader.isNearExit(1)) {
-	            leader.blindMoveTo(destination, followerOps, true);
-	            follower.blindMoveTo(leader, followerOps, true);
-	            return;
-	        }
-	        if (follower.pos.isNearTo(leader)) {
-	            leader.blindMoveTo(destination, followerOps, true);
-	            follower.move(follower.pos.getDirectionTo(leader));
+	            if (follower.pos.isNearTo(leader)) {
+	                this.empire.travelTo(leader, destination, { range: range });
+	                if (!leader.isNearExit(0) || !this.raidData.attackRoom || this.raidData.attackRoom !== destination.room) {
+	                    follower.move(follower.pos.getDirectionTo(leader));
+	                }
+	            }
+	            else {
+	                this.empire.travelTo(follower, leader);
+	            }
 	        }
 	        else {
-	            follower.blindMoveTo(leader, followerOps, true);
+	            if (leader.isNearExit(1)) {
+	                this.empire.travelTo(leader, destination, { range: range });
+	            }
+	            if (!this.raidData.attackRoom || this.raidData.attackRoom !== destination.room) {
+	                this.empire.travelTo(follower, leader);
+	            }
 	        }
 	    }
 	    squadFlee(roomObject) {
@@ -8903,11 +9467,8 @@ module.exports =
 	    }
 	    preparePhase() {
 	        if (this.attacker && !this.healer) {
-	            if (this.attackRange === 0) {
-	                this.attackRange = 3;
-	            }
 	            let closest = this.attacker.pos.findClosestByRange(this.room.hostiles);
-	            if (closest && this.attackRange > 0) {
+	            if (closest) {
 	                let range = this.attacker.pos.getRangeTo(closest);
 	                if (range <= this.attackRange) {
 	                    this.attacker.attack(closest);
@@ -8920,11 +9481,17 @@ module.exports =
 	                    this.attacker.blindMoveTo(closest);
 	                }
 	            }
-	            else if (this.attacker.room === this.raidData.breachFlags[0].room) {
-	                if (this.raidData.breachStructure) {
-	                    this.attacker.rangedAttack(this.raidData.breachStructure);
-	                    this.attacker.attack(this.raidData.breachStructure);
-	                    this.attacker.dismantle(this.raidData.breachStructure);
+	            else if (this.attacker.room === this.raidData.attackRoom) {
+	                let closest = this.attacker.pos.findClosestByRange(this.raidData.targetStructures);
+	                if (closest) {
+	                    if (this.attacker.pos.inRangeTo(closest, this.attackRange)) {
+	                        this.attacker.dismantle(closest);
+	                        this.attacker.attack(closest);
+	                        this.attacker.rangedMassAttack();
+	                    }
+	                    else {
+	                        this.attacker.blindMoveTo(closest);
+	                    }
 	                }
 	            }
 	            else {
@@ -8946,12 +9513,9 @@ module.exports =
 	        }
 	    }
 	    focusCreeps() {
-	        /* future look for creeps by pathfinding
-	        if (this.memory.targetId) {
-	            let creep = Game.getObjectById(this.memory.targetId) as Creep;
-	            if (creep)
+	        if (!this.attacksCreeps) {
+	            return false;
 	        }
-	        */
 	        let closest = this.attacker.pos.findClosestByRange(_.filter(this.attacker.room.hostiles, (c) => {
 	            return c.owner.username !== "Source Keeper" && c.body.length > 10;
 	        }));
@@ -8975,12 +9539,46 @@ module.exports =
 	            return false;
 	        }
 	    }
+	    findMissionTarget(possibleTargets) {
+	        if (this.attacker.memory.attackTargetId) {
+	            let target = Game.getObjectById(this.attacker.memory.attackTargetId);
+	            if (target && this.hasValidPath(this.attacker, target)) {
+	                return target;
+	            }
+	            else {
+	                delete this.attacker.memory.attackTargetId;
+	                return this.findMissionTarget(possibleTargets);
+	            }
+	        }
+	        else {
+	            let closest = this.attacker.pos.findClosestByRange(possibleTargets);
+	            if (!closest) {
+	                return;
+	            }
+	            if (this.hasValidPath(this.attacker, closest)) {
+	                this.attacker.memory.attackTargetId = closest.id;
+	                return closest;
+	            }
+	            let sortedTargets = _.sortBy(possibleTargets, (s) => this.attacker.pos.getRangeTo(s));
+	            for (let target of sortedTargets) {
+	                if (this.hasValidPath(this.attacker, target)) {
+	                    this.attacker.memory.structureTargetId = target.id;
+	                    return target;
+	                }
+	            }
+	        }
+	    }
+	    hasValidPath(origin, destination) {
+	        let obstacles = _.filter(this.raidData.obstacles, (c) => c !== this.attacker);
+	        let ret = this.empire.findTravelPath(origin, destination, { obstacles: obstacles });
+	        return !ret.incomplete;
+	    }
 	}
 	exports.RaidMission = RaidMission;
 
 
 /***/ },
-/* 41 */
+/* 43 */
 /*!***************************!*\
   !*** ./src/interfaces.ts ***!
   \***************************/
@@ -8998,21 +9596,22 @@ module.exports =
 
 
 /***/ },
-/* 42 */
-/*!****************************************!*\
-  !*** ./src/ai/missions/MessMission.ts ***!
-  \****************************************/
+/* 44 */
+/*!*******************************************!*\
+  !*** ./src/ai/missions/WreckerMission.ts ***!
+  \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 40);
-	class MesserschmittMission extends RaidMission_1.RaidMission {
+	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 42);
+	class WreckerMission extends RaidMission_1.RaidMission {
 	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
 	        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
 	        this.specialistPart = WORK;
 	        this.specialistBoost = RESOURCE_CATALYZED_ZYNTHIUM_ACID;
 	        this.spawnCost = 11090;
-	        this.attackRange = 0;
+	        this.attackRange = 1;
+	        this.attacksCreeps = false;
 	        this.attackerBoosts = [
 	            RESOURCE_CATALYZED_ZYNTHIUM_ACID,
 	            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
@@ -9020,25 +9619,22 @@ module.exports =
 	            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
 	        ];
 	    }
-	    breachActions(attackingCreep) {
-	        this.standardBreachActions(attackingCreep);
-	    }
 	    clearActions(attackingCreep) {
 	        this.standardClearActions(attackingCreep);
 	    }
 	}
-	exports.MesserschmittMission = MesserschmittMission;
+	exports.WreckerMission = WreckerMission;
 
 
 /***/ },
-/* 43 */
+/* 45 */
 /*!*******************************************!*\
   !*** ./src/ai/missions/BrawlerMission.ts ***!
   \*******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 40);
+	const RaidMission_1 = __webpack_require__(/*! ./RaidMission */ 42);
 	class BrawlerMission extends RaidMission_1.RaidMission {
 	    constructor(operation, name, raidData, spawnGroup, boostLevel, allowSpawn) {
 	        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
@@ -9046,6 +9642,7 @@ module.exports =
 	        this.specialistBoost = RESOURCE_CATALYZED_UTRIUM_ACID;
 	        this.spawnCost = 10550;
 	        this.attackRange = 1;
+	        this.attacksCreeps = true;
 	        this.attackerBoosts = [
 	            RESOURCE_CATALYZED_UTRIUM_ACID,
 	            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
@@ -9053,9 +9650,6 @@ module.exports =
 	            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
 	        ];
 	        this.killCreeps = operation.memory.killCreeps;
-	    }
-	    breachActions(attackingCreep) {
-	        this.standardBreachActions(attackingCreep);
 	    }
 	    clearActions(attackingCreep) {
 	        this.standardClearActions(attackingCreep);
@@ -9065,15 +9659,15 @@ module.exports =
 
 
 /***/ },
-/* 44 */
+/* 46 */
 /*!********************************************!*\
   !*** ./src/ai/operations/QuadOperation.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 11);
-	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 45);
+	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 13);
+	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 47);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	const QUAD_RADIUS = 6;
 	class QuadOperation extends ControllerOperation_1.ControllerOperation {
@@ -9216,34 +9810,36 @@ module.exports =
 
 
 /***/ },
-/* 45 */
+/* 47 */
 /*!**************************************************!*\
   !*** ./src/ai/operations/ControllerOperation.ts ***!
   \**************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const EmergencyMission_1 = __webpack_require__(/*! ../missions/EmergencyMission */ 8);
-	const RefillMission_1 = __webpack_require__(/*! ../missions/RefillMission */ 10);
-	const PowerMission_1 = __webpack_require__(/*! ../missions/PowerMission */ 12);
-	const TerminalNetworkMission_1 = __webpack_require__(/*! ../missions/TerminalNetworkMission */ 13);
-	const IgorMission_1 = __webpack_require__(/*! ../missions/IgorMission */ 14);
-	const LinkMiningMission_1 = __webpack_require__(/*! ../missions/LinkMiningMission */ 15);
-	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 16);
-	const BuildMission_1 = __webpack_require__(/*! ../missions/BuildMission */ 17);
-	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 18);
-	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 20);
-	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 19);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const EmergencyMission_1 = __webpack_require__(/*! ../missions/EmergencyMission */ 10);
+	const RefillMission_1 = __webpack_require__(/*! ../missions/RefillMission */ 12);
+	const PowerMission_1 = __webpack_require__(/*! ../missions/PowerMission */ 14);
+	const TerminalNetworkMission_1 = __webpack_require__(/*! ../missions/TerminalNetworkMission */ 15);
+	const IgorMission_1 = __webpack_require__(/*! ../missions/IgorMission */ 16);
+	const LinkMiningMission_1 = __webpack_require__(/*! ../missions/LinkMiningMission */ 17);
+	const MiningMission_1 = __webpack_require__(/*! ../missions/MiningMission */ 18);
+	const BuildMission_1 = __webpack_require__(/*! ../missions/BuildMission */ 19);
+	const LinkNetworkMission_1 = __webpack_require__(/*! ../missions/LinkNetworkMission */ 20);
+	const GeologyMission_1 = __webpack_require__(/*! ../missions/GeologyMission */ 22);
+	const UpgradeMission_1 = __webpack_require__(/*! ../missions/UpgradeMission */ 21);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
-	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 46);
-	const MasonMission_1 = __webpack_require__(/*! ../missions/MasonMission */ 47);
+	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 48);
+	const MasonMission_1 = __webpack_require__(/*! ../missions/MasonMission */ 49);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 26);
-	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 24);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
-	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 28);
-	const RadarMission_1 = __webpack_require__(/*! ../missions/RadarMission */ 48);
+	const BodyguardMission_1 = __webpack_require__(/*! ../missions/BodyguardMission */ 28);
+	const RemoteBuildMission_1 = __webpack_require__(/*! ../missions/RemoteBuildMission */ 26);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 25);
+	const ClaimMission_1 = __webpack_require__(/*! ../missions/ClaimMission */ 30);
+	const RadarMission_1 = __webpack_require__(/*! ../missions/RadarMission */ 50);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
+	const SurveyMission_1 = __webpack_require__(/*! ../missions/SurveyMission */ 51);
 	const GEO_SPAWN_COST = 5000;
 	class ControllerOperation extends Operation_1.Operation {
 	    constructor(flag, name, type, empire) {
@@ -9264,6 +9860,8 @@ module.exports =
 	            this.spawnGroup = this.getRemoteSpawnGroup(8);
 	            this.addMission(new ScoutMission_1.ScoutMission(this));
 	            this.addMission(new ClaimMission_1.ClaimMission(this));
+	            if (!this.hasVision)
+	                return;
 	            this.addMission(new BodyguardMission_1.BodyguardMission(this));
 	            this.addMission(new RemoteBuildMission_1.RemoteBuildMission(this, false));
 	        }
@@ -9275,9 +9873,7 @@ module.exports =
 	            this.addMission(new RefillMission_1.RefillMission(this));
 	        }
 	        this.addDefense();
-	        if (this.memory.powerMining) {
-	            this.addMission(new PowerMission_1.PowerMission(this));
-	        }
+	        this.addMission(new PowerMission_1.PowerMission(this));
 	        // energy network
 	        if (this.flag.room.terminal && this.flag.room.storage) {
 	            this.addMission(new TerminalNetworkMission_1.TerminalNetworkMission(this));
@@ -9285,21 +9881,21 @@ module.exports =
 	            this.addMission(new RadarMission_1.RadarMission(this));
 	        }
 	        // harvest energy
-	        let miningMissions = [];
 	        for (let i = 0; i < this.sources.length; i++) {
 	            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0)
 	                continue;
 	            let source = this.sources[i];
 	            if (this.flag.room.controller.level === 8 && this.flag.room.storage) {
-	                let link = source.findMemoStructure(STRUCTURE_LINK, 2);
+	                let link = source.findMemoStructure(STRUCTURE_LINK, 2, true);
 	                if (link) {
 	                    this.addMission(new LinkMiningMission_1.LinkMiningMission(this, "miner" + i, source, link));
 	                    continue;
 	                }
+	                else {
+	                    this.placeLink(source);
+	                }
 	            }
-	            let miningMission = new MiningMission_1.MiningMission(this, "miner" + i, source);
-	            miningMissions.push(miningMission);
-	            this.addMission(miningMission);
+	            this.addMission(new MiningMission_1.MiningMission(this, "miner" + i, source));
 	        }
 	        // build construction
 	        let buildMission = new BuildMission_1.BuildMission(this);
@@ -9309,6 +9905,8 @@ module.exports =
 	            this.addMission(new LinkNetworkMission_1.LinkNetworkMission(this));
 	            // mine minerals
 	            this.addMission(new GeologyMission_1.GeologyMission(this));
+	            // scout and place harvest flags
+	            this.addMission(new SurveyMission_1.SurveyMission(this));
 	        }
 	        // upgrader controller
 	        let boostUpgraders = this.flag.room.controller.level < 8;
@@ -9323,7 +9921,7 @@ module.exports =
 	                return;
 	            let boostSpawnGroup = this.getRemoteSpawnGroup(6);
 	            if (boostSpawnGroup) {
-	                if (this.flag.room.controller.level < 4) {
+	                if (this.flag.room.controller.level < 3) {
 	                    let bodyguard = new BodyguardMission_1.BodyguardMission(this);
 	                    this.addMission(bodyguard);
 	                    bodyguard.setSpawnGroup(boostSpawnGroup);
@@ -9335,14 +9933,9 @@ module.exports =
 	                    return;
 	                }
 	                if (boostSpawnGroup.room.controller.level >= 8) {
+	                    buildMission.activateBoost = true;
 	                    upgradeMission.setSpawnGroup(boostSpawnGroup);
 	                    buildMission.setSpawnGroup(boostSpawnGroup);
-	                }
-	                // remote spawn miners
-	                if (this.spawnGroup.maxSpawnEnergy < 1300) {
-	                    for (let miningMission of miningMissions) {
-	                        miningMission.setSpawnGroup(boostSpawnGroup);
-	                    }
 	                }
 	            }
 	        }
@@ -9581,7 +10174,7 @@ module.exports =
 	            .filter((s) => {
 	            return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
 	                && s.room.controller.level >= levelRequirement
-	                && s.averageAvailability() > .3
+	                && s.averageAvailability > .3
 	                && s.isAvailable;
 	        })
 	            .sortBy((s) => {
@@ -9620,12 +10213,37 @@ module.exports =
 	            structure.pos.findClosestByRange(towers).repair(structure);
 	        }
 	    }
+	    placeLink(source) {
+	        if (source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0)
+	            return;
+	        if (source.pos.findInRange(source.room.findStructures(STRUCTURE_LINK), 2).length > 0)
+	            return;
+	        let positions = [];
+	        for (let xDelta = -2; xDelta <= 2; xDelta++) {
+	            for (let yDelta = -2; yDelta <= 2; yDelta++) {
+	                if (Math.abs(xDelta) !== 2 && Math.abs(yDelta) !== 2) {
+	                    continue;
+	                }
+	                let position = new RoomPosition(source.pos.x + xDelta, source.pos.y + yDelta, this.flag.room.name);
+	                if (!position.isPassible(true))
+	                    continue;
+	                if (position.findInRange(FIND_SOURCES, 2).length > 1)
+	                    continue;
+	                if (position.getPathDistanceTo(source.pos) > 1)
+	                    continue;
+	                positions.push(position);
+	            }
+	        }
+	        positions = _.sortBy(positions, (p) => p.getRangeTo(this.flag.room.storage));
+	        positions[0].createConstructionSite(STRUCTURE_LINK);
+	        notifier_1.notifier.add(`placed link ${this.flag.room.name}`);
+	    }
 	}
 	exports.ControllerOperation = ControllerOperation;
 
 
 /***/ },
-/* 46 */
+/* 48 */
 /*!********************************!*\
   !*** ./src/ai/SeedAnalysis.ts ***!
   \********************************/
@@ -9837,14 +10455,14 @@ module.exports =
 
 
 /***/ },
-/* 47 */
+/* 49 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/MasonMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const MIN_RAMPART_HITS = 50000000;
 	class MasonMission extends Mission_1.Mission {
 	    constructor(operation) {
@@ -9866,7 +10484,7 @@ module.exports =
 	        if (this.memory.needMason) {
 	            max = 1;
 	        }
-	        this.masons = this.headCount("mason", () => this.workerBody(20, 8, 7), max);
+	        this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), max);
 	    }
 	    missionActions() {
 	        for (let mason of this.masons) {
@@ -9884,8 +10502,11 @@ module.exports =
 	        if (rampart && range <= 3) {
 	            mason.repair(rampart);
 	        }
-	        if (mason.carry.energy < mason.carryCapacity * .25) {
-	            mason.memory.hasLoad = false;
+	        if (mason.carry.energy < mason.carryCapacity - 200) {
+	            let fullExtensions = _.filter(mason.pos.findInRange(mason.room.findStructures(STRUCTURE_EXTENSION), 1), (e) => e.energy > 0);
+	            if (fullExtensions.length > 0) {
+	                mason.withdraw(fullExtensions[0], RESOURCE_ENERGY);
+	            }
 	        }
 	        let hasLoad = this.masonHasLoad(mason);
 	        if (hasLoad) {
@@ -9909,6 +10530,8 @@ module.exports =
 	                }
 	            }
 	            else {
+	                if (mason.name === "vigo5_mason_61")
+	                    console.log("none");
 	                mason.idleOffRoad(this.flag);
 	            }
 	        }
@@ -9927,7 +10550,7 @@ module.exports =
 	            if (myRampart)
 	                return myRampart;
 	        };
-	        let forgetRampart = (s) => mason.ticksToLive % 300 === 0;
+	        let forgetRampart = (s) => mason.ticksToLive % 500 === 0;
 	        return mason.rememberStructure(findRampart, forgetRampart, "rampartId");
 	    }
 	    findFullExtension(mason) {
@@ -9936,18 +10559,16 @@ module.exports =
 	            return mason.pos.findClosestByRange(fullExtensions);
 	        };
 	        let forgetExtension = (extension) => extension.energy === 0;
-	        return mason.rememberStructure(findExtension, forgetExtension, "extensionId");
+	        let extension = mason.rememberStructure(findExtension, forgetExtension, "extensionId", true);
+	        return mason.pos.findClosestByRange([this.room.storage, extension]);
 	    }
 	    findMasonPosition(mason, rampart) {
 	        if (mason.pos.lookForStructure(STRUCTURE_ROAD)) {
 	            let position = rampart.pos;
 	            if (position.lookFor(LOOK_STRUCTURES).length > 1) {
-	                for (let direction = 1; direction <= 8; direction++) {
-	                    let testPosition = position.getPositionAtDirection(direction);
-	                    if (testPosition.isPassible() && !testPosition.lookForStructure(STRUCTURE_ROAD)) {
-	                        position = testPosition;
-	                        break;
-	                    }
+	                let testPosition = mason.pos.findClosestByRange(_.filter(position.openAdjacentSpots(), (p) => !p.lookForStructure(STRUCTURE_ROAD)));
+	                if (testPosition) {
+	                    position = testPosition;
 	                }
 	            }
 	            if (!mason.pos.inRangeTo(position, 0)) {
@@ -9958,6 +10579,7 @@ module.exports =
 	    masonHasLoad(mason) {
 	        if (mason.memory.hasLoad && mason.carry.energy <= mason.carryCapacity * .25) {
 	            mason.memory.hasLoad = false;
+	            delete mason.memory.extensionId;
 	        }
 	        else if (!mason.memory.hasLoad && mason.carry.energy >= mason.carryCapacity * .9) {
 	            mason.memory.hasLoad = true;
@@ -9969,16 +10591,17 @@ module.exports =
 
 
 /***/ },
-/* 48 */
+/* 50 */
 /*!*****************************************!*\
   !*** ./src/ai/missions/RadarMission.ts ***!
   \*****************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Mission_1 = __webpack_require__(/*! ./Mission */ 9);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
 	class RadarMission extends Mission_1.Mission {
 	    constructor(operation) {
 	        super(operation, "radar");
@@ -10022,9 +10645,10 @@ module.exports =
 	                this.empire.removeAllyRoom(room.name);
 	            }
 	        }
-	        if (observer.currentPurpose === undefined) {
-	            this.memory.scanIndex = this.empire.observeAllyRoom(observer, this.memory.scanIndex);
+	        if (Math.random() > .2) {
+	            return;
 	        }
+	        this.memory.scanIndex = this.empire.observeAllyRoom(observer, this.memory.scanIndex);
 	    }
 	    fullScan(observer) {
 	        if (!this.memory.fullScanData) {
@@ -10037,18 +10661,19 @@ module.exports =
 	        let scanData = this.memory.fullScanData;
 	        if (observer.observation && observer.observation.purpose === "allySearch") {
 	            let room = observer.observation.room;
-	            if (room.controller) {
-	                if (room.controller.owner && !constants_1.ALLIES[room.controller.owner.username]) {
-	                    console.log(`RADAR: ${this.opName} found hostile room at ${room.name}`);
+	            if (room.controller && room.controller.owner) {
+	                if (room.controller.owner.username !== constants_1.USERNAME) {
 	                    this.empire.addHostileRoom(room.name, room.controller.level);
 	                }
 	                else {
-	                    this.empire.removeHostileRoom(room.name);
-	                    if (room.storage && room.terminal && room.controller.level >= 6 && !room.terminal.my &&
-	                        constants_1.TRADE_PARTNERS[room.terminal.owner.username]) {
-	                        console.log(`RADAR: ${this.opName} found ally room at ${room.name}`);
-	                        this.empire.addAllyRoom(room.name);
+	                    if (this.empire.memory.hostileRooms[room.name]) {
+	                        notifier_1.notifier.add(`RADAR: previously hostile room found empty: ${room.name}`);
+	                        this.empire.removeHostileRoom(room.name);
 	                    }
+	                }
+	                if (constants_1.TRADE_PARTNERS[room.controller.owner.username] && room.storage && room.terminal
+	                    && room.controller.level >= 6 && !room.terminal.my) {
+	                    this.empire.addAllyRoom(room.name);
 	                }
 	            }
 	            // increment
@@ -10065,27 +10690,370 @@ module.exports =
 	                }
 	            }
 	        }
-	        if (observer.currentPurpose === undefined) {
-	            let roomName = helper_1.helper.findRelativeRoomName(this.room, scanData.x, scanData.y);
-	            observer.observeRoom(roomName, "allySearch");
-	        }
+	        let roomName = helper_1.helper.findRelativeRoomName(this.room.name, scanData.x, scanData.y);
+	        observer.observeRoom(roomName, "allySearch");
 	    }
 	}
 	exports.RadarMission = RadarMission;
 
 
 /***/ },
-/* 49 */
+/* 51 */
+/*!******************************************!*\
+  !*** ./src/ai/missions/SurveyMission.ts ***!
+  \******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
+	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
+	const SurveyAnalyzer_1 = __webpack_require__(/*! ./SurveyAnalyzer */ 52);
+	class SurveyMission extends Mission_1.Mission {
+	    constructor(operation) {
+	        super(operation, "survey");
+	    }
+	    initMission() {
+	        if (this.memory.surveyComplete) {
+	            return;
+	        }
+	        let analyzer = new SurveyAnalyzer_1.SurveyAnalyzer(this);
+	        this.needsVision = analyzer.run();
+	    }
+	    roleCall() {
+	        let maxSurveyors = 0;
+	        if (this.needsVision && !this.room.findStructures(STRUCTURE_OBSERVER)[0] || this.chosenRoom) {
+	            maxSurveyors = 1;
+	        }
+	        this.surveyors = this.headCount("surveyor", () => this.workerBody(0, 0, 1), maxSurveyors);
+	    }
+	    missionActions() {
+	        for (let surveyor of this.surveyors) {
+	            if (this.needsVision) {
+	                this.explorerActions(surveyor);
+	            }
+	        }
+	        if (this.needsVision) {
+	            let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0];
+	            if (!observer) {
+	                return;
+	            }
+	            observer.observeRoom(this.needsVision);
+	        }
+	    }
+	    finalizeMission() {
+	    }
+	    invalidateMissionCache() {
+	    }
+	    explorerActions(explorer) {
+	        if (this.needsVision) {
+	            this.empire.travelTo(explorer, { pos: helper_1.helper.pathablePosition(this.needsVision) });
+	        }
+	    }
+	}
+	exports.SurveyMission = SurveyMission;
+
+
+/***/ },
+/* 52 */
+/*!*******************************************!*\
+  !*** ./src/ai/missions/SurveyAnalyzer.ts ***!
+  \*******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
+	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
+	class SurveyAnalyzer {
+	    constructor(mission) {
+	        this.room = mission.getRoom();
+	        this.empire = mission.getEmpire();
+	        this.spawnGroup = mission.getSpawnGroup();
+	        this.memory = mission.getMemory();
+	        this.opName = mission.getOpName();
+	    }
+	    run() {
+	        // place flag in chosen room
+	        if (Game.time < this.memory.nextAnalysis) {
+	            return;
+	        }
+	        if (this.memory.chosenRoom) {
+	            let room = Game.rooms[this.memory.chosenRoom];
+	            if (room) {
+	                this.placeFlag(room);
+	                delete this.memory.chosenRoom;
+	                if (Object.keys(this.memory.surveyRooms).length === 0) {
+	                    notifier_1.notifier.add(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
+	                }
+	                else {
+	                    this.memory.nextAnalysis = Game.time + 1000;
+	                }
+	            }
+	            return this.memory.chosenRoom;
+	        }
+	        // analyze rooms
+	        let exploreRoomName;
+	        if (!this.memory.surveyRooms) {
+	            this.memory.surveyRooms = this.initSurveyData();
+	        }
+	        exploreRoomName = this.completeSurveyData(this.memory.surveyRooms);
+	        if (exploreRoomName)
+	            return exploreRoomName;
+	        exploreRoomName = this.updateOwnershipData();
+	        if (exploreRoomName)
+	            return;
+	        let chosenRoom;
+	        let readyList = this.checkReady();
+	        if (readyList && Object.keys(readyList).length > 0) {
+	            chosenRoom = this.chooseRoom(readyList);
+	        }
+	        if (chosenRoom) {
+	            this.memory.chosenRoom = chosenRoom;
+	        }
+	        else if (this.memory.nextAnalysis < Game.time) {
+	            this.memory.nextAnalysis = Game.time + 1000;
+	        }
+	    }
+	    initSurveyData() {
+	        let data = {};
+	        // find core
+	        let roomCoords = helper_1.helper.getRoomCoordinates(this.room.name);
+	        let coreX = "" + Math.floor(roomCoords.x / 10) + 5;
+	        let coreY = "" + Math.floor(roomCoords.y / 10) + 5;
+	        let nearestCore = roomCoords.xDir + coreX + roomCoords.yDir + coreY;
+	        if (Game.map.getRoomLinearDistance(this.room.name, nearestCore) <= 2 &&
+	            this.spawnGroup.averageAvailability > 1.5) {
+	            data[nearestCore] = { danger: true };
+	        }
+	        let adjacentRoomNames = this.findAdjacentRooms(this.room.name, 1, [constants_1.ROOMTYPE_ALLEY]);
+	        for (let roomName of adjacentRoomNames) {
+	            let noSafePath = false;
+	            let roomsInPath = this.empire.findAllowedRooms(this.room.name, roomName, { allowHostile: true, restrictDistance: 1 });
+	            if (roomsInPath) {
+	                for (let roomName in roomsInPath) {
+	                    if (this.empire.memory.hostileRooms[roomName]) {
+	                        noSafePath = true;
+	                    }
+	                }
+	            }
+	            else {
+	                noSafePath = true;
+	            }
+	            let type = helper_1.helper.roomTypeFromName(roomName);
+	            if (type === constants_1.ROOMTYPE_SOURCEKEEPER || noSafePath) {
+	                data[roomName] = { danger: true };
+	            }
+	            else {
+	                data[roomName] = { danger: false };
+	            }
+	        }
+	        return data;
+	    }
+	    findAdjacentRooms(startRoomName, distance = 1, filterOut = []) {
+	        let alreadyChecked = { [startRoomName]: true };
+	        let adjacentRooms = [];
+	        let testRooms = [startRoomName];
+	        while (testRooms.length > 0) {
+	            let testRoom = testRooms.pop();
+	            alreadyChecked[testRoom] = true;
+	            for (let value of _.values(Game.map.describeExits(testRoom))) {
+	                if (alreadyChecked[value])
+	                    continue;
+	                if (Game.map.getRoomLinearDistance(startRoomName, value) > distance)
+	                    continue;
+	                if (_.includes(filterOut, helper_1.helper.roomTypeFromName(value)))
+	                    continue;
+	                adjacentRooms.push(value);
+	                testRooms.push(value);
+	                alreadyChecked[value] = true;
+	            }
+	        }
+	        return adjacentRooms;
+	    }
+	    completeSurveyData(surveyRooms) {
+	        for (let roomName in surveyRooms) {
+	            let data = surveyRooms[roomName];
+	            if (data.sourceCount)
+	                continue;
+	            let room = Game.rooms[roomName];
+	            if (room) {
+	                this.analyzeRoom(room, data);
+	                continue;
+	            }
+	            if (!data.danger) {
+	                return roomName;
+	            }
+	            else {
+	                if (this.room.controller.level < 8)
+	                    continue;
+	                return roomName;
+	            }
+	        }
+	    }
+	    analyzeRoom(room, data) {
+	        // mineral
+	        if (!room.controller) {
+	            data.mineralType = room.find(FIND_MINERALS)[0].mineralType;
+	        }
+	        // owner
+	        data.owner = this.checkOwnership(room);
+	        data.lastCheckedOwner = Game.time;
+	        if (data.owner === constants_1.USERNAME) {
+	            delete this.memory.surveyRooms[room.name];
+	            return;
+	        }
+	        // source info
+	        let roomDistance = Game.map.getRoomLinearDistance(this.room.name, room.name);
+	        let sources = room.find(FIND_SOURCES);
+	        let roomType = helper_1.helper.roomTypeFromName(room.name);
+	        let distances = [];
+	        data.sourceCount = 0;
+	        for (let source of sources) {
+	            data.sourceCount++;
+	            let ret = PathFinder.search(this.room.storage.pos, { pos: source.pos, range: 1 }, {
+	                swampCost: 1,
+	                plainCost: 1,
+	                roomCallback: (roomName) => {
+	                    if (Game.map.getRoomLinearDistance(this.room.name, roomName) > roomDistance) {
+	                        return false;
+	                    }
+	                }
+	            });
+	            if (ret.incomplete) {
+	                notifier_1.notifier.add(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
+	            }
+	            let distance = ret.path.length;
+	            distances.push(distance);
+	            let cartsNeeded = Mission_1.Mission.analyzeTransport(distance, Mission_1.Mission.loadFromSource(source), 12900).cartsNeeded;
+	            // disqualify due to source distance
+	            if (cartsNeeded > data.sourceCount) {
+	                delete this.memory.surveyRooms[room.name];
+	                return;
+	            }
+	        }
+	        data.averageDistance = _.sum(distances) / distances.length;
+	        // walls
+	        data.hasWalls = room.findStructures(STRUCTURE_WALL).length > 0;
+	    }
+	    checkOwnership(room) {
+	        let flags = room.find(FIND_FLAGS);
+	        for (let flag of flags) {
+	            if (flag.name.indexOf("mining") >= 0 || flag.name.indexOf("keeper") >= 0) {
+	                return constants_1.USERNAME;
+	            }
+	        }
+	        if (room.controller) {
+	            if (room.controller.reservation) {
+	                return room.controller.reservation.username;
+	            }
+	            else if (room.controller.owner) {
+	                return room.controller.owner.username;
+	            }
+	        }
+	        else {
+	            for (let source of room.find(FIND_SOURCES)) {
+	                let nearbyCreeps = _.filter(source.pos.findInRange(FIND_CREEPS, 1), (c) => !c.owner || c.owner.username !== "Source Keeper");
+	                if (nearbyCreeps.length === 0) {
+	                    continue;
+	                }
+	                return nearbyCreeps[0].owner.username;
+	            }
+	        }
+	    }
+	    updateOwnershipData() {
+	        for (let roomName in this.memory.surveyRooms) {
+	            let data = this.memory.surveyRooms[roomName];
+	            // owner
+	            if (Game.time > data.lastCheckedOwner + 10000) {
+	                let room = Game.rooms[roomName];
+	                if (room) {
+	                    data.owner = this.checkOwnership(room);
+	                    if (data.owner === constants_1.USERNAME) {
+	                        delete this.memory.surveyRooms[room.name];
+	                    }
+	                    else {
+	                        data.lastCheckedOwner = Game.time;
+	                    }
+	                }
+	                else {
+	                    return roomName;
+	                }
+	            }
+	        }
+	    }
+	    checkReady() {
+	        if (!this.empire.underCPULimit()) {
+	            notifier_1.notifier.add(`SURVEY: avoiding placement, cpu is over limit`);
+	            this.memory.nextAnalysis = Game.time + 10000;
+	            return;
+	        }
+	        let readyList = {};
+	        for (let roomName in this.memory.surveyRooms) {
+	            let data = this.memory.surveyRooms[roomName];
+	            // owner
+	            if (!data.sourceCount) {
+	                continue;
+	            }
+	            // don't claim rooms if any nearby rooms with another owner
+	            if (data.owner) {
+	                return;
+	            }
+	            // spawning availability
+	            let availabilityRequired = this.spawnGroup.spawns.length / 3;
+	            if (Game.map.getRoomLinearDistance(this.room.name, roomName) > 1) {
+	                availabilityRequired = 1.2;
+	            }
+	            if (this.spawnGroup.averageAvailability < availabilityRequired) {
+	                continue;
+	            }
+	            readyList[roomName] = data;
+	        }
+	        return readyList;
+	    }
+	    chooseRoom(readySurveyRooms) {
+	        let bestScore = 0;
+	        let bestChoice;
+	        for (let roomName in readySurveyRooms) {
+	            let data = readySurveyRooms[roomName];
+	            let score = data.sourceCount * 1000 - data.averageDistance;
+	            if (score > bestScore) {
+	                bestChoice = roomName;
+	                bestScore = score;
+	            }
+	        }
+	        return bestChoice;
+	    }
+	    placeFlag(room) {
+	        let direction = helper_1.helper.findRelativeRoomDir(this.room.name, room.name);
+	        let opName = this.opName.substr(0, this.opName.length - 1) + direction;
+	        if (Game.map.getRoomLinearDistance(this.room.name, room.name) > 1) {
+	            opName += direction;
+	        }
+	        let opType = "mining";
+	        if (room.roomType === constants_1.ROOMTYPE_SOURCEKEEPER) {
+	            opType = "keeper";
+	        }
+	        let flagName = `${opType}_${opName}`;
+	        helper_1.helper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
+	        notifier_1.notifier.add(`SURVEY: created new operation in ${room.name}: ${flagName}`);
+	    }
+	}
+	exports.SurveyAnalyzer = SurveyAnalyzer;
+
+
+/***/ },
+/* 53 */
 /*!********************************************!*\
   !*** ./src/ai/operations/AutoOperation.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const Operation_1 = __webpack_require__(/*! ./Operation */ 7);
-	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 46);
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const SeedAnalysis_1 = __webpack_require__(/*! ../SeedAnalysis */ 48);
 	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
-	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 23);
+	const ScoutMission_1 = __webpack_require__(/*! ../missions/ScoutMission */ 25);
 	const MAX_SOURCE_DISTANCE = 100;
 	const PATHFINDER_RANGE_ALLOWANCE = 20;
 	class AutoOperation extends Operation_1.Operation {
@@ -10249,16 +11217,16 @@ module.exports =
 
 
 /***/ },
-/* 50 */
+/* 54 */
 /*!********************************************!*\
   !*** ./src/ai/operations/FlexOperation.ts ***!
   \********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 45);
-	const FlexGenerator_1 = __webpack_require__(/*! ../FlexGenerator */ 51);
-	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 11);
+	const ControllerOperation_1 = __webpack_require__(/*! ./ControllerOperation */ 47);
+	const FlexGenerator_1 = __webpack_require__(/*! ../FlexGenerator */ 55);
+	const DefenseMission_1 = __webpack_require__(/*! ../missions/DefenseMission */ 13);
 	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
 	class FlexOperation extends ControllerOperation_1.ControllerOperation {
 	    constructor() {
@@ -10343,7 +11311,7 @@ module.exports =
 
 
 /***/ },
-/* 51 */
+/* 55 */
 /*!*********************************!*\
   !*** ./src/ai/FlexGenerator.ts ***!
   \*********************************/
@@ -10672,7 +11640,334 @@ module.exports =
 
 
 /***/ },
-/* 52 */
+/* 56 */
+/*!**********************************************!*\
+  !*** ./src/ai/operations/ZombieOperation.ts ***!
+  \**********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const Operation_1 = __webpack_require__(/*! ./Operation */ 9);
+	const constants_1 = __webpack_require__(/*! ../../config/constants */ 4);
+	const ZombieMission_1 = __webpack_require__(/*! ../missions/ZombieMission */ 57);
+	class ZombieOperation extends Operation_1.Operation {
+	    constructor(flag, name, type, empire) {
+	        super(flag, name, type, empire);
+	        this.priority = constants_1.OperationPriority.Low;
+	    }
+	    initOperation() {
+	        this.spawnGroup = this.getRemoteSpawnGroup(4, 8);
+	        if (!this.spawnGroup)
+	            return;
+	        this.addMission(new ZombieMission_1.ZombieMission(this));
+	    }
+	    finalizeOperation() {
+	    }
+	    invalidateOperationCache() {
+	    }
+	}
+	exports.ZombieOperation = ZombieOperation;
+
+
+/***/ },
+/* 57 */
+/*!******************************************!*\
+  !*** ./src/ai/missions/ZombieMission.ts ***!
+  \******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	const Mission_1 = __webpack_require__(/*! ./Mission */ 11);
+	const helper_1 = __webpack_require__(/*! ../../helpers/helper */ 5);
+	const notifier_1 = __webpack_require__(/*! ../../notifier */ 6);
+	class ZombieMission extends Mission_1.Mission {
+	    constructor(operation) {
+	        super(operation, "zombie");
+	        this.getBody = () => {
+	            if (this.memory.expectedDamage === 0) {
+	                return this.workerBody(10, 0, 10);
+	            }
+	            if (this.memory.expectedDamage <= 240) {
+	                let healCount = Math.ceil(this.memory.expectedDamage / HEAL_POWER);
+	                let moveCount = 17; // move once every other tick
+	                let dismantleCount = MAX_CREEP_SIZE - healCount - moveCount;
+	                return this.configBody({ [WORK]: dismantleCount, [MOVE]: 17, [HEAL]: healCount });
+	            }
+	            if (this.memory.expectedDamage <= 600) {
+	                let healCount = Math.ceil((this.memory.expectedDamage * .3) / HEAL_POWER); // boosting tough
+	                let dismantleCount = 28 - healCount;
+	                return this.configBody({ [TOUGH]: 5, [WORK]: dismantleCount, [MOVE]: 17, [HEAL]: healCount });
+	            }
+	            if (this.memory.expectedDamage <= 1600) {
+	                let healCount = Math.ceil((this.memory.expectedDamage * .3) / (HEAL_POWER * 4)); // boosting heal and tough
+	                let dismantleCount = 30 - healCount;
+	                return this.configBody({ [TOUGH]: 10, [WORK]: dismantleCount, [MOVE]: 10, [HEAL]: healCount });
+	            }
+	        };
+	    }
+	    initMission() {
+	        if (!this.memory.matrix) {
+	            this.memory.matrix = this.findMatrix();
+	        }
+	    }
+	    roleCall() {
+	        let max = 0;
+	        if (this.memory.status === "attack") {
+	            max = 2;
+	        }
+	        this.zombies = this.headCount("zombie", this.getBody, max, {
+	            memory: { boosts: this.getBoosts(), safeCount: 0 },
+	            prespawn: this.memory.prespawn,
+	            skipMoveToRoom: true,
+	            blindSpawn: true
+	        });
+	    }
+	    missionActions() {
+	        for (let zombie of this.zombies) {
+	            this.zombieActions(zombie);
+	        }
+	    }
+	    finalizeMission() {
+	        if (this.memory.status === "remove" || (this.room && this.room.controller.safeMode)) {
+	            notifier_1.notifier.add(`ZOMBIE: removing ${this.opName}. safemode: ${this.room && this.room.controller.safeMode}`);
+	            this.flag.remove();
+	        }
+	    }
+	    invalidateMissionCache() {
+	    }
+	    zombieActions(zombie) {
+	        if (zombie.hits < zombie.hitsMax) {
+	            zombie.heal(zombie);
+	        }
+	        if (this.memory.fallback && !zombie.memory.reachedFallback) {
+	            let fallback = helper_1.helper.deserializeRoomPosition(this.memory.fallback);
+	            if (zombie.pos.isNearTo(fallback) && zombie.hits === zombie.hitsMax) {
+	                if (!zombie.memory.prespawn) {
+	                    zombie.memory.prespawn = true;
+	                    this.memory.prespawn = 1500 - zombie.ticksToLive;
+	                }
+	                zombie.memory.reachedFallback = true;
+	            }
+	            this.empire.travelTo(zombie, { pos: fallback });
+	            return;
+	        }
+	        if (zombie.pos.isNearExit(0)) {
+	            if (zombie.hits > zombie.hitsMax - 500) {
+	                zombie.memory.safeCount++;
+	            }
+	            else {
+	                zombie.memory.safeCount = 0;
+	            }
+	            if (zombie.memory.safeCount < 10) {
+	                return;
+	            }
+	        }
+	        else {
+	            zombie.memory.safeCount = 0;
+	        }
+	        let threshold = 500;
+	        if (this.memory.expectedDamage > 240) {
+	            threshold = 250;
+	        }
+	        if (zombie.hits < zombie.hitsMax - threshold) {
+	            zombie.memory.reachedFallback = false;
+	        }
+	        let destination = this.flag;
+	        if (!zombie.memory.retreat) {
+	            if (zombie.pos.roomName === this.flag.pos.roomName) {
+	                let closestSpawn = zombie.pos.findClosestByRange(this.room.findStructures(STRUCTURE_SPAWN));
+	                if (closestSpawn) {
+	                    destination = closestSpawn;
+	                    if (zombie.hits === zombie.hitsMax && zombie.pos.isNearTo(closestSpawn)) {
+	                    }
+	                }
+	                else {
+	                    notifier_1.notifier.add(`ZOMBIE: mission complete in ${this.room.name}`);
+	                    this.memory.status = "remove";
+	                }
+	            }
+	        }
+	        let position = this.moveZombie(zombie, destination, zombie.memory.demolishing);
+	        zombie.memory.demolishing = false;
+	        if (zombie.hits === zombie.hitsMax && position instanceof RoomPosition &&
+	            zombie.room == this.room && !zombie.pos.isNearExit(0)) {
+	            let structure = position.lookFor(LOOK_STRUCTURES)[0];
+	            if (structure && structure.structureType !== STRUCTURE_CONTAINER && structure.structureType !== STRUCTURE_ROAD) {
+	                zombie.memory.demolishing = true;
+	                zombie.dismantle(structure);
+	            }
+	        }
+	    }
+	    moveZombie(zombie, destination, ignoreStuck) {
+	        let roomCallback = (roomName) => {
+	            if (roomName === this.flag.pos.roomName) {
+	                let matrix = PathFinder.CostMatrix.deserialize(this.memory.matrix);
+	                for (let zombie of this.zombies) {
+	                    if (zombie.room === this.room && !zombie.pos.isNearExit(0)) {
+	                        matrix.set(zombie.pos.x, zombie.pos.y, 0xff);
+	                    }
+	                }
+	                return matrix;
+	            }
+	        };
+	        return this.empire.travelTo(zombie, destination, {
+	            ignoreStuck: ignoreStuck,
+	            returnPosition: true,
+	            roomCallback: roomCallback,
+	        });
+	    }
+	    findMatrix() {
+	        if (!this.hasVision) {
+	            let observer = this.spawnGroup.room.findStructures(STRUCTURE_OBSERVER)[0];
+	            if (!observer) {
+	                return;
+	            }
+	            observer.observeRoom(this.flag.pos.roomName);
+	            return;
+	        }
+	        let spawns = this.room.findStructures(STRUCTURE_SPAWN);
+	        if (spawns.length === 0) {
+	            this.memory.status = "remove";
+	            return;
+	        }
+	        let matrix = new PathFinder.CostMatrix();
+	        let towers = this.room.findStructures(STRUCTURE_TOWER);
+	        if (towers.length === 0) {
+	            this.memory.status = "attack";
+	            this.memory.expectedDamage = 0;
+	            this.memory.fallback = spawns[0].pos;
+	            notifier_1.notifier.add(`ZOMBIE: init zombie at ${this.room.name}, expectedDamage: 0`);
+	            return matrix.serialize();
+	        }
+	        let bestExit;
+	        let ret = PathFinder.search(this.spawnGroup.pos, { pos: spawns[0].pos, range: 1 }, {
+	            roomCallback: (roomName) => {
+	                if (roomName !== this.room.name && this.empire.memory.hostileRooms[roomName]) {
+	                    return false;
+	                }
+	                let room = Game.rooms[roomName];
+	                if (room) {
+	                    return room.defaultMatrix;
+	                }
+	            }
+	        });
+	        if (!ret.incomplete) {
+	            console.log(`found path!`);
+	            bestExit = _.find(ret.path, (p) => p.roomName === this.room.name);
+	        }
+	        let allowedExits = {};
+	        let exitData = Game.map.describeExits(this.room.name);
+	        for (let direction in exitData) {
+	            let roomName = exitData[direction];
+	            let allowedRooms = this.empire.findAllowedRooms(this.spawnGroup.pos.roomName, roomName);
+	            if (allowedRooms && Object.keys(allowedRooms).length <= 8) {
+	                allowedExits[direction] = true;
+	            }
+	        }
+	        if (Object.keys(allowedExits).length === 0) {
+	            this.memory.status = "remove";
+	            return;
+	        }
+	        let exitPositions = [];
+	        for (let x = 0; x < 50; x++) {
+	            for (let y = 0; y < 50; y++) {
+	                if (x !== 0 && y !== 0 && x !== 49 && y !== 49) {
+	                    continue;
+	                }
+	                if (Game.map.getTerrainAt(x, y, this.room.name) === "wall") {
+	                    continue;
+	                }
+	                matrix.set(x, y, 0xff);
+	                if (bestExit) {
+	                    continue;
+	                }
+	                if (allowedExits["1"] && y === 0) {
+	                    exitPositions.push(new RoomPosition(x, y, this.room.name));
+	                }
+	                else if (allowedExits["3"] && x === 49) {
+	                    exitPositions.push(new RoomPosition(x, y, this.room.name));
+	                }
+	                else if (allowedExits["5"] && y === 49) {
+	                    exitPositions.push(new RoomPosition(x, y, this.room.name));
+	                }
+	                else if (allowedExits["7"] && x === 0) {
+	                    exitPositions.push(new RoomPosition(x, y, this.room.name));
+	                }
+	            }
+	        }
+	        if (!bestExit) {
+	            bestExit = _(exitPositions)
+	                .sortBy((p) => -_.sum(towers, (t) => p.getRangeTo(t)))
+	                .head();
+	        }
+	        matrix.set(bestExit.x, bestExit.y, 1);
+	        let walls = this.room.findStructures(STRUCTURE_WALL)
+	            .concat(this.room.findStructures(STRUCTURE_RAMPART));
+	        if (walls.length > 0) {
+	            let highestHits = _(walls).sortBy("hits").last().hits;
+	            for (let wall of walls) {
+	                matrix.set(wall.pos.x, wall.pos.y, Math.ceil(wall.hits * 10 / highestHits) * 10);
+	            }
+	        }
+	        let expectedDamage = 0;
+	        for (let tower of towers) {
+	            let range = bestExit.getRangeTo(tower);
+	            expectedDamage += helper_1.helper.towerDamageAtRange(range);
+	        }
+	        expectedDamage /= 2;
+	        if (expectedDamage > 1600) {
+	            this.memory.status = "upgrade";
+	            return;
+	        }
+	        this.memory.expectedDamage = expectedDamage;
+	        this.memory.bestExit = bestExit;
+	        if (this.room.storage) {
+	            matrix.set(this.room.storage.pos.x, this.room.storage.pos.y, 0xff);
+	        }
+	        if (this.room.terminal) {
+	            matrix.set(this.room.terminal.pos.x, this.room.terminal.pos.y, 0xff);
+	        }
+	        let fallback = _.clone(bestExit);
+	        if (fallback.x === 0) {
+	            fallback.x = 48;
+	            fallback.roomName = helper_1.helper.findRelativeRoomName(fallback.roomName, -1, 0);
+	        }
+	        else if (fallback.x === 49) {
+	            fallback.x = 1;
+	            fallback.roomName = helper_1.helper.findRelativeRoomName(fallback.roomName, 1, 0);
+	        }
+	        else if (fallback.y === 0) {
+	            fallback.y = 48;
+	            fallback.roomName = helper_1.helper.findRelativeRoomName(fallback.roomName, 0, -1);
+	        }
+	        else {
+	            fallback.y = 1;
+	            fallback.roomName = helper_1.helper.findRelativeRoomName(fallback.roomName, 0, 1);
+	        }
+	        this.memory.fallback = fallback;
+	        helper_1.helper.showMatrix(matrix);
+	        this.memory.status = "attack";
+	        notifier_1.notifier.add(`ZOMBIE: init zombie at ${this.room.name}, expectedDamage: ${this.memory.expectedDamage}, bestExit: ${bestExit}`);
+	        return matrix.serialize();
+	    }
+	    getBoosts() {
+	        if (this.memory.expectedDamage <= 240) {
+	            return;
+	        }
+	        if (this.memory.expectedDamage <= 600) {
+	            return [RESOURCE_CATALYZED_GHODIUM_ALKALIDE];
+	        }
+	        else {
+	            return [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
+	                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID];
+	        }
+	    }
+	}
+	exports.ZombieMission = ZombieMission;
+
+
+/***/ },
+/* 58 */
 /*!******************************************!*\
   !*** ./src/prototypes/initPrototypes.ts ***!
   \******************************************/
@@ -10680,9 +11975,9 @@ module.exports =
 
 	"use strict";
 	const helper_1 = __webpack_require__(/*! ../helpers/helper */ 5);
-	const initRoomPrototype_1 = __webpack_require__(/*! ./initRoomPrototype */ 53);
-	const initRoomPositionPrototype_1 = __webpack_require__(/*! ./initRoomPositionPrototype */ 54);
-	const initCreepPrototype_1 = __webpack_require__(/*! ./initCreepPrototype */ 55);
+	const initRoomPrototype_1 = __webpack_require__(/*! ./initRoomPrototype */ 59);
+	const initRoomPositionPrototype_1 = __webpack_require__(/*! ./initRoomPositionPrototype */ 60);
+	const initCreepPrototype_1 = __webpack_require__(/*! ./initCreepPrototype */ 61);
 	function initPrototypes() {
 	    initRoomPrototype_1.initRoomPrototype();
 	    initRoomPositionPrototype_1.initRoomPositionPrototype();
@@ -10693,9 +11988,10 @@ module.exports =
 	     * There should only be one instance of that structureType within range, per object
 	     * @param structureType
 	     * @param range
+	     * @param immediate
 	     * @returns {T}
 	     */
-	    RoomObject.prototype.findMemoStructure = function (structureType, range) {
+	    RoomObject.prototype.findMemoStructure = function (structureType, range, immediate = false) {
 	        if (!this.room.memory[structureType])
 	            this.room.memory[structureType] = {};
 	        if (this.room.memory[structureType][this.id]) {
@@ -10705,12 +12001,11 @@ module.exports =
 	            }
 	            else {
 	                this.room.memory[structureType][this.id] = undefined;
+	                return this.findMemoStructure(structureType, range, immediate);
 	            }
 	        }
-	        else if (Game.time % 10 === 7) {
-	            let structures = _.filter(this.pos.findInRange(FIND_STRUCTURES, range), (s) => {
-	                return s.structureType === structureType;
-	            });
+	        else if (Game.time % 10 === 7 || immediate) {
+	            let structures = this.pos.findInRange(this.room.findStructures(structureType), range);
 	            if (structures.length > 0) {
 	                this.room.memory[structureType][this.id] = structures[0].id;
 	            }
@@ -10788,26 +12083,45 @@ module.exports =
 	    };
 	    StructureObserver.prototype._observeRoom = StructureObserver.prototype.observeRoom;
 	    StructureObserver.prototype.observeRoom = function (roomName, purpose = "unknown", override = false) {
-	        if (this.currentPurpose && !override) {
-	            return ERR_BUSY;
+	        let makeObservation = (observation) => {
+	            this.observation; // load the current observation before overwriting
+	            this.room.memory.observation = observation;
+	            this.alreadyObserved = true;
+	            return this._observeRoom(observation.roomName);
+	        };
+	        if (override) {
+	            return makeObservation({ roomName: roomName, purpose: purpose });
 	        }
 	        else {
-	            this.room.memory.observation = { purpose: purpose, roomName: roomName };
-	            this.currentPurpose = purpose;
-	            return this._observeRoom(roomName);
+	            if (!this.room.memory.obsQueue)
+	                this.room.memory.obsQueue = [];
+	            let queue = this.room.memory.obsQueue;
+	            if (!_.find(queue, (item) => item.purpose === purpose)) {
+	                queue.push({ purpose: purpose, roomName: roomName });
+	            }
+	            if (!this.alreadyObserved) {
+	                return makeObservation(queue.shift());
+	            }
+	            else {
+	                return OK;
+	            }
 	        }
 	    };
 	    Object.defineProperty(StructureObserver.prototype, "observation", {
 	        get: function () {
-	            if (this.room.memory.observation) {
-	                let room = Game.rooms[this.room.memory.observation.roomName];
-	                if (room) {
-	                    return { purpose: this.room.memory.observation.purpose, room: room };
-	                }
-	                else {
-	                    this.room.memory.observation = undefined;
+	            if (!this._observation) {
+	                let observation = this.room.memory.observation;
+	                if (observation) {
+	                    let room = Game.rooms[observation.roomName];
+	                    if (room) {
+	                        observation.room = room;
+	                        this._observation = observation;
+	                    }
+	                    else {
+	                    }
 	                }
 	            }
+	            return this._observation;
 	        }
 	    });
 	    StructureTerminal.prototype._send = StructureTerminal.prototype.send;
@@ -10835,7 +12149,7 @@ module.exports =
 
 
 /***/ },
-/* 53 */
+/* 59 */
 /*!*********************************************!*\
   !*** ./src/prototypes/initRoomPrototype.ts ***!
   \*********************************************/
@@ -10963,12 +12277,21 @@ module.exports =
 	            return this.memory.coordinates;
 	        }
 	    });
+	    Object.defineProperty(Room.prototype, "defaultMatrix", {
+	        get: function myProperty() {
+	            if (!this._defaultMatrix) {
+	                let matrix = new PathFinder.CostMatrix();
+	                this._defaultMatrix = helper_1.helper.addStructuresToMatrix(matrix, this);
+	            }
+	            return this._defaultMatrix;
+	        }
+	    });
 	}
 	exports.initRoomPrototype = initRoomPrototype;
 
 
 /***/ },
-/* 54 */
+/* 60 */
 /*!*****************************************************!*\
   !*** ./src/prototypes/initRoomPositionPrototype.ts ***!
   \*****************************************************/
@@ -11249,7 +12572,7 @@ module.exports =
 
 
 /***/ },
-/* 55 */
+/* 61 */
 /*!**********************************************!*\
   !*** ./src/prototypes/initCreepPrototype.ts ***!
   \**********************************************/
@@ -11482,9 +12805,13 @@ module.exports =
 	     * Can be used to keep idling creeps out of the way, like when a road repairer doesn't have any roads needing repair
 	     * or a spawn refiller who currently has full extensions. Clear roads allow for better creep.BlindMoveTo() behavior
 	     * @param defaultPoint
+	     * @param maintainDistance
 	     * @returns {any}
 	     */
-	    Creep.prototype.idleOffRoad = function (defaultPoint) {
+	    Creep.prototype.idleOffRoad = function (defaultPoint, maintainDistance = false) {
+	        let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
+	        if (offRoad)
+	            return OK;
 	        if (this.memory.idlePosition) {
 	            let pos = helper_1.helper.deserializeRoomPosition(this.memory.idlePosition);
 	            if (!this.pos.inRangeTo(pos, 0)) {
@@ -11492,20 +12819,21 @@ module.exports =
 	            }
 	            return OK;
 	        }
-	        let offRoad = this.pos.lookFor(LOOK_STRUCTURES).length === 0;
-	        if (offRoad)
-	            return OK;
-	        let positions = this.pos.openAdjacentSpots();
+	        let positions = _.sortBy(this.pos.openAdjacentSpots(), (p) => p.getRangeTo(defaultPoint));
+	        if (maintainDistance) {
+	            let currentRange = this.pos.getRangeTo(defaultPoint);
+	            positions = _.filter(positions, (p) => p.getRangeTo(defaultPoint) <= currentRange);
+	        }
 	        let swampPosition;
 	        for (let position of positions) {
-	            if (position.lookFor(LOOK_STRUCTURES).length === 0) {
-	                let terrain = position.lookFor(LOOK_TERRAIN)[0];
-	                if (terrain === "swamp") {
-	                    swampPosition = position;
-	                }
-	                else {
-	                    return this.move(this.pos.getDirectionTo(position));
-	                }
+	            if (position.lookForStructure(STRUCTURE_ROAD))
+	                continue;
+	            let terrain = position.lookFor(LOOK_TERRAIN)[0];
+	            if (terrain === "swamp") {
+	                swampPosition = position;
+	            }
+	            else {
+	                return this.move(this.pos.getDirectionTo(position));
 	            }
 	        }
 	        if (swampPosition) {
@@ -11517,37 +12845,38 @@ module.exports =
 	     * another function for keeping roads clear, this one is more useful for builders and road repairers that are
 	     * currently working, will move off road without going out of range of target
 	     * @param target - target for which you do not want to move out of range
+	     * @param allowSwamps
 	     * @returns {number}
 	     */
 	    Creep.prototype.yieldRoad = function (target, allowSwamps = true) {
-	        let isOnRoad = this.pos.lookFor(LOOK_STRUCTURES).length > 0;
-	        if (isOnRoad) {
-	            let swampPosition;
-	            // find movement options
-	            let direction = this.pos.getDirectionTo(target);
-	            for (let i = -2; i <= 2; i++) {
-	                let relDirection = direction + i;
-	                relDirection = helper_1.helper.clampDirection(relDirection);
-	                let position = this.pos.getPositionAtDirection(relDirection);
-	                if (!position.inRangeTo(target, 3))
-	                    continue;
-	                if (position.lookFor(LOOK_STRUCTURES).length > 0)
-	                    continue;
-	                if (!position.isPassible())
-	                    continue;
-	                if (position.isNearExit(0))
-	                    continue;
-	                if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
-	                    swampPosition = position;
-	                    continue;
-	                }
-	                return this.move(relDirection);
+	        let isOffRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
+	        if (isOffRoad)
+	            return OK;
+	        let swampPosition;
+	        // find movement options
+	        let direction = this.pos.getDirectionTo(target);
+	        for (let i = -2; i <= 2; i++) {
+	            let relDirection = direction + i;
+	            relDirection = helper_1.helper.clampDirection(relDirection);
+	            let position = this.pos.getPositionAtDirection(relDirection);
+	            if (!position.inRangeTo(target, 3))
+	                continue;
+	            if (position.lookFor(LOOK_STRUCTURES).length > 0)
+	                continue;
+	            if (!position.isPassible())
+	                continue;
+	            if (position.isNearExit(0))
+	                continue;
+	            if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
+	                swampPosition = position;
+	                continue;
 	            }
-	            if (swampPosition && allowSwamps) {
-	                return this.move(this.pos.getDirectionTo(swampPosition));
-	            }
-	            return this.blindMoveTo(target);
+	            return this.move(relDirection);
 	        }
+	        if (swampPosition && allowSwamps) {
+	            return this.move(this.pos.getDirectionTo(swampPosition));
+	        }
+	        return this.blindMoveTo(target);
 	    };
 	    Creep.prototype._withdraw = Creep.prototype.withdraw;
 	    /**
@@ -11617,11 +12946,11 @@ module.exports =
 	     * Find a structure, cache, and invalidate cache based on the functions provided
 	     * @param findStructure
 	     * @param forget
-	     * @param recursion
+	     * @param immediate
 	     * @param prop
 	     * @returns {Structure}
 	     */
-	    Creep.prototype.rememberStructure = function (findStructure, forget, prop = "remStructureId", recursion = false) {
+	    Creep.prototype.rememberStructure = function (findStructure, forget, prop = "remStructureId", immediate = false) {
 	        if (this.memory[prop]) {
 	            let structure = Game.getObjectById(this.memory[prop]);
 	            if (structure && !forget(structure)) {
@@ -11632,7 +12961,7 @@ module.exports =
 	                return this.rememberStructure(findStructure, forget, prop, true);
 	            }
 	        }
-	        else if (Game.time % 10 === 0 || recursion) {
+	        else if (Game.time % 10 === 0 || immediate) {
 	            let object = findStructure();
 	            if (object) {
 	                this.memory[prop] = object.id;
@@ -11787,14 +13116,14 @@ module.exports =
 
 
 /***/ },
-/* 56 */
+/* 62 */
 /*!************************!*\
   !*** ./src/sandbox.ts ***!
   \************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
-	const profiler_1 = __webpack_require__(/*! ./profiler */ 57);
+	const profiler_1 = __webpack_require__(/*! ./profiler */ 7);
 	exports.sandBox = {
 	    run: function () {
 	        let claimerFlag = Game.flags["claimerFlag"];
@@ -11818,12 +13147,12 @@ module.exports =
 	                console.log("### claimer waiting");
 	            }
 	            else {
-	                claimer.avoidSK(claimerFlag);
+	                emp.travelTo(claimer, claimerFlag);
 	            }
 	        }
 	        let testFlag = Game.flags["testerFlag"];
 	        if (testFlag) {
-	            let creepNames = ["blindMoveTo", "travelTo"];
+	            let creepNames = ["travelTo"];
 	            for (let creepName of creepNames) {
 	                let creep = Game.creeps[creepName];
 	                if (!creep) {
@@ -11853,52 +13182,6 @@ module.exports =
 	                        profiler_1.profiler.end("travelTo");
 	                    }
 	                }
-	            }
-	        }
-	    }
-	};
-
-
-/***/ },
-/* 57 */
-/*!*************************!*\
-  !*** ./src/profiler.ts ***!
-  \*************************/
-/***/ function(module, exports) {
-
-	"use strict";
-	exports.profiler = {
-	    start(identifier, consoleReport = false, period = 5) {
-	        if (!Memory.profiler[identifier]) {
-	            Memory.profiler[identifier] = {};
-	        }
-	        _.defaults(Memory.profiler[identifier], { total: 0, count: 0, startOfPeriod: Game.time - 1 });
-	        Memory.profiler[identifier].period = period;
-	        Memory.profiler[identifier].consoleReport = consoleReport;
-	        Memory.profiler[identifier].lastTickTracked = Game.time;
-	        Memory.profiler[identifier].cpu = Game.cpu.getUsed();
-	    },
-	    end(identifier) {
-	        let profile = Memory.profiler[identifier];
-	        profile.total += Game.cpu.getUsed() - profile.cpu;
-	        profile.count++;
-	    },
-	    finalize() {
-	        for (let identifier in Memory.profiler) {
-	            let profile = Memory.profiler[identifier];
-	            if (Game.time - profile.startOfPeriod >= profile.period) {
-	                profile.costPerCall = _.round(profile.total / profile.count, 2);
-	                profile.costPerTick = _.round(profile.total / profile.period, 2);
-	                profile.callsPerTick = _.round(profile.count / profile.period, 2);
-	                if (profile.consoleReport) {
-	                    console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:", profile.costPerCall, "calls per tick:", profile.callsPerTick);
-	                }
-	                profile.startOfPeriod = Game.time;
-	                profile.total = 0;
-	                profile.count = 0;
-	            }
-	            if (Game.time - profile.lastTickTracked > 10000) {
-	                delete Memory.profiler[identifier];
 	            }
 	        }
 	    }
