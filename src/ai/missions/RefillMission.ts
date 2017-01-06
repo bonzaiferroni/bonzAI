@@ -53,7 +53,12 @@ export class RefillMission extends Mission {
         this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
 
         let cartBody = () => {
-            return this.bodyRatio(0, 2, 1, 1, 10);
+            if (this.opType === "flex") {
+                return this.bodyRatio(0, 2, 1, 1, 16);
+            }
+            else {
+                return this.bodyRatio(0, 2, 1, 1, 10);
+            }
         };
 
         let memory = { scavanger: RESOURCE_ENERGY };
