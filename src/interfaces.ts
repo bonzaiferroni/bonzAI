@@ -132,6 +132,9 @@ export interface TravelToOptions {
     obstacles?: {pos: RoomPosition}[];
     roomCallback?: (roomName: string) => CostMatrix | boolean;
     returnPosition?: boolean;
+    allowHostile?: boolean;
+    allowSK?: boolean;
+    restrictDistance?: number;
 }
 
 export interface BankData {

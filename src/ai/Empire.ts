@@ -559,7 +559,7 @@ export class Empire {
     }
 
     findAllowedRooms(origin: string, destination: string,
-                     options: AllowedRoomsOptions = {}): {[roomName: string]: boolean } {
+                     options: TravelToOptions = {}): {[roomName: string]: boolean } {
         _.defaults(options, { restrictDistance: 20 });
         if (Game.map.getRoomLinearDistance(origin, destination) > options.restrictDistance) { return; }
         let allowedRooms = { [ origin ]: true, [ destination ]: true };
@@ -578,7 +578,7 @@ export class Empire {
                     let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) &&
                         ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
                     if (isSK) {
-                        return 20;
+                        return 10;
                     }
                 }
                 if (!options.allowHostile && this.memory.hostileRooms[roomName] &&
@@ -619,20 +619,15 @@ export class Empire {
         }
         let rangeToDestination = creep.pos.getRangeTo(destination);
         if (rangeToDestination <= 1) {
-            if (rangeToDestination === 0) {
-                return OK;
+            let outcome = OK;
+            if (rangeToDestination === 1 && destination.pos.isPassible()) {
+                outcome = creep.move(creep.pos.getDirectionTo(destination));
             }
-            if (destination.pos.isPassible()) {
-                let outcome = creep.move(creep.pos.getDirectionTo(destination));
-                if (!options.returnPosition || outcome !== OK) {
-                    return outcome;
-                }
-                else {
-                    return destination.pos;
-                }
+            if (options.returnPosition && outcome === OK) {
+                return destination.pos;
             }
             else {
-                return OK;
+                return outcome;
             }
         }
 
@@ -661,12 +656,7 @@ export class Empire {
             travelData.lastPos = undefined;
             options.ignoreCreeps = travelData.stuck < 5;
             let ret = this.findTravelPath(creep, destination, options);
-            // console.log(`Pathfinding incomplete: ${ret.incomplete}, ops: ${ret.ops}, cost: ${ret.cost}, creep.pos: ${creep.pos}`);
             travelData.path = helper.serializePath(creep.pos, ret.path);
-            if (creep.name === "brains_zombie_43") {
-                helper.debugPath(ret.path);
-                if (ret.incomplete) { console.log(`incomplete`)}
-            }
             travelData.stuck = 0;
         }
 
@@ -716,7 +706,7 @@ export class Empire {
 
             if (!allowedRooms && !searchedAlready) {
                 searchedAlready = true;
-                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options.preferHighway);
+                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options);
                 if (!allowedRooms) {
                     notifier.add(`couldn't find allowed rooms for path from ${origin} to ${destination}`)
                 }

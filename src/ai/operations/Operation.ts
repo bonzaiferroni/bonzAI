@@ -161,7 +161,7 @@ export abstract class Operation {
 
     getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
         // invalidated periodically
-        if (!this.memory.spawnRooms) {
+        if (!this.memory.spawnRooms || this.memory.spawnRooms.length === 0) {
             let closestRoomRange = Number.MAX_VALUE;
             let roomNames = [];
             for (let roomName of Object.keys(this.empire.spawnGroups)) {
