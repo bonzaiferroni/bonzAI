@@ -41,7 +41,7 @@ export class RemoteBuildMission extends Mission {
 
     missionActions() {
         for (let builder of this.builders) {
-            if (!this._waypoints && this.recycleWhenDone && this.construction.length === 0) {
+            if (!this.waypoints && this.recycleWhenDone && this.construction.length === 0) {
                 this.recycleBuilder(builder);
             }
             else {

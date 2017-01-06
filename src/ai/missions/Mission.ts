@@ -7,51 +7,40 @@ import {helper} from "../../helpers/helper";
 import {Analyzer} from "./Analyzer";
 export abstract class Mission {
 
-    protected _opName: string;
-    protected _opType: string;
-    protected _flag: Flag;
-    protected _empire: Empire;
-    protected _memory: any;
-    protected _spawnGroup: SpawnGroup;
-    protected _sources: Source[];
-    protected _room: Room;
-    protected _name: string;
-    protected _allowSpawn: boolean;
-    protected _hasVision: boolean;
-    protected _waypoints: Flag[];
-    protected _partnerPairing: {[role: string]: Creep[]} = {};
-    protected _distanceToSpawn: number;
+    opName: string;
+    opType: string;
+    flag: Flag;
+    empire: Empire;
+    memory: any;
+    spawnGroup: SpawnGroup;
+    sources: Source[];
+    room: Room;
+    name: string;
+    allowSpawn: boolean;
+    hasVision: boolean;
+    waypoints: Flag[];
+    partnerPairing: {[role: string]: Creep[]} = {};
+    distanceToSpawn: number;
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
-        this._name = name;
-        this._opName = operation.name;
-        this._opType = operation.type;
-        this._flag = operation.flag;
-        this._room = operation.room;
-        this._empire = operation.empire;
-        this._spawnGroup = operation.spawnGroup;
-        this._sources = operation.sources;
+        this.name = name;
+        this.opName = operation.name;
+        this.opType = operation.type;
+        this.flag = operation.flag;
+        this.room = operation.room;
+        this.empire = operation.empire;
+        this.spawnGroup = operation.spawnGroup;
+        this.sources = operation.sources;
         if (!operation.memory[name]) operation.memory[name] = {};
-        this._memory = operation.memory[name];
-        this._allowSpawn = allowSpawn;
-        if (this._room) this._hasVision = true;
+        this.memory = operation.memory[name];
+        this.allowSpawn = allowSpawn;
+        if (this.room) this.hasVision = true;
         // initialize memory to be used by this mission
-        if (!this._memory.spawn) this._memory.spawn = {};
+        if (!this.memory.spawn) this.memory.spawn = {};
         if (operation.waypoints && operation.waypoints.length > 0) {
-            this._waypoints = operation.waypoints;
+            this.waypoints = operation.waypoints;
         }
     }
-
-    get name(): string { return this._name; };
-    get room(): Room { return this._room; };
-    get flag(): Flag { return this._flag; };
-    get empire(): Empire { return this._empire; };
-    get memory(): any { return this._memory; };
-    get opName(): string { return this._opName; };
-    get opType(): string { return this._opType; };
-    get sources(): Source[] { return this._sources; };
-    get hasVision(): boolean { return this._hasVision; };
-    get spawnGroup(): SpawnGroup { return this._spawnGroup; };
 
     /**
      * Init Phase - Used to initialize values for the following phases
@@ -91,11 +80,11 @@ export abstract class Mission {
     }
 
     public setSpawnGroup(spawnGroup: SpawnGroup) {
-        this._spawnGroup = spawnGroup;
+        this.spawnGroup = spawnGroup;
     }
 
     public invalidateSpawnDistance() {
-        if (this.memory._distanceToSpawn) {
+        if (this.memory.distanceToSpawn) {
             console.log(`SPAWN: resetting distance for ${this.name} in ${this.opName}`);
             this.memory.distanceToSpawn = undefined;
         }
@@ -120,7 +109,7 @@ export abstract class Mission {
             let creep = Game.creeps[creepName];
             if (creep) {
 
-                // newer code to implement _waypoints/boosts
+                // newer code to implement waypoints/boosts
                 let prepared = this.prepCreep(creep, options);
                 if (prepared) {
                     roleArray.push(creep);
@@ -140,7 +129,7 @@ export abstract class Mission {
             }
         }
 
-        if (count < max && this._allowSpawn && this.spawnGroup.isAvailable && (this._hasVision || options.blindSpawn)) {
+        if (count < max && this.allowSpawn && this.spawnGroup.isAvailable && (this.hasVision || options.blindSpawn)) {
             let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
@@ -321,7 +310,7 @@ export abstract class Mission {
         }
         else {
             if (getFromSource) {
-                let closest = creep.pos.findClosestByRange<Source>(this._sources);
+                let closest = creep.pos.findClosestByRange<Source>(this.sources);
                 if (closest) {
                     if (creep.pos.isNearTo(closest)) {
                         creep.harvest(closest);
@@ -330,8 +319,8 @@ export abstract class Mission {
                         creep.blindMoveTo(closest);
                     }
                 }
-                else if (!creep.pos.isNearTo(this._flag)) {
-                    creep.blindMoveTo(this._flag);
+                else if (!creep.pos.isNearTo(this.flag)) {
+                    creep.blindMoveTo(this.flag);
                 }
             }
             else {
@@ -341,7 +330,7 @@ export abstract class Mission {
                     creep.idleOffRoad({pos: dest}, true);
                 }
                 else {
-                    creep.idleOffRoad(this._flag, true);
+                    creep.idleOffRoad(this.flag, true);
                 }
             }
         }
@@ -471,14 +460,14 @@ export abstract class Mission {
             this.disableNotify(creep);
             let boosted = creep.seekBoost(creep.memory.boosts, creep.memory.allowUnboosted);
             if (!boosted) return false;
-            let outcome = creep.travelByWaypoint(this._waypoints);
+            let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
-            if (!options.skipMoveToRoom && (creep.room.name !== this._flag.pos.roomName || creep.isNearExit(1))) {
+            if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(1))) {
                 if (creep.room.roomType === ROOMTYPE_SOURCEKEEPER) {
-                    creep.avoidSK(this._flag);
+                    creep.avoidSK(this.flag);
                 }
                 else {
-                    this.empire.travelTo(creep, this._flag);
+                    this.empire.travelTo(creep, this.flag);
                 }
                 return false;
             }
@@ -491,11 +480,11 @@ export abstract class Mission {
     findPartnerships(creeps: Creep[], role: string) {
         for (let creep of creeps) {
             if (!creep.memory.partner) {
-                if (!this._partnerPairing[role]) this._partnerPairing[role] = [];
-                this._partnerPairing[role].push(creep);
-                for (let otherRole in this._partnerPairing) {
+                if (!this.partnerPairing[role]) this.partnerPairing[role] = [];
+                this.partnerPairing[role].push(creep);
+                for (let otherRole in this.partnerPairing) {
                     if (role === otherRole) continue;
-                    let otherCreeps = this._partnerPairing[otherRole];
+                    let otherCreeps = this.partnerPairing[otherRole];
                     let closestCreep;
                     let smallestAgeDifference = Number.MAX_VALUE;
                     for (let otherCreep of otherCreeps) {
@@ -516,7 +505,7 @@ export abstract class Mission {
     }
 
     protected findDistanceToSpawn(destination: RoomPosition): number {
-        if (!this.memory._distanceToSpawn) {
+        if (!this.memory.distanceToSpawn) {
             let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
             if (roomLinearDistance === 0) {
                 let distance = this.spawnGroup.pos.getPathDistanceTo(destination);
@@ -535,7 +524,7 @@ export abstract class Mission {
             }
         }
 
-        return this.memory._distanceToSpawn;
+        return this.memory.distanceToSpawn;
     }
 
     protected disableNotify(creep: Creep) {

@@ -53,7 +53,7 @@ export class GeologyMission extends Mission {
             this.memory.builtExtractor = true;
         }
 
-        this._distanceToSpawn = this.findDistanceToSpawn(this.mineral.pos);
+        this.distanceToSpawn = this.findDistanceToSpawn(this.mineral.pos);
 
         if (!this.memory.bestBody) {
             this.memory.bestBody = this.calculateBestBody();
@@ -86,12 +86,12 @@ export class GeologyMission extends Mission {
                 return this.workerBody(33, 0, 17);
             }
         };
-        this.geologists = this.headCount("geologist", geoBody, maxGeologists, this._distanceToSpawn);
+        this.geologists = this.headCount("geologist", geoBody, maxGeologists, this.distanceToSpawn);
 
         let maxCarts = maxGeologists > 0 ? this.analysis.cartsNeeded : 0;
         this.carts = this.headCount("geologyCart",
             () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount),
-            maxCarts, {prespawn: this._distanceToSpawn});
+            maxCarts, {prespawn: this.distanceToSpawn});
 
         let maxRepairers = this.mineral.mineralAmount > 5000 && this.container && this.container.hits < 50000 ? 1 : 0;
         this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), maxRepairers);
@@ -154,7 +154,7 @@ export class GeologyMission extends Mission {
             let workPartsCount = MAX_CREEP_SIZE - movePartsCount;
             let ticksPerMove = Math.ceil(1 / (movePartsCount * 2 / workPartsCount));
             let minePerTick = workPartsCount;
-            let travelTime = ticksPerMove * this._distanceToSpawn;
+            let travelTime = ticksPerMove * this.distanceToSpawn;
             let mineTime = CREEP_LIFE_TIME - travelTime;
             let mineAmount = minePerTick * mineTime;
 

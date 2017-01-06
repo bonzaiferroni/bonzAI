@@ -32,12 +32,12 @@ export class AutoOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
-        this._priority = OperationPriority.OwnedRoom;
+        this.priority = OperationPriority.OwnedRoom;
     }
 
     initOperation() {
 
-        this._spawnGroup = this.getRemoteSpawnGroup();
+        this.spawnGroup = this.getRemoteSpawnGroup();
         if (!this.spawnGroup) return;
         this.addMission(new ScoutMission(this));
         if (!this.flag.room) return;

@@ -98,7 +98,7 @@ export class LinkNetworkMission extends Mission {
     }
 
     private findSourceLinks() {
-        for (let source of this._sources) {
+        for (let source of this.sources) {
             let link = source.findMemoStructure(STRUCTURE_LINK, 2) as Link;
             if (link) {
                 this.sourceLinks.push(link);
@@ -230,7 +230,7 @@ export class LinkNetworkMission extends Mission {
             storageLink.transferEnergy(this.controllerLink, 400 - this.controllerLink.energy);
         }
 
-        if (this._sources.length === 1) return;
+        if (this.sources.length === 1) return;
         let secondLink = this.sourceLinks[1];
         if (Game.time % 40 === 10 && secondLink && storageLink) {
             secondLink.transferEnergy(storageLink);

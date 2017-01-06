@@ -32,9 +32,9 @@ export abstract class ControllerOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
-        this._priority = OperationPriority.OwnedRoom;
+        this.priority = OperationPriority.OwnedRoom;
         if (this.flag.room && this.flag.room.controller.level < 6) {
-            this._priority = OperationPriority.VeryHigh;
+            this.priority = OperationPriority.VeryHigh;
         }
     }
 
@@ -73,10 +73,10 @@ export abstract class ControllerOperation extends Operation {
         this.autoLayout();
 
         // scout room
-        this._spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
+        this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
         if (!this.spawnGroup) {
             if (!this.memory.spawnRooms) { return; }
-            this._spawnGroup = this.getRemoteSpawnGroup(8);
+            this.spawnGroup = this.getRemoteSpawnGroup(8);
             this.addMission(new ScoutMission(this));
             this.addMission(new ClaimMission(this));
             if (!this.hasVision) return;

@@ -44,13 +44,13 @@ export class RaidOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
-        this._priority = OperationPriority.VeryHigh;
+        this.priority = OperationPriority.VeryHigh;
     }
 
     initOperation() {
         this.flagPlacement();
         this.checkNewPlacement();
-        this._spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
         if (!this.raidData) return;
 
@@ -486,8 +486,8 @@ export class RaidOperation extends Operation {
     }
 
     waypointProgress(index?: number) {
-        for (let missionName in this._missions) {
-            let mission = this._missions[missionName];
+        for (let missionName in this.missions) {
+            let mission = this.missions[missionName];
             if (mission["healer"]) {
                 mission["healer"].memory.waypointsCovered = false;
                 if (index !== undefined) {

@@ -28,13 +28,13 @@ export class FortOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
-        this._priority = OperationPriority.OwnedRoom;
+        this.priority = OperationPriority.OwnedRoom;
     }
 
     initOperation() {
         if (this.flag.room) {
             // initOperation FortOperation variables
-            this._spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+            this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
             this.empire.register(this.flag.room);
 
             // spawn emergency miner if needed

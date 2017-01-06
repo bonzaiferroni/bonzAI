@@ -18,7 +18,7 @@ export class DemolishOperation extends Operation {
     }
 
     initOperation() {
-        this._spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
 
         this.addMission(new DemolishMission(this));
     }
