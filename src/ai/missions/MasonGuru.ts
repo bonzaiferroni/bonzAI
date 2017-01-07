@@ -1,7 +1,8 @@
-import {Analyzer} from "./Analyzer";
+import {Guru} from "./Guru";
 import {MasonMission} from "./MasonMission";
+import {MasonAgent} from "./MasonAgent";
 
-export class MasonAnalyzer extends Analyzer {
+export class MasonGuru extends Guru {
 
     hostiles: Creep[];
 
@@ -14,12 +15,8 @@ export class MasonAnalyzer extends Analyzer {
         super(mission);
     }
 
-    init() {
-
-    }
-
-    getHostiles() {
-        this.hostiles = _.filter(this.room.hostiles, (c: Creep) => {
+    getHostiles(): Creep[] {
+        return _.filter(this.room.hostiles, (c: Creep) => {
             return c.owner.username !== "Invader" && c.body.length >= 40 && _.filter(c.body, part => part.boost).length > 0;
         });
     }
@@ -38,9 +35,19 @@ export class MasonAnalyzer extends Analyzer {
         return this.memory.needMason;
     }
 
-    getSandbags() {
+    getSandbags(): RoomPosition[] {
+        return null;
+
+    }
+
+    getBestSandbag(agent: MasonAgent): StructureRampart {
         if (!this.memory.sandbags) {
 
         }
+        return null;
+    }
+
+    recheckMasonNeed() {
+        this.memory.needMason = undefined;
     }
 }

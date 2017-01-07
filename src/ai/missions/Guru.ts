@@ -1,5 +1,5 @@
 import {Empire} from "../Empire";
-export abstract class Analyzer {
+export abstract class Guru {
 
     protected flag: Flag;
     protected room: Room;
