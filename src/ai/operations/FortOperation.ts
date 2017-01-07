@@ -9,7 +9,7 @@ import {TerminalNetworkMission} from "../missions/TerminalNetworkMission";
 import {IgorMission} from "../missions/IgorMission";
 import {LinkMiningMission} from "../missions/LinkMiningMission";
 import {MiningMission} from "../missions/MiningMission";
-import {BuildMission} from "../missions/BuildMission";
+import {BuilderMission} from "../missions/BuilderMission";
 import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
 import {GeologyMission} from "../missions/GeologyMission";
@@ -73,7 +73,7 @@ export class FortOperation extends Operation {
             }
 
             // build construction
-            this.addMission(new BuildMission(this));
+            this.addMission(new BuilderMission(this));
 
             // build walls
             // TODO: make MasonMission

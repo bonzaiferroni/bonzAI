@@ -130,9 +130,6 @@ export var loopHelper = {
         // STATS START HERE
         _.forEach(Game.rooms, function (room) {
             if (room.controller && room.controller.my) {
-                Memory.stats["rooms." + room.name + ".controller.level"] = room.controller.level;
-                Memory.stats["rooms." + room.name + ".controller.progress"] = room.controller.progress;
-                Memory.stats["rooms." + room.name + ".controller.progressTotal"] = room.controller.progressTotal;
                 Memory.stats["rooms." + room.name + ".energyAvailable"] = room.energyAvailable;
             }
         });
@@ -158,9 +155,8 @@ export var loopHelper = {
         // profiler check
         for (let identifier in Memory.profiler) {
             let profile = Memory.profiler[identifier];
-            Memory.stats["game.profiler." + identifier + ".costPerTick"] = profile.costPerTick;
-            Memory.stats["game.profiler." + identifier + ".costPerCall"] = profile.costPerCall;
-            Memory.stats["game.profiler." + identifier + ".callsPerTick"] = profile.callsPerTick;
+            Memory.stats["game.prof." + identifier + ".cpt"] = profile.costPerTick;
+            Memory.stats["game.prof." + identifier + ".cpc"] = profile.costPerCall;
         }
 
         Memory.stats["game.time"] = Game.time;

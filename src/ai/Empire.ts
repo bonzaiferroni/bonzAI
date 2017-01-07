@@ -610,13 +610,14 @@ export class Empire {
         }
 
         if (!creep.memory._travel) {
-            creep.memory._travel = { stuck: 0, destination: destination.pos, lastPos: undefined, path: undefined }
+            creep.memory._travel = { stuck: 0, tick: Game.time, cpu: 0 } as TravelData;
         }
         let travelData: TravelData = creep.memory._travel;
 
-        if (creep.fatigue > 0 || creep.spawning) {
+        if (creep.fatigue > 0) {
             return ERR_BUSY;
         }
+
         let rangeToDestination = creep.pos.getRangeTo(destination);
         if (rangeToDestination <= 1) {
             let outcome = OK;
@@ -631,43 +632,71 @@ export class Empire {
             }
         }
 
-        if (travelData.lastPos) {
-            travelData.lastPos = helper.deserializeRoomPosition(travelData.lastPos);
-            if (creep.pos.inRangeTo(travelData.lastPos, 0)) {
-                if (options.ignoreStuck) {
-                    travelData.stuck = 1;
-                }
-                else {
-                    travelData.stuck++;
-                }
+        let hasMoved = true;
+        if (travelData.prev) {
+            travelData.prev = helper.deserializeRoomPosition(travelData.prev);
+            if (creep.pos.inRangeTo(travelData.prev, 0)) {
+                hasMoved = false;
+                travelData.stuck++;
             }
             else {
                 travelData.stuck = 0;
             }
         }
 
-        let sameDestination = travelData.destination &&
-            travelData.destination.x === destination.pos.x &&
-            travelData.destination.y === destination.pos.y &&
-            travelData.destination.roomName === destination.pos.roomName;
+        if (travelData.stuck >= 5) {
+            if (options.ignoreStuck) {
+                if (options.returnPosition && travelData.path && travelData.path.length > 0) {
+                    let direction = parseInt(travelData.path[0]);
+                    return creep.pos.getPositionAtDirection(direction);
+                }
+                else {
+                    return OK;
+                }
+            }
+            else {
+                delete travelData.path;
+            }
+        }
 
-        if (!travelData.path || !sameDestination || (travelData.stuck >= 5)) {
-            travelData.destination = destination.pos;
-            travelData.lastPos = undefined;
+        if (Game.time - travelData.tick > 1 && hasMoved) {
+            delete travelData.path;
+        }
+        travelData.tick = Game.time;
+
+        if (!travelData.dest || travelData.dest.x !== destination.pos.x || travelData.dest.y !== destination.pos.y ||
+            travelData.dest.roomName !== destination.pos.roomName) {
+            delete travelData.path;
+        }
+
+        if (!travelData.path) {
+            if (creep.spawning) return ERR_BUSY;
+            travelData.dest = destination.pos;
+            travelData.prev = undefined;
             options.ignoreCreeps = travelData.stuck < 5;
+            let cpu = Game.cpu.getUsed();
             let ret = this.findTravelPath(creep, destination, options);
+            travelData.cpu += (Game.cpu.getUsed() - cpu);
+            if (travelData.cpu > 10) {
+                console.log(`heavy cpu use: ${creep.name}, cpu: ${travelData.cpu}`)
+            }
+            if (ret.incomplete) {
+                console.log(`incomplete path for ${creep.name}`);
+            }
             travelData.path = helper.serializePath(creep.pos, ret.path);
             travelData.stuck = 0;
+            if (!creep.memory.pathCount) creep.memory.pathCount = 0;
+            creep.memory.pathCount++;
         }
 
         if (!travelData.path || travelData.path.length === 0) {
             return ERR_NO_PATH;
         }
 
-        if (travelData.lastPos && travelData.stuck === 0) {
+        if (travelData.prev && travelData.stuck === 0) {
             travelData.path = travelData.path.substr(1);
         }
-        travelData.lastPos = creep.pos;
+        travelData.prev = creep.pos;
         let nextDirection = parseInt(travelData.path[0]);
         let outcome = creep.move(nextDirection);
         if (!options.returnPosition || outcome !== OK) {

@@ -69,18 +69,24 @@ export class RefillMission extends Mission {
     missionActions() {
 
         for (let cart of this.emergencyCarts) {
-            this.spawnCartActions(cart);
+            this.spawnCartActions(cart, 0);
         }
 
+        let order = 0;
         for (let cart of this.carts) {
-            this.spawnCartActions(cart);
+            this.spawnCartActions(cart, order);
+            order++;
         }
     }
 
-    spawnCartActions(cart: Creep) {
+    spawnCartActions(cart: Creep, order: number) {
 
         let hasLoad = this.hasLoad(cart);
         if (!hasLoad) {
+            if (order !== 0 && cart.ticksToLive < 50) {
+                cart.suicide();
+                return;
+            }
             cart.memory.emptyId = undefined;
             this.procureEnergy(cart, this.findNearestEmpty(cart), true);
             return;
@@ -88,11 +94,11 @@ export class RefillMission extends Mission {
 
         let target = this.findNearestEmpty(cart);
         if (!target) {
-            if (cart.carry.energy === cart.carryCapacity) {
-                this.idleNear(cart, this.spawnGroup.spawns[0], 12);
+            if (cart.carry.energy < cart.carryCapacity * .8) {
+                cart.memory.hasLoad = false;
             }
             else {
-                cart.memory.hasLoad = false;
+                this.idleNear(cart, this.spawnGroup.spawns[0], 12);
             }
             return;
         }

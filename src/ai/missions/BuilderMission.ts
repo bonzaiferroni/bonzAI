@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {PRIORITY_BUILD} from "../../config/constants";
-export class BuildMission extends Mission {
+export class BuilderMission extends Mission {
 
     builders: Creep[];
     supplyCarts: Creep[];

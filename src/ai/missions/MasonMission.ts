@@ -1,44 +1,54 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {MasonAnalyzer} from "./MasonResearch";
+import {MasonGuru} from "./MasonGuru";
+import {Agent} from "./Agent";
+import {MasonAgent} from "./MasonAgent";
 
 export class MasonMission extends Mission {
 
     masons: Creep[];
+    carts: Creep[];
     hostiles: Creep[];
-    analyzer: MasonAnalyzer;
-    memory: {
-        needMason: boolean;
-        turtlePositions: RoomPosition[];
-    };
+    analyzer: MasonGuru;
 
     constructor(operation: Operation) {
         super(operation, "mason");
     }
 
     initMission() {
-
-        this.analyzer = new MasonAnalyzer(this);
-        this.analyzer.init();
+        this.analyzer = new MasonGuru(this);
+        this.hostiles = this.analyzer.getHostiles();
     }
 
     roleCall() {
-        let max = 0;
+        let maxMasons = 0;
         if (this.analyzer.needMason()) {
-            max = 1;
+            maxMasons = 1;
         }
-        this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), max);
+        this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), maxMasons);
+
+        let maxCarts = 0;
+        if (maxMasons > 0 && this.hostiles.length > 0) {
+            maxCarts = 1;
+        }
+
+        this.carts = this.headCount("masonCart", () => this.workerBody(0, 4, 2), maxCarts);
     }
 
     missionActions() {
 
         for (let mason of this.masons) {
-            if (this.hostiles) {
-                this.turtleActions(mason);
+            let agent = new MasonAgent(mason, this);
+            if (this.hostiles.length > 0) {
+                this.sandbagActions(agent);
             }
             else {
-                this.masonActions(mason);
+                this.masonActions(agent);
             }
+        }
+
+        for (let cart of this.carts) {
+            this.masonCartActions(new Agent(cart, this));
         }
     }
 
@@ -46,111 +56,70 @@ export class MasonMission extends Mission {
     }
 
     invalidateMissionCache() {
-        this.memory.needMason = undefined;
+        this.analyzer.recheckMasonNeed();
     }
 
-    private masonActions(mason: Creep) {
-        let rampart = this.findMasonTarget(mason);
-        let range = mason.pos.getRangeTo(rampart);
-        if (rampart && range <= 3) {
-            mason.repair(rampart);
+    private masonActions(agent: MasonAgent) {
+
+        let rampart = agent.getRampart();
+        if (!rampart) {
+            agent.idleOffRoad();
+            return;
         }
 
+        agent.repairRampart(rampart);
 
+        let stolen = false;
+        if (!agent.isFull(200)) {
+            stolen = agent.stealNearby(STRUCTURE_EXTENSION) === OK;
+        }
 
-        if (mason.carry.energy < mason.carryCapacity - 200) {
-            let fullExtensions = _.filter(mason.pos.findInRange(
-                mason.room.findStructures<StructureExtension>(STRUCTURE_EXTENSION), 1),
-                (e: StructureExtension) => e.energy > 0);
-            if (fullExtensions.length > 0) {
-                mason.withdraw(fullExtensions[0], RESOURCE_ENERGY);
+        if (agent.isFull(300) || stolen) {
+            agent.idleNear(rampart, 3);
+            return;
+        }
+        else {
+            let extension = agent.getExtension(rampart);
+            if (agent.creep.name === `lima0_mason_82`) { console.log(`${extension.pos}`)}
+            let outcome = agent.pickup(extension, RESOURCE_ENERGY);
+            if (outcome === OK && !agent.creep.pos.inRangeTo(rampart, 3)) {
+                agent.travelTo(rampart);
             }
         }
+    }
 
-        let hasLoad = this.masonHasLoad(mason);
-        if (hasLoad) {
-            if (rampart) {
-                if (range > 3) {
-                    mason.blindMoveTo(rampart);
-                }
-                else {
-                    this.findMasonPosition(mason, rampart);
-                }
+    private sandbagActions(agent: MasonAgent) {
+        let construction = agent.findConstruction();
+        if (construction) {
+            agent.build(construction);
+            return;
+        }
+
+        let sandbag = this.analyzer.getBestSandbag(agent);
+        if (sandbag) {
+
+        }
+    }
+
+    private masonCartActions(agent: Agent) {
+
+        let lowestMason = _(this.masons).sortBy((c: Creep) => c.carry.energy).head();
+        if (!lowestMason || !this.room.storage) {
+            agent.idleOffRoad();
+            return;
+        }
+
+        if (agent.isFull()) {
+            let outcome = agent.deliver(lowestMason, RESOURCE_ENERGY);
+            if (outcome === OK) {
+                agent.travelTo(this.room.storage)
             }
         }
         else {
-            let extension = this.findFullExtension(mason);
-            if (extension) {
-                if (mason.pos.isNearTo(extension)) {
-                    mason.withdraw(extension, RESOURCE_ENERGY);
-                }
-                else {
-                    mason.blindMoveTo(extension);
-                }
-            }
-            else {
-                if (mason.name === "vigo5_mason_61") console.log("none");
-                mason.idleOffRoad(this.flag);
+            let outcome = agent.pickup(this.room.storage, RESOURCE_ENERGY);
+            if (outcome === OK) {
+                agent.travelTo(lowestMason);
             }
         }
-    }
-
-    private findMasonTarget(mason: Creep): StructureRampart {
-        let findRampart = () => {
-            let lowestHits = 100000;
-            let lowestRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)).sortBy("hits").head();
-            if (lowestRampart) {
-                lowestHits = lowestRampart.hits;
-            }
-            let myRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART))
-                .filter((s: StructureRampart) => s.hits < lowestHits + 100000)
-                .sortBy((s: StructureRampart) => mason.pos.getRangeTo(s))
-                .head();
-            if (myRampart) return myRampart;
-        };
-        let forgetRampart = (s: Structure) => mason.ticksToLive % 500 === 0;
-        return mason.rememberStructure<StructureRampart>(findRampart, forgetRampart, "rampartId");
-    }
-
-    findFullExtension(mason: Creep): Structure {
-        let findExtension = () => {
-            let fullExtensions = _.filter(this.room.findStructures<StructureExtension>(STRUCTURE_EXTENSION),
-                (e: StructureExtension) => e.energy > 0);
-            return mason.pos.findClosestByRange<StructureExtension>(fullExtensions);
-        };
-        let forgetExtension = (extension: StructureExtension) => extension.energy === 0;
-        let extension = mason.rememberStructure<StructureExtension>(findExtension, forgetExtension, "extensionId", true);
-        return mason.pos.findClosestByRange([this.room.storage, extension])
-    }
-
-    private findMasonPosition(mason: Creep, rampart: StructureRampart) {
-        if (mason.pos.lookForStructure(STRUCTURE_ROAD)) {
-            let position = rampart.pos;
-            if (position.lookFor(LOOK_STRUCTURES).length > 1) {
-                let testPosition = mason.pos.findClosestByRange(_.filter(position.openAdjacentSpots(),
-                    (p: RoomPosition) => !p.lookForStructure(STRUCTURE_ROAD)));
-                if (testPosition) {
-                    position = testPosition;
-                }
-            }
-            if (!mason.pos.inRangeTo(position, 0)) {
-                mason.blindMoveTo(position);
-            }
-        }
-    }
-
-    private masonHasLoad(mason: Creep) {
-        if (mason.memory.hasLoad && mason.carry.energy <= mason.carryCapacity * .25) {
-            mason.memory.hasLoad = false;
-            delete mason.memory.extensionId;
-        }
-        else if (!mason.memory.hasLoad && mason.carry.energy >= mason.carryCapacity *.9) {
-            mason.memory.hasLoad = true;
-        }
-        return mason.memory.hasLoad;
-    }
-
-    private turtleActions(mason: Creep) {
-
     }
 }

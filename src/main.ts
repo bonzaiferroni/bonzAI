@@ -41,7 +41,7 @@ module.exports.loop = function () {
     try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
     profiler.end("postOperations");
-    try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
     try { profiler.finalize(); } catch (e) { console.log("error checking profiler:\n", e.stack); }
+    try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
 };
 

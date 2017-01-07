@@ -117,9 +117,11 @@ export interface SeedData {
 
 export interface TravelData {
     stuck: number;
-    destination: RoomPosition;
-    lastPos: RoomPosition;
+    dest: RoomPosition;
+    prev: RoomPosition;
     path: string;
+    tick: number;
+    cpu: number;
 }
 
 export interface TravelToOptions {

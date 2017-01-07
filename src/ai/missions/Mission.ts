@@ -4,7 +4,7 @@ import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {Analyzer} from "./Analyzer";
+import {Guru} from "./Guru";
 export abstract class Mission {
 
     opName: string;
@@ -457,7 +457,10 @@ export abstract class Mission {
 
     private prepCreep(creep: Creep, options: HeadCountOptions) {
         if (!creep.memory.prep) {
-            this.disableNotify(creep);
+            if (creep.spawning) return false;
+            if (options.disableNotify) {
+                this.disableNotify(creep);
+            }
             let boosted = creep.seekBoost(creep.memory.boosts, creep.memory.allowUnboosted);
             if (!boosted) return false;
             let outcome = creep.travelByWaypoint(this.waypoints);

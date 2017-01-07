@@ -15,11 +15,7 @@ export class MiningMission extends Mission {
     container: StructureContainer;
     analysis: TransportAnalysis;
     positionsAvailable: number;
-    storage: {
-        pos: RoomPosition
-        store: StoreDefinition
-        room: Room;
-    };
+    storage: StructureStorage;
     minersNeeded: number;
     remoteSpawning: boolean;
 
@@ -310,7 +306,7 @@ export class MiningMission extends Mission {
         }
     }
 
-    private findMinerStorage(): {store: StoreDefinition, pos: RoomPosition, room: Room} {
+    private findMinerStorage(): StructureStorage {
         let destination = Game.flags[this.opName + "_sourceDestination"];
         if (destination) {
             let structure = destination.pos.lookFor(LOOK_STRUCTURES)[0] as StructureStorage;

@@ -6,7 +6,7 @@ import {TerminalNetworkMission} from "../missions/TerminalNetworkMission";
 import {IgorMission} from "../missions/IgorMission";
 import {LinkMiningMission} from "../missions/LinkMiningMission";
 import {MiningMission} from "../missions/MiningMission";
-import {BuildMission} from "../missions/BuildMission";
+import {BuilderMission} from "../missions/BuilderMission";
 import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {GeologyMission} from "../missions/GeologyMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
@@ -122,7 +122,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // build construction
-        let buildMission = new BuildMission(this);
+        let buildMission = new BuilderMission(this);
         this.addMission(buildMission);
 
         if (this.flag.room.storage) {
@@ -402,7 +402,7 @@ export abstract class ControllerOperation extends Operation {
 
     protected towerRepair() {
 
-        if (this.flag.room.hostiles) return;
+        if (this.flag.room.hostiles.length > 0) return;
 
         let structureType = STRUCTURE_RAMPART;
         if (Game.time % 2 === 0) {

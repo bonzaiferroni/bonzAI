@@ -21,7 +21,9 @@ export const profiler = {
         for (let identifier in Memory.profiler) {
             let profile = Memory.profiler[identifier];
             if (Game.time - profile.startOfPeriod >= profile.period) {
-                profile.costPerCall = _.round(profile.total / profile.count, 2);
+                if (profile.count !== 0) {
+                    profile.costPerCall = _.round(profile.total / profile.count, 2);
+                }
                 profile.costPerTick = _.round(profile.total / profile.period, 2);
                 profile.callsPerTick = _.round(profile.count / profile.period, 2);
                 if (profile.consoleReport) {

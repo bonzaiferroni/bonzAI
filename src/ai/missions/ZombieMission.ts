@@ -28,7 +28,7 @@ export class ZombieMission extends Mission {
     roleCall() {
         let max = 0;
         if (this.memory.status === "attack") {
-            max = 2;
+            max = 3;
         }
 
         this.zombies = this.headCount("zombie", this.getBody, max, {
@@ -101,9 +101,6 @@ export class ZombieMission extends Mission {
                     this.room.findStructures<Structure>(STRUCTURE_SPAWN));
                 if (closestSpawn) {
                     destination = closestSpawn;
-                    if (zombie.hits === zombie.hitsMax && zombie.pos.isNearTo(closestSpawn)) {
-                        // zombie.dismantle(closestSpawn);
-                    }
                 }
                 else {
                     notifier.add(`ZOMBIE: mission complete in ${this.room.name}`);
@@ -114,12 +111,13 @@ export class ZombieMission extends Mission {
 
         let position = this.moveZombie(zombie, destination, zombie.memory.demolishing);
         zombie.memory.demolishing = false;
-        if (zombie.hits === zombie.hitsMax && position instanceof RoomPosition &&
-            zombie.room == this.room && !zombie.pos.isNearExit(0)) {
+        if (zombie.room == this.room && !zombie.pos.isNearExit(0) && position instanceof RoomPosition) {
             let structure = position.lookFor<Structure>(LOOK_STRUCTURES)[0];
-            if (structure && structure.structureType !== STRUCTURE_CONTAINER && structure.structureType !== STRUCTURE_ROAD) {
+            if (structure && structure.structureType !== STRUCTURE_ROAD) {
                 zombie.memory.demolishing = true;
-                zombie.dismantle(structure)
+                if (zombie.hits === zombie.hitsMax) {
+                    zombie.dismantle(structure);
+                }
             }
         }
     }
@@ -128,9 +126,19 @@ export class ZombieMission extends Mission {
         let roomCallback = (roomName: string) => {
             if (roomName === this.flag.pos.roomName) {
                 let matrix = PathFinder.CostMatrix.deserialize(this.memory.matrix);
-                for (let zombie of this.zombies) {
-                    if (zombie.room === this.room && !zombie.pos.isNearExit(0)) {
-                        matrix.set(zombie.pos.x, zombie.pos.y, 0xff);
+                for (let otherZomb of this.zombies) {
+                    if (zombie === otherZomb || otherZomb.room !== this.room || otherZomb.pos.isNearExit(0)) { continue; }
+                    matrix.set(otherZomb.pos.x, otherZomb.pos.y, 0xff);
+                    for (let direction = 1; direction <= 8; direction ++) {
+                        let position = otherZomb.pos.getPositionAtDirection(direction);
+                        if (position.isNearExit(0)) {
+                            matrix.set(position.x, position.y, 1);
+                        }
+                        else if (position.lookForStructure(STRUCTURE_WALL) ||
+                            position.lookForStructure(STRUCTURE_RAMPART)){
+                            let currentCost = matrix.get(position.x, position.y);
+                            matrix.set(position.x, position.y, Math.ceil(currentCost / 2));
+                        }
                     }
                 }
                 return matrix;
