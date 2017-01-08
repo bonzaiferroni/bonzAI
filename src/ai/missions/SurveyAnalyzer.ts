@@ -322,5 +322,6 @@ export class SurveyAnalyzer {
         let flagName = `${opType}_${opName}`;
         helper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
         notifier.add(`SURVEY: created new operation in ${room.name}: ${flagName}`);
+        delete this.memory.surveyRooms[room.name];
     }
 }

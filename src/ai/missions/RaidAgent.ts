@@ -10,6 +10,12 @@ export class RaidAgent extends Agent {
         this.guru = guru;
     }
 
+    massRangedAttackInRoom() {
+        if (this.creep.room.name === this.guru.raidRoomName) {
+            return this.creep.rangedMassAttack();
+        }
+    }
+
     isFullHealth(margin = 0) {
         return this.creep.hits >= this.creep.hitsMax - margin;
     }

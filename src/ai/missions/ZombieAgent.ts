@@ -10,7 +10,7 @@ export class ZombieAgent extends RaidAgent {
         demolishing: boolean;
     };
 
-    moveZombie(destination: {pos: RoomPosition}, ignoreStuck: boolean): number | RoomPosition {
+    moveZombie(destination: {pos: RoomPosition}, demolishing: boolean): number | RoomPosition {
         let zombies = (this.mission as ZombieMission).zombies;
 
         let roomCallback = (roomName: string) => {
@@ -36,6 +36,10 @@ export class ZombieAgent extends RaidAgent {
 
                 // avoid plowing into storages/terminals
                 if (this.guru.raidRoom) {
+
+                    for (let hostile of this.guru.raidRoom.hostiles) {
+                        matrix.set(hostile.pos.x, hostile.pos.y, 0xff);
+                    }
                     if (this.room.storage) {
                         matrix.set(this.guru.raidRoom.storage.pos.x, this.room.storage.pos.y, 0xff);
                     }
@@ -50,7 +54,7 @@ export class ZombieAgent extends RaidAgent {
         };
 
         return this.travelTo(destination, {
-            ignoreStuck: ignoreStuck,
+            ignoreStuck: demolishing,
             returnPosition: true,
             roomCallback: roomCallback,
         })

@@ -55,6 +55,16 @@ export class ZombieMission extends Mission {
     private zombieActions(zombie: ZombieAgent) {
 
         let currentlyHealing = zombie.healWhenHurt(zombie, this.guru.expectedDamage / 10) === OK;
+        zombie.massRangedAttackInRoom();
+
+        // retreat condition
+        let threshold = 500;
+        if (this.guru.boost) {
+            threshold = 250;
+        }
+        if (!zombie.isFullHealth(threshold)) {
+            zombie.memory.reachedFallback = false;
+        }
 
         if (!zombie.memory.reachedFallback) {
             if (zombie.isNearTo(this.guru.fallbackPos) && zombie.isFullHealth()) {
@@ -66,23 +76,15 @@ export class ZombieMission extends Mission {
         }
 
         if (zombie.pos.isNearExit(0)) {
-            if (zombie.isFullHealth(this.guru.expectedDamage / 10)) {zombie.memory.safeCount++; }
+            if (zombie.isFullHealth(threshold)) {zombie.memory.safeCount++; }
             else {zombie.memory.safeCount = 0;}
+            console.log(zombie.creep.hits, zombie.memory.safeCount);
             if (zombie.memory.safeCount < 10) {
                 return;
             }
         }
         else {
             zombie.memory.safeCount = 0;
-        }
-
-        // retreat condition
-        let threshold = 500;
-        if (this.guru.boost) {
-            threshold = 250;
-        }
-        if (!zombie.isFullHealth(threshold)) {
-            zombie.memory.reachedFallback = false;
         }
 
         let destination = zombie.findDestination();
@@ -106,8 +108,12 @@ export class ZombieMission extends Mission {
         }
         if (this.guru.boost) {
             let healCount = Math.ceil((this.guru.expectedDamage * .3) / (HEAL_POWER * 4)); // boosting heal and tough
-            let dismantleCount = 32 - healCount;
-            return this.configBody({[TOUGH]: 8, [WORK]: dismantleCount, [MOVE]: 10, [HEAL]: healCount})
+            let moveCount = 10;
+            let rangedAttackCount = 1;
+            let toughCount = 8;
+            let dismantleCount = MAX_CREEP_SIZE - moveCount - rangedAttackCount - toughCount - healCount;
+            return this.configBody({[TOUGH]: toughCount, [WORK]: dismantleCount, [RANGED_ATTACK]: rangedAttackCount,
+                [MOVE]: moveCount, [HEAL]: healCount})
         }
         else {
             let healCount = Math.ceil(this.guru.expectedDamage / HEAL_POWER);

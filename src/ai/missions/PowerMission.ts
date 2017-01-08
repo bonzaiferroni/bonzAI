@@ -388,7 +388,8 @@ export class PowerMission extends Mission {
             }
         }
         if (Game.time > currentBank.timeout) {
-            notifier.add(`POWER: bank timed out ${JSON.stringify(currentBank)}`);
+            notifier.add(`POWER: bank timed out ${JSON.stringify(currentBank)}, removing room from powerObservers`);
+            delete Memory.powerObservers[this.room.name][this.memory.currentBank.pos.roomName];
             this.memory.currentBank = undefined;
         }
     }

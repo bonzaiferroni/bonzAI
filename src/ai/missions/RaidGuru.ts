@@ -17,7 +17,7 @@ export class RaidGuru extends Guru {
         return this.raidRoom.structures;
     }
 
-    get fallbackPos(): RoomPosition { if (this.cache) { return this.cache.fallbackPos; } }
+    get fallbackPos(): RoomPosition { if (this.cache) { return helper.deserializeRoomPosition(this.cache.fallbackPos); } }
     get expectedDamage(): number { if (this.cache) { return this.cache.expectedDamage; }}
     get matrix(): CostMatrix { if (this.cache) return PathFinder.CostMatrix.deserialize(this.cache.matrix)}
     get startTime(): number { return this.memory.startTime; }
