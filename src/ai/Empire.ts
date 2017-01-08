@@ -610,11 +610,12 @@ export class Empire {
         }
 
         if (!creep.memory._travel) {
-            creep.memory._travel = { stuck: 0, tick: Game.time, cpu: 0 } as TravelData;
+            creep.memory._travel = { stuck: 0, tick: Game.time, cpu: 0, count: 0 } as TravelData;
         }
         let travelData: TravelData = creep.memory._travel;
 
         if (creep.fatigue > 0) {
+            travelData.tick = Game.time;
             return ERR_BUSY;
         }
 
@@ -677,16 +678,15 @@ export class Empire {
             let cpu = Game.cpu.getUsed();
             let ret = this.findTravelPath(creep, destination, options);
             travelData.cpu += (Game.cpu.getUsed() - cpu);
-            if (travelData.cpu > 10) {
-                console.log(`heavy cpu use: ${creep.name}, cpu: ${travelData.cpu}`)
+            travelData.count++;
+            if (travelData.cpu > 10 && creep.name.indexOf("mason") < 0) {
+                console.log(`heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)}, pos: ${creep.pos}`)
             }
             if (ret.incomplete) {
                 console.log(`incomplete path for ${creep.name}`);
             }
             travelData.path = helper.serializePath(creep.pos, ret.path);
             travelData.stuck = 0;
-            if (!creep.memory.pathCount) creep.memory.pathCount = 0;
-            creep.memory.pathCount++;
         }
 
         if (!travelData.path || travelData.path.length === 0) {

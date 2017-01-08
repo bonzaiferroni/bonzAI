@@ -9,15 +9,15 @@ export class Agent {
     mission: Mission;
     room: Room;
     outcome: number;
-    memory: {
-        idlePosition: RoomPosition;
-    };
+    memory: any;
+    pos: RoomPosition;
 
     constructor(creep: Creep, mission: Mission) {
         this.creep = creep;
         this.mission = mission;
         this.room = mission.room;
         this.memory = creep.memory;
+        this.pos = creep.pos;
     }
 
     travelTo(destination: {pos: RoomPosition}, options?: TravelToOptions): number | RoomPosition {
@@ -135,5 +135,9 @@ export class Agent {
             }
             radius++
         }
+    }
+
+    isNearTo(place: {pos: RoomPosition} | RoomPosition) {
+        return this.creep.pos.isNearTo(place);
     }
 }

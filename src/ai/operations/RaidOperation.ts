@@ -3,7 +3,7 @@ import {FireflyMission} from "../missions/FireflyMission";
 import {WreckerMission} from "../missions/WreckerMission";
 import {BrawlerMission} from "../missions/BrawlerMission";
 import {RaidMission} from "../missions/RaidMission";
-import {RaidData, SquadConfig, RaidPositions, Coord} from "../../interfaces";
+import {RaidData, SquadConfig, Coord} from "../../interfaces";
 import {Empire} from "../Empire";
 import {OperationPriority, Direction} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
@@ -220,32 +220,6 @@ export class RaidOperation extends Operation {
             if (!this.memory.hasOwnProperty(property)) continue;
             delete this.memory[property];
         }
-    }
-
-    private findPositions(breachFlags: Flag[], fallback: Flag): RaidPositions {
-        let attackPos = breachFlags[0].pos;
-        let fallbackPos = fallback.pos;
-        if (this.memory.attackRoomName !== attackPos.roomName || this.memory.fallbackRoomName !== fallbackPos.roomName) {
-            this.memory.attackRoomName = attackPos.roomName;
-            this.memory.fallbackRoomName = fallbackPos.roomName;
-            console.log("RAID: flag configuration change detected, recalculating position flags");
-            this.resetPositions(attackPos, fallbackPos);
-        }
-        return {
-            alfa: {
-                healer: Game.flags[this.name + "_alfaHeal"],
-                attacker: Game.flags[this.name + "_alfaAttack"],
-            },
-            bravo: {
-                healer: Game.flags[this.name + "_bravoHeal"],
-                attacker: Game.flags[this.name + "_bravoAttack"],
-            },
-            charlie: {
-                healer: Game.flags[this.name + "_charlieHeal"],
-                attacker: Game.flags[this.name + "_charlieAttack"],
-            },
-            fallback: fallback,
-        };
     }
 
     private findAttackDirection(attackRoomCoords: RoomCoord, fallbackRoomCoords: RoomCoord): Direction {

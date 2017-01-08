@@ -64,6 +64,15 @@ export function initRoomPrototype() {
         }
     });
 
+    Object.defineProperty(Room.prototype, "structures", {
+        get: function myProperty() {
+            if (!Game.cache.structures[this.name]) {
+                Game.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s:Structure) => s.structureType);
+            }
+            return Game.cache.structures[this.name] || [];
+        }
+    });
+
     /**
      * Returns array of structures, caching results on a per-tick basis
      * @param structureType

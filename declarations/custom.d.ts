@@ -25,6 +25,7 @@ interface Room {
     roomType: number;
     _defaultMatrix: CostMatrix;
     defaultMatrix: CostMatrix;
+    structures: {[structureType: string]: Structure[] }
 }
 
 interface RoomCoord {

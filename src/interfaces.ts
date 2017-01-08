@@ -68,20 +68,17 @@ export interface RaidData {
     obstacles: RoomObject[];
 }
 
-export interface RaidPositions {
-    alfa: {
-        healer: Flag;
-        attacker: Flag;
-    };
-    bravo: {
-        healer: Flag;
-        attacker: Flag;
-    };
-    charlie: {
-        healer: Flag;
-        attacker: Flag;
-    };
-    fallback: Flag;
+export interface RaidCache {
+    breachPositions: RoomPosition[];
+    breachStructures: string[];
+    attackRoom: string;
+    fallbackRoom: string;
+    fallbackPos: RoomPosition;
+    targetStructures: string[];
+    matrix: number[];
+    expectedDamage: number;
+    avgWallHits: number;
+    bestExit: RoomPosition;
 }
 
 export interface SquadConfig {
@@ -122,6 +119,7 @@ export interface TravelData {
     path: string;
     tick: number;
     cpu: number;
+    count: number;
 }
 
 export interface TravelToOptions {

@@ -5,6 +5,7 @@ import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Guru} from "./Guru";
+import {Agent} from "./Agent";
 export abstract class Mission {
 
     opName: string;
@@ -735,5 +736,12 @@ export abstract class Mission {
 
     protected setPrespawn(creep: Creep) {
         this.memory.prespawn = 1500 - creep.ticksToLive;
+    }
+
+    protected registerPrespawn(agent: Agent) {
+        if (!agent.memory.registered) {
+            agent.memory.registered = true;
+            this.memory.prespawn = CREEP_LIFE_TIME - agent.creep.ticksToLive;
+        }
     }
 }
