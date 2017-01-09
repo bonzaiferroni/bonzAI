@@ -88,7 +88,6 @@ export class MasonMission extends Mission {
                 }
             }
             else {
-                if (mason.name === "vigo5_mason_61") console.log("none");
                 mason.idleOffRoad(this.flag);
             }
         }
