@@ -388,7 +388,7 @@ export class RaidOperation extends Operation {
     addRoomName(roomName: string) {
         if (!this.memory.additionalRooms) this.memory.additionalRooms = [];
         if (_.includes(this.memory.additionalRooms, roomName)) {
-            return "RAID: that room is already being used";
+            return "RAID: that missionRoom is already being used";
         }
         else {
             this.memory.additionalRooms.push(roomName);
@@ -398,7 +398,7 @@ export class RaidOperation extends Operation {
 
     removeRoomName(roomName: string) {
         if (_.includes(this.memory.additionalRooms, roomName)) {
-            return "RAID: that room is already being used";
+            return "RAID: that missionRoom is already being used";
         }
         else {
             this.memory.additionalRooms = _.pull(this.memory.additionalRooms, roomName);
@@ -510,7 +510,7 @@ export class RaidOperation extends Operation {
                 return this.memory.additionalRooms.push(roomName);
             }
             else {
-                return "not an owned room";
+                return "not an owned missionRoom";
             }
         }
     }

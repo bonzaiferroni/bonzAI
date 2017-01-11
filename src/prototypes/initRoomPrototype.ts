@@ -86,7 +86,7 @@ export function initRoomPrototype() {
     };
 
     /**
-     * Finds creeps and containers in room that will give up energy, primarily useful when a storage is not available
+     * Finds creeps and containers in missionRoom that will give up energy, primarily useful when a storage is not available
      * Caches results on a per-tick basis. Useful before storage is available or in remote mining rooms.
      * @param roomObject - When this optional argument is supplied, return closest source
      * @returns {StructureContainer|Creep} - Returns source with highest amount of available energy, unless roomObject is
@@ -127,7 +127,7 @@ export function initRoomPrototype() {
 
 
     /**
-     * Returns room coordinates for a given room
+     * Returns missionRoom coordinates for a given missionRoom
      * @returns {*}
      */
 

@@ -307,7 +307,7 @@ export class DefenseMission extends Mission {
             Memory.roomAttacks[playerCreeps[0].owner.username] = Game.time;
 
             if (Game.time % 10 === 5) {
-                console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned room: " + this.flag.pos.roomName);
+                console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " + this.flag.pos.roomName);
             }
 
             for (let creep of this.room.hostiles) {

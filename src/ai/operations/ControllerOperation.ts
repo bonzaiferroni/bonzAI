@@ -25,6 +25,8 @@ import {ClaimMission} from "../missions/ClaimMission";
 import {RadarMission} from "../missions/RadarMission";
 import {notifier} from "../../notifier";
 import {SurveyMission} from "../missions/SurveyMission";
+import {DefenseMission} from "../missions/DefenseMission";
+import {DefenseGuru} from "./DefenseGuru";
 
 const GEO_SPAWN_COST = 5000;
 
@@ -65,21 +67,20 @@ export abstract class ControllerOperation extends Operation {
 
     staticStructures: {[structureType: string]: Coord[]};
 
-    protected abstract addDefense();
     protected abstract initAutoLayout();
     protected abstract temporaryPlacement(controllerLevel: number);
 
     initOperation() {
         this.autoLayout();
 
-        // scout room
+        // scout missionRoom
         this.spawnGroup = this.empire.getSpawnGroup(this.flag.pos.roomName);
         if (!this.spawnGroup) {
             if (!this.memory.spawnRooms) { return; }
             this.spawnGroup = this.getRemoteSpawnGroup(8);
             this.addMission(new ScoutMission(this));
             this.addMission(new ClaimMission(this));
-            if (!this.hasVision) return;
+            if (!this.hasVision) return; // vision can be assumed after this point
             this.addMission(new BodyguardMission(this));
             this.addMission(new RemoteBuildMission(this, false));
         }
@@ -93,8 +94,8 @@ export abstract class ControllerOperation extends Operation {
             this.addMission(new RefillMission(this));
         }
 
-        this.addDefense();
-
+        let defenseGuru = new DefenseGuru(this);
+        this.addMission(new DefenseMission(this));
         this.addMission(new PowerMission(this));
 
         // energy network
@@ -122,7 +123,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // build construction
-        let buildMission = new BuilderMission(this);
+        let buildMission = new BuilderMission(this, defenseGuru);
         this.addMission(buildMission);
 
         if (this.flag.room.storage) {
@@ -132,6 +133,8 @@ export abstract class ControllerOperation extends Operation {
             this.addMission(new GeologyMission(this));
             // scout and place harvest flags
             this.addMission(new SurveyMission(this));
+            // repair walls
+            this.addMission(new MasonMission(this, defenseGuru));
         }
 
         // upgrader controller
@@ -139,8 +142,7 @@ export abstract class ControllerOperation extends Operation {
         let upgradeMission = new UpgradeMission(this, boostUpgraders);
         this.addMission(upgradeMission);
 
-        // repair walls
-        this.addMission(new MasonMission(this));
+        // upkeep roads and walls
         this.towerRepair();
 
         // reassign spawngroups for remote boosting

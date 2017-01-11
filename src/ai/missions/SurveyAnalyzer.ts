@@ -40,7 +40,7 @@ export class SurveyAnalyzer {
 
     public run(): string {
 
-        // place flag in chosen room
+        // place flag in chosen missionRoom
         if (Game.time < this.memory.nextAnalysis) { return; }
         if (this.memory.chosenRoom) {
             let room = Game.rooms[this.memory.chosenRoom];

@@ -110,7 +110,7 @@ export function initRoomPositionPrototype() {
     };
 
     /**
-     * Returns the nearest object to the current position, works for objects that may not be in the same room;
+     * Returns the nearest object to the current position, works for objects that may not be in the same missionRoom;
      * @param roomObjects
      * @returns {any}
      */

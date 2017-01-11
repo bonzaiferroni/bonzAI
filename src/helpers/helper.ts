@@ -102,7 +102,7 @@ export var helper = {
     },
 
     /**
-     * Return room coordinates for a given Room, authored by tedivm
+     * Return missionRoom coordinates for a given Room, authored by tedivm
      * @param roomName
      * @returns {{x: (string|any), y: (string|any), x_dir: (string|any), y_dir: (string|any)}}
      */
@@ -330,7 +330,7 @@ export var helper = {
                 }
             }
             else {
-                // must be the same room, no direction
+                // must be the same missionRoom, no direction
                 return 0;
             }
         }
@@ -509,5 +509,17 @@ export var helper = {
         if (range >= TOWER_FALLOFF_RANGE) { range = TOWER_FALLOFF_RANGE; }
         return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
             (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE))
+    },
+
+    addPattern(matrix: CostMatrix, roomName: string, cost: number) {
+        let value = 8;
+        for (let x = 1; x < 49; x++) {
+            for (let y = 1; y < 49; y++) {
+                if (x % value === y % value || (x + y) % value === 0 ) {
+                    if (Game.map.getTerrainAt(x, y, roomName) !== "plain") { continue; }
+                    matrix.set(x, y, cost);
+                }
+            }
+        }
     }
 };

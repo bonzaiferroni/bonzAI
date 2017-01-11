@@ -129,9 +129,9 @@ export class SpawnGroup {
         let average = log.availability / 100;
         log.availability = 0;
         /*
-        if (average > 1) console.log("SPAWNING:", this.room, "not very busy (avg", average, "idle out of",
+        if (average > 1) console.log("SPAWNING:", this.missionRoom, "not very busy (avg", average, "idle out of",
             this.spawns.length, "), perhaps add more harvesting");
-        if (average < .1) console.log("SPAWNING:", this.room, "very busy (avg", average, "idle out of",
+        if (average < .1) console.log("SPAWNING:", this.missionRoom, "very busy (avg", average, "idle out of",
             this.spawns.length, "), might want to reduce harvesting");
             */
         log.history.push(average);

@@ -151,7 +151,7 @@ export class EnhancedBodyguardMission extends Mission {
             return;
         }
 
-        // room is safe
+        // missionRoom is safe
         if (!this.hostiles || this.hostiles.length === 0) {
             healer.memory.mindControl = false;
             this.idleNear(attacker, this.flag);
@@ -257,7 +257,7 @@ export class EnhancedBodyguardMission extends Mission {
             return;
         }
 
-        // hostiles in room
+        // hostiles in missionRoom
         let attacker = Game.creeps[healer.memory.partner];
         if (!attacker) {
             healer.memory.partner = undefined;

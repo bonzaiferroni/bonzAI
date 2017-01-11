@@ -129,7 +129,7 @@ export class Empire {
      * Used to determine whether there is an abundance of a given resource type among all terminals.
      * Should only be used after init() phase
      * @param resourceType
-     * @param amountPerRoom - specify how much per room you consider an abundance, default value is SURPLUS_AMOUNT
+     * @param amountPerRoom - specify how much per missionRoom you consider an abundance, default value is SURPLUS_AMOUNT
      */
     hasAbundance(resourceType: string, amountPerRoom = RESERVE_AMOUNT * 2) {
         let abundanceAmount = this.terminals.length * amountPerRoom;
@@ -525,8 +525,8 @@ export class Empire {
         let outcome = localTerminal.send(resourceType, amount, otherTerminal.room.name);
         if (outcome === OK) {
             let distance = Game.map.getRoomLinearDistance(otherTerminal.room.name, localTerminal.room.name, true);
-            // console.log("NETWORK:", localTerminal.room.name, "→",
-            //    otherTerminal.room.name + ":", amount, resourceType, "(" + otherTerminal.owner.username.substring(0, 3) + ", dist: " + distance + ")");
+            // console.log("NETWORK:", localTerminal.missionRoom.name, "→",
+            //    otherTerminal.missionRoom.name + ":", amount, resourceType, "(" + otherTerminal.owner.username.substring(0, 3) + ", dist: " + distance + ")");
         }
         else {
             console.log(`NETWORK: error sending resource in ${localTerminal.room.name}, outcome: ${outcome}`);
@@ -680,7 +680,7 @@ export class Empire {
             travelData.cpu += (Game.cpu.getUsed() - cpu);
             travelData.count++;
             if (travelData.cpu > 10 && creep.name.indexOf("mason") < 0) {
-                console.log(`heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)}, pos: ${creep.pos}`)
+                // console.log(`heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)}, pos: ${creep.pos}`)
             }
             if (ret.incomplete) {
                 console.log(`incomplete path for ${creep.name}`);

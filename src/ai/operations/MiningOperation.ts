@@ -14,7 +14,7 @@ import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 export class MiningOperation extends Operation {
 
     /**
-     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the room. Can also
+     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can also
      * mine minerals from core rooms
      * @param flag
      * @param name
@@ -30,8 +30,8 @@ export class MiningOperation extends Operation {
     initOperation() {
         this.findOperationWaypoints();
         if (this.waypoints.length > 0 && !this.memory.spawnRoom) {
-            console.log("SPAWN: waypoints detected, manually set spawn room, example:", this.name +
-                ".setSpawnRoom(otherOpName.flag.room.name)");
+            console.log("SPAWN: waypoints detected, manually set spawn missionRoom, example:", this.name +
+                ".setSpawnRoom(otherOpName.flag.missionRoom.name)");
             return;
         }
         this.spawnGroup = this.getRemoteSpawnGroup();

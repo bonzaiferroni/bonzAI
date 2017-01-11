@@ -19,8 +19,8 @@ const CONQUEST_LOCAL_MIN_SPAWN_ENERGY = 1300;
 export class ConquestOperation extends Operation {
 
     /**
-     * Facilitates the establishment of new owned-rooms by spawning necessary creeps from a nearby room. Will spawn a
-     * claimer as needed. Spawning responsibilities can be changed-over to the local room by simply removing this operation
+     * Facilitates the establishment of new owned-rooms by spawning necessary creeps from a nearby missionRoom. Will spawn a
+     * claimer as needed. Spawning responsibilities can be changed-over to the local missionRoom by simply removing this operation
      * flag and replacing it with a FortOperation flag of the same name
      * @param flag
      * @param name
@@ -37,14 +37,14 @@ export class ConquestOperation extends Operation {
         this.findOperationWaypoints();
         if (!this.memory.spawnRoom) {
             if (Game.time % 3 === 0) {
-                console.log(this.name, "needs a spawn room, example:", this.name + ".setSpawnRoom(otherOpName.flag.room.name)");
+                console.log(this.name, "needs a spawn missionRoom, example:", this.name + ".setSpawnRoom(otherOpName.flag.missionRoom.name)");
             }
             return; // early
         }
 
         this.spawnGroup = this.empire.getSpawnGroup(this.memory.spawnRoom);
         if (!this.spawnGroup) {
-            console.log("Invalid spawn room specified for", this.name);
+            console.log("Invalid spawn missionRoom specified for", this.name);
             return;
         }
 

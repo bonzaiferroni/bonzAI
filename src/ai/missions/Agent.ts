@@ -1,13 +1,13 @@
 import {Mission} from "./Mission";
 import {TravelToOptions} from "../../interfaces";
-import {DESTINATION_REACHED} from "../../config/constants";
+import {IGOR_CAPACITY, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 
 export class Agent {
 
     creep: Creep;
     mission: Mission;
-    room: Room;
+    missionRoom: Room;
     outcome: number;
     memory: any;
     pos: RoomPosition;
@@ -15,12 +15,13 @@ export class Agent {
     constructor(creep: Creep, mission: Mission) {
         this.creep = creep;
         this.mission = mission;
-        this.room = mission.room;
+        this.missionRoom = mission.room;
         this.memory = creep.memory;
         this.pos = creep.pos;
     }
 
-    travelTo(destination: {pos: RoomPosition}, options?: TravelToOptions): number | RoomPosition {
+    travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number | RoomPosition {
+        if (destination instanceof RoomPosition) { destination = {pos: destination}; }
         return this.mission.empire.travelTo(this.creep, destination, options);
     }
 
@@ -28,7 +29,7 @@ export class Agent {
         return _.sum(this.creep.carry) >= this.creep.carryCapacity - margin;
     }
 
-    build(site: ConstructionSite): number {
+    travelToAndBuild(site: ConstructionSite): number {
         this.idleNear(site);
         return this.creep.build(site);
     }
@@ -139,5 +140,111 @@ export class Agent {
 
     isNearTo(place: {pos: RoomPosition} | RoomPosition) {
         return this.creep.pos.isNearTo(place);
+    }
+
+    seekBoost(boosts: string[], allowUnboosted: boolean) {
+        if (!boosts) return true;
+        if (this.missionRoom.findStructures(STRUCTURE_LAB).length === 0) return true;
+
+        let boosted = true;
+        for (let boost of boosts) {
+            if (this.memory[boost]) continue;
+
+            let requests = this.missionRoom.memory.boostRequests;
+            if (!requests) {
+                this.memory[boost] = true;
+                continue;
+            }
+            if (!requests[boost]) {
+                requests[boost] = { flagName: undefined, requesterIds: [] };
+            }
+
+            // check if already boosted
+            let boostedPart = _.find(this.creep.body, {boost: boost});
+            if (boostedPart) {
+                this.memory[boost] = true;
+                requests[boost].requesterIds = _.pull(requests[boost].requesterIds, this.creep.id);
+                continue;
+            }
+
+            boosted = false;
+
+            if (!_.includes(requests[boost].requesterIds, this.creep.id)) {
+                requests[boost].requesterIds.push(this.creep.id);
+            }
+
+            if (this.creep.spawning) continue;
+
+            let flag = Game.flags[requests[boost].flagName];
+            if (!flag) continue;
+
+            let lab = flag.pos.lookForStructure(STRUCTURE_LAB) as StructureLab;
+
+            if (lab.mineralType === boost && lab.mineralAmount >= IGOR_CAPACITY && lab.energy >= IGOR_CAPACITY) {
+                if (this.pos.isNearTo(lab)) {
+                    lab.boostCreep(this.creep);
+                }
+                else {
+                    this.travelTo(lab);
+                    return false;
+                }
+            }
+            else if (allowUnboosted) {
+                console.log("BOOST: no boost for", this.creep.name, " so moving on (allowUnboosted = true)");
+                requests[boost].requesterIds = _.pull(requests[boost].requesterIds, this.creep.id);
+                this.memory[boost] = true;
+            }
+            else {
+                if (Game.time % 10 === 0) console.log("BOOST: no boost for", this.creep.name,
+                    " it will wait for some boost (allowUnboosted = false)");
+                this.idleOffRoad(this.missionRoom.storage);
+                return false;
+            }
+        }
+
+        return boosted;
+    }
+
+    avoidSK(destination: Flag): number {
+        let costCall = (roomName: string): CostMatrix | boolean => {
+            if (roomName !== this.pos.roomName) return;
+            let roomType = helper.roomTypeFromName(roomName);
+            if (roomType !== ROOMTYPE_SOURCEKEEPER) return;
+            let room = Game.rooms[this.pos.roomName];
+            let matrix = new PathFinder.CostMatrix();
+            let sourceKeepers = _.filter(room.hostiles, (c: Creep) => c.owner.username === "Source Keeper");
+            for (let sourceKeeper of sourceKeepers) {
+                const SAFE_RANGE = 4;
+                if (this.pos.getRangeTo(sourceKeeper) < SAFE_RANGE) continue;
+                for (let xDelta = -SAFE_RANGE; xDelta <= SAFE_RANGE; xDelta++) {
+                    for (let yDelta = -SAFE_RANGE; yDelta <= SAFE_RANGE; yDelta++) {
+                        matrix.set(sourceKeeper.pos.x + xDelta, sourceKeeper.pos.y + yDelta, 0xff);
+                    }
+                }
+            }
+            return matrix;
+        };
+
+        let options: TravelToOptions = {};
+        if (this.creep.room.roomType === ROOMTYPE_SOURCEKEEPER) {
+            options.roomCallback = costCall;
+            let hostileCount = this.creep.room.hostiles.length;
+            if (!this.memory.hostileCount) this.memory.hostileCount = 0;
+            if (hostileCount > this.memory.hostileCount) {
+                this.resetTravelPath();
+            }
+            this.memory.hostileCount = hostileCount;
+        }
+
+        return this.travelTo(destination, options) as number;
+    }
+
+    resetTravelPath() {
+        if (!this.memory._travel) return;
+        delete this.memory._travel.path;
+    }
+
+    resetPrep() {
+        this.memory.prep = false;
     }
 }

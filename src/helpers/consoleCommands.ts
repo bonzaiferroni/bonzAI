@@ -8,7 +8,7 @@ declare var emp: Empire;
 export var consoleCommands = {
 
     /**
-     * Remove construction sites from a room
+     * Remove construction sites from a missionRoom
      * @param roomName
      * @param leaveProgressStarted - leave sites already started
      * @param structureType
@@ -208,7 +208,7 @@ export var consoleCommands = {
     },
 
     /**
-     * Place an order for a resource to be sent to any room. Good for making one-time deals.
+     * Place an order for a resource to be sent to any missionRoom. Good for making one-time deals.
      * @param resourceType
      * @param amount
      * @param roomName
@@ -236,7 +236,7 @@ export var consoleCommands = {
     },
 
     /**
-     * One-time send resource from all terminals to a specific room. For more control use cc.order()
+     * One-time send resource from all terminals to a specific missionRoom. For more control use cc.order()
      * @param resourceType
      * @param amount
      * @param roomName
@@ -282,7 +282,7 @@ export var consoleCommands = {
     roomConvention(opName: string, alternate?: string): string {
         let controllerOp = Game.operations[opName + 0];
         if (!controllerOp) {
-            return "owned room doesn't exist";
+            return "owned missionRoom doesn't exist";
         }
 
         for (let direction = 1; direction <= 8; direction++) {
@@ -327,5 +327,17 @@ export var consoleCommands = {
         }
 
         return `all flags consistent`;
+    },
+
+    test() {
+        let value = 8;
+        for (let x = 1; x < 49; x++) {
+            for (let y = 1; y < 49; y++) {
+                if (x % value === y % value || (x + y) % value === 0 ) {
+                    let position = new RoomPosition(x, y, "sim");
+                    position.createFlag("road" + x + y);
+                }
+            }
+        }
     }
 };

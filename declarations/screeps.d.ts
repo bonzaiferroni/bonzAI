@@ -741,14 +741,14 @@ declare class Creep extends RoomObject {
      */
     moveByPath(path: PathStep[] | RoomPosition[] | string): number;
     /**
-     * Find the optimal path to the target within the same room and move to it. A shorthand to consequent calls of pos.findPathTo() and move() methods. If the target is in another room, then the corresponding exit will be used as a target. Needs the MOVE body part.
-     * @param x X position of the target in the room.
-     * @param y Y position of the target in the room.
+     * Find the optimal path to the target within the same missionRoom and move to it. A shorthand to consequent calls of pos.findPathTo() and move() methods. If the target is in another missionRoom, then the corresponding exit will be used as a target. Needs the MOVE body part.
+     * @param x X position of the target in the missionRoom.
+     * @param y Y position of the target in the missionRoom.
      * @param opts An object containing pathfinding options flags (see Room.findPath for more info) or one of the following: reusePath, serializeMemory, noPathFinding
      */
     moveTo(x: number, y: number, opts?: MoveToOpts & FindPathOpts): number;
     /**
-     * Find the optimal path to the target within the same room and move to it. A shorthand to consequent calls of pos.findPathTo() and move() methods. If the target is in another room, then the corresponding exit will be used as a target. Needs the MOVE body part.
+     * Find the optimal path to the target within the same missionRoom and move to it. A shorthand to consequent calls of pos.findPathTo() and move() methods. If the target is in another missionRoom, then the corresponding exit will be used as a target. Needs the MOVE body part.
      * @param target Can be a RoomPosition object or any object containing RoomPosition.
      * @param opts An object containing pathfinding options flags (see Room.findPath for more info) or one of the following: reusePath, serializeMemory, noPathFinding
      */
@@ -821,7 +821,7 @@ declare class Creep extends RoomObject {
     withdraw(target: Structure, resourceType: string, amount?: number): number;
 }
 /**
- * A flag. Flags can be used to mark particular spots in a room. Flags are visible to their owners only.
+ * A flag. Flags can be used to mark particular spots in a missionRoom. Flags are visible to their owners only.
  */
 declare class Flag extends RoomObject {
     /**
@@ -854,8 +854,8 @@ declare class Flag extends RoomObject {
     setColor(color: number, secondaryColor?: number): number;
     /**
      * Set new position of the flag.
-     * @param x The X position in the room.
-     * @param y The Y position in the room.
+     * @param x The X position in the missionRoom.
+     * @param y The Y position in the missionRoom.
      * @returns Result Code: OK, ERR_INVALID_TARGET
      */
     setPosition(x: number, y: number): number;
@@ -901,7 +901,7 @@ interface Game {
      */
     market: Market;
     /**
-     * A hash containing all the rooms available to you with room names as hash keys.
+     * A hash containing all the rooms available to you with missionRoom names as hash keys.
      */
     rooms: {
         [roomName: string]: Room;
@@ -1030,22 +1030,22 @@ interface FindPathOpts {
      */
     ignoreRoads?: boolean;
     /**
-     * You can use this callback to modify a CostMatrix for any room during the search. The callback accepts two arguments, roomName
+     * You can use this callback to modify a CostMatrix for any missionRoom during the search. The callback accepts two arguments, roomName
      * and costMatrix. Use the costMatrix instance to make changes to the positions costs. If you return a new matrix from this callback,
      * it will be used instead of the built-in cached one. This option is only used when the new PathFinder is enabled.
      *
-     * @param roomName The name of the room.
+     * @param roomName The name of the missionRoom.
      * @param costMatrix The current CostMatrix
      * @returns The new CostMatrix to use
      */
     costCallback?(roomName: string, costMatrix: CostMatrix): CostMatrix;
     /**
-     * An array of the room's objects or RoomPosition objects which should be treated as walkable tiles during the search. This option
+     * An array of the missionRoom's objects or RoomPosition objects which should be treated as walkable tiles during the search. This option
      * cannot be used when the new PathFinder is enabled (use costCallback option instead).
      */
     ignore?: any[] | RoomPosition[];
     /**
-     * An array of the room's objects or RoomPosition objects which should be treated as obstacles during the search. This option cannot
+     * An array of the missionRoom's objects or RoomPosition objects which should be treated as obstacles during the search. This option cannot
      * be used when the new PathFinder is enabled (use costCallback option instead).
      */
     avoid?: any[] | RoomPosition[];
@@ -1116,9 +1116,9 @@ interface SurvivalGameInfo {
  */
 declare class GameMap {
     /**
-     * List all exits available from the room with the given name.
-     * @param roomName The room name.
-     * @returns The exits information or null if the room not found.
+     * List all exits available from the missionRoom with the given name.
+     * @param roomName The missionRoom name.
+     * @returns The exits information or null if the missionRoom not found.
      */
     describeExits(roomName: string): {
         "1": string;
@@ -1127,19 +1127,19 @@ declare class GameMap {
         "7": string;
     };
     /**
-     * Find the exit direction from the given room en route to another room.
-     * @param fromRoom Start room name or room object.
-     * @param toRoom Finish room name or room object.
-     * @return The room direction constant, one of the following:
+     * Find the exit direction from the given missionRoom en route to another missionRoom.
+     * @param fromRoom Start missionRoom name or missionRoom object.
+     * @param toRoom Finish missionRoom name or missionRoom object.
+     * @return The missionRoom direction constant, one of the following:
      * FIND_EXIT_TOP, FIND_EXIT_RIGHT, FIND_EXIT_BOTTOM, FIND_EXIT_LEFT
      * Or one of the following Result codes:
      * ERR_NO_PATH, ERR_INVALID_ARGS
      */
     findExit(fromRoom: string | Room, toRoom: string | Room): string | number;
     /**
-     * Find route from the given room to another room.
-     * @param fromRoom Start room name or room object.
-     * @param toRoom Finish room name or room object.
+     * Find route from the given missionRoom to another missionRoom.
+     * @param fromRoom Start missionRoom name or missionRoom object.
+     * @param toRoom Finish missionRoom name or missionRoom object.
      * @returns the route array or ERR_NO_PATH code
      */
     findRoute(fromRoom: string | Room, toRoom: string | Room, opts?: {
@@ -1153,29 +1153,29 @@ declare class GameMap {
     /**
      * Get the linear distance (in rooms) between two rooms. You can use this function to estimate the energy cost of
      * sending resources through terminals, or using observers and nukes.
-     * @param roomName1 The name of the first room.
-     * @param roomName2 The name of the second room.
+     * @param roomName1 The name of the first missionRoom.
+     * @param roomName2 The name of the second missionRoom.
      */
     getRoomLinearDistance(roomName1: string, roomName2: string, continuous?: boolean): number;
     /**
-     * Check if the room with the given name is protected by temporary "newbie" walls.
-     * @param roomName The room name.
+     * Check if the missionRoom with the given name is protected by temporary "newbie" walls.
+     * @param roomName The missionRoom name.
      */
     /**
-     * Get terrain type at the specified room position. This method works for any room in the world even if you have no access to it.
-     * @param x X position in the room.
-     * @param y Y position in the room.
-     * @param roomName The room name.
+     * Get terrain type at the specified missionRoom position. This method works for any missionRoom in the world even if you have no access to it.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
+     * @param roomName The missionRoom name.
      */
     getTerrainAt(x: number, y: number, roomName: string): string;
     /**
-     * Get terrain type at the specified room position. This method works for any room in the world even if you have no access to it.
+     * Get terrain type at the specified missionRoom position. This method works for any missionRoom in the world even if you have no access to it.
      * @param pos The position object.
      */
     getTerrainAt(pos: RoomPosition): string;
     /**
-     * Check if the room with the given name is protected by temporary "newbie" walls.
-     * @param roomName The room name.
+     * Check if the missionRoom with the given name is protected by temporary "newbie" walls.
+     * @param roomName The missionRoom name.
      * @returns A boolean value.
      */
     isRoomProtected(roomName: string): boolean;
@@ -1292,7 +1292,7 @@ declare class Mineral extends RoomObject {
     ticksToRegeneration: number;
 }
 /**
- * A nuke landing position. This object cannot be removed or modified. You can find incoming nukes in the room using the FIND_NUKES constant.
+ * A nuke landing position. This object cannot be removed or modified. You can find incoming nukes in the missionRoom using the FIND_NUKES constant.
  */
 declare class Nuke extends RoomObject {
     /**
@@ -1300,7 +1300,7 @@ declare class Nuke extends RoomObject {
      */
     id: string;
     /**
-     * The name of the room where this nuke has been launched from.
+     * The name of the missionRoom where this nuke has been launched from.
      */
     launchRoomName: string;
     /**
@@ -1386,9 +1386,9 @@ interface PathFinderOpts {
      */
     heuristicWeight?: number;
     /**
-     * Request from the pathfinder to generate a CostMatrix for a certain room. The callback accepts one argument, roomName.
-     * This callback will only be called once per room per search. If you are running multiple pathfinding operations in a
-     * single room and in a single tick you may consider caching your CostMatrix to speed up your code. Please read the
+     * Request from the pathfinder to generate a CostMatrix for a certain missionRoom. The callback accepts one argument, roomName.
+     * This callback will only be called once per missionRoom per search. If you are running multiple pathfinding operations in a
+     * single missionRoom and in a single tick you may consider caching your CostMatrix to speed up your code. Please read the
      * CostMatrix documentation below for more information on CostMatrix.
      *
      * @param roomName
@@ -1406,15 +1406,15 @@ interface CostMatrix {
     new (): CostMatrix;
     /**
      * Set the cost of a position in this CostMatrix.
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      * @param cost Cost of this position. Must be a whole number. A cost of 0 will use the terrain cost for that tile. A cost greater than or equal to 255 will be treated as unwalkable.
      */
     set(x: number, y: number, cost: number): any;
     /**
      * Get the cost of a position in this CostMatrix.
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      */
     get(x: number, y: number): any;
     /**
@@ -1463,43 +1463,43 @@ declare class Resource extends RoomObject {
     resourceType: string;
 }
 /**
- * Any object with a position in a room. Almost all game objects prototypes
+ * Any object with a position in a missionRoom. Almost all game objects prototypes
  * are derived from RoomObject.
  */
 declare class RoomObject {
     prototype: RoomObject;
     /**
-     * An object representing the position of this object in the room.
+     * An object representing the position of this object in the missionRoom.
      */
     pos: RoomPosition;
     /**
      * The link to the Room object. May be undefined in case if an object is a
-     * flag or a construction site and is placed in a room that is not visible
+     * flag or a construction site and is placed in a missionRoom that is not visible
      * to you.
      */
     room: Room;
 }
 /**
- * An object representing the specified position in the room. Every object in the room contains RoomPosition as the pos property. The position object of a custom location can be obtained using the Room.getPositionAt() method or using the constructor.
+ * An object representing the specified position in the missionRoom. Every object in the missionRoom contains RoomPosition as the pos property. The position object of a custom location can be obtained using the Room.getPositionAt() method or using the constructor.
  */
 declare class RoomPosition {
     /**
      * You can create new RoomPosition object using its constructor.
-     * @param x X position in the room.
-     * @param y Y position in the room.
-     * @param roomName The room name.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
+     * @param roomName The missionRoom name.
      */
     constructor(x: number, y: number, roomName: string);
     /**
-     * The name of the room.
+     * The name of the missionRoom.
      */
     roomName: string;
     /**
-     * X position in the room.
+     * X position in the missionRoom.
      */
     x: number;
     /**
-     * Y position in the room.
+     * Y position in the missionRoom.
      */
     y: number;
     /**
@@ -1525,7 +1525,7 @@ declare class RoomPosition {
     }): T;
     /**
      * Find an object with the shortest path from the given position. Uses A* search algorithm and Dijkstra's algorithm.
-     * @param objects An array of room's objects or RoomPosition objects that the search should be executed against.
+     * @param objects An array of missionRoom's objects or RoomPosition objects that the search should be executed against.
      * @param opts An object containing pathfinding options (see Room.findPath), or one of the following: filter, algorithm
      */
     findClosestByPath<T>(objects: T[] | RoomPosition[], opts?: FindPathOpts & {
@@ -1542,7 +1542,7 @@ declare class RoomPosition {
     }): T;
     /**
      * Find an object with the shortest linear distance from the given position.
-     * @param objects An array of room's objects or RoomPosition objects that the search should be executed against.
+     * @param objects An array of missionRoom's objects or RoomPosition objects that the search should be executed against.
      * @param opts An object containing one of the following options: filter
      */
     findClosestByRange<T>(objects: T[] | RoomPosition[], opts?: {
@@ -1559,7 +1559,7 @@ declare class RoomPosition {
     }): T[];
     /**
      * Find all objects in the specified linear range.
-     * @param objects An array of room's objects or RoomPosition objects that the search should be executed against.
+     * @param objects An array of missionRoom's objects or RoomPosition objects that the search should be executed against.
      * @param range The range distance.
      * @param opts See Room.find.
      */
@@ -1567,14 +1567,14 @@ declare class RoomPosition {
         filter?: any | string;
     }): T[];
     /**
-     * Find an optimal path to the specified position using A* search algorithm. This method is a shorthand for Room.findPath. If the target is in another room, then the corresponding exit will be used as a target.
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * Find an optimal path to the specified position using A* search algorithm. This method is a shorthand for Room.findPath. If the target is in another missionRoom, then the corresponding exit will be used as a target.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      * @param opts An object containing pathfinding options flags (see Room.findPath for more details).
      */
     findPathTo(x: number, y: number, opts?: FindPathOpts): PathStep[];
     /**
-     * Find an optimal path to the specified position using A* search algorithm. This method is a shorthand for Room.findPath. If the target is in another room, then the corresponding exit will be used as a target.
+     * Find an optimal path to the specified position using A* search algorithm. This method is a shorthand for Room.findPath. If the target is in another missionRoom, then the corresponding exit will be used as a target.
      * @param target Can be a RoomPosition object or any object containing RoomPosition.
      * @param opts An object containing pathfinding options flags (see Room.findPath for more details).
      */
@@ -1583,8 +1583,8 @@ declare class RoomPosition {
     }, opts?: FindPathOpts): PathStep[];
     /**
      * Get linear direction to the specified position.
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      */
     getDirectionTo(x: number, y: number): number;
     /**
@@ -1596,8 +1596,8 @@ declare class RoomPosition {
     }): number;
     /**
      * Get linear range to the specified position.
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      */
     getRangeTo(x: number, y: number): number;
     /**
@@ -1617,8 +1617,8 @@ declare class RoomPosition {
     }, range: number): boolean;
     /**
      * Check whether this position is the same as the specified position.
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      */
     isEqualTo(x: number, y: number): boolean;
     /**
@@ -1630,8 +1630,8 @@ declare class RoomPosition {
     }): boolean;
     /**
      * Check whether this position is on the adjacent square to the specified position. The same as inRangeTo(target, 1).
-     * @param x X position in the room.
-     * @param y Y position in the room.
+     * @param x X position in the missionRoom.
+     * @param y Y position in the missionRoom.
      */
     isNearTo(x: number, y: number): boolean;
     /**
@@ -1642,33 +1642,33 @@ declare class RoomPosition {
         pos: RoomPosition;
     }): boolean;
     /**
-     * Get the list of objects at the specified room position.
+     * Get the list of objects at the specified missionRoom position.
      */
     look(): LookAtResult[];
     /**
-     * Get an object with the given type at the specified room position.
+     * Get an object with the given type at the specified missionRoom position.
      * @param type One of the following string constants: constructionSite, creep, exit, flag, resource, source, structure, terrain
      */
     lookFor<T>(type: string): T[];
 }
 /**
- * An object representing the room in which your units and structures are in. It can be used to look around, find paths, etc. Every object in the room contains its linked Room instance in the room property.
+ * An object representing the missionRoom in which your units and structures are in. It can be used to look around, find paths, etc. Every object in the missionRoom contains its linked Room instance in the missionRoom property.
  */
 declare class Room {
     /**
-     * The Controller structure of this room, if present, otherwise undefined.
+     * The Controller structure of this missionRoom, if present, otherwise undefined.
      */
     controller: Controller;
     /**
-     * Total amount of energy available in all spawns and extensions in the room.
+     * Total amount of energy available in all spawns and extensions in the missionRoom.
      */
     energyAvailable: number;
     /**
-     * Total amount of energyCapacity of all spawns and extensions in the room.
+     * Total amount of energyCapacity of all spawns and extensions in the missionRoom.
      */
     energyCapacityAvailable: number;
     /**
-     * A shorthand to Memory.rooms[room.name]. You can use it for quick access the room’s specific memory data object.
+     * A shorthand to Memory.rooms[missionRoom.name]. You can use it for quick access the missionRoom’s specific memory data object.
      */
     memory: any;
     /**
@@ -1677,11 +1677,11 @@ declare class Room {
      */
     mode: string;
     /**
-     * The name of the room.
+     * The name of the missionRoom.
      */
     name: string;
     /**
-     * The Storage structure of this room, if present, otherwise undefined.
+     * The Storage structure of this missionRoom, if present, otherwise undefined.
      */
     storage: StructureStorage;
     /**
@@ -1689,7 +1689,7 @@ declare class Room {
      */
     survivalInfo: SurvivalGameInfo;
     /**
-     * The Terminal structure of this room, if present, otherwise undefined.
+     * The Terminal structure of this missionRoom, if present, otherwise undefined.
      */
     terminal: Terminal;
     /**
@@ -1729,7 +1729,7 @@ declare class Room {
         pos: RoomPosition;
     }, name?: string, color?: number, secondaryColor?: number): number;
     /**
-     * Find all objects of the specified type in the room.
+     * Find all objects of the specified type in the missionRoom.
      * @param type One of the following constants:FIND_CREEPS, FIND_MY_CREEPS, FIND_HOSTILE_CREEPS, FIND_MY_SPAWNS, FIND_HOSTILE_SPAWNS, FIND_SOURCES, FIND_SOURCES_ACTIVE, FIND_DROPPED_RESOURCES, FIND_DROPPED_ENERGY, FIND_STRUCTURES, FIND_MY_STRUCTURES, FIND_HOSTILE_STRUCTURES, FIND_FLAGS, FIND_CONSTRUCTION_SITES, FIND_EXIT_TOP, FIND_EXIT_RIGHT, FIND_EXIT_BOTTOM, FIND_EXIT_LEFT, FIND_EXIT
      * @param opts An object with additional options
      * @returns An array with the objects found.
@@ -1738,14 +1738,14 @@ declare class Room {
         filter: any | string;
     }): T[];
     /**
-     * Find the exit direction en route to another room.
-     * @param room Another room name or room object.
-     * @returns The room direction constant, one of the following: FIND_EXIT_TOP, FIND_EXIT_RIGHT, FIND_EXIT_BOTTOM, FIND_EXIT_LEFT
+     * Find the exit direction en route to another missionRoom.
+     * @param room Another missionRoom name or missionRoom object.
+     * @returns The missionRoom direction constant, one of the following: FIND_EXIT_TOP, FIND_EXIT_RIGHT, FIND_EXIT_BOTTOM, FIND_EXIT_LEFT
      * Or one of the following error codes: ERR_NO_PATH, ERR_INVALID_ARGS
      */
     findExitTo(room: string | Room): number;
     /**
-     * Find an optimal path inside the room between fromPos and toPos using A* search algorithm.
+     * Find an optimal path inside the missionRoom between fromPos and toPos using A* search algorithm.
      * @param fromPos The start position.
      * @param toPos The end position.
      * @param opts (optional) An object containing additonal pathfinding flags
@@ -1760,14 +1760,14 @@ declare class Room {
      */
     getPositionAt(x: number, y: number): RoomPosition;
     /**
-     * Get the list of objects at the specified room position.
+     * Get the list of objects at the specified missionRoom position.
      * @param x The X position.
      * @param y The Y position.
      * @returns An array with objects at the specified position
      */
     lookAt(x: number, y: number): LookAtResult[];
     /**
-     * Get the list of objects at the specified room position.
+     * Get the list of objects at the specified missionRoom position.
      * @param target Can be a RoomPosition object or any object containing RoomPosition.
      * @returns An array with objects at the specified position
      */
@@ -1775,7 +1775,7 @@ declare class Room {
         pos: RoomPosition;
     }): LookAtResult[];
     /**
-     * Get the list of objects at the specified room area. This method is more CPU efficient in comparison to multiple lookAt calls.
+     * Get the list of objects at the specified missionRoom area. This method is more CPU efficient in comparison to multiple lookAt calls.
      * @param top The top Y boundary of the area.
      * @param left The left X boundary of the area.
      * @param bottom The bottom Y boundary of the area.
@@ -1784,7 +1784,7 @@ declare class Room {
      */
     lookAtArea(top: number, left: number, bottom: number, right: number, asArray?: boolean): LookAtResultMatrix | LookAtResultWithPos[];
     /**
-     * Get an object with the given type at the specified room position.
+     * Get an object with the given type at the specified missionRoom position.
      * @param type One of the following string constants: constructionSite, creep, energy, exit, flag, source, structure, terrain
      * @param x The X position.
      * @param y The Y position.
@@ -1792,7 +1792,7 @@ declare class Room {
      */
     lookForAt<T>(type: string, x: number, y: number): T[];
     /**
-     * Get an object with the given type at the specified room position.
+     * Get an object with the given type at the specified missionRoom position.
      * @param type One of the following string constants: constructionSite, creep, energy, exit, flag, source, structure, terrain
      * @param target Can be a RoomPosition object or any object containing RoomPosition.
      * @returns An array of objects of the given type at the specified position if found.
@@ -1801,7 +1801,7 @@ declare class Room {
         pos: RoomPosition;
     }): T[];
     /**
-     * Get the list of objects with the given type at the specified room area. This method is more CPU efficient in comparison to multiple lookForAt calls.
+     * Get the list of objects with the given type at the specified missionRoom area. This method is more CPU efficient in comparison to multiple lookForAt calls.
      * @param type One of the following string constants: constructionSite, creep, energy, exit, flag, source, structure, terrain
      * @param top The top Y boundary of the area.
      * @param left The left X boundary of the area.
@@ -1889,7 +1889,7 @@ declare class Spawn extends OwnedStructure {
      */
     owner: Owner;
     /**
-     * An object representing the position of this spawn in a room.
+     * An object representing the position of this spawn in a missionRoom.
      */
     pos: RoomPosition;
     /**
@@ -1936,7 +1936,7 @@ declare class Spawn extends OwnedStructure {
      */
     destroy(): number;
     /**
-     * Check whether this structure can be used. If the room controller level is not enough, then this method will return false, and the structure will be highlighted with red in the game.
+     * Check whether this structure can be used. If the missionRoom controller level is not enough, then this method will return false, and the structure will be highlighted with red in the game.
      */
     isActive(): boolean;
     /**
@@ -1988,7 +1988,7 @@ declare class Structure extends RoomObject {
      */
     destroy(): number;
     /**
-     * Check whether this structure can be used. If the room controller level is not enough, then this method will return false, and the structure will be highlighted with red in the game.
+     * Check whether this structure can be used. If the missionRoom controller level is not enough, then this method will return false, and the structure will be highlighted with red in the game.
      */
     isActive(): boolean;
     /**
@@ -2012,7 +2012,7 @@ declare class OwnedStructure extends Structure {
     owner: Owner;
 }
 /**
- * Claim this structure to take control over the room. The controller structure
+ * Claim this structure to take control over the missionRoom. The controller structure
  * cannot be damaged or destroyed. It can be addressed by `Room.controller`
  * property.
  */
@@ -2052,7 +2052,7 @@ declare class StructureController extends OwnedStructure {
 }
 /**
  * Contains energy which can be spent on spawning bigger creeps. Extensions can
- * be placed anywhere in the room, any spawns will be able to use them regardless
+ * be placed anywhere in the missionRoom, any spawns will be able to use them regardless
  * of distance.
  */
 declare class StructureExtension extends OwnedStructure {
@@ -2072,7 +2072,7 @@ declare class StructureExtension extends OwnedStructure {
     transferEnergy(target: Creep, amount?: number): number;
 }
 /**
- * Remotely transfers energy to another Link in the same room.
+ * Remotely transfers energy to another Link in the same missionRoom.
  */
 declare class StructureLink extends OwnedStructure {
     /**
@@ -2088,7 +2088,7 @@ declare class StructureLink extends OwnedStructure {
      */
     energyCapacity: number;
     /**
-     * Transfer energy from the link to another link or a creep. If the target is a creep, it has to be at adjacent square to the link. If the target is a link, it can be at any location in the same room. Remote transfer process implies 3% energy loss and cooldown delay depending on the distance.
+     * Transfer energy from the link to another link or a creep. If the target is a creep, it has to be at adjacent square to the link. If the target is a link, it can be at any location in the same missionRoom. Remote transfer process implies 3% energy loss and cooldown delay depending on the distance.
      * @param target The target object.
      * @param amount The amount of energy to be transferred. If omitted, all the available energy is used.
      */
@@ -2105,11 +2105,11 @@ declare class StructureKeeperLair extends OwnedStructure {
     ticksToSpawn: number;
 }
 /**
- * Provides visibility into a distant room from your script.
+ * Provides visibility into a distant missionRoom from your script.
  */
 declare class StructureObserver extends OwnedStructure {
     /**
-     * Provide visibility into a distant room from your script. The target room object will be available on the next tick. The maximum range is 5 rooms.
+     * Provide visibility into a distant missionRoom from your script. The target missionRoom object will be available on the next tick. The maximum range is 5 rooms.
      * @param roomName
      */
     observeRoom(roomName: string): number;
@@ -2195,7 +2195,7 @@ declare class StructureRoad extends Structure {
 }
 /**
  * A structure that can store huge amount of resource units. Only one structure
- * per room is allowed that can be addressed by `Room.storage` property.
+ * per missionRoom is allowed that can be addressed by `Room.storage` property.
  */
 declare class StructureStorage extends OwnedStructure {
     /**
@@ -2223,7 +2223,7 @@ declare class StructureStorage extends OwnedStructure {
 }
 /**
  * Remotely attacks or heals creeps, or repairs structures. Can be targeted to
- * any object in the room. However, its effectiveness highly depends on the
+ * any object in the missionRoom. However, its effectiveness highly depends on the
  * distance. Each action consumes energy.
  */
 declare class StructureTower extends OwnedStructure {
@@ -2236,17 +2236,17 @@ declare class StructureTower extends OwnedStructure {
      */
     energyCapacity: number;
     /**
-     * Remotely attack any creep in the room. Consumes 10 energy units per tick. Attack power depends on the distance to the target: from 600 hits at range 10 to 300 hits at range 40.
+     * Remotely attack any creep in the missionRoom. Consumes 10 energy units per tick. Attack power depends on the distance to the target: from 600 hits at range 10 to 300 hits at range 40.
      * @param target The target creep.
      */
     attack(target: Creep): number;
     /**
-     * Remotely heal any creep in the room. Consumes 10 energy units per tick. Heal power depends on the distance to the target: from 400 hits at range 10 to 200 hits at range 40.
+     * Remotely heal any creep in the missionRoom. Consumes 10 energy units per tick. Heal power depends on the distance to the target: from 400 hits at range 10 to 200 hits at range 40.
      * @param target The target creep.
      */
     heal(target: Creep): number;
     /**
-     * Remotely repair any structure in the room. Consumes 10 energy units per tick. Repair power depends on the distance to the target: from 600 hits at range 10 to 300 hits at range 40.
+     * Remotely repair any structure in the missionRoom. Consumes 10 energy units per tick. Repair power depends on the distance to the target: from 600 hits at range 10 to 300 hits at range 40.
      * @param target The target structure.
      */
     repair(target: Spawn | Structure): number;
@@ -2320,7 +2320,7 @@ declare class StructureLab extends OwnedStructure {
     transfer(target: Creep, resourceType: string, amount?: number): number;
 }
 /**
- * Sends any resources to a Terminal in another room.
+ * Sends any resources to a Terminal in another missionRoom.
  */
 declare class StructureTerminal extends OwnedStructure {
     /**
@@ -2332,10 +2332,10 @@ declare class StructureTerminal extends OwnedStructure {
      */
     storeCapacity: number;
     /**
-     * Sends resource to a Terminal in another room with the specified name.
+     * Sends resource to a Terminal in another missionRoom with the specified name.
      * @param resourceType One of the RESOURCE_* constants.
      * @param amount The amount of resources to be sent. The minimum amount is 100.
-     * @param destination The name of the target room. You don't have to gain visibility in this room.
+     * @param destination The name of the target missionRoom. You don't have to gain visibility in this missionRoom.
      * @param description The description of the transaction. It is visible to the recipient. The maximum length is 100 characters.
      */
     send(resourceType: string, amount: number, destination: string, description?: string): number;
@@ -2369,9 +2369,9 @@ declare class StructureContainer extends Structure {
     transfer(target: Creep, resourceType: string, amount?: number): number;
 }
 /**
- * Launches a nuke to another room dealing huge damage to the landing area.
+ * Launches a nuke to another missionRoom dealing huge damage to the landing area.
  * Each launch has a cooldown and requires energy and ghodium resources. Launching
- * creates a Nuke object at the target room position which is visible to any player
+ * creates a Nuke object at the target missionRoom position which is visible to any player
  * until it is landed. Incoming nuke cannot be moved or cancelled. Nukes cannot
  * be launched from or to novice rooms.
  */
@@ -2398,18 +2398,18 @@ declare class StructureNuker extends OwnedStructure {
     cooldown: number;
     /**
      * Launch a nuke to the specified position.
-     * @param pos The target room position.
+     * @param pos The target missionRoom position.
      */
     launchNuke(pos: RoomPosition): number;
 }
 /**
  * A non-player structure.
- * Instantly teleports your creeps to a distant room acting as a room exit tile.
- * Portals appear randomly in the central room of each sector.
+ * Instantly teleports your creeps to a distant missionRoom acting as a missionRoom exit tile.
+ * Portals appear randomly in the central missionRoom of each sector.
  */
 declare class StructurePortal extends Structure {
     /**
-     * The position object in the destination room.
+     * The position object in the destination missionRoom.
      */
     destination: RoomPosition;
     /**

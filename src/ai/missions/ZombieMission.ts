@@ -91,7 +91,7 @@ export class ZombieMission extends Mission {
 
         let position = zombie.moveZombie(destination, zombie.memory.demolishing);
         zombie.memory.demolishing = false;
-        if (zombie.room == this.room && !zombie.pos.isNearExit(0) && position instanceof RoomPosition) {
+        if (zombie.pos.roomName === this.room.name && !zombie.pos.isNearExit(0) && position instanceof RoomPosition) {
             let structure = position.lookFor<Structure>(LOOK_STRUCTURES)[0];
             if (structure && structure.structureType !== STRUCTURE_ROAD) {
                 zombie.memory.demolishing = true;

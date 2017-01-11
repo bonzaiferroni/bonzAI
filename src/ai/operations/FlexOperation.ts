@@ -7,10 +7,6 @@ import {helper} from "../../helpers/helper";
 
 export class FlexOperation extends ControllerOperation {
 
-    protected addDefense() {
-        this.addMission(new DefenseMission(this));
-    }
-
     protected temporaryPlacement(level: number) {
         if (!this.memory.temporaryPlacement) this.memory.temporaryPlacement = {};
         if (!this.memory.temporaryPlacement[level]) {

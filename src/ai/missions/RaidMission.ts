@@ -58,7 +58,7 @@ export abstract class RaidMission extends Mission {
                 RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
         }
 
-        // if (this.raidData.breachFlags[0].room && !this.memory.fallback && this.raidData.breachFlags[0].room.controller.safeMode.)
+        // if (this.raidData.breachFlags[0].missionRoom && !this.memory.fallback && this.raidData.breachFlags[0].missionRoom.controller.safeMode.)
     }
 
     roleCall() {
@@ -423,7 +423,7 @@ export abstract class RaidMission extends Mission {
 
         let opts = { costCallback: function(roomName: string, matrix: CostMatrix) {
             for (let object of avoids) {
-                if (this.room !== object.roomName) continue;
+                if (this.room.name !== object.roomName) continue;
                 matrix.set(object.x, object.y, 0xff);
             }
             return matrix;

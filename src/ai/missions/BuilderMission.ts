@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {PRIORITY_BUILD} from "../../config/constants";
+import {DefenseGuru} from "../operations/DefenseGuru";
 export class BuilderMission extends Mission {
 
     builders: Creep[];
@@ -12,6 +13,7 @@ export class BuilderMission extends Mission {
     walls: StructureRampart[];
     remoteSpawn: boolean;
     activateBoost: boolean;
+    defenseGuru: DefenseGuru;
 
     memory: {
         maxHitsToBuild: number
@@ -28,8 +30,10 @@ export class BuilderMission extends Mission {
      * @param operation
      * @param activateBoost
      */
-    constructor(operation: Operation, activateBoost = false) {
+
+    constructor(operation: Operation, defenseGuru: DefenseGuru, activateBoost = false) {
         super(operation, "builder");
+        this.defenseGuru = defenseGuru;
         this.activateBoost = activateBoost;
     }
 
@@ -42,7 +46,7 @@ export class BuilderMission extends Mission {
         this.prioritySites = _.filter(this.sites, s => PRIORITY_BUILD.indexOf(s.structureType) > -1);
 
         if (Game.time % 10 === 5) {
-            // this should be a little more cpu-friendly since it basically will only run in room that has construction
+            // this should be a little more cpu-friendly since it basically will only run in missionRoom that has construction
             for (let site of this.sites) {
                 if (site.structureType === STRUCTURE_RAMPART || site.structureType === STRUCTURE_WALL) {
                     this.memory.maxHitsToBuild = 2000;
@@ -58,7 +62,7 @@ export class BuilderMission extends Mission {
 
         let maxBuilders = 0;
         let potency = 0;
-        if (this.sites.length > 0) {
+        if (this.sites.length > 0 && this.defenseGuru.hostiles.length === 0) {
             potency = this.findBuilderPotency();
             if (this.room.storage && this.room.storage.store.energy < 50000) {
                 potency = 1;
@@ -264,13 +268,13 @@ export class BuilderMission extends Mission {
             }
 
             if (structures.length === 0) {
-                // increase maxHitsToBuild if there are walls/ramparts in room and re-call function
+                // increase maxHitsToBuild if there are walls/ramparts in missionRoom and re-call function
                 if (this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)).length > 0) {
                     // TODO: seems to produce some pretty uneven walls, find out why
                     this.memory.maxHitsToBuild += Math.pow(10, Math.floor(Math.log(this.memory.maxHitsToBuild) / Math.log(10)));
                     return this.findMasonTarget(builder);
                 }
-                // do nothing if there are no walls/ramparts in room
+                // do nothing if there are no walls/ramparts in missionRoom
             }
 
             let closest = builder.pos.findClosestByRange(structures) as Structure;

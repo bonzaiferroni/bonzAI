@@ -15,10 +15,6 @@ export class QuadOperation extends ControllerOperation {
      * @param empire
      */
 
-    protected addDefense() {
-        this.addMission(new DefenseMission(this));
-    }
-
     protected initAutoLayout() {
         if(!this.memory.layoutMap) {
             this.memory.layoutMap = {};

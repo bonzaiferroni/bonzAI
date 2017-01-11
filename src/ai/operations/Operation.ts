@@ -100,7 +100,7 @@ export abstract class Operation {
                 profiler.end("ac_m." + missionName.substr(0, 3));
             }
             catch (e) {
-                console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName, "in room ", this.flag.pos.roomName);
+                console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName, "in missionRoom ", this.flag.pos.roomName);
                 console.log(e.stack);
             }
         }
@@ -236,12 +236,12 @@ export abstract class Operation {
         }
 
         if (!this.empire.getSpawnGroup(roomName)) {
-            return "SPAWN: that room doesn't appear to host a valid spawnGroup";
+            return "SPAWN: that missionRoom doesn't appear to host a valid spawnGroup";
         }
 
         if (!this.waypoints || !this.waypoints[0]) {
             if (portalTravel) {
-                return "SPAWN: please set up waypoints before setting spawn room with portal travel";
+                return "SPAWN: please set up waypoints before setting spawn missionRoom with portal travel";
             }
         }
         else {

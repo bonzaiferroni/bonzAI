@@ -22,6 +22,7 @@ export abstract class Mission {
     waypoints: Flag[];
     partnerPairing: {[role: string]: Creep[]} = {};
     distanceToSpawn: number;
+    roles: {[roleName: string]: typeof Agent };
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.name = name;
@@ -38,6 +39,7 @@ export abstract class Mission {
         if (this.room) this.hasVision = true;
         // initialize memory to be used by this mission
         if (!this.memory.spawn) this.memory.spawn = {};
+        if (!this.memory.hc) this.memory.hc = {};
         if (operation.waypoints && operation.waypoints.length > 0) {
             this.waypoints = operation.waypoints;
         }
@@ -137,6 +139,44 @@ export abstract class Mission {
         }
 
         return roleArray;
+    }
+
+    protected headCount2<T>(roleName: string, getBody: () => string[], getMax: () => number,
+                         options: HeadCountOptions = {}): T[] {
+        let agentArray = [];
+        if (!this.memory.hc[roleName]) this.memory.hc[roleName] = this.findOrphans(roleName);
+        let creepNames = this.memory.hc[roleName] as string[];
+
+        let count = 0;
+        for (let i = 0; i < creepNames.length; i++) {
+            let creepName = creepNames[i];
+            let creep = Game.creeps[creepName];
+            if (creep) {
+                let agent = new this.roles[roleName](creep, this);
+                let prepared = this.prepAgent(agent, options);
+                if (prepared) agentArray.push(agent);
+                let ticksNeeded = 0;
+                if (options.prespawn !== undefined) {
+                    ticksNeeded += creep.body.length * 3;
+                    ticksNeeded += options.prespawn;
+                }
+                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
+            }
+            else {
+                creepNames.splice(i, 1);
+                delete Memory.creeps[creepName];
+                i--;
+            }
+        }
+
+        let allowSpawn = this.spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
+        if (allowSpawn && count < getMax()) {
+            let creepName = `${this.opName}_${roleName}_${Math.floor(Math.random() * 100)}`;
+            let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
+            if (_.isString(outcome)) { creepNames.push(creepName); }
+        }
+
+        return agentArray;
     }
 
     protected spawnSharedCreep(roleName: string, getBody: () => string[]) {
@@ -276,7 +316,7 @@ export abstract class Mission {
     }
 
     /**
-     * General-purpose energy getting, will look for an energy source in the same room as the operation flag (not creep)
+     * General-purpose energy getting, will look for an energy source in the same missionRoom as the operation flag (not creep)
      * @param creep
      * @param nextDestination
      * @param highPriority - allows you to withdraw energy before a battery reaches an optimal amount of energy, jumping
@@ -339,7 +379,7 @@ export abstract class Mission {
 
     /**
      * Will return storage if it is available, otherwise will look for an alternative battery and cache it
-     * @param creep - return a battery relative to the room that the creep is currently in
+     * @param creep - return a battery relative to the missionRoom that the creep is currently in
      * @returns {any}
      */
 
@@ -412,7 +452,7 @@ export abstract class Mission {
             let storage = pos.findClosestByLongPath(storages) as Storage;
             if (!storage) {
                 storage = pos.findClosestByRoomRange(storages) as Storage;
-                console.log("couldn't find storage via path, fell back to find closest by room range for", this.opName);
+                console.log("couldn't find storage via path, fell back to find closest by missionRoom range for", this.opName);
             }
             if (storage) {
                 console.log("ATTN: attempting to find better storage for", this.name, "in", this.opName);
@@ -481,6 +521,23 @@ export abstract class Mission {
         return true;
     }
 
+    private prepAgent(agent: Agent, options: HeadCountOptions) {
+        if (!agent.memory.prep) {
+            if (agent.creep.spawning) return false;
+            if (options.disableNotify) {
+                this.disableNotify(agent)
+            }
+            let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
+            if (!boosted) return false;
+            if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
+                agent.avoidSK(this.flag);
+                return;
+            }
+            agent.memory.prep = true;
+        }
+        return true;
+    }
+
     findPartnerships(creeps: Creep[], role: string) {
         for (let creep of creeps) {
             if (!creep.memory.partner) {
@@ -531,7 +588,11 @@ export abstract class Mission {
         return this.memory.distanceToSpawn;
     }
 
-    protected disableNotify(creep: Creep) {
+    protected disableNotify(creep: Creep | Agent) {
+        if (creep instanceof Agent) {
+            creep = creep.creep;
+        }
+
         if (!creep.memory.notifyDisabled) {
             creep.notifyWhenAttacked(false);
             creep.memory.notifyDisabled = true;
@@ -575,7 +636,7 @@ export abstract class Mission {
         let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
             plainCost: PLAIN_COST,
             swampCost: SWAMP_COST,
-            maxOps: 8000,
+            maxOps: 12000,
             roomCallback: (roomName: string): CostMatrix | boolean => {
 
                 // disqualify rooms that involve a circuitous path
@@ -588,21 +649,17 @@ export abstract class Mission {
                     return false;
                 }
 
-                let matrix;
                 let room = Game.rooms[roomName];
                 if (!room) {
                     let roomType = helper.roomTypeFromName(roomName);
                     if (roomType === ROOMTYPE_ALLEY) {
-                        matrix = new PathFinder.CostMatrix();
-                        helper.blockOffExits(matrix, AVOID_COST, roomName);
-                        return matrix;
+                        let matrix = new PathFinder.CostMatrix();
+                        return helper.blockOffExits(matrix, AVOID_COST, roomName);
                     }
-                    else {
-                        return;
-                    }
+                    return;
                 }
 
-                matrix = new PathFinder.CostMatrix();
+                let matrix = new PathFinder.CostMatrix();
                 helper.addStructuresToMatrix(matrix, room, ROAD_COST);
 
                 // avoid controller
@@ -634,7 +691,12 @@ export abstract class Mission {
             },
         });
 
-        if (!ret.incomplete) return ret.path;
+        if (!ret.incomplete) {
+            return ret.path;
+        }
+        else {
+            console.log(ret.ops)
+        }
     }
 
     private examinePavedPath(path: RoomPosition[]) {

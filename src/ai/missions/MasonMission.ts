@@ -3,52 +3,68 @@ import {Operation} from "../operations/Operation";
 import {MasonGuru} from "./MasonGuru";
 import {Agent} from "./Agent";
 import {MasonAgent} from "./MasonAgent";
+import {DeliveryAgent} from "./DeliveryAgent";
+import {DefenseGuru} from "../operations/DefenseGuru";
 
 export class MasonMission extends Mission {
 
-    masons: Creep[];
-    carts: Creep[];
-    hostiles: Creep[];
-    analyzer: MasonGuru;
+    masons: MasonAgent[];
+    carts: Agent[];
+    guru: MasonGuru;
+    defenseGuru: DefenseGuru;
 
-    constructor(operation: Operation) {
+    roles = {
+        mason: MasonAgent,
+        masonCart: DeliveryAgent,
+    };
+
+    constructor(operation: Operation, defenseGuru: DefenseGuru) {
         super(operation, "mason");
+        this.defenseGuru = defenseGuru;
     }
 
     initMission() {
-        this.analyzer = new MasonGuru(this);
-        this.hostiles = this.analyzer.getHostiles();
+        this.guru = new MasonGuru(this, this.defenseGuru);
     }
 
+    maxMasons = () => {
+        if (this.guru.needMason) { return 1; }
+        else { return 0; }
+    };
+
+    maxCarts = () => {
+        if (this.guru.needMason && this.defenseGuru.hostiles.length > 0) { return 1; }
+        else { return 0; }
+    };
+
     roleCall() {
-        let maxMasons = 0;
-        if (this.analyzer.needMason()) {
-            maxMasons = 1;
+        let boosts;
+        let allowUnboosted = true;
+        if (this.defenseGuru.hostiles.length > 0) {
+            boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID]
+            allowUnboosted = !(this.room.terminal && this.room.terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ACID] > 1000);
         }
-        this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), maxMasons);
-
-        let maxCarts = 0;
-        if (maxMasons > 0 && this.hostiles.length > 0) {
-            maxCarts = 1;
-        }
-
-        this.carts = this.headCount("masonCart", () => this.workerBody(0, 4, 2), maxCarts);
+        this.masons = this.headCount2<MasonAgent>("mason", () => this.workerBody(16, 8, 12), this.maxMasons, {
+            boosts: boosts,
+            allowUnboosted: allowUnboosted,
+            prespawn: 1
+        });
+        this.carts = this.headCount2<DeliveryAgent>("masonCart", () => this.workerBody(0, 4, 2), this.maxCarts);
     }
 
     missionActions() {
 
         for (let mason of this.masons) {
-            let agent = new MasonAgent(mason, this);
-            if (this.hostiles.length > 0) {
-                this.sandbagActions(agent);
+            if (this.defenseGuru.hostiles.length > 0) {
+                this.sandbagActions(mason);
             }
             else {
-                this.masonActions(agent);
+                this.masonActions(mason);
             }
         }
 
         for (let cart of this.carts) {
-            this.masonCartActions(new Agent(cart, this));
+            this.masonCartActions(cart);
         }
     }
 
@@ -56,7 +72,7 @@ export class MasonMission extends Mission {
     }
 
     invalidateMissionCache() {
-        this.analyzer.recheckMasonNeed();
+        this.guru.recheckMasonNeed();
     }
 
     private masonActions(agent: MasonAgent) {
@@ -67,7 +83,7 @@ export class MasonMission extends Mission {
             return;
         }
 
-        agent.repairRampart(rampart);
+        agent.creep.repair(rampart);
 
         let stolen = false;
         if (!agent.isFull(200)) {
@@ -80,7 +96,6 @@ export class MasonMission extends Mission {
         }
         else {
             let extension = agent.getExtension(rampart);
-            if (agent.creep.name === `lima0_mason_82`) { console.log(`${extension.pos}`)}
             let outcome = agent.pickup(extension, RESOURCE_ENERGY);
             if (outcome === OK && !agent.creep.pos.inRangeTo(rampart, 3)) {
                 agent.travelTo(rampart);
@@ -89,28 +104,41 @@ export class MasonMission extends Mission {
     }
 
     private sandbagActions(agent: MasonAgent) {
+
+        if (agent.creep.ticksToLive > 400 &&
+            !agent.creep.body.find((p: BodyPartDefinition) => p.boost === RESOURCE_CATALYZED_LEMERGIUM_ACID)) {
+            if (this.room.terminal && this.room.terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ACID] > 1000) {
+                agent.resetPrep();
+            }
+        }
+
         let construction = agent.findConstruction();
         if (construction) {
-            agent.build(construction);
+            agent.travelToAndBuild(construction);
             return;
         }
 
-        let sandbag = this.analyzer.getBestSandbag(agent);
-        if (sandbag) {
-
+        let emergencySandbag = this.guru.getEmergencySandbag(agent);
+        if (emergencySandbag) {
+            if (agent.pos.inRangeTo(emergencySandbag, 3)) {
+                agent.creep.repair(emergencySandbag);
+            }
+            else {
+                agent.travelTo(emergencySandbag);
+            }
         }
     }
 
     private masonCartActions(agent: Agent) {
 
-        let lowestMason = _(this.masons).sortBy((c: Creep) => c.carry.energy).head();
+        let lowestMason = _(this.masons).sortBy((a: Agent) => a.creep.carry.energy).head();
         if (!lowestMason || !this.room.storage) {
             agent.idleOffRoad();
             return;
         }
 
         if (agent.isFull()) {
-            let outcome = agent.deliver(lowestMason, RESOURCE_ENERGY);
+            let outcome = agent.deliver(lowestMason.creep, RESOURCE_ENERGY);
             if (outcome === OK) {
                 agent.travelTo(this.room.storage)
             }

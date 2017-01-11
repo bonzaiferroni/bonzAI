@@ -63,7 +63,7 @@ export class PaverMission extends Mission {
             return;
         }
 
-        // I'm in the room
+        // I'm in the missionRoom
         paver.memory.scavanger = RESOURCE_ENERGY;
         let hasLoad = this.hasLoad(paver);
         if (!hasLoad) {
@@ -71,7 +71,7 @@ export class PaverMission extends Mission {
             return;
         }
 
-        // I'm in the room and I have energy
+        // I'm in the missionRoom and I have energy
         let findRoad = () => { return _.filter(paver.room.findStructures(STRUCTURE_ROAD),
             (s: Structure) => s.hits < s.hitsMax - 1000)[0] as Structure;
         };

@@ -57,7 +57,7 @@ export enum Direction { North = 1, NorthEast = 2, East = 3, SouthEast = 4, South
 export const NEED_ENERGY_THRESHOLD = 200000;
 // ...from rooms above this.
 export const SUPPLY_ENERGY_THRESHOLD = 250000;
-// rooms that are above this will try to push energy to any room accepting energy (like swap operations)
+// rooms that are above this will try to push energy to any missionRoom accepting energy (like swap operations)
 export const SUPPLY_SWAP_THRESHOLD = 300000;
 // rooms above this will start processing power
 export const POWER_PROCESS_THRESHOLD = 350000;

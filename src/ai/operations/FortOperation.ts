@@ -14,12 +14,13 @@ import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
 import {GeologyMission} from "../missions/GeologyMission";
 import {PaverMission} from "../missions/PaverMission";
+import {DefenseGuru} from "./DefenseGuru";
 
 
 export class FortOperation extends Operation {
 
     /**
-     * Manages the activities of an owned room, assumes bonzaiferroni's build spec
+     * Manages the activities of an owned missionRoom, assumes bonzaiferroni's build spec
      * @param flag
      * @param name
      * @param type
@@ -73,7 +74,8 @@ export class FortOperation extends Operation {
             }
 
             // build construction
-            this.addMission(new BuilderMission(this));
+            let defenseGuru = new DefenseGuru(this);
+            this.addMission(new BuilderMission(this, defenseGuru));
 
             // build walls
             // TODO: make MasonMission
@@ -92,7 +94,7 @@ export class FortOperation extends Operation {
             let boostUpgraders = this.flag.room.controller.level < 8;
             this.addMission(new UpgradeMission(this, boostUpgraders));
 
-            // pave all roads in the room
+            // pave all roads in the missionRoom
             this.addMission(new PaverMission(this));
         }
     }
