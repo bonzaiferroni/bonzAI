@@ -71,7 +71,8 @@ export class MiningOperation extends Operation {
             this.addMission(new UpgradeMission(this, true, spawnUpgraders, false));
         }
         else {
-            if (this.flag.room.controller) {
+            // allow remote mining of not reserved if we not able to spawn reserver yet.
+            if (this.flag.room.controller && this.spawnGroup.maxSpawnEnergy >= 1300) {
                 this.addMission(new ReserveMission(this));
             }
         }
