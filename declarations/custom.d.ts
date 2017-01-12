@@ -7,6 +7,8 @@ interface Game {
         structures: { [roomName: string]: {[structureType: string]: Structure[]} },
         hostiles:  { [roomName: string]: Creep[] },
         hostilesAndLairs: { [roomName: string]: RoomObject[] }
+        lairThreats: { [roomName: string]: StructureKeeperLair[] }
+        fleeObjects: { [roomName: string]: RoomObject[] }
         mineralCount: { [mineralType: string]: number }
         labProcesses: { [resourceType: string]: number }
         activeLabCount: number;
@@ -21,6 +23,7 @@ interface Room {
     getAltBattery(roomObject?: RoomObject): StructureContainer | Creep;
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
+    fleeObjects: RoomObject[];
     coords: RoomCoord;
     roomType: number;
     _defaultMatrix: CostMatrix;

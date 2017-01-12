@@ -3,7 +3,6 @@ import {Operation} from "../operations/Operation";
 import {MasonGuru} from "./MasonGuru";
 import {Agent} from "./Agent";
 import {MasonAgent} from "./MasonAgent";
-import {DeliveryAgent} from "./DeliveryAgent";
 import {DefenseGuru} from "../operations/DefenseGuru";
 
 export class MasonMission extends Mission {
@@ -15,7 +14,7 @@ export class MasonMission extends Mission {
 
     roles = {
         mason: MasonAgent,
-        masonCart: DeliveryAgent,
+        masonCart: Agent,
     };
 
     constructor(operation: Operation, defenseGuru: DefenseGuru) {
@@ -49,7 +48,7 @@ export class MasonMission extends Mission {
             allowUnboosted: allowUnboosted,
             prespawn: 1
         });
-        this.carts = this.headCount2<DeliveryAgent>("masonCart", () => this.workerBody(0, 4, 2), this.maxCarts);
+        this.carts = this.headCount2<Agent>("masonCart", () => this.workerBody(0, 4, 2), this.maxCarts);
     }
 
     missionActions() {

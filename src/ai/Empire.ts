@@ -619,6 +619,10 @@ export class Empire {
             return ERR_BUSY;
         }
 
+        if (!destination) {
+            return ERR_INVALID_ARGS;
+        }
+
         let rangeToDestination = creep.pos.getRangeTo(destination);
         if (rangeToDestination <= 1) {
             let outcome = OK;
@@ -656,6 +660,7 @@ export class Empire {
                 }
             }
             else {
+                options.ignoreCreeps = false;
                 delete travelData.path;
             }
         }
@@ -672,9 +677,9 @@ export class Empire {
 
         if (!travelData.path) {
             if (creep.spawning) return ERR_BUSY;
+
             travelData.dest = destination.pos;
             travelData.prev = undefined;
-            options.ignoreCreeps = travelData.stuck < 5;
             let cpu = Game.cpu.getUsed();
             let ret = this.findTravelPath(creep, destination, options);
             travelData.cpu += (Game.cpu.getUsed() - cpu);
@@ -727,7 +732,7 @@ export class Empire {
         let callback = (roomName: string): CostMatrix | boolean => {
 
             if (options.roomCallback) {
-                let outcome = options.roomCallback(roomName);
+                let outcome = options.roomCallback(roomName, options.ignoreCreeps);
                 if (outcome !== undefined) {
                     return outcome;
                 }
@@ -736,15 +741,16 @@ export class Empire {
             if (!allowedRooms && !searchedAlready) {
                 searchedAlready = true;
                 allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options);
+                if (options.economic) {
+                    allowedRooms = this.findLocalAllowedRooms(origin.pos.roomName, destination.pos.roomName)
+                }
                 if (!allowedRooms) {
                     notifier.add(`couldn't find allowed rooms for path from ${origin} to ${destination}`)
                 }
             }
-            if (allowedRooms && !allowedRooms[roomName]) return false;
             let room = Game.rooms[roomName];
+            if (allowedRooms && !allowedRooms[roomName]) return false;
             if (!room) return;
-
-
 
             let matrix: CostMatrix;
             if (options.ignoreStructures) {
@@ -892,6 +898,26 @@ export class Empire {
         for (let roomName in removeErrantStatus) {
             notifier.add(`EMPIRE: removed construction sites in ${roomName}`);
             delete this.memory.errantConstructionRooms[roomName];
+        }
+    }
+
+    private findLocalAllowedRooms(origin: string, destination: string): {[roomName: string]: boolean} {
+        let data = { [destination]: true };
+        let range = Game.map.getRoomLinearDistance(origin, destination);
+        this.findRecursion(origin, destination, data, range);
+        return data;
+    }
+
+    private findRecursion(testRoom: string, destination: string, data: {[roomName: string]: boolean}, range: number): boolean {
+        if (range < 0) { return testRoom === destination; }
+        else {
+            range--;
+            let valid;
+            for (let roomName of _.values(Game.map.describeExits(testRoom))) {
+                if (!this.findRecursion(roomName as string, destination, data, range)) { continue; }
+                valid = true;
+            }
+            if (valid) { return data[testRoom] = true; }
         }
     }
 }

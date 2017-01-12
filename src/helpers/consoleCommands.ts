@@ -65,10 +65,6 @@ export var consoleCommands = {
         }
     },
 
-    testCode() {
-        // test code
-    },
-
     /**
      * remove most memory while leaving more important stuff intact, strongly not recommended unless you know what you are
      * doing
@@ -329,15 +325,55 @@ export var consoleCommands = {
         return `all flags consistent`;
     },
 
-    test() {
-        let value = 8;
-        for (let x = 1; x < 49; x++) {
-            for (let y = 1; y < 49; y++) {
-                if (x % value === y % value || (x + y) % value === 0 ) {
-                    let position = new RoomPosition(x, y, "sim");
-                    position.createFlag("road" + x + y);
+    test(from: string, to: string) {
+        let fromPos = helper.pathablePosition(from);
+        let toPos = helper.pathablePosition(to);
+        let consideredRooms = {};
+        let firstCPU = Game.cpu.getUsed();
+        let ret = PathFinder.search(fromPos, toPos, {
+            maxOps: 20000,
+            roomCallback: (roomName) => consideredRooms[roomName] = true
+        });
+        firstCPU = Game.cpu.getUsed() - firstCPU;
+        let consideredRooms2 = {};
+        let secondCPU = Game.cpu.getUsed();
+        let range = Game.map.getRoomLinearDistance(from, to);
+        let ret2 = PathFinder.search(fromPos, toPos, {
+            maxOps: 20000,
+            roomCallback: (roomName) => {
+                if (Game.map.getRoomLinearDistance(roomName, to) > range) {
+                    return false;
                 }
+                consideredRooms2[roomName] = true;
             }
+        });
+        secondCPU = Game.cpu.getUsed() - secondCPU;
+        return `First path:\n` +
+            `considered ${Object.keys(consideredRooms)}\n` +
+            `searched ${Object.keys(consideredRooms).length} rooms\n` +
+            `opsUsed ${ret.ops}\n` +
+            `incomplete ${ret.incomplete}\n` +
+            `path length ${ret.path.length}\n` +
+            `cpu: ${firstCPU}` + `Second path:\n` +
+            `considered ${Object.keys(consideredRooms2)}\n` +
+            `searched ${Object.keys(consideredRooms2).length} rooms\n` +
+            `opsUsed ${ret2.ops}\n` +
+            `incomplete ${ret2.incomplete}\n` +
+            `path length ${ret2.path.length}\n` +
+            `cpu: ${secondCPU}`;
+    },
+
+    testCPU() {
+        let iterations = 1000;
+        let cpu = Game.cpu.getUsed();
+        for (let i = 0; i < iterations; i++) {
+            // nothing
         }
+        let baseline = Game.cpu.getUsed() - cpu;
+        cpu = Game.cpu.getUsed();
+        for (let i = 0; i < iterations; i++) {
+            Game.map.getRoomLinearDistance("W25S25", "E25S25");
+        }
+        return `cpu: ${Game.cpu.getUsed() - cpu - baseline} ${Game.cpu.getUsed() - cpu} ${baseline}`;
     }
 };

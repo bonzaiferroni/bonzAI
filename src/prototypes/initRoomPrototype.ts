@@ -20,6 +20,7 @@ export function initRoomPrototype() {
         }
     });
 
+    // deprecated
     Object.defineProperty(Room.prototype, "hostilesAndLairs", {
         get: function myProperty() {
             if (!Game.cache.hostilesAndLairs[this.name]) {
@@ -147,6 +148,41 @@ export function initRoomPrototype() {
                 this._defaultMatrix = helper.addStructuresToMatrix(matrix, this);
             }
             return this._defaultMatrix;
+        }
+    });
+
+    Object.defineProperty(Room.prototype, "fleeObjects", {
+        get: function myProperty() {
+            if (!Game.cache.fleeObjects[this.name]) {
+                let fleeObjects = _.filter(this.hostiles, (c: Creep): boolean => {
+                    if (c instanceof Creep) {
+                        return _.find(c.body, (part: BodyPartDefinition) => {
+                                return part.type === ATTACK || part.type === RANGED_ATTACK;
+                            }) !== null;
+                    }
+                    else {
+                        return true;
+                    }
+                });
+
+                if (this.roomType === ROOMTYPE_SOURCEKEEPER) {
+                    fleeObjects = fleeObjects.concat(this.lairThreats)
+                }
+
+                Game.cache.fleeObjects[this.name] = fleeObjects;
+            }
+
+            return Game.cache.fleeObjects[this.name];
+        }
+    });
+
+    Object.defineProperty(Room.prototype, "lairThreats", {
+        get: function myProperty() {
+            if (!Game.cache.lairThreats[this.name]) {
+                Game.cache.lairThreats[this.name] = _.filter(this.findStructures(STRUCTURE_KEEPER_LAIR),
+                    (lair: StructureKeeperLair) => { return !lair.ticksToSpawn || lair.ticksToSpawn < 10; });
+            }
+            return Game.cache.lairThreats[this.name];
         }
     });
 }

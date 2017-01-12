@@ -280,6 +280,7 @@ export abstract class Mission {
         return creep.memory.hasLoad;
     }
 
+    // deprecated
     /**
      * Used to determine cart count/size based on transport distance and the bandwidth needed
      * @param distance - distance (or average distance) from point A to point B
@@ -294,6 +295,7 @@ export abstract class Mission {
         return this.memory.transportAnalysis;
     }
 
+    // deprecated
     static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number): TransportAnalysis {
         // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100 and costs 150
         let maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
@@ -311,6 +313,7 @@ export abstract class Mission {
         };
     }
 
+    // deprecated
     static loadFromSource(source: Source): number {
         return Math.max(source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
     }
@@ -424,6 +427,7 @@ export abstract class Mission {
         return objects;
     }
 
+    // deprecated, use similar function on TransportGuru
     getStorage(pos: RoomPosition): StructureStorage {
         if (this.memory.tempStorageId) {
             let storage = Game.getObjectById<StructureStorage>(this.memory.tempStorageId);

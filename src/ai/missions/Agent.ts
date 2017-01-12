@@ -34,6 +34,21 @@ export class Agent {
         return this.creep.build(site);
     }
 
+    pickup(target: Creep | Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
+        if (this.creep.pos.isNearTo(target)) {
+            if (target instanceof Creep) {
+                return target.transfer(this.creep, resourceType, amount);
+            }
+            else {
+                return this.creep.withdraw(target, resourceType, amount);
+            }
+        }
+        else {
+            this.travelTo(target, options);
+            return ERR_NOT_IN_RANGE;
+        }
+    }
+
     deliver(target: Creep | Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
         if (this.creep.pos.isNearTo(target)) {
             return this.creep.transfer(target, resourceType, amount);
@@ -44,24 +59,50 @@ export class Agent {
         }
     }
 
-    pickup(target: Creep | Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
-        let outcome;
-        if (this.creep.pos.isNearTo(target)) {
-            if (target instanceof Creep) {
-                return target.transfer(this.creep, resourceType, amount);
-            }
-            else {
-                return this.creep.withdraw(target, resourceType, amount);
-            }
+    hasLoad(): boolean {
+        if (this.creep.memory._hasLoad && _.sum(this.creep.carry) === 0) {
+            this.creep.memory._hasLoad = false;
         }
-        else {
-            this.travelTo(target, options)
-            return ERR_NOT_IN_RANGE;
+        else if (!this.creep.memory._hasLoad && _.sum(this.creep.carry) === this.creep.carryCapacity) {
+            this.creep.memory._hasLoad = true;
         }
+        return this.creep.memory._hasLoad;
     }
 
-    idleOffRoad(anchor: {pos: RoomPosition} = this.mission.flag) {
-        this.creep.idleOffRoad(anchor);
+    /**
+     * Can be used to keep idling creeps out of the way, like when a road repairer doesn't have any roads needing repair
+     * or a spawn refiller who currently has full extensions.
+     * @param anchor
+     * @param maintainDistance
+     * @returns {any}
+     */
+    idleOffRoad(anchor: {pos: RoomPosition} = this.mission.flag, maintainDistance = false): number {
+        let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
+        if (offRoad) return OK;
+
+        let positions = _.sortBy(this.pos.openAdjacentSpots(), (p: RoomPosition) => p.getRangeTo(anchor));
+        if (maintainDistance) {
+            let currentRange = this.pos.getRangeTo(anchor);
+            positions = _.filter(positions, (p: RoomPosition) => p.getRangeTo(anchor) <= currentRange);
+        }
+
+        let swampPosition;
+        for (let position of positions) {
+            if (position.lookForStructure(STRUCTURE_ROAD)) continue;
+            let terrain = position.lookFor(LOOK_TERRAIN)[0] as string;
+            if (terrain === "swamp") {
+                swampPosition = position;
+            }
+            else {
+                return this.creep.move(this.pos.getDirectionTo(position));
+            }
+        }
+
+        if (swampPosition) {
+            return this.creep.move(this.pos.getDirectionTo(swampPosition));
+        }
+
+        return this.travelTo(anchor) as number;
     }
 
     stealNearby(stealSource: string): number {
@@ -206,7 +247,7 @@ export class Agent {
     }
 
     avoidSK(destination: Flag): number {
-        let costCall = (roomName: string): CostMatrix | boolean => {
+        let costCall = (roomName: string, ignoreCreeps: boolean): CostMatrix | boolean => {
             if (roomName !== this.pos.roomName) return;
             let roomType = helper.roomTypeFromName(roomName);
             if (roomType !== ROOMTYPE_SOURCEKEEPER) return;
@@ -221,6 +262,9 @@ export class Agent {
                         matrix.set(sourceKeeper.pos.x + xDelta, sourceKeeper.pos.y + yDelta, 0xff);
                     }
                 }
+            }
+            if (!ignoreCreeps) {
+                helper.addCreepsToMatrix(matrix, room);
             }
             return matrix;
         };
@@ -246,5 +290,94 @@ export class Agent {
 
     resetPrep() {
         this.memory.prep = false;
+    }
+
+    fleeHostiles(pathFinding?: boolean): boolean {
+
+        let fleeObjects = this.creep.room.fleeObjects;
+        if (fleeObjects.length === 0) return false;
+
+        let closest = this.pos.findClosestByRange(fleeObjects) as Creep;
+        if (closest) {
+            let range = this.pos.getRangeTo(closest);
+            let fleeRange = closest.owner.username === "Source Keeper" ? 5 : 8;
+
+            if (range < fleeRange) {
+                if (this.creep.fatigue > 0 && closest instanceof Creep) {
+                    let moveCount = this.creep.getActiveBodyparts(MOVE);
+                    let dropAmount = this.creep.carry.energy - (moveCount * CARRY_CAPACITY);
+                    this.creep.drop(RESOURCE_ENERGY, dropAmount);
+                }
+
+                if (pathFinding) {
+                    this.fleeByPath();
+                }
+                else {
+                    let fleePosition = this.pos.bestFleePosition(closest);
+                    if (fleePosition) {
+                        this.creep.move(this.pos.getDirectionTo(fleePosition));
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fleeByPath(): number {
+        let avoidPositions = _.map(this.pos.findInRange(this.creep.room.hostiles, 5),
+            (c: Creep) => { return {pos: c.pos, range: 10 }; });
+
+        let ret = PathFinder.search(this.pos, avoidPositions, {
+            flee: true,
+            maxRooms: 1,
+            roomCallback: (roomName: string): CostMatrix => {
+                if (roomName !== this.creep.room.name) return;
+                return this.creep.room.defaultMatrix;
+            }
+        });
+
+        return this.creep.move(this.pos.getDirectionTo(ret.path[0]));
+    }
+
+    /**
+     * Moves a creep to a position using creep.blindMoveTo(position), when at range === 1 will remove any occuping creep
+     * @param position
+     * @param name - if given, will suicide the occupying creep if string occurs anywhere in name (allows easy role replacement)
+     * and will transfer any resources in creeps' carry
+     * @param lethal - will suicide the occupying creep
+     * @returns {number}
+     */
+    moveItOrLoseIt(position: RoomPosition, name?: string, lethal = true): number {
+        if (this.creep.fatigue > 0) { return OK; }
+        let range = this.pos.getRangeTo(position);
+        if (range === 0) return OK;
+        if (range > 1) { return this.travelTo(position) as number; }
+
+        // take care of creep that might be in the way
+        let occupier = _.head(position.lookFor<Creep>(LOOK_CREEPS));
+        if (occupier && occupier.name) {
+            if (name && occupier.name.indexOf(name) >= 0) {
+                if (lethal) {
+                    for (let resourceType in occupier.carry) {
+                        let amount = occupier.carry[resourceType];
+                        if (amount > 0) {
+                            occupier.transfer(this.creep, resourceType);
+                        }
+                    }
+                    this.creep.say("my spot!");
+                    occupier.suicide();
+                }
+            }
+            else {
+                let direction = occupier.pos.getDirectionTo(this);
+                occupier.move(direction);
+                this.creep.say("move it");
+            }
+        }
+
+        // move
+        let direction = this.pos.getDirectionTo(position);
+        this.creep.move(direction);
     }
 }

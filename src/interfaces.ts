@@ -132,11 +132,12 @@ export interface TravelToOptions {
     range?: number;
     ignoreStuck?: boolean;
     obstacles?: {pos: RoomPosition}[];
-    roomCallback?: (roomName: string) => CostMatrix | boolean;
+    roomCallback?: (roomName: string, ignoreCreeps: boolean) => CostMatrix | boolean;
     returnPosition?: boolean;
     allowHostile?: boolean;
     allowSK?: boolean;
     restrictDistance?: number;
+    economic?: boolean;
 }
 
 export interface BankData {

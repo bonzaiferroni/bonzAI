@@ -65,6 +65,7 @@ export function initCreepPrototype() {
         return boosted;
     };
 
+    // deprecated
     Creep.prototype.fleeHostiles = function(pathFinding?: boolean): boolean {
         if (!this.fleeObjects) {
             let lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR);
@@ -245,6 +246,7 @@ export function initCreepPrototype() {
      * @param maintainDistance
      * @returns {any}
      */
+    // deprecated
     Creep.prototype.idleOffRoad = function(defaultPoint: {pos: RoomPosition}, maintainDistance = false): number {
         let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
         if (offRoad) return OK;
@@ -497,6 +499,7 @@ export function initCreepPrototype() {
         }
     };
 
+    // deprecated
     Creep.prototype.avoidSK = function(destination: {pos: RoomPosition}, opts?: any): number {
         let costCall = (roomName: string, costs: CostMatrix) => {
             if (roomName === this.room.name) {

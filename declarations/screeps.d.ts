@@ -1140,6 +1140,7 @@ declare class GameMap {
      * Find route from the given missionRoom to another missionRoom.
      * @param fromRoom Start missionRoom name or missionRoom object.
      * @param toRoom Finish missionRoom name or missionRoom object.
+     * @param opts
      * @returns the route array or ERR_NO_PATH code
      */
     findRoute(fromRoom: string | Room, toRoom: string | Room, opts?: {
