@@ -1,9 +1,9 @@
-
 import {TransportAnalysis} from "../../interfaces";
 import {Operation} from "../operations/Operation";
 import {Mission} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
+import {GeologyGuru} from "./GeologyGuru";
 export class GeologyMission extends Mission {
 
     geologists: Creep[];
@@ -11,9 +11,11 @@ export class GeologyMission extends Mission {
     repairers: Creep[];
     paver: Creep;
     mineral: Mineral;
-    storeStructure: StructureStorage | StructureTerminal;
+    store: StructureStorage | StructureTerminal;
     analysis: TransportAnalysis;
     container: StructureContainer;
+
+    guru: GeologyGuru;
 
     memory: {
         distanceToStorage: number;
@@ -29,20 +31,20 @@ export class GeologyMission extends Mission {
 
     constructor(operation: Operation, storeStructure?: StructureStorage | StructureTerminal) {
         super(operation, "geology");
-        this.storeStructure = storeStructure;
+        this.store = storeStructure;
     }
 
     initMission() {
         if (!this.hasVision) return;
 
         this.mineral = this.room.find<Mineral>(FIND_MINERALS)[0];
-        if (!Game.cache[this.mineral.mineralType]) Game.cache[this.mineral.mineralType] = 0;
-        Game.cache[this.mineral.mineralType]++;
-        if (!this.storeStructure) this.storeStructure = this.getStorage(this.mineral.pos);
+        this.guru = new GeologyGuru(this);
+        if (!this.store) this.store = this.guru.getStorage(this.mineral.pos);
+        if (!this.store) return;
+        this.guru.registerMineral();
 
-        if (!this.storeStructure) return;
         if (!this.memory.distanceToStorage) {
-            this.memory.distanceToStorage = this.mineral.pos.walkablePath(this.storeStructure.pos).length;
+            this.memory.distanceToStorage = this.mineral.pos.walkablePath(this.store.pos).length;
         }
 
         if ((!this.room.controller || this.room.controller.level >= 7) && !this.memory.builtExtractor) {
@@ -124,7 +126,7 @@ export class GeologyMission extends Mission {
         }
 
         if (this.memory.builtExtractor) {
-            let distance = this.pavePath(this.storeStructure, this.mineral, 2);
+            let distance = this.pavePath(this.store, this.mineral, 2);
             if (distance) {
                 this.memory.distanceToStorage = distance;
             }
@@ -206,11 +208,11 @@ export class GeologyMission extends Mission {
         if (fleeing) return; // early
 
         if (_.sum(cart.carry) === cart.carryCapacity) {
-            if (cart.pos.isNearTo(this.storeStructure)) {
-                cart.transferEverything(this.storeStructure);
+            if (cart.pos.isNearTo(this.store)) {
+                cart.transferEverything(this.store);
             }
             else {
-                cart.blindMoveTo(this.storeStructure);
+                cart.blindMoveTo(this.store);
             }
             return; // early;
         }
@@ -230,11 +232,11 @@ export class GeologyMission extends Mission {
         }
         else {
             if (_.sum(cart.carry) > 0) {
-                if (cart.pos.isNearTo(this.storeStructure)) {
-                    cart.transferEverything(this.storeStructure);
+                if (cart.pos.isNearTo(this.store)) {
+                    cart.transferEverything(this.store);
                 }
                 else {
-                    cart.blindMoveTo(this.storeStructure);
+                    cart.blindMoveTo(this.store);
                 }
                 return; // early;
             }
@@ -256,7 +258,7 @@ export class GeologyMission extends Mission {
 
     private buildContainer() {
         if (!this.memory.containerPosition) {
-            this.memory.containerPosition = this.mineral.pos.walkablePath(this.storeStructure.pos)[0];
+            this.memory.containerPosition = this.mineral.pos.walkablePath(this.store.pos)[0];
         }
         let position = helper.deserializeRoomPosition(this.memory.containerPosition);
         if (position.lookFor(LOOK_CONSTRUCTION_SITES).length === 0 && !position.lookForStructure(STRUCTURE_CONTAINER)) {
@@ -292,7 +294,7 @@ export class GeologyMission extends Mission {
                 else {
                     let outcome = cart.withdrawIfFull(this.container, this.mineral.mineralType);
                     if (outcome === OK && this.container.store[this.mineral.mineralType] >= cart.storeCapacity) {
-                        cart.blindMoveTo(this.storeStructure);
+                        cart.blindMoveTo(this.store);
                     }
                 }
             }
@@ -302,8 +304,8 @@ export class GeologyMission extends Mission {
             return; // early
         }
 
-        if (cart.pos.isNearTo(this.storeStructure)) {
-            let outcome = cart.transferEverything(this.storeStructure);
+        if (cart.pos.isNearTo(this.store)) {
+            let outcome = cart.transferEverything(this.store);
             if (outcome === OK && cart.ticksToLive < this.analysis.distance) {
                 cart.suicide();
             }
@@ -313,7 +315,7 @@ export class GeologyMission extends Mission {
 
         }
         else {
-            cart.blindMoveTo(this.storeStructure);
+            cart.blindMoveTo(this.store);
         }
     }
 

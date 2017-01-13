@@ -1,4 +1,22 @@
 import {Operation} from "./ai/operations/Operation";
+import {Empire} from "./ai/Empire";
+
+export interface bonzAI {
+    cache: {
+        structures: { [roomName: string]: {[structureType: string]: Structure[]} },
+        hostiles:  { [roomName: string]: Creep[] },
+        hostilesAndLairs: { [roomName: string]: RoomObject[] }
+        lairThreats: { [roomName: string]: StructureKeeperLair[] }
+        fleeObjects: { [roomName: string]: RoomObject[] }
+        mineralCount: { [mineralType: string]: number }
+        labProcesses: { [resourceType: string]: number }
+        activeLabCount: number;
+        placedRoad: boolean;
+    };
+    operations: {[opName: string]: Operation }
+    empire: Empire;
+}
+
 export interface TransportAnalysis {
     load: number;
     distance: number;
