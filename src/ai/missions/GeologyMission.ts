@@ -262,7 +262,7 @@ export class GeologyMission extends Mission {
         }
         let position = helper.deserializeRoomPosition(this.memory.containerPosition);
         if (position.lookFor(LOOK_CONSTRUCTION_SITES).length === 0 && !position.lookForStructure(STRUCTURE_CONTAINER)) {
-            console.log("GEO: building container in", this.opName);
+            console.log("GEO: building container in", this.operation.name);
             position.createConstructionSite(STRUCTURE_CONTAINER);
         }
     }

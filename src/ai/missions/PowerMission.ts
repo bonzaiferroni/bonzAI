@@ -342,7 +342,7 @@ export class PowerMission extends Mission {
             let position = helper.pathablePosition(roomName);
             let ret = this.empire.findTravelPath(spawn, {pos: position});
             if (ret.incomplete) {
-                notifier.add(`POWER: incomplete path generating scanData (op: ${this.opName}, roomName: ${roomName})`);
+                notifier.add(`POWER: incomplete path generating scanData (op: ${this.operation.name}, roomName: ${roomName})`);
                 continue;
             }
 
@@ -352,7 +352,7 @@ export class PowerMission extends Mission {
 
             if (currentObserver) {
                 if (currentObserver[roomName] > distance) {
-                    console.log(`POWER: found better distance for ${roomName} at ${this.opName}, ` +
+                    console.log(`POWER: found better distance for ${roomName} at ${this.operation.name}, ` +
                         `${currentObserver[roomName]} => ${distance}`);
                     delete currentObserver[roomName];
                 }
@@ -364,7 +364,7 @@ export class PowerMission extends Mission {
             scanData[roomName] = distance;
         }
 
-        console.log(`POWER: found ${Object.keys(scanData).length} rooms for power scan in ${this.opName}`);
+        console.log(`POWER: found ${Object.keys(scanData).length} rooms for power scan in ${this.operation.name}`);
         return scanData;
     }
 
@@ -378,7 +378,7 @@ export class PowerMission extends Mission {
                     let clyde = bank.pos.findInRange<Creep>(
                         _.filter(room.find<Creep>(FIND_MY_CREEPS), (c: Creep) => c.partCount(ATTACK) === 20), 1)[0];
                     if (clyde && bank.hits < clyde.ticksToLive * 600) {
-                        console.log(`POWER: last wave needed for bank has arrived, ${this.opName}`);
+                        console.log(`POWER: last wave needed for bank has arrived, ${this.operation.name}`);
                         currentBank.finishing = true;
                     }
                 }

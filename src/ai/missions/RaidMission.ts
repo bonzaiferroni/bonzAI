@@ -131,7 +131,7 @@ export abstract class RaidMission extends Mission {
         if (this.raidData.targetStructures && this.raidData.targetStructures.length > 0) {
             if (!this.healer.memory.clearPhase) {
                 this.healer.memory.clearPhase = true;
-                console.log(`RAID: breach cleared! (${this.opName} ${this.name})`);
+                console.log(`RAID: breach cleared! (${this.operation.name} ${this.name})`);
             }
             this.clearActions(attackingCreep);
             return;
@@ -139,7 +139,7 @@ export abstract class RaidMission extends Mission {
 
         if (!this.healer.memory.finishPhase) {
             this.healer.memory.finishPhase = true;
-            console.log(`RAID: all structures cleared! (${this.opName} ${this.name})`);
+            console.log(`RAID: all structures cleared! (${this.operation.name} ${this.name})`);
         }
 
         /* ------FINISH PHASE------ */
@@ -158,7 +158,7 @@ export abstract class RaidMission extends Mission {
         this.spawned = this.memory.spawned;
 
         if (Game.time % 10 === 0  && !this.spawned && this.allowSpawn) {
-            console.log(`RAID: ${this.opName} ${this.name} squad ready (reservation)`);
+            console.log(`RAID: ${this.operation.name} ${this.name} squad ready (reservation)`);
         }
 
         if (this.attacker && this.attacker.room.name !== this.raidData.breachFlags[0].pos.roomName) {
@@ -232,7 +232,7 @@ export abstract class RaidMission extends Mission {
 
         let waypoint = waypoints[healer.memory.waypointIndex];
         if (waypoint.room && leader.pos.inRangeTo(waypoint, 1)) {
-            console.log(`RAID: waypoint ${healer.memory.waypointIndex} reached (${this.opName} ${this.name})`);
+            console.log(`RAID: waypoint ${healer.memory.waypointIndex} reached (${this.operation.name} ${this.name})`);
             healer.memory.waypointIndex++;
         }
 

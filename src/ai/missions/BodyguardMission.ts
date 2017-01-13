@@ -27,7 +27,7 @@ export class BodyguardMission extends Mission {
     initMission() {
         if (!this.hasVision) return; // early
         this.hostiles = this.room.hostiles;
-        if (this.opType === "mining") {
+        if (this.operation.type === "mining") {
             this.trackEnergyTillInvader();
         }
     }
@@ -41,7 +41,7 @@ export class BodyguardMission extends Mission {
             if (this.hostiles.length > 0) {
                 maxDefenders = Math.ceil(this.hostiles.length / 2);
             }
-            if (this.opType !== "mining" && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
+            if (this.operation.type !== "mining" && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
                 maxDefenders = 1;
             }
         }

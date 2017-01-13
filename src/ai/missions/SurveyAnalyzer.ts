@@ -35,7 +35,7 @@ export class SurveyAnalyzer {
         this.empire = mission.empire;
         this.spawnGroup = mission.spawnGroup;
         this.memory = mission.memory as any;
-        this.opName = mission.opName;
+        this.opName = mission.operation.name;
     }
 
     public run(): string {

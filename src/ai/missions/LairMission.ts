@@ -32,7 +32,7 @@ export class LairMission extends Mission {
         this.targetLair = this.findTargetLair();
 
         if (this.waypoints) {
-            let destination = Game.flags[this.opName + "_sourceDestination"];
+            let destination = Game.flags[this.operation.name + "_sourceDestination"];
             if (destination) {
                 let structure = destination.pos.lookFor(LOOK_STRUCTURES)[0] as StructureStorage;
                 if (structure) {

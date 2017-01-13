@@ -53,7 +53,7 @@ export class RefillMission extends Mission {
         this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
 
         let cartBody = () => {
-            if (this.opType === "flex") {
+            if (this.operation.type === "flex") {
                 return this.bodyRatio(0, 2, 1, 1, 16);
             }
             else {

@@ -32,7 +32,7 @@ export class TransportMission extends Mission {
     initMission() {
         this.waypoints = [];
         if (!this.origin) {
-            let originFlag = Game.flags[this.opName + "_origin"];
+            let originFlag = Game.flags[this.operation.name + "_origin"];
             if (originFlag) {
                 this.memory.originPos = originFlag.pos;
                 if (originFlag.room) {
@@ -41,7 +41,7 @@ export class TransportMission extends Mission {
             }
         }
         if (!this.destination) {
-            let destinationFlag = Game.flags[this.opName + "_destination"];
+            let destinationFlag = Game.flags[this.operation.name + "_destination"];
             if (destinationFlag) {
                 this.memory.destinationPos = destinationFlag.pos;
                 if (destinationFlag.room) {

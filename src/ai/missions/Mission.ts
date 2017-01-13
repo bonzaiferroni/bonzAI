@@ -8,8 +8,6 @@ import {Guru} from "./Guru";
 import {Agent} from "./Agent";
 export abstract class Mission {
 
-    opName: string;
-    opType: string;
     flag: Flag;
     empire: Empire;
     memory: any;
@@ -17,6 +15,7 @@ export abstract class Mission {
     sources: Source[];
     room: Room;
     name: string;
+    operation: Operation;
     allowSpawn: boolean;
     hasVision: boolean;
     waypoints: Flag[];
@@ -26,8 +25,6 @@ export abstract class Mission {
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.name = name;
-        this.opName = operation.name;
-        this.opType = operation.type;
         this.flag = operation.flag;
         this.room = operation.room;
         this.empire = operation.empire;
@@ -36,6 +33,7 @@ export abstract class Mission {
         if (!operation.memory[name]) operation.memory[name] = {};
         this.memory = operation.memory[name];
         this.allowSpawn = allowSpawn;
+        this.operation = operation;
         if (this.room) this.hasVision = true;
         // initialize memory to be used by this mission
         if (!this.memory.spawn) this.memory.spawn = {};
@@ -73,13 +71,13 @@ export abstract class Mission {
     public setBoost(activateBoost: boolean) {
         let oldValue = this.memory.activateBoost;
         this.memory.activateBoost = activateBoost;
-        return `changing boost activation for ${this.name} in ${this.opName} from ${oldValue} to ${activateBoost}`;
+        return `changing boost activation for ${this.name} in ${this.operation.name} from ${oldValue} to ${activateBoost}`;
     }
 
     public setMax(max: number) {
         let oldValue = this.memory.max;
         this.memory.max = max;
-        return `changing max creeps for ${this.name} in ${this.opName} from ${oldValue} to ${max}`;
+        return `changing max creeps for ${this.name} in ${this.operation.name} from ${oldValue} to ${max}`;
     }
 
     public setSpawnGroup(spawnGroup: SpawnGroup) {
@@ -88,7 +86,7 @@ export abstract class Mission {
 
     public invalidateSpawnDistance() {
         if (this.memory.distanceToSpawn) {
-            console.log(`SPAWN: resetting distance for ${this.name} in ${this.opName}`);
+            console.log(`SPAWN: resetting distance for ${this.name} in ${this.operation.name}`);
             this.memory.distanceToSpawn = undefined;
         }
     }
@@ -133,7 +131,7 @@ export abstract class Mission {
         }
 
         if (count < max && this.allowSpawn && this.spawnGroup.isAvailable && (this.hasVision || options.blindSpawn)) {
-            let creepName = this.opName + "_" + roleName + "_" + Math.floor(Math.random() * 100);
+            let creepName = this.operation.name + "_" + roleName + "_" + Math.floor(Math.random() * 100);
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
         }
@@ -171,7 +169,7 @@ export abstract class Mission {
 
         let allowSpawn = this.spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
         if (allowSpawn && count < getMax()) {
-            let creepName = `${this.opName}_${roleName}_${Math.floor(Math.random() * 100)}`;
+            let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
             let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) { creepNames.push(creepName); }
         }
@@ -183,7 +181,7 @@ export abstract class Mission {
         let spawnMemory = this.spawnGroup.spawns[0].memory;
         if (!spawnMemory.communityRoles) spawnMemory.communityRoles = {};
 
-        let employerName = this.opName + this.name;
+        let employerName = this.operation.name + this.name;
         let creep;
         if (spawnMemory.communityRoles[roleName]) {
             let creepName = spawnMemory.communityRoles[roleName];
@@ -211,7 +209,7 @@ export abstract class Mission {
                 spawnMemory.communityRoles[roleName] = outcome;
             }
             else if (Game.time % 10 !== 0 && outcome !== ERR_NOT_ENOUGH_RESOURCES) {
-                console.log(`error spawning community ${roleName} in ${this.opName} outcome: ${outcome}`);
+                console.log(`error spawning community ${roleName} in ${this.operation.name} outcome: ${outcome}`);
             }
         }
     }
@@ -399,7 +397,7 @@ export abstract class Mission {
 
         let flags = [];
         for (let i = 0; i < max; i++) {
-            let flag = Game.flags[this.opName + identifier + i];
+            let flag = Game.flags[this.operation.name + identifier + i];
             if (flag) {
                 flags.push(flag);
             }
@@ -435,7 +433,7 @@ export abstract class Mission {
                 return storage;
             }
             else {
-                console.log("ATTN: Clearing temporary storage id due to not finding object in", this.opName);
+                console.log("ATTN: Clearing temporary storage id due to not finding object in", this.operation.name);
                 this.memory.tempStorageId = undefined;
             }
         }
@@ -446,7 +444,7 @@ export abstract class Mission {
                 return storage;
             }
             else {
-                console.log("ATTN: attempting to find better storage for", this.name, "in", this.opName);
+                console.log("ATTN: attempting to find better storage for", this.name, "in", this.operation.name);
                 this.memory.storageId = undefined;
                 return this.getStorage(pos);
             }
@@ -456,10 +454,10 @@ export abstract class Mission {
             let storage = pos.findClosestByLongPath(storages) as Storage;
             if (!storage) {
                 storage = pos.findClosestByRoomRange(storages) as Storage;
-                console.log("couldn't find storage via path, fell back to find closest by missionRoom range for", this.opName);
+                console.log("couldn't find storage via path, fell back to find closest by missionRoom range for", this.operation.name);
             }
             if (storage) {
-                console.log("ATTN: attempting to find better storage for", this.name, "in", this.opName);
+                console.log("ATTN: attempting to find better storage for", this.name, "in", this.operation.name);
                 this.memory.storageId = storage.id;
                 return storage;
             }
@@ -483,7 +481,7 @@ export abstract class Mission {
     private findOrphans(roleName: string) {
         let creepNames = [];
         for (let creepName in Game.creeps) {
-            if (creepName.indexOf(this.opName + "_" + roleName + "_") > -1) {
+            if (creepName.indexOf(this.operation.name + "_" + roleName + "_") > -1) {
                 creepNames.push(creepName);
             }
         }
@@ -575,7 +573,7 @@ export abstract class Mission {
             if (roomLinearDistance === 0) {
                 let distance = this.spawnGroup.pos.getPathDistanceTo(destination);
                 if (!distance) {
-                    console.log(`SPAWN: error finding distance in ${this.opName} for object at ${destination}`);
+                    console.log(`SPAWN: error finding distance in ${this.operation.name} for object at ${destination}`);
                     return;
                 }
                 this.memory.distanceToSpawn = distance;
@@ -584,7 +582,7 @@ export abstract class Mission {
                 this.memory.distanceToSpawn = (roomLinearDistance + 1) * 50;
             }
             else {
-                console.log(`SPAWN: likely portal travel detected in ${this.opName}, setting distance to 200`);
+                console.log(`SPAWN: likely portal travel detected in ${this.operation.name}, setting distance to 200`);
                 this.memory.distanceToSpawn = 200;
             }
         }
@@ -609,7 +607,7 @@ export abstract class Mission {
         let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
 
         if (!path) {
-            console.log(`incomplete pavePath, please investigate (${this.opName}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
+            console.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
             return;
         }
 
@@ -618,7 +616,7 @@ export abstract class Mission {
         if (newConstructionPos && (ignoreLimit || Object.keys(Game.constructionSites).length < 60)) {
             if (!Game.cache.placedRoad) {
                 Game.cache.placedRoad = true;
-                console.log(`PAVER: placed road ${newConstructionPos} in ${this.opName}`);
+                console.log(`PAVER: placed road ${newConstructionPos} in ${this.operation.name}`);
                 newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
             }
         }
@@ -719,7 +717,7 @@ export abstract class Mission {
                 // TODO: calculate how much "a whole lot" should be based on paver repair rate
                 const A_WHOLE_LOT = 1000000;
                 if (!this.memory.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20)) {
-                    console.log(`PAVER: I'm being summoned in ${this.opName}`);
+                    console.log(`PAVER: I'm being summoned in ${this.operation.name}`);
                     this.memory.roadRepairIds = repairIds;
                 }
                 continue;
@@ -741,7 +739,7 @@ export abstract class Mission {
         let road = this.findRoadToRepair();
 
         if (!road) {
-            console.log(`this is ${this.opName} paver, checking out with ${paver.ticksToLive} ticks to live`);
+            console.log(`this is ${this.operation.name} paver, checking out with ${paver.ticksToLive} ticks to live`);
             delete Memory.creeps[paver.name];
             paver.idleOffRoad(this.room.controller);
             return;

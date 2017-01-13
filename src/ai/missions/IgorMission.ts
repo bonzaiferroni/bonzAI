@@ -109,7 +109,7 @@ export class IgorMission extends Mission {
         let command = this.accessCommand(igor);
         if (!command) {
             if (_.sum(igor.carry) > 0) {
-                console.log("igor in", this.opName, "is holding resources without a command, putting them in terminal");
+                console.log("igor in", this.operation.name, "is holding resources without a command, putting them in terminal");
                 if (igor.pos.isNearTo(this.terminal)) {
                     igor.transferEverything(this.terminal);
                 }
@@ -127,7 +127,7 @@ export class IgorMission extends Mission {
             if (igor.pos.isNearTo(origin)) {
                 if (origin instanceof StructureTerminal) {
                     if (!origin.store[command.resourceType]) {
-                        console.log(`IGOR: I can't find that resource in terminal, opName: ${this.opName}`);
+                        console.log(`IGOR: I can't find that resource in terminal, opName: ${this.operation.name}`);
                         this.memory.command = undefined;
                     }
                 }
@@ -231,7 +231,7 @@ export class IgorMission extends Mission {
                 this.memory.command = this.findCommand();
             }
             else {
-                console.log("IGOR: can't take new command in:", this.opName, "because I'm holding something");
+                console.log("IGOR: can't take new command in:", this.operation.name, "because I'm holding something");
             }
             if (!this.memory.command) {
                 this.memory.lastCommandTick = Game.time;
@@ -413,13 +413,13 @@ export class IgorMission extends Mission {
             let process = this.memory.labProcess;
             let processFinished = this.checkProcessFinished(process);
             if (processFinished) {
-                console.log("IGOR:", this.opName, "has finished with", process.currentShortage.mineralType);
+                console.log("IGOR:", this.operation.name, "has finished with", process.currentShortage.mineralType);
                 this.memory.labProcess = undefined;
                 return this.findLabProcess();
             }
             let progress = this.checkProgress(process);
             if (!progress) {
-                console.log("IGOR:", this.opName, "made no progress with", process.currentShortage.mineralType);
+                console.log("IGOR:", this.operation.name, "made no progress with", process.currentShortage.mineralType);
                 this.memory.labProcess = undefined;
                 return this.findLabProcess();
             }
@@ -527,7 +527,7 @@ export class IgorMission extends Mission {
     private generateProcess(targetShortage: Shortage): LabProcess {
         let currentShortage = this.recursiveShortageCheck(targetShortage, true);
         if (currentShortage === undefined) {
-            console.log("IGOR: error finding current shortage in", this.opName);
+            console.log("IGOR: error finding current shortage in", this.operation.name);
             return;
         }
         let reagentLoads = {};
@@ -572,7 +572,7 @@ export class IgorMission extends Mission {
     }
 
     private placePullFlag(resourceType: string) {
-        let existingFlag = Game.flags[this.opName + "_" + resourceType];
+        let existingFlag = Game.flags[this.operation.name + "_" + resourceType];
         if (existingFlag) return existingFlag.name;
         let labs = _.filter(this.productLabs, (l: StructureLab) => l.pos.lookFor(LOOK_FLAGS).length === 0);
         if (labs.length === 0) return;
@@ -581,7 +581,7 @@ export class IgorMission extends Mission {
         if (this.productLabs.length > 1) {
             this.productLabs = _.pull(this.productLabs, closestToSpawn);
         }
-        let outcome = closestToSpawn.pos.createFlag(this.opName + "_" + resourceType);
+        let outcome = closestToSpawn.pos.createFlag(this.operation.name + "_" + resourceType);
         if (_.isString(outcome)) {
             console.log("IGOR: placing boost flag:", outcome);
             return outcome;
@@ -599,14 +599,14 @@ export class IgorMission extends Mission {
             for (let position of positions) {
                 // check each position for valid conditions
                 if (position.lookFor(LOOK_STRUCTURES).length === 0 && position.isPassible(true) && position.isNearTo(this.storage)) {
-                    console.log(`IGOR: found a good idle position in ${this.opName}: ${position}`);
+                    console.log(`IGOR: found a good idle position in ${this.operation.name}: ${position}`);
                     this.memory.idlePosition = position;
                     break;
                 }
             }
 
             if (!this.memory.idlePosition) {
-                console.log(`IGOR: terminal placement is unoptimal at ${this.opName}, consider moving storage or terminal`);
+                console.log(`IGOR: terminal placement is unoptimal at ${this.operation.name}, consider moving storage or terminal`);
             }
         }
     }

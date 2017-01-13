@@ -176,7 +176,7 @@ export class DemolishMission extends Mission {
 
     private checkStoreStructure(): StructureContainer | StructureStorage | StructureTerminal {
 
-        let flag = Game.flags[`${this.opName}_store`];
+        let flag = Game.flags[`${this.operation.name}_store`];
         if (flag && flag.room) {
             let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
                 .filter((s: any) => s.store !== undefined)

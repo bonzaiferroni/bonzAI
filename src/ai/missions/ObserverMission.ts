@@ -19,7 +19,7 @@ export class ObserverMission extends Mission {
     initMission() {
         if (_.isEmpty(this.roomsToObserve)) {
             for (let i = 0; i < 10; i++) {
-                let flag = Game.flags[this.opName + "_observe_" + i];
+                let flag = Game.flags[this.operation.name + "_observe_" + i];
                 if (!_.isEmpty(flag)) {
                     this.roomsToObserve.push(flag.pos.roomName);
                     if (Game.rooms[this.roomsToObserve[i]]) {

@@ -169,7 +169,7 @@ export class SwapMission extends Mission {
         let amount = this.room.terminal.store[this.mineral.mineralType];
         let needtoSell = amount > 100000;
         if (!needtoSell) return; // early
-        console.log("TRADE: too much mineral in swap mission " + this.opName + ":", amount);
+        console.log("TRADE: too much mineral in swap mission " + this.operation.name + ":", amount);
         this.empire.sellExcess(this.room, this.mineral.mineralType, RESERVE_AMOUNT);
     }
 

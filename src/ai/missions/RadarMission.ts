@@ -50,7 +50,7 @@ export class RadarMission extends Mission {
         let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
         if (!observer) {
             if (this.room.controller.level === 8 && Game.time % 100 === 0) {
-                console.log("NETWORK: please add an observer to", this.opName, "to participate in network");
+                console.log("NETWORK: please add an observer to", this.operation.name, "to participate in network");
             }
             return;
         }
@@ -72,7 +72,7 @@ export class RadarMission extends Mission {
 
     private fullScan(observer: StructureObserver) {
         if (!this.memory.fullScanData) {
-            console.log("NETWORK: Beginning full radar scan for", this.opName);
+            console.log("NETWORK: Beginning full radar scan for", this.operation.name);
             this.memory.fullScanData = {
                 x: -10,
                 y: -10,
@@ -109,7 +109,7 @@ export class RadarMission extends Mission {
                     this.memory.tickLastScanned = Game.time;
                     this.memory.fullScanComplete = true;
                     this.memory.fullScanData = undefined;
-                    console.log(`NETWORK: Scan of ally rooms complete at ${this.opName}`);
+                    console.log(`NETWORK: Scan of ally rooms complete at ${this.operation.name}`);
                     return;
                 }
             }

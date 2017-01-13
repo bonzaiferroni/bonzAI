@@ -18,8 +18,8 @@ export class SourceGuru extends TransportGuru {
 
     constructor(host: MiningMission) {
         super(host);
-        this.opName = host.opName;
-        this.opType = host.opType;
+        this.opName = host.operation.name;
+        this.opType = host.operation.type;
         this.source = host.source;
         this.remoteSpawning = host.remoteSpawning;
     }

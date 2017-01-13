@@ -218,7 +218,7 @@ export class UpgradeMission extends Mission {
             let position = helper.deserializeRoomPosition(this.memory.batteryPosition);
             if (position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) return;
             let outcome = position.createConstructionSite(structureType);
-            console.log(`UPGRADE: placing battery in ${this.opName}, outcome: ${outcome}, ${position}`);
+            console.log(`UPGRADE: placing battery in ${this.operation.name}, outcome: ${outcome}, ${position}`);
         }
 
         return battery
@@ -247,7 +247,7 @@ export class UpgradeMission extends Mission {
             return bestPositionSoFar;
         }
         else {
-            console.log(`couldn't find controller battery position in ${this.opName}`);
+            console.log(`couldn't find controller battery position in ${this.operation.name}`);
         }
     }
 
@@ -284,7 +284,7 @@ export class UpgradeMission extends Mission {
                 return this.room.find(FIND_SOURCES).length * 10;
             }
             else {
-                console.log(`unrecognized controller battery type in ${this.opName}, ${this.battery.structureType}`);
+                console.log(`unrecognized controller battery type in ${this.operation.name}, ${this.battery.structureType}`);
                 return 0;
             }
         }
@@ -352,7 +352,7 @@ export class UpgradeMission extends Mission {
         if (!this.battery) return 0;
 
         if (this.memory.max !== undefined) {
-            console.log(`overriding max in ${this.opName}`);
+            console.log(`overriding max in ${this.operation.name}`);
             return this.memory.max;
         }
 

@@ -31,11 +31,11 @@ export class EnhancedBodyguardMission extends Mission {
             if (creep) continue;
             let ticksToLive = this.memory.ticksToLive[id];
             if (ticksToLive > 10 && this.memory.allowUnboosted) {
-                console.log("DEFENSE:", this.opName, "lost a leeroy, increasing potency");
+                console.log("DEFENSE:", this.operation.name, "lost a leeroy, increasing potency");
                 this.memory.potencyUp = true;
             }
             else if (this.memory.potencyUp) {
-                console.log("DEFENSE:", this.opName, "leeroy died of old age, decreasing potency:");
+                console.log("DEFENSE:", this.operation.name, "leeroy died of old age, decreasing potency:");
                 this.memory.potencyUp = false;
             }
             delete this.memory.ticksToLive[id];

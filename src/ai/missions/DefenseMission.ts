@@ -46,7 +46,7 @@ export class DefenseMission extends Mission {
         if (Game.time % 1000 === 1) {
             let nukes = this.room.find(FIND_NUKES) as Nuke[];
             for (let nuke of nukes) {
-                console.log(`DEFENSE: nuke landing at ${this.opName} in ${nuke.timeToLand}`);
+                console.log(`DEFENSE: nuke landing at ${this.operation.name} in ${nuke.timeToLand}`);
             }
         }
 

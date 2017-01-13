@@ -98,15 +98,15 @@ export class ReserveMission extends Mission {
     private checkBulldozer(): boolean {
         let ret = this.empire.findTravelPath(this.spawnGroup, this.room.controller);
         if (!ret.incomplete) {
-            console.log(`RESERVER: No bulldozer necessary in ${this.opName}`);
+            console.log(`RESERVER: No bulldozer necessary in ${this.operation.name}`);
             return false;
         }
 
         let ignoredStructures = this.empire.findTravelPath(this.spawnGroup, this.room.controller,
             {range: 1, ignoreStructures: true});
         if (ignoredStructures.incomplete) {
-            notifier.add(`RESERVER: bad bulldozer path in ${this.opName}, please investigate.`);
-            console.log(helper.debugPath(ret.path, this.opName));
+            notifier.add(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
+            console.log(helper.debugPath(ret.path, this.operation.name));
             return false;
         }
 
@@ -122,7 +122,7 @@ export class ReserveMission extends Mission {
 
         if (dozer.pos.isNearTo(this.room.controller)) {
             this.memory.needBulldozer = false;
-            notifier.add(`RESERVER: bulldozer cleared path in ${this.opName}`);
+            notifier.add(`RESERVER: bulldozer cleared path in ${this.operation.name}`);
             dozer.suicide();
         }
         else {
