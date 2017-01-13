@@ -87,15 +87,15 @@ export const RESOURCE_VALUE = {
 };
 
 export const PRODUCT_PRICE = {
-    XUH2O: 6,
-    XLHO2: 6,
-    XKHO2: 6,
-    XZHO2: 6,
-    XZH2O: 6,
-    XLH2O: 6,
-    XGH2O: 8,
-    XGHO2: 8,
-    G: 3,
+    XUH2O: 4,
+    XLHO2: 4,
+    XKHO2: 4,
+    XZHO2: 4,
+    XZH2O: 4,
+    XLH2O: 4,
+    XGH2O: 6,
+    XGHO2: 6,
+    G: 2,
 };
 
 export const MINERAL_STORAGE_TARGET = {
