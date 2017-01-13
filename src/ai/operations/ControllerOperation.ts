@@ -211,7 +211,7 @@ export abstract class ControllerOperation extends Operation {
         return `moving layout, run command ${this.name}.showLayout(true) to display`
     }
 
-    public showLayout(show: boolean): string {
+    public showLayout(show: boolean, type: kind = "all"): string {
         if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
             return "No layout defined";
         }
@@ -224,45 +224,47 @@ export abstract class ControllerOperation extends Operation {
         }
 
         for (let structureType of Object.keys(CONSTRUCTION_COST)) {
-            let coords = this.layoutCoords(structureType);
-            let order = 0;
-            for (let coord of coords) {
-                let flagName = `${this.name}_layout_${structureType}_${order++}`;
-                let flag = Game.flags[flagName];
-                if (flag) {
-                    flag.setPosition(coord.x, coord.y);
-                    continue;
-                }
+            if ( kind == "all" || kind == structureType ) {
+               let coords = this.layoutCoords(structureType);
+                let order = 0;
+                for (let coord of coords) {
+                    let flagName = `${this.name}_layout_${structureType}_${order++}`;
+                    let flag = Game.flags[flagName];
+                    if (flag) {
+                        flag.setPosition(coord.x, coord.y);
+                        continue;
+                    }
 
-                let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-                let color = COLOR_WHITE;
-                if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
-                    || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
-                    color = COLOR_YELLOW;
+                    let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+                    let color = COLOR_WHITE;
+                    if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
+                        || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
+                        color = COLOR_YELLOW;
+                    }
+                    else if (structureType === STRUCTURE_TOWER) {
+                        color = COLOR_BLUE;
+                    }
+                    else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
+                        color = COLOR_CYAN;
+                    }
+                    else if (structureType === STRUCTURE_POWER_SPAWN) {
+                        color = COLOR_RED;
+                    }
+                    else if (structureType === STRUCTURE_OBSERVER) {
+                        color = COLOR_BROWN;
+                    }
+                    else if (structureType === STRUCTURE_ROAD) {
+                        color = COLOR_GREY;
+                    }
+                    else if (structureType === STRUCTURE_RAMPART) {
+                        color = COLOR_GREEN;
+                    }
+                    position.createFlag(flagName, color);
                 }
-                else if (structureType === STRUCTURE_TOWER) {
-                    color = COLOR_BLUE;
-                }
-                else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
-                    color = COLOR_CYAN;
-                }
-                else if (structureType === STRUCTURE_POWER_SPAWN) {
-                    color = COLOR_RED;
-                }
-                else if (structureType === STRUCTURE_OBSERVER) {
-                    color = COLOR_BROWN;
-                }
-                else if (structureType === STRUCTURE_ROAD) {
-                    color = COLOR_GREY;
-                }
-                else if (structureType === STRUCTURE_RAMPART) {
-                    color = COLOR_GREEN;
-                }
-                position.createFlag(flagName, color);
-            }
+            } 
         }
 
-        return "showing layout flags"
+        return `showing layout flags for: ${kind}`
     }
 
     private autoLayout() {
