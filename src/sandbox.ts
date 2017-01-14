@@ -1,7 +1,7 @@
 import {SpawnGroup} from "./ai/SpawnGroup";
-import {helper} from "./helpers/helper";
 import {profiler} from "./profiler";
-import {ROOMTYPE_ALLEY} from "./config/constants";
+import {Empire} from "./helpers/loopHelper";
+
 export var sandBox = {
     run: function() {
         let claimerFlag = Game.flags["claimerFlag"];
@@ -25,7 +25,7 @@ export var sandBox = {
                 console.log("### claimer waiting");
             }
             else {
-                emp.travelTo(claimer, claimerFlag);
+                Empire.travelTo(claimer, claimerFlag);
             }
         }
 
@@ -58,7 +58,7 @@ export var sandBox = {
                 if (creepName === "travelTo") {
                     if (!creep.pos.inRangeTo(testFlag, 1)) {
                         profiler.start("travelTo");
-                        emp.travelTo(creep, testFlag);
+                        Empire.travelTo(creep, testFlag);
                         profiler.end("travelTo");
                     }
                 }

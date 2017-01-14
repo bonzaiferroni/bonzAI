@@ -14,7 +14,7 @@ import {Coord, SeedData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {SeedAnalysis} from "../SeedAnalysis";
 import {SpawnGroup} from "../SpawnGroup";
-import {Empire} from "../Empire";
+import {EmpireClass} from "../Empire";
 import {MasonMission} from "../missions/MasonMission";
 import {OperationPriority} from "../../config/constants";
 import {BodyguardMission} from "../missions/BodyguardMission";
@@ -32,7 +32,7 @@ const GEO_SPAWN_COST = 5000;
 
 export abstract class ControllerOperation extends Operation {
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
+    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
         super(flag, name, type, empire);
         this.priority = OperationPriority.OwnedRoom;
         if (this.flag.room && this.flag.room.controller.level < 6) {

@@ -1,7 +1,7 @@
 import {SurveyMission} from "./SurveyMission";
 import {helper} from "../../helpers/helper";
 import {ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CONTROLLER, USERNAME} from "../../config/constants";
-import {Empire} from "../Empire";
+import {EmpireClass} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {notifier} from "../../notifier";
 import {Mission} from "./Mission";
@@ -20,7 +20,7 @@ interface SurveyData {
 export class SurveyAnalyzer {
 
     private room: Room;
-    private empire: Empire;
+    private empire: EmpireClass;
     private spawnGroup: SpawnGroup;
     private opName: string;
     private memory: {

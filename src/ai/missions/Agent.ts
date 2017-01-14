@@ -2,46 +2,74 @@ import {Mission} from "./Mission";
 import {TravelToOptions} from "../../interfaces";
 import {IGOR_CAPACITY, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
 import {helper} from "../../helpers/helper";
+import {Empire} from "../../helpers/loopHelper";
 
 export class Agent {
 
     creep: Creep;
     mission: Mission;
+    room: Room;
     missionRoom: Room;
     outcome: number;
     memory: any;
+    carry: StoreDefinition;
+    carryCapacity: number;
     pos: RoomPosition;
 
     constructor(creep: Creep, mission: Mission) {
         this.creep = creep;
         this.mission = mission;
+        this.room = creep.room;
         this.missionRoom = mission.room;
         this.memory = creep.memory;
         this.pos = creep.pos;
+        this.carry = creep.carry;
+        this.carryCapacity = creep.carryCapacity;
+    }
+
+    attack(target: Creep|Structure): number { return this.creep.attack(target); }
+    attackController(controller: StructureController): number { return this.creep.attackController(controller); }
+    build(target: ConstructionSite): number { return this.creep.build(target); }
+    claimController(controller: StructureController): number { return this.creep.claimController(controller); }
+    dismantle(target: Structure): number { return this.creep.dismantle(target); }
+    drop(resourceType: string, amount?: number): number { return this.creep.drop(resourceType, amount); }
+    getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }
+    harvest(source: Source): number { return this.creep.harvest(source); }
+    heal(target: Creep): number { return this.creep.heal(target); }
+    move(direction: number): number { return this.creep.move(direction); }
+    pickup(resource: Resource): number { return this.creep.pickup(resource); }
+    rangedAttack(target: Creep|Structure): number { return this.creep.rangedAttack(target); }
+    rangedHeal(target: Creep): number { return this.creep.rangedHeal(target); }
+    rangedMassAttack(): number { return this.creep.rangedMassAttack(); }
+    repair(target: Structure): number { return this.creep.repair(target); }
+    reserveController(controller: StructureController): number { return this.creep.reserveController(controller); }
+    say(message: string): number { return this.creep.say(message); }
+    suicide(): number { return this.creep.suicide(); }
+    transfer(target: Creep|Structure, resourceType: string, amount?: number): number {
+        return this.creep.transfer(target, resourceType, amount); }
+    upgradeController(controller: StructureController): number { return this.creep.upgradeController(controller); }
+    withdraw(target: Creep|Structure, resourceType: string, amount?: number): number {
+        if (target instanceof Creep) { return target.transfer(this.creep, resourceType, amount); }
+        else { return this.creep.withdraw(target, resourceType, amount); }
     }
 
     travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number | RoomPosition {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
-        return this.mission.empire.travelTo(this.creep, destination, options);
+        return Empire.travelTo(this.creep, destination, options);
     }
 
     isFull(margin = 0): boolean {
-        return _.sum(this.creep.carry) >= this.creep.carryCapacity - margin;
+        return _.sum(this.carry) >= this.carryCapacity - margin;
     }
 
     travelToAndBuild(site: ConstructionSite): number {
         this.idleNear(site);
-        return this.creep.build(site);
+        return this.build(site);
     }
 
-    pickup(target: Creep | Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
-        if (this.creep.pos.isNearTo(target)) {
-            if (target instanceof Creep) {
-                return target.transfer(this.creep, resourceType, amount);
-            }
-            else {
-                return this.creep.withdraw(target, resourceType, amount);
-            }
+    retrieve(target: Creep|Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
+        if (this.pos.isNearTo(target)) {
+            this.withdraw(target, resourceType, amount);
         }
         else {
             this.travelTo(target, options);
@@ -49,9 +77,9 @@ export class Agent {
         }
     }
 
-    deliver(target: Creep | Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
-        if (this.creep.pos.isNearTo(target)) {
-            return this.creep.transfer(target, resourceType, amount);
+    deliver(target: Creep|Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
+        if (this.pos.isNearTo(target)) {
+            return this.transfer(target, resourceType, amount);
         }
         else {
             this.travelTo(target, options);
@@ -60,13 +88,13 @@ export class Agent {
     }
 
     hasLoad(): boolean {
-        if (this.creep.memory._hasLoad && _.sum(this.creep.carry) === 0) {
-            this.creep.memory._hasLoad = false;
+        if (this.memory.hasLoad && _.sum(this.carry) === 0) {
+            this.memory.hasLoad = false;
         }
-        else if (!this.creep.memory._hasLoad && _.sum(this.creep.carry) === this.creep.carryCapacity) {
-            this.creep.memory._hasLoad = true;
+        else if (!this.memory.hasLoad && _.sum(this.carry) === this.carryCapacity) {
+            this.memory.hasLoad = true;
         }
-        return this.creep.memory._hasLoad;
+        return this.memory.hasLoad;
     }
 
     /**
@@ -94,12 +122,12 @@ export class Agent {
                 swampPosition = position;
             }
             else {
-                return this.creep.move(this.pos.getDirectionTo(position));
+                return this.move(this.pos.getDirectionTo(position));
             }
         }
 
         if (swampPosition) {
-            return this.creep.move(this.pos.getDirectionTo(swampPosition));
+            return this.move(this.pos.getDirectionTo(swampPosition));
         }
 
         return this.travelTo(anchor) as number;
@@ -107,24 +135,24 @@ export class Agent {
 
     stealNearby(stealSource: string): number {
         if (stealSource === "creep") {
-            let creep = _(this.creep.pos.findInRange<Creep>(FIND_MY_CREEPS, 1))
+            let creep = _(this.pos.findInRange<Creep>(FIND_MY_CREEPS, 1))
                 .filter((c: Creep) => c.getActiveBodyparts(WORK) === 0 && c.carry.energy > 0)
                 .head();
             if (!creep) { return ERR_NOT_IN_RANGE; }
             return creep.transfer(this.creep, RESOURCE_ENERGY);
         }
         else {
-            let structure = _(this.creep.pos.findInRange<Structure>(this.creep.room.findStructures<Structure>(stealSource), 1))
+            let structure = _(this.pos.findInRange<Structure>(this.creep.room.findStructures<Structure>(stealSource), 1))
                 .filter((s: {energy: number}) => s.energy > 0)
                 .head();
             if (!structure) { return ERR_NOT_IN_RANGE; }
-            return this.creep.withdraw(structure, RESOURCE_ENERGY);
+            return this.withdraw(structure, RESOURCE_ENERGY);
         }
     }
 
     idleNear(place: {pos: RoomPosition}, acceptableRange = 1, allowSwamp = true): number {
-        let range = this.creep.pos.getRangeTo(place);
-        if (range <= acceptableRange && !this.creep.pos.lookForStructure(STRUCTURE_ROAD)) {
+        let range = this.pos.getRangeTo(place);
+        if (range <= acceptableRange && !this.pos.lookForStructure(STRUCTURE_ROAD)) {
             return;
         }
 
@@ -180,7 +208,7 @@ export class Agent {
     }
 
     isNearTo(place: {pos: RoomPosition} | RoomPosition) {
-        return this.creep.pos.isNearTo(place);
+        return this.pos.isNearTo(place);
     }
 
     seekBoost(boosts: string[], allowUnboosted: boolean) {
@@ -270,7 +298,7 @@ export class Agent {
         };
 
         let options: TravelToOptions = {};
-        if (this.creep.room.roomType === ROOMTYPE_SOURCEKEEPER) {
+        if (this.room.roomType === ROOMTYPE_SOURCEKEEPER) {
             options.roomCallback = costCall;
             let hostileCount = this.creep.room.hostiles.length;
             if (!this.memory.hostileCount) this.memory.hostileCount = 0;
@@ -294,7 +322,7 @@ export class Agent {
 
     fleeHostiles(pathFinding?: boolean): boolean {
 
-        let fleeObjects = this.creep.room.fleeObjects;
+        let fleeObjects = this.room.fleeObjects;
         if (fleeObjects.length === 0) return false;
 
         let closest = this.pos.findClosestByRange(fleeObjects) as Creep;
@@ -305,7 +333,7 @@ export class Agent {
             if (range < fleeRange) {
                 if (this.creep.fatigue > 0 && closest instanceof Creep) {
                     let moveCount = this.creep.getActiveBodyparts(MOVE);
-                    let dropAmount = this.creep.carry.energy - (moveCount * CARRY_CAPACITY);
+                    let dropAmount = this.carry.energy - (moveCount * CARRY_CAPACITY);
                     this.creep.drop(RESOURCE_ENERGY, dropAmount);
                 }
 
@@ -325,7 +353,7 @@ export class Agent {
     }
 
     fleeByPath(): number {
-        let avoidPositions = _.map(this.pos.findInRange(this.creep.room.hostiles, 5),
+        let avoidPositions = _.map(this.pos.findInRange(this.room.hostiles, 5),
             (c: Creep) => { return {pos: c.pos, range: 10 }; });
 
         let ret = PathFinder.search(this.pos, avoidPositions, {
@@ -333,7 +361,7 @@ export class Agent {
             maxRooms: 1,
             roomCallback: (roomName: string): CostMatrix => {
                 if (roomName !== this.creep.room.name) return;
-                return this.creep.room.defaultMatrix;
+                return this.room.defaultMatrix;
             }
         });
 

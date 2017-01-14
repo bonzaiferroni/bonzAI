@@ -3,7 +3,6 @@ import {Operation} from "../operations/Operation";
 import {Mission} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {GeologyGuru} from "./GeologyGuru";
 export class GeologyMission extends Mission {
 
     geologists: Creep[];
@@ -14,8 +13,6 @@ export class GeologyMission extends Mission {
     store: StructureStorage | StructureTerminal;
     analysis: TransportAnalysis;
     container: StructureContainer;
-
-    guru: GeologyGuru;
 
     memory: {
         distanceToStorage: number;
@@ -38,14 +35,9 @@ export class GeologyMission extends Mission {
         if (!this.hasVision) return;
 
         this.mineral = this.room.find<Mineral>(FIND_MINERALS)[0];
-        this.guru = new GeologyGuru(this);
-        if (!this.store) this.store = this.guru.getStorage(this.mineral.pos);
+        if (!this.store) this.store = this.getStorage(this.mineral.pos);
         if (!this.store) return;
-        this.guru.registerMineral();
-
-        if (!this.memory.distanceToStorage) {
-            this.memory.distanceToStorage = this.mineral.pos.walkablePath(this.store.pos).length;
-        }
+        this.mineralStats();
 
         if ((!this.room.controller || this.room.controller.level >= 7) && !this.memory.builtExtractor) {
             let extractor = this.mineral.pos.lookForStructure(STRUCTURE_EXTRACTOR);
@@ -346,5 +338,10 @@ export class GeologyMission extends Mission {
         else {
             repairer.blindMoveTo(this.container);
         }
+    }
+
+    mineralStats() {
+        if (!Game.cache[this.mineral.mineralType]) Game.cache[this.mineral.mineralType] = 0;
+        Game.cache[this.mineral.mineralType]++;
     }
 }

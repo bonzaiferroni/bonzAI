@@ -1,6 +1,8 @@
 import {IGOR_CAPACITY, DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER} from "../config/constants";
 import {helper} from "../helpers/helper";
+import {TravelToOptions} from "../interfaces";
 export function initCreepPrototype() {
+
     Creep.prototype.seekBoost = function(boosts: string[], allowUnboosted?: boolean): boolean {
 
         if (!boosts) return true;
@@ -65,7 +67,6 @@ export function initCreepPrototype() {
         return boosted;
     };
 
-    // deprecated
     Creep.prototype.fleeHostiles = function(pathFinding?: boolean): boolean {
         if (!this.fleeObjects) {
             let lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR);

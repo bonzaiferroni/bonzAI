@@ -1,5 +1,5 @@
 import {Operation} from "./ai/operations/Operation";
-import {Empire} from "./ai/Empire";
+import {EmpireClass} from "./ai/Empire";
 
 export interface bonzAI {
     cache: {
@@ -14,7 +14,7 @@ export interface bonzAI {
         placedRoad: boolean;
     };
     operations: {[opName: string]: Operation }
-    empire: Empire;
+    empire: EmpireClass;
 }
 
 export interface TransportAnalysis {

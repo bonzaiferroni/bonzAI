@@ -8,7 +8,8 @@ import {helper} from "../helpers/helper";
 import {TravelData, TravelToOptions, AllowedRoomsOptions} from "../interfaces";
 import {notifier} from "../notifier";
 import {profiler} from "../profiler";
-export class Empire {
+
+export class EmpireClass {
 
     storages: StructureStorage[] = [];
     terminals: StructureTerminal[] = [];

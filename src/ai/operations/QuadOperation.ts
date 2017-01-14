@@ -143,7 +143,11 @@ export class QuadOperation extends ControllerOperation {
             {x: -6, y: -5}, {x: -5, y: -5},
 
             // storage (n = 1)
-            {x: 0, y: 4}
+            {x: 0, y: 4},
+
+            // labs (n = 8)
+            {x: -4, y: 5}, {x: -5, y: 4}, {x: -5, y: 3}, {x: -4, y: 4}, {x: -3, y: 5},
+            {x: -4, y: 2}, {x: -3, y: 3}, {x: -2, y: 4},
         ]
 
     };

@@ -4,7 +4,7 @@ import {WreckerMission} from "../missions/WreckerMission";
 import {BrawlerMission} from "../missions/BrawlerMission";
 import {RaidMission} from "../missions/RaidMission";
 import {RaidData, SquadConfig, Coord} from "../../interfaces";
-import {Empire} from "../Empire";
+import {EmpireClass} from "../Empire";
 import {OperationPriority, Direction} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
@@ -42,7 +42,7 @@ export class RaidOperation extends Operation {
         placeFlags: {[flagName: string]: RoomPosition}
     };
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
+    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
         super(flag, name, type, empire);
         this.priority = OperationPriority.VeryHigh;
     }

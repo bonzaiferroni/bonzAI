@@ -1,5 +1,5 @@
 import {Operation} from "../operations/Operation";
-import {Empire} from "../Empire";
+import {EmpireClass} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../config/constants";
@@ -9,7 +9,7 @@ import {Agent} from "./Agent";
 export abstract class Mission {
 
     flag: Flag;
-    empire: Empire;
+    empire: EmpireClass;
     memory: any;
     spawnGroup: SpawnGroup;
     sources: Source[];
@@ -21,7 +21,6 @@ export abstract class Mission {
     waypoints: Flag[];
     partnerPairing: {[role: string]: Creep[]} = {};
     distanceToSpawn: number;
-    roles: {[roleName: string]: typeof Agent };
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.name = name;
@@ -139,8 +138,8 @@ export abstract class Mission {
         return roleArray;
     }
 
-    protected headCount2<T>(roleName: string, getBody: () => string[], getMax: () => number,
-                         options: HeadCountOptions = {}): T[] {
+    protected headCount2(roleName: string, getBody: () => string[], getMax: () => number,
+                         options: HeadCountOptions = {}): Agent[] {
         let agentArray = [];
         if (!this.memory.hc[roleName]) this.memory.hc[roleName] = this.findOrphans(roleName);
         let creepNames = this.memory.hc[roleName] as string[];
@@ -150,7 +149,7 @@ export abstract class Mission {
             let creepName = creepNames[i];
             let creep = Game.creeps[creepName];
             if (creep) {
-                let agent = new this.roles[roleName](creep, this);
+                let agent = new Agent(creep, this);
                 let prepared = this.prepAgent(agent, options);
                 if (prepared) agentArray.push(agent);
                 let ticksNeeded = 0;

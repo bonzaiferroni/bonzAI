@@ -1,6 +1,5 @@
 declare var module: any;
 declare var global: any;
-declare var emp: any;
 
 interface Game {
     cache: {

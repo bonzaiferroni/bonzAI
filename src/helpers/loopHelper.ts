@@ -1,4 +1,4 @@
-import {Empire} from "../ai/Empire";
+import {EmpireClass} from "../ai/Empire";
 import {FortOperation} from "../ai/operations/FortOperation";
 import {Operation} from "../ai/operations/Operation";
 import {MiningOperation} from "../ai/operations/MiningOperation";
@@ -33,18 +33,16 @@ const OPERATION_CLASSES = {
     zombie: ZombieOperation,
 };
 
+export var Empire: EmpireClass;
+
 export var loopHelper = {
 
-    initEmpire: function(): Empire {
-        // gather flag data, instantiate operations
-        let empire = new Empire();
-        empire.init();
-        global.emp = empire;
-        return empire;
+    initEmpire: function() {
+        Empire = new EmpireClass();
+        Empire.init();
     },
-    /// <summary>loop through flags and construct operation objects, return operation array sorted by priority</summary>
 
-    getOperations: function(empire: Empire): Operation[] {
+    getOperations: function(empire: EmpireClass): Operation[] {
 
         // gather flag data, instantiate operations
         let operationList: {[operationName: string]: Operation} = {};
@@ -121,7 +119,7 @@ export var loopHelper = {
 
     invalidateCache: Game.time % CACHE_INVALIDATION_FREQUENCY < CACHE_INVALIDATION_PERIOD,
 
-    grafanaStats: function(empire: Empire) {
+    grafanaStats: function(empire: EmpireClass) {
 
         if (!Memory.playerConfig.enableStats) return;
 
@@ -169,7 +167,7 @@ export var loopHelper = {
         Memory.stats["game.cpu.used"] = Game.cpu.getUsed();
     },
 
-    sendResourceOrder: function(empire: Empire) {
+    sendResourceOrder: function(empire: EmpireClass) {
         if (!Memory.resourceOrder) {
             Memory.resourceOrder = {};
         }

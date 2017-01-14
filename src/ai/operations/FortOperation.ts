@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
+import {EmpireClass} from "../Empire";
 import {OperationPriority, NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "../../config/constants";
 import {EmergencyMinerMission} from "../missions/EmergencyMission";
 import {RefillMission} from "../missions/RefillMission";
@@ -27,7 +27,7 @@ export class FortOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
+    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
         super(flag, name, type, empire);
         this.priority = OperationPriority.OwnedRoom;
     }

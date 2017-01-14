@@ -1,10 +1,10 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
+import {EmpireClass} from "../Empire";
 import {TransportMission} from "../missions/TransportMission";
 
 export class TransportOperation extends Operation {
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
+    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
         super(flag, name, type, empire);
     }
 
