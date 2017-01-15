@@ -132,32 +132,6 @@ export interface SeedData {
     };
 }
 
-export interface TravelData {
-    stuck: number;
-    dest: RoomPosition;
-    prev: RoomPosition;
-    path: string;
-    tick: number;
-    cpu: number;
-    count: number;
-}
-
-export interface TravelToOptions {
-    preferHighway?: boolean;
-    ignoreRoads?: boolean;
-    ignoreCreeps?: boolean;
-    ignoreStructures?: boolean;
-    range?: number;
-    ignoreStuck?: boolean;
-    obstacles?: {pos: RoomPosition}[];
-    roomCallback?: (roomName: string, ignoreCreeps: boolean) => CostMatrix | boolean;
-    returnPosition?: boolean;
-    allowHostile?: boolean;
-    allowSK?: boolean;
-    restrictDistance?: number;
-    economic?: boolean;
-}
-
 export interface BankData {
     pos: RoomPosition;
     hits: number;

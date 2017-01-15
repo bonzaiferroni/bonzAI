@@ -5,9 +5,9 @@ import {
     OBSERVER_PURPOSE_ALLYTRADE, ALLIES, USERNAME
 } from "../config/constants";
 import {helper} from "../helpers/helper";
-import {TravelData, TravelToOptions, AllowedRoomsOptions} from "../interfaces";
 import {notifier} from "../notifier";
 import {profiler} from "../profiler";
+import {TravelToOptions, TravelData} from "./Traveler";
 
 export class EmpireClass {
 
@@ -599,6 +599,70 @@ export class EmpireClass {
         return allowedRooms;
     }
 
+    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition},
+                          options?: TravelToOptions): PathfinderReturn {
+        if (!options) {
+            options = {};
+        }
+
+        _.defaults(options, {
+            ignoreRoads: false,
+            ignoreCreeps: true,
+            preferHighway: false,
+            ignoreStructures: false,
+            range: 1,
+            obstacles: [],
+        });
+
+        let allowedRooms;
+        let searchedAlready = false;
+        let callback = (roomName: string): CostMatrix | boolean => {
+
+            if (options.roomCallback) {
+                let outcome = options.roomCallback(roomName, options.ignoreCreeps);
+                if (outcome !== undefined) {
+                    return outcome;
+                }
+            }
+
+            if (!allowedRooms && !searchedAlready) {
+                searchedAlready = true;
+                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options);
+                if (!allowedRooms) {
+                    notifier.add(`couldn't find allowed rooms for path from ${origin} to ${destination}`)
+                }
+            }
+            let room = Game.rooms[roomName];
+            if (allowedRooms && !allowedRooms[roomName]) return false;
+            if (!room) return;
+
+            let matrix: CostMatrix;
+            if (options.ignoreStructures) {
+                matrix = new PathFinder.CostMatrix();
+            }
+            else {
+                matrix = room.defaultMatrix.clone();
+            }
+            if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
+                helper.addCreepsToMatrix(matrix, room);
+            }
+            for (let obstacle of options.obstacles) {
+                if (obstacle.pos.roomName === origin.pos.roomName) {
+                    matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
+                }
+            }
+            return matrix;
+        };
+
+        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
+            swampCost: options.ignoreRoads ? 5 : 10,
+            plainCost: options.ignoreRoads ? 1 : 2,
+            maxOps: 20000,
+            roomCallback: callback
+        } );
+        return ret;
+    }
+
     travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): RoomPosition | number {
         // register hostile rooms entered
         if (creep.room.controller) {
@@ -611,7 +675,7 @@ export class EmpireClass {
         }
 
         if (!creep.memory._travel) {
-            creep.memory._travel = { stuck: 0, tick: Game.time, cpu: 0, count: 0 } as TravelData;
+            creep.memory._travel = {stuck: 0, tick: Game.time, cpu: 0, count: 0} as TravelData;
         }
         let travelData: TravelData = creep.memory._travel;
 
@@ -685,7 +749,7 @@ export class EmpireClass {
             let ret = this.findTravelPath(creep, destination, options);
             travelData.cpu += (Game.cpu.getUsed() - cpu);
             travelData.count++;
-            if (travelData.cpu > 10 && creep.name.indexOf("mason") < 0) {
+            if (travelData.cpu > 50) {
                 // console.log(`heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)}, pos: ${creep.pos}`)
             }
             if (ret.incomplete) {
@@ -711,73 +775,6 @@ export class EmpireClass {
         else {
             return creep.pos.getPositionAtDirection(nextDirection);
         }
-    }
-
-    public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition},
-                          options?: TravelToOptions): PathfinderReturn {
-        if (!options) {
-            options = {};
-        }
-
-        _.defaults(options, {
-            ignoreRoads: false,
-            ignoreCreeps: true,
-            preferHighway: false,
-            ignoreStructures: false,
-            range: 1,
-            obstacles: [],
-        });
-
-        let allowedRooms;
-        let searchedAlready = false;
-        let callback = (roomName: string): CostMatrix | boolean => {
-
-            if (options.roomCallback) {
-                let outcome = options.roomCallback(roomName, options.ignoreCreeps);
-                if (outcome !== undefined) {
-                    return outcome;
-                }
-            }
-
-            if (!allowedRooms && !searchedAlready) {
-                searchedAlready = true;
-                allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options);
-                if (options.economic) {
-                    allowedRooms = this.findLocalAllowedRooms(origin.pos.roomName, destination.pos.roomName)
-                }
-                if (!allowedRooms) {
-                    notifier.add(`couldn't find allowed rooms for path from ${origin} to ${destination}`)
-                }
-            }
-            let room = Game.rooms[roomName];
-            if (allowedRooms && !allowedRooms[roomName]) return false;
-            if (!room) return;
-
-            let matrix: CostMatrix;
-            if (options.ignoreStructures) {
-                matrix = new PathFinder.CostMatrix();
-            }
-            else {
-                matrix = room.defaultMatrix.clone();
-            }
-            if (!options.ignoreCreeps && roomName === origin.pos.roomName) {
-                helper.addCreepsToMatrix(matrix, room);
-            }
-            for (let obstacle of options.obstacles) {
-                if (obstacle.pos.roomName === origin.pos.roomName) {
-                    matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
-                }
-            }
-            return matrix;
-        };
-
-        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
-            swampCost: options.ignoreRoads ? 5 : 10,
-            plainCost: options.ignoreRoads ? 1 : 2,
-            maxOps: 20000,
-            roomCallback: callback
-        } );
-        return ret;
     }
 
     reportTransactions() {

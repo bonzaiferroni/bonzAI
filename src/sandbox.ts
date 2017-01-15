@@ -1,6 +1,7 @@
 import {SpawnGroup} from "./ai/SpawnGroup";
 import {profiler} from "./profiler";
 import {Empire} from "./helpers/loopHelper";
+import {traveler} from "./ai/Traveler";
 
 export var sandBox = {
     run: function() {
@@ -10,11 +11,11 @@ export var sandBox = {
             if (!claimer) {
                 let closest: SpawnGroup;
                 let bestDistance = Number.MAX_VALUE;
-                for (let roomName in global.emp.spawnGroups) {
+                for (let roomName in Empire.spawnGroups) {
                     let distance = Game.map.getRoomLinearDistance(claimerFlag.pos.roomName, roomName);
                     if (distance < bestDistance) {
                         bestDistance = distance;
-                        closest = global.emp.spawnGroups[roomName];
+                        closest = Empire.spawnGroups[roomName];
                     }
                 }
                 closest.spawn([CLAIM, MOVE], "claimer", undefined, undefined);
@@ -37,11 +38,11 @@ export var sandBox = {
                 if (!creep) {
                     let closest: SpawnGroup;
                     let bestDistance = Number.MAX_VALUE;
-                    for (let roomName in global.emp.spawnGroups) {
+                    for (let roomName in Empire.spawnGroups) {
                         let distance = Game.map.getRoomLinearDistance(testFlag.pos.roomName, roomName);
                         if (distance < bestDistance) {
                             bestDistance = distance;
-                            closest = global.emp.spawnGroups[roomName];
+                            closest = Empire.spawnGroups[roomName];
                         }
                     }
                     closest.spawn([MOVE], creepName, undefined, undefined);
@@ -56,9 +57,9 @@ export var sandBox = {
                     }
                 }
                 if (creepName === "travelTo") {
-                    if (!creep.pos.inRangeTo(testFlag, 1)) {
+                    if (!creep.pos.inRangeTo(testFlag, 0)) {
                         profiler.start("travelTo");
-                        Empire.travelTo(creep, testFlag);
+                        traveler.travelTo(creep, testFlag, {range: 0});
                         profiler.end("travelTo");
                     }
                 }

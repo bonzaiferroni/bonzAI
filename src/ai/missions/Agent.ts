@@ -1,8 +1,8 @@
 import {Mission} from "./Mission";
-import {TravelToOptions} from "../../interfaces";
 import {IGOR_CAPACITY, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Empire} from "../../helpers/loopHelper";
+import {TravelToOptions, traveler} from "../Traveler";
 
 export class Agent {
 
@@ -55,7 +55,7 @@ export class Agent {
 
     travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number | RoomPosition {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
-        return Empire.travelTo(this.creep, destination, options);
+        return traveler.travelTo(this.creep, destination, options);
     }
 
     isFull(margin = 0): boolean {

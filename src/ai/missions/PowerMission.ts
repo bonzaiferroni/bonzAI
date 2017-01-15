@@ -1,9 +1,10 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {PowerFlagScan, BankData} from "../../interfaces";
+import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {ALLIES} from "../../config/constants";
 import {notifier} from "../../notifier";
+import {traveler} from "../Traveler";
 
 export class PowerMission extends Mission {
 
@@ -217,10 +218,10 @@ export class PowerMission extends Mission {
                 if (power) {
                     if (cart.pos.isNearTo(power)) {
                         cart.pickup(power);
-                        cart.blindMoveTo(this.room.storage);
+                        traveler.travelTo(cart, this.room.storage);
                     }
                     else {
-                        cart.blindMoveTo(power);
+                        traveler.travelTo(cart, power);
                     }
                     return; //  early;
                 }
@@ -235,7 +236,7 @@ export class PowerMission extends Mission {
         }
         else {
             // traveling to storage
-            this.empire.travelTo(cart, this.room.storage);
+            traveler.travelTo(cart, this.room.storage);
         }
     }
 

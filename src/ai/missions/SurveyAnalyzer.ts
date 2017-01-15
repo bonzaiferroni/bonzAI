@@ -181,9 +181,8 @@ export class SurveyAnalyzer {
         let sources = room.find<Source>(FIND_SOURCES);
         let roomType = helper.roomTypeFromName(room.name);
         let distances = [];
-        data.sourceCount = 0;
+        data.sourceCount = sources.length;
         for (let source of sources) {
-            data.sourceCount++;
             let ret = PathFinder.search(this.room.storage.pos, { pos: source.pos, range: 1}, {
                 swampCost: 1,
                 plainCost: 1,
@@ -203,6 +202,7 @@ export class SurveyAnalyzer {
 
             // disqualify due to source distance
             if (cartsNeeded > data.sourceCount){
+                notifier.add(`SURVEY: disqualified ${room.name} due to distance to source: ${cartsNeeded}`);
                 delete this.memory.surveyRooms[room.name];
                 return;
             }
