@@ -95,8 +95,10 @@ export class EnhancedBodyguardMission extends Mission {
             }
         };
 
-        this.squadAttackers = this.headCount("lee", squadAttackerBody, maxSquads, {prespawn: 50, memory: attackerMemory, skipMoveToRoom: true});
-        this.squadHealers = this.headCount("roy", squadHealerBody, maxSquads, {prespawn: 50, memory: healerMemory, skipMoveToRoom: true});
+        this.squadAttackers = this.headCount("lee", squadAttackerBody, maxSquads,
+            {prespawn: 50, memory: attackerMemory, skipMoveToRoom: true});
+        this.squadHealers = this.headCount("roy", squadHealerBody, maxSquads,
+            {prespawn: 50, memory: healerMemory, skipMoveToRoom: true});
     }
 
     missionActions() {
@@ -318,7 +320,7 @@ export class EnhancedBodyguardMission extends Mission {
             }
             if (this.hurtCreeps.length === 0) {
                 this.hurtCreeps = this.room.find(FIND_MY_CREEPS, {filter: (c: Creep) => {
-                    return c.hits < c.hitsMax && c.ticksToLive > 100 && c.partCount(CARRY) > 0 && c.carry.energy < c.carryCapacity;
+                    return c.hits < c.hitsMax && c.ticksToLive > 100 && c.partCount(CARRY) > 0 && c.carry.energy === 0;
                 }}) as Creep[];
             }
 

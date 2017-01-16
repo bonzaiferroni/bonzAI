@@ -28,9 +28,7 @@ export interface TravelToOptions {
     obstacles?: {pos: RoomPosition}[];
     roomCallback?: (roomName: string, ignoreCreeps: boolean) => CostMatrix | boolean;
     routeCallback?: (roomName: string) => number;
-    returnData?: {
-        nextPos?: RoomPosition;
-    };
+    returnData?: { nextPos?: RoomPosition; };
     restrictDistance?: number;
     useFindRoute?: boolean;
     maxOps?: number;
@@ -226,7 +224,7 @@ export class Traveler {
         // check if creep is stuck
         let hasMoved = true;
         if (travelData.prev) {
-            travelData.prev = new RoomPosition(travelData.prev.x, travelData.prev.y, travelData.prev.roomName);
+            travelData.prev = Traveler.initPosition(travelData.prev);
             if (creep.pos.inRangeTo(travelData.prev, 0)) {
                 hasMoved = false;
                 travelData.stuck++;
@@ -307,7 +305,7 @@ export class Traveler {
     }
 
     public travelByCachedPath(creep: Creep, cachedPath: CachedPath) {
-        if (!creep.memory._ctrav) { creep.memory._ctrav =  { progress: 0, stage: 0 }; }
+        if (!creep.memory._ctrav) { creep.memory._ctrav =  { progress: 0, phase: 0 }; }
         let travelData = creep.memory._ctrav as CachedTravelData;
 
         if (travelData.tempDest) {
@@ -319,8 +317,19 @@ export class Traveler {
             }
         }
 
-        if (creep.memory.progress >= 0) {
+        if (travelData.phase === 0) {
+            let startPos = Traveler.initPosition(cachedPath.start);
+            if (creep.pos.inRangeTo(startPos, 0)) {
+                travelData.phase++;
+                travelData.progress = 0;
+            } else {
+                travelData.tempDest = startPos;
+                return this.travelByCachedPath(creep, cachedPath);
+            }
+        }
 
+        if (travelData.phase === 1) {
+            let nextDirection = cachedPath.path[travelData.progress]
         }
     }
 
@@ -399,7 +408,7 @@ export class Traveler {
 }
 
 // uncomment this to have an instance of traveler available through import
-export const traveler = new Traveler();
+// export const traveler = new Traveler();
 
 // uncomment to assign an instance to global
 // global.traveler = new Traveler();

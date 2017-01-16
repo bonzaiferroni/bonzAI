@@ -1,8 +1,8 @@
-import {loopHelper, Empire} from "./helpers/loopHelper";
+import {loopHelper, empire} from "./helpers/loopHelper";
 import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
 import {profiler} from "./profiler";
-import {EmpireClass} from "./ai/Empire";
+import {Empire} from "./ai/Empire";
 
 loopHelper.initMemory();
 initPrototypes();
@@ -14,7 +14,7 @@ module.exports.loop = function () {
     // Init phase - Information is gathered about the game state and game objects instantiated
     profiler.start("init");
     loopHelper.initEmpire();
-    let operations = loopHelper.getOperations(Empire);
+    let operations = loopHelper.getOperations(empire);
     for (let operation of operations) operation.init();
     profiler.end("init");
 
@@ -36,13 +36,13 @@ module.exports.loop = function () {
 
     // post-operation actions and utilities
     profiler.start("postOperations");
-    try { Empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
+    try { empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
     try { loopHelper.scavangeResources(); } catch (e) { console.log("error scavanging:\n", e.stack); }
-    try { loopHelper.sendResourceOrder(Empire); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
+    try { loopHelper.sendResourceOrder(empire); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
     try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
     profiler.end("postOperations");
     try { profiler.finalize(); } catch (e) { console.log("error checking profiler:\n", e.stack); }
-    try { loopHelper.grafanaStats(Empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
+    try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
 };
 

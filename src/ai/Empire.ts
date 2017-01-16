@@ -7,9 +7,9 @@ import {
 import {helper} from "../helpers/helper";
 import {notifier} from "../notifier";
 import {profiler} from "../profiler";
-import {TravelToOptions, TravelData, traveler} from "./Traveler";
+import {Traveler} from "./Traveler";
 
-export class EmpireClass {
+export class Empire {
 
     storages: StructureStorage[] = [];
     terminals: StructureTerminal[] = [];
@@ -29,6 +29,8 @@ export class EmpireClass {
     severeShortages: StructureTerminal[] = [];
     surpluses: StructureTerminal[] = [];
     allyTradeStatus: {[roomName: string]: boolean};
+
+    traveler: Traveler;
 
     constructor() {
         if (!Memory.empire) Memory.empire = {};
@@ -53,6 +55,7 @@ export class EmpireClass {
             this.memory.tradeIndex = 0;
         }
         this.tradeResource = TRADE_RESOURCES[this.memory.tradeIndex++];
+        this.traveler = new Traveler();
     }
 
     /**
@@ -553,7 +556,7 @@ export class EmpireClass {
             return linearDistance;
         }
 
-        let allowedRooms = traveler.findAllowedRooms(origin, destination);
+        let allowedRooms = this.traveler.findAllowedRooms(origin, destination);
         if (allowedRooms) {
             return Object.keys(allowedRooms).length;
         }
@@ -580,7 +583,7 @@ export class EmpireClass {
 
         let decipher = (item: Transaction) => {
             if (!item.description) {
-                notifier.add(`EMPIRE: no description on decipher from ${item.sender.username}.`)
+                notifier.add(`EMPIRE: no description on decipher from ${item.sender.username}.`);
                 return;
             }
             let description = item.description.toLocaleLowerCase();

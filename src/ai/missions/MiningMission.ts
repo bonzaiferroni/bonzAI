@@ -168,6 +168,15 @@ export class MiningMission extends Mission {
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
 
+            if (cart.hits < cart.hitsMax) {
+                cart.idleOffRoad();
+                if (cart.room.hostiles.length === 0) {
+                    let tower = cart.pos.findClosestByRange(cart.room.findStructures<StructureTower>(STRUCTURE_TOWER));
+                    if (tower) { tower.heal(cart.creep); }
+                }
+                return;
+            }
+
             if (!this.container) {
                 cart.idleOffRoad();
                 return;

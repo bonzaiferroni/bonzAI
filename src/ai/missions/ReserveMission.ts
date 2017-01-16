@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {ARTROOMS} from "../../config/constants";
 import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 export class ReserveMission extends Mission {
 
     reservers: Creep[];
@@ -97,13 +97,13 @@ export class ReserveMission extends Mission {
     }
 
     private checkBulldozer(): boolean {
-        let ret = traveler.findTravelPath(this.spawnGroup, this.room.controller);
+        let ret = empire.traveler.findTravelPath(this.spawnGroup, this.room.controller);
         if (!ret.incomplete) {
             console.log(`RESERVER: No bulldozer necessary in ${this.operation.name}`);
             return false;
         }
 
-        let ignoredStructures = traveler.findTravelPath(this.spawnGroup, this.room.controller,
+        let ignoredStructures = empire.traveler.findTravelPath(this.spawnGroup, this.room.controller,
             {range: 1, ignoreStructures: true});
         if (ignoredStructures.incomplete) {
             notifier.add(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
@@ -129,7 +129,7 @@ export class ReserveMission extends Mission {
         else {
             if (dozer.room === this.room) {
                 let returnData: {nextPos?: RoomPosition} = {};
-                traveler.travelTo(dozer, this.room.controller, {
+                empire.traveler.travelTo(dozer, this.room.controller, {
                     ignoreStructures: true,
                     ignoreStuck: true,
                     returnData: returnData,
@@ -143,7 +143,7 @@ export class ReserveMission extends Mission {
                 }
             }
             else {
-                traveler.travelTo(dozer, this.room.controller);
+                empire.traveler.travelTo(dozer, this.room.controller);
             }
         }
     }

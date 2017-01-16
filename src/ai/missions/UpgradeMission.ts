@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD, RESERVE_AMOUNT} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 export class UpgradeMission extends Mission {
 
     linkUpgraders: Creep[];
@@ -332,20 +332,20 @@ export class UpgradeMission extends Mission {
         if (!hasLoad) {
             if (influxCart.pos.isNearTo(originStorage)) {
                 influxCart.withdraw(originStorage, RESOURCE_ENERGY);
-                traveler.travelTo(influxCart, this.room.storage, {ignoreRoads: true});
+                empire.traveler.travelTo(influxCart, this.room.storage, {ignoreRoads: true});
             }
             else {
-                traveler.travelTo(influxCart, originStorage, {ignoreRoads: true});
+                empire.traveler.travelTo(influxCart, originStorage, {ignoreRoads: true});
             }
             return;
         }
 
         if (influxCart.pos.isNearTo(this.room.storage)) {
             influxCart.transfer(this.room.storage, RESOURCE_ENERGY);
-            traveler.travelTo(influxCart, originStorage, {ignoreRoads: true});
+            empire.traveler.travelTo(influxCart, originStorage, {ignoreRoads: true});
         }
         else {
-            traveler.travelTo(influxCart, this.room.storage, {ignoreRoads: true});
+            empire.traveler.travelTo(influxCart, this.room.storage, {ignoreRoads: true});
         }
     }
 

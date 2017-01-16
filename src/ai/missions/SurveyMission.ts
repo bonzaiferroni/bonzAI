@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 
 export class SurveyMission extends Mission {
 
@@ -55,7 +55,7 @@ export class SurveyMission extends Mission {
 
     explorerActions(explorer: Creep) {
         if (this.needsVision) {
-            traveler.travelTo(explorer, {pos: helper.pathablePosition(this.needsVision)});
+            empire.traveler.travelTo(explorer, {pos: helper.pathablePosition(this.needsVision)});
         }
     }
 }

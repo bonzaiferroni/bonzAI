@@ -1,12 +1,11 @@
 import {SurveyMission} from "./SurveyMission";
 import {helper} from "../../helpers/helper";
-import {ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CONTROLLER, USERNAME} from "../../config/constants";
-import {EmpireClass} from "../Empire";
+import {ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, USERNAME} from "../../config/constants";
+import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {notifier} from "../../notifier";
 import {Mission} from "./Mission";
-import {profiler} from "../../profiler";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 
 interface SurveyData {
     danger: boolean;
@@ -21,7 +20,7 @@ interface SurveyData {
 export class SurveyAnalyzer {
 
     private room: Room;
-    private empire: EmpireClass;
+    private empire: Empire;
     private spawnGroup: SpawnGroup;
     private opName: string;
     private memory: {
@@ -97,7 +96,7 @@ export class SurveyAnalyzer {
         for (let roomName of adjacentRoomNames) {
 
             let noSafePath = false;
-            let roomsInPath = traveler.findAllowedRooms(this.room.name, roomName,
+            let roomsInPath = empire.traveler.findAllowedRooms(this.room.name, roomName,
                 { allowHostile: true, restrictDistance: 1 });
             if (roomsInPath) {
                 for (let roomName in roomsInPath) {

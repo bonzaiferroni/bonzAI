@@ -1,9 +1,9 @@
-import {EmpireClass} from "../Empire";
+import {Empire} from "../Empire";
 import {Mission} from "../missions/Mission";
 import {SpawnGroup} from "../SpawnGroup";
 import {OperationPriority} from "../../config/constants";
 import {profiler} from "../../profiler";
-import {Empire} from "../../helpers/loopHelper";
+import {empire} from "../../helpers/loopHelper";
 
 export abstract class Operation {
 
@@ -11,7 +11,7 @@ export abstract class Operation {
     name: string;
     type: string;
     room: Room;
-    empire: EmpireClass;
+    empire: Empire;
     memory: any;
     priority: OperationPriority;
     hasVision: boolean;
@@ -28,7 +28,7 @@ export abstract class Operation {
      * @param type - first part of flag.name, used to determine which operation class to instantiate
      * @param empire - object used for empire-scoped behavior (terminal transmission, etc.)
      */
-    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
+    constructor(flag: Flag, name: string, type: string, empire: Empire) {
         this.flag = flag;
         this.name = name;
         this.type = type;
@@ -197,7 +197,7 @@ export abstract class Operation {
         }
 
         let spawnRoom = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
-            let spawnGroup = Empire.getSpawnGroup(roomName);
+            let spawnGroup = empire.getSpawnGroup(roomName);
             if (spawnGroup) {
                 return spawnGroup.averageAvailability;
             }

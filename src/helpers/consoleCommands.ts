@@ -1,9 +1,9 @@
 import {MINERALS_RAW, PRODUCT_LIST} from "../config/constants";
-import {EmpireClass} from "../ai/Empire";
+import {Empire} from "../ai/Empire";
 import {Operation} from "../ai/operations/Operation";
 import {helper} from "./helper";
 
-declare var emp: EmpireClass;
+declare var emp: Empire;
 
 export var consoleCommands = {
 

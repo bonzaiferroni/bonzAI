@@ -4,11 +4,11 @@ import {WreckerMission} from "../missions/WreckerMission";
 import {BrawlerMission} from "../missions/BrawlerMission";
 import {RaidMission} from "../missions/RaidMission";
 import {RaidData, SquadConfig, Coord} from "../../interfaces";
-import {EmpireClass} from "../Empire";
+import {Empire} from "../Empire";
 import {OperationPriority, Direction} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 export class RaidOperation extends Operation {
 
     squadTypes = {
@@ -43,7 +43,7 @@ export class RaidOperation extends Operation {
         placeFlags: {[flagName: string]: RoomPosition}
     };
 
-    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
+    constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
         this.priority = OperationPriority.VeryHigh;
     }
@@ -549,7 +549,7 @@ export class RaidOperation extends Operation {
             return false;
         }
 
-        let ret = traveler.findTravelPath(this.spawnGroup, destination, {ignoreStructures: true});
+        let ret = empire.traveler.findTravelPath(this.spawnGroup, destination, {ignoreStructures: true});
         if (ret.incomplete) {
             console.log(`RAID: ${this.name} automation incomplete, incomplete path to attackRoom`);
             return false;

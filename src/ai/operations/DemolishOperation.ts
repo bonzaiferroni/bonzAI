@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {EmpireClass} from "../Empire";
+import {Empire} from "../Empire";
 import {DemolishMission} from "../missions/DemolishMission";
 export class DemolishOperation extends Operation {
 
@@ -13,7 +13,7 @@ export class DemolishOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
+    constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
     }
 

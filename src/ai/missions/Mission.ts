@@ -1,16 +1,15 @@
 import {Operation} from "../operations/Operation";
-import {EmpireClass} from "../Empire";
+import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {Guru} from "./Guru";
 import {Agent} from "./Agent";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 export abstract class Mission {
 
     flag: Flag;
-    empire: EmpireClass;
+    empire: Empire;
     memory: any;
     spawnGroup: SpawnGroup;
     sources: Source[];
@@ -500,12 +499,12 @@ export abstract class Mission {
 
     private prepCreep(creep: Creep, options: HeadCountOptions) {
         if (!creep.memory.prep) {
-            if (creep.spawning) return false;
             if (options.disableNotify) {
                 this.disableNotify(creep);
             }
             let boosted = creep.seekBoost(creep.memory.boosts, creep.memory.allowUnboosted);
             if (!boosted) return false;
+            if (creep.spawning) return false;
             let outcome = creep.travelByWaypoint(this.waypoints);
             if (outcome !== DESTINATION_REACHED) return false;
             if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(1))) {
@@ -513,7 +512,7 @@ export abstract class Mission {
                     creep.avoidSK(this.flag);
                 }
                 else {
-                    traveler.travelTo(creep, this.flag);
+                    empire.traveler.travelTo(creep, this.flag);
                 }
                 return false;
             }

@@ -1,8 +1,8 @@
 import {Mission} from "./Mission";
 import {IGOR_CAPACITY, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {Empire} from "../../helpers/loopHelper";
-import {TravelToOptions, traveler} from "../Traveler";
+import {TravelToOptions} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 
 export class Agent {
 
@@ -14,6 +14,8 @@ export class Agent {
     memory: any;
     carry: StoreDefinition;
     carryCapacity: number;
+    hits: number;
+    hitsMax: number;
     pos: RoomPosition;
 
     constructor(creep: Creep, mission: Mission) {
@@ -25,6 +27,8 @@ export class Agent {
         this.pos = creep.pos;
         this.carry = creep.carry;
         this.carryCapacity = creep.carryCapacity;
+        this.hits = creep.hits;
+        this.hitsMax = creep.hitsMax;
     }
 
     attack(target: Creep|Structure): number { return this.creep.attack(target); }
@@ -55,7 +59,7 @@ export class Agent {
 
     travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number | RoomPosition {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
-        return traveler.travelTo(this.creep, destination, options);
+        return empire.traveler.travelTo(this.creep, destination, options);
     }
 
     isFull(margin = 0): boolean {
@@ -88,6 +92,8 @@ export class Agent {
     }
 
     hasLoad(): boolean {
+        if (this.carryCapacity === 0) return false;
+
         if (this.memory.hasLoad && _.sum(this.carry) === 0) {
             this.memory.hasLoad = false;
         }

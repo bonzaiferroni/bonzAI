@@ -1,7 +1,6 @@
 import {SpawnGroup} from "./ai/SpawnGroup";
 import {profiler} from "./profiler";
-import {Empire} from "./helpers/loopHelper";
-import {traveler} from "./ai/Traveler";
+import {empire} from "./helpers/loopHelper";
 
 export var sandBox = {
     run: function() {
@@ -11,11 +10,11 @@ export var sandBox = {
             if (!claimer) {
                 let closest: SpawnGroup;
                 let bestDistance = Number.MAX_VALUE;
-                for (let roomName in Empire.spawnGroups) {
+                for (let roomName in empire.spawnGroups) {
                     let distance = Game.map.getRoomLinearDistance(claimerFlag.pos.roomName, roomName);
                     if (distance < bestDistance) {
                         bestDistance = distance;
-                        closest = Empire.spawnGroups[roomName];
+                        closest = empire.spawnGroups[roomName];
                     }
                 }
                 closest.spawn([CLAIM, MOVE], "claimer", undefined, undefined);
@@ -26,7 +25,7 @@ export var sandBox = {
                 console.log("### claimer waiting");
             }
             else {
-                traveler.travelTo(claimer, claimerFlag);
+                empire.traveler.travelTo(claimer, claimerFlag);
             }
         }
 
@@ -38,11 +37,11 @@ export var sandBox = {
                 if (!creep) {
                     let closest: SpawnGroup;
                     let bestDistance = Number.MAX_VALUE;
-                    for (let roomName in Empire.spawnGroups) {
+                    for (let roomName in empire.spawnGroups) {
                         let distance = Game.map.getRoomLinearDistance(testFlag.pos.roomName, roomName);
                         if (distance < bestDistance) {
                             bestDistance = distance;
-                            closest = Empire.spawnGroups[roomName];
+                            closest = empire.spawnGroups[roomName];
                         }
                     }
                     closest.spawn([MOVE], creepName, undefined, undefined);
@@ -58,8 +57,10 @@ export var sandBox = {
                 }
                 if (creepName === "travelTo") {
                     if (!creep.pos.inRangeTo(testFlag, 0)) {
+                        let returnData: {nextPos?: RoomPosition} = {};
                         profiler.start("travelTo");
-                        traveler.travelTo(creep, testFlag, {range: 0});
+                        empire.traveler.travelTo(creep, testFlag, {preferHighway: true, returnData});
+                        console.log(returnData.nextPos);
                         profiler.end("travelTo");
                     }
                 }

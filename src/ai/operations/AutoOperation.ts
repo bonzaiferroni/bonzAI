@@ -1,7 +1,7 @@
 
 import {Operation} from "./Operation";
 import {SeedSelection, SeedData} from "../../interfaces";
-import {EmpireClass} from "../Empire";
+import {Empire} from "../Empire";
 import {SeedAnalysis} from "../SeedAnalysis";
 import {OperationPriority} from "../../config/constants";
 import {ScoutMission} from "../missions/ScoutMission";
@@ -30,7 +30,7 @@ export class AutoOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: EmpireClass) {
+    constructor(flag: Flag, name: string, type: string, empire: Empire) {
         super(flag, name, type, empire);
         this.priority = OperationPriority.OwnedRoom;
     }

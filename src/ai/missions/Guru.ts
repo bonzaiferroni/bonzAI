@@ -1,11 +1,11 @@
-import {EmpireClass} from "../Empire";
+import {Empire} from "../Empire";
 import {Operation} from "../operations/Operation";
 import {Mission} from "./Mission";
 export abstract class Guru {
 
     protected flag: Flag;
     protected room: Room;
-    protected empire: EmpireClass;
+    protected empire: Empire;
     protected memory: any;
     protected host: Mission | Operation;
 

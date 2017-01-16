@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {RaidData, BoostLevel} from "../../interfaces";
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 export abstract class RaidMission extends Mission {
 
     attacker: Creep;
@@ -256,21 +256,21 @@ export abstract class RaidMission extends Mission {
 
         if (leader.room === follower.room) {
             if (follower.pos.isNearTo(leader)) {
-                traveler.travelTo(leader, destination, {range: range});
+                empire.traveler.travelTo(leader, destination, {range: range});
                 if (!leader.isNearExit(0) || !this.raidData.attackRoom || this.raidData.attackRoom !== destination.room) {
                     follower.move(follower.pos.getDirectionTo(leader));
                 }
             }
             else {
-                traveler.travelTo(follower, leader);
+                empire.traveler.travelTo(follower, leader);
             }
         }
         else {
             if (leader.isNearExit(1)) {
-                traveler.travelTo(leader, destination, {range: range});
+                empire.traveler.travelTo(leader, destination, {range: range});
             }
             if (!this.raidData.attackRoom || this.raidData.attackRoom !== destination.room) {
-                traveler.travelTo(follower, leader);
+                empire.traveler.travelTo(follower, leader);
             }
         }
     }
@@ -549,7 +549,7 @@ export abstract class RaidMission extends Mission {
 
     private hasValidPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}): boolean {
         let obstacles = _.filter(this.raidData.obstacles, (c: Creep) => c !== this.attacker);
-        let ret = traveler.findTravelPath(origin, destination, {obstacles: obstacles});
+        let ret = empire.traveler.findTravelPath(origin, destination, {obstacles: obstacles});
         return !ret.incomplete;
     }
 }

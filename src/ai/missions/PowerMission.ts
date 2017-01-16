@@ -4,7 +4,7 @@ import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {ALLIES} from "../../config/constants";
 import {notifier} from "../../notifier";
-import {traveler} from "../Traveler";
+import {empire} from "../../helpers/loopHelper";
 
 export class PowerMission extends Mission {
 
@@ -174,7 +174,7 @@ export class PowerMission extends Mission {
         else if (myBonnie.fatigue === 0) {
             if (this.memory.currentBank.assisting === undefined) {
                 // traveling from spawn
-                traveler.travelTo(clyde, {pos: bankPos}, {ignoreRoads: true});
+                empire.traveler.travelTo(clyde, {pos: bankPos}, {ignoreRoads: true});
             }
             else {
                 clyde.moveTo(bankPos, {reusePath: 0});
@@ -218,10 +218,10 @@ export class PowerMission extends Mission {
                 if (power) {
                     if (cart.pos.isNearTo(power)) {
                         cart.pickup(power);
-                        traveler.travelTo(cart, this.room.storage);
+                        empire.traveler.travelTo(cart, this.room.storage);
                     }
                     else {
-                        traveler.travelTo(cart, power);
+                        empire.traveler.travelTo(cart, power);
                     }
                     return; //  early;
                 }
@@ -236,32 +236,36 @@ export class PowerMission extends Mission {
         }
         else {
             // traveling to storage
-            traveler.travelTo(cart, this.room.storage);
+            empire.traveler.travelTo(cart, this.room.storage);
         }
     }
 
     private powerCartApproachBank(cart: Creep, order: number) {
         let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
-        if (!cart.pos.inRangeTo(bankPos, 5)) {
+        if (cart.room.name !== bankPos.roomName || cart.pos.isNearExit(0)) {
             // traveling from spawn
-            traveler.travelTo(cart, {pos: bankPos}, {ignoreRoads: true});
+            empire.traveler.travelTo(cart, {pos: bankPos}, {ignoreRoads: true});
         }
         else {
-            if (!cart.memory.inPosition) {
+            if (cart.memory.inPosition) {
+                cart.memory.inPosition = Game.time % 25 !== 0;
+            }
+            else {
                 if (bankPos.openAdjacentSpots().length > 0) {
                     if (cart.pos.isNearTo(bankPos)) {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        cart.blindMoveTo(bankPos);
+                        empire.traveler.travelTo(cart, {pos: bankPos} );
                     }
                 }
                 else if (order > 0) {
-                    if (cart.pos.isNearTo(this.carts[order - 1])) {
+                    let lastCart = this.carts[order - 1];
+                    if (cart.pos.isNearTo(lastCart)) {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        cart.blindMoveTo(this.carts[order - 1]);
+                        empire.traveler.travelTo(cart, lastCart );
                     }
                 }
                 else {
@@ -269,7 +273,7 @@ export class PowerMission extends Mission {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        cart.blindMoveTo(this.clydes[0]);
+                        empire.traveler.travelTo(cart, this.clydes[0] );
                     }
                 }
             }
@@ -341,7 +345,7 @@ export class PowerMission extends Mission {
         let possibleRoomNames = this.findAlleysInRange(5);
         for (let roomName of possibleRoomNames) {
             let position = helper.pathablePosition(roomName);
-            let ret = traveler.findTravelPath(spawn, {pos: position});
+            let ret = empire.traveler.findTravelPath(spawn, {pos: position});
             if (ret.incomplete) {
                 notifier.add(`POWER: incomplete path generating scanData (op: ${this.operation.name}, roomName: ${roomName})`);
                 continue;
