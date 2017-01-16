@@ -10,7 +10,7 @@ export class ZombieAgent extends RaidAgent {
         demolishing: boolean;
     };
 
-    moveZombie(destination: {pos: RoomPosition}, demolishing: boolean): number | RoomPosition {
+    moveZombie(destination: {pos: RoomPosition}, demolishing: boolean, returnData: {nextPos?: RoomPosition}): number | RoomPosition {
         let zombies = (this.mission as ZombieMission).zombies;
 
         let roomCallback = (roomName: string) => {
@@ -55,7 +55,7 @@ export class ZombieAgent extends RaidAgent {
 
         return this.travelTo(destination, {
             ignoreStuck: demolishing,
-            returnPosition: true,
+            returnData: returnData,
             roomCallback: roomCallback,
         })
     }

@@ -6,6 +6,7 @@ import {SpawnGroup} from "../SpawnGroup";
 import {notifier} from "../../notifier";
 import {Mission} from "./Mission";
 import {profiler} from "../../profiler";
+import {traveler} from "../Traveler";
 
 interface SurveyData {
     danger: boolean;
@@ -96,7 +97,7 @@ export class SurveyAnalyzer {
         for (let roomName of adjacentRoomNames) {
 
             let noSafePath = false;
-            let roomsInPath = this.empire.findAllowedRooms(this.room.name, roomName,
+            let roomsInPath = traveler.findAllowedRooms(this.room.name, roomName,
                 { allowHostile: true, restrictDistance: 1 });
             if (roomsInPath) {
                 for (let roomName in roomsInPath) {

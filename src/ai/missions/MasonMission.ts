@@ -85,10 +85,9 @@ export class MasonMission extends Mission {
         }
 
         if (agent.isFull(300) || stolen) {
-            agent.idleNear(rampart, 3);
+            agent.idleNear(rampart, 3, true);
             return;
-        }
-        else {
+        } else {
             let extension = this.getExtension(agent, rampart);
             let outcome = agent.retrieve(extension, RESOURCE_ENERGY);
             if (outcome === OK && !agent.creep.pos.inRangeTo(rampart, 3)) {

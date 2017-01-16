@@ -219,6 +219,8 @@ export function initRoomPositionPrototype() {
      * @returns {boolean}
      */
     RoomPosition.prototype.isPassible = function(ignoreCreeps?: boolean): boolean {
+        if (this.isNearExit(0)) return false;
+
         // look for walls
         if (_.head(this.lookFor(LOOK_TERRAIN)) !== "wall") {
 

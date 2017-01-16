@@ -3,6 +3,7 @@ import {RaidData, RaidCache} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
+import {traveler} from "../Traveler";
 export class RaidGuru extends Guru {
 
     raidRoom: Room;
@@ -94,7 +95,7 @@ export class RaidGuru extends Guru {
             let exitData = Game.map.describeExits(this.room.name);
             for (let direction in exitData) {
                 let roomName = exitData[direction];
-                let allowedRooms = this.empire.findAllowedRooms(this.spawnGroup.pos.roomName, roomName);
+                let allowedRooms = traveler.findAllowedRooms(this.spawnGroup.pos.roomName, roomName);
                 if (allowedRooms && Object.keys(allowedRooms).length <= 8) {
                     allowedExits[direction] = true;
                 }

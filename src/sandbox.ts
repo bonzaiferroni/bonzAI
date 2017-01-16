@@ -26,7 +26,7 @@ export var sandBox = {
                 console.log("### claimer waiting");
             }
             else {
-                Empire.travelTo(claimer, claimerFlag);
+                traveler.travelTo(claimer, claimerFlag);
             }
         }
 

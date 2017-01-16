@@ -6,6 +6,7 @@ import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../
 import {helper} from "../../helpers/helper";
 import {Guru} from "./Guru";
 import {Agent} from "./Agent";
+import {traveler} from "../Traveler";
 export abstract class Mission {
 
     flag: Flag;
@@ -512,7 +513,7 @@ export abstract class Mission {
                     creep.avoidSK(this.flag);
                 }
                 else {
-                    this.empire.travelTo(creep, this.flag);
+                    traveler.travelTo(creep, this.flag);
                 }
                 return false;
             }

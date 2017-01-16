@@ -150,7 +150,7 @@ export class Agent {
         }
     }
 
-    idleNear(place: {pos: RoomPosition}, acceptableRange = 1, allowSwamp = true): number {
+    public idleNear(place: {pos: RoomPosition}, acceptableRange = 1, cachePos = false, allowSwamp = true): number {
         let range = this.pos.getRangeTo(place);
         if (range <= acceptableRange && !this.pos.lookForStructure(STRUCTURE_ROAD)) {
             return;
@@ -179,6 +179,10 @@ export class Agent {
             }
         }
 
+        if (cachePos) {
+            return this.travelTo(this.cacheIdlePosition(place, acceptableRange)) as number;
+        }
+
         if (range <= 1) {
             let position = this.findIdlePosition(place, acceptableRange);
             if (!position) { return; }
@@ -188,8 +192,36 @@ export class Agent {
         return this.travelTo(place) as number;
     }
 
-    findIdlePosition(place: {pos: RoomPosition}, acceptableRange: number): RoomPosition {
+    private cacheIdlePosition(place: {pos: RoomPosition}, acceptableRange: number): RoomPosition {
+        if (this.memory.idlePosition) {
+            let position = helper.deserializeRoomPosition(this.memory.idlePosition);
+            let range = position.getRangeTo(place);
+            if (range === 0) {
+                return position;
+            }
+            if (range <= acceptableRange && position.isPassible()) {
+                return position;
+            }
+            else {
+                this.memory.idlePosition = undefined;
+                return this.cacheIdlePosition(place, acceptableRange);
+            }
+        } else {
+            let position = this.findIdlePosition(place, acceptableRange);
+            if (position) {
+                this.memory.idlePosition = position;
+                return position;
+            } else {
+                this.memory.idlePosition = place.pos;
+                console.log(`AGENT: no idlepos within range ${acceptableRange} near ${place.pos}`);
+                return place.pos;
+            }
+        }
+    }
+
+    private findIdlePosition(place: {pos: RoomPosition}, acceptableRange: number): RoomPosition {
         let radius = 0;
+        let validPositions = [];
         while (radius <= acceptableRange) {
             for (let xDelta = -radius; xDelta <= radius; xDelta++) {
                 for (let yDelta = -radius; yDelta <= radius; yDelta++) {
@@ -200,11 +232,12 @@ export class Agent {
                     if (!position.isPassible()) { continue; }
                     if (position.isNearExit(0)) { continue; }
                     if (position.lookForStructure(STRUCTURE_ROAD)) { continue; }
-                    return position;
+                    validPositions.push(position);
                 }
             }
-            radius++
+            radius++;
         }
+        return this.pos.findClosestByRange(validPositions);
     }
 
     isNearTo(place: {pos: RoomPosition} | RoomPosition) {

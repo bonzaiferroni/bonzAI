@@ -7,16 +7,7 @@ import {helper} from "../../helpers/helper";
 
 export class MiningMission extends Mission {
 
-    miners: Agent[];
-    minerCarts: Agent[];
-    paver: Creep;
-
-    source: Source;
-    container: StructureContainer;
-    storage: StructureStorage;
-    remoteSpawning: boolean;
-
-    memory: {
+    public memory: {
         potencyPerMiner: number;
         positionsAvailable: number;
         transportAnalysis: TransportAnalysis;
@@ -26,8 +17,15 @@ export class MiningMission extends Mission {
         positionCount: number;
     };
 
-    _minersNeeded: number;
-    _analysis: TransportAnalysis;
+    private miners: Agent[];
+    private minerCarts: Agent[];
+    private paver: Creep;
+    private source: Source;
+    private container: StructureContainer;
+    private storage: StructureStorage;
+    private remoteSpawning: boolean;
+    private _minersNeeded: number;
+    private _analysis: TransportAnalysis;
 
     /**
      * General-purpose energy mining, uses a nested TransportMission to transfer energy
@@ -44,37 +42,37 @@ export class MiningMission extends Mission {
     }
 
     // return-early
-    initMission() {
-        if (!this.hasVision) return;
+    public initMission() {
+        if (!this.hasVision) { return; }
         this.container = this.findContainer();
         this.storage = this.findMinerStorage();
     }
 
-    getMaxMiners = () => this.minersNeeded;
+    public getMaxMiners = () => this.minersNeeded;
 
-    getMinerBody = () => {
+    public getMinerBody = () => {
         if (this.remoteSpawning) { return this.workerBody(6, 1, 6); }
         if (this.minersNeeded === 1) {
             let work = Math.ceil((Math.max(this.source.energyCapacity,
                         SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER) + 1;
             return this.workerBody(work, 1, Math.ceil(work / 2));
-        }
-        else if (this.minersNeeded === 2) { return this.workerBody(3, 1, 2); }
-        else { return this.workerBody(2, 1, 1); }
+        } else if (this.minersNeeded === 2) {
+            return this.workerBody(3, 1, 2);
+        } else { return this.workerBody(2, 1, 1); }
     };
 
-    getMaxCarts = () => {
+    public getMaxCarts = () => {
         const FULL_STORAGE_THRESHOLD = STORAGE_CAPACITY - 50000;
         if (_.sum(this.storage.store) > FULL_STORAGE_THRESHOLD) { return 0; }
         if (!this.container) { return 0; }
         return this.analysis.cartsNeeded;
     };
 
-    getCartBody = () => {
-        return this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount)
+    public getCartBody = () => {
+        return this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount);
     };
 
-    roleCall() {
+    public roleCall() {
         this.miners = this.headCount2("miner", this.getMinerBody, this.getMaxMiners,
             {prespawn: this.memory.prespawn});
 
@@ -87,7 +85,7 @@ export class MiningMission extends Mission {
             {prespawn: this.analysis.distance, memory: memory});
     }
 
-    missionActions() {
+    public missionActions() {
 
         let order = 0;
         for (let miner of this.miners) {
@@ -121,9 +119,8 @@ export class MiningMission extends Mission {
         }
     }
 
-    finalizeMission() {
-    }
-    invalidateMissionCache() {
+    public finalizeMission() { }
+    public invalidateMissionCache() {
         this.memory.transportAnalysis = undefined;
     }
 
@@ -151,12 +148,10 @@ export class MiningMission extends Mission {
             if (!miner.memory.registered && miner.pos.isNearTo(this.source)) {
                 this.registerPrespawn(miner);
             }
-        }
-        else {
+        } else {
             if (this.minersNeeded === 1) {
                 this.replaceCurrentMiner(miner, this.container)
-            }
-            else {
+            } else {
                 this.backupMinerActions(miner, this.source, this.container);
             }
         }
@@ -165,10 +160,10 @@ export class MiningMission extends Mission {
     private cartActions(cart: Agent) {
 
         let fleeing = cart.fleeHostiles();
-        if (fleeing) return; // early
+        if (fleeing) { return; } // early
 
         // emergency cpu savings
-        if (Game.cpu.bucket < 1000) return;
+        if (Game.cpu.bucket < 1000) { return; }
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
@@ -185,12 +180,12 @@ export class MiningMission extends Mission {
             }
 
             if (this.container.store.energy < cart.creep.carryCapacity) {
-                cart.idleOffRoad(this.flag, true);
+                cart.idleNear(this.container, 3);
                 return;
             }
 
             let outcome = cart.retrieve(this.container, RESOURCE_ENERGY);
-            if (outcome === OK) {
+            if (outcome === OK && cart.carryCapacity > 0) {
                 cart.travelTo(this.storage);
             }
             return;

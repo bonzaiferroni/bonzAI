@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {ARTROOMS} from "../../config/constants";
 import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
+import {traveler} from "../Traveler";
 export class ReserveMission extends Mission {
 
     reservers: Creep[];
@@ -96,13 +97,13 @@ export class ReserveMission extends Mission {
     }
 
     private checkBulldozer(): boolean {
-        let ret = this.empire.findTravelPath(this.spawnGroup, this.room.controller);
+        let ret = traveler.findTravelPath(this.spawnGroup, this.room.controller);
         if (!ret.incomplete) {
             console.log(`RESERVER: No bulldozer necessary in ${this.operation.name}`);
             return false;
         }
 
-        let ignoredStructures = this.empire.findTravelPath(this.spawnGroup, this.room.controller,
+        let ignoredStructures = traveler.findTravelPath(this.spawnGroup, this.room.controller,
             {range: 1, ignoreStructures: true});
         if (ignoredStructures.incomplete) {
             notifier.add(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
@@ -127,21 +128,22 @@ export class ReserveMission extends Mission {
         }
         else {
             if (dozer.room === this.room) {
-                let outcome = this.empire.travelTo(dozer, this.room.controller, {
+                let returnData: {nextPos?: RoomPosition} = {};
+                traveler.travelTo(dozer, this.room.controller, {
                     ignoreStructures: true,
                     ignoreStuck: true,
-                    returnPosition: true,
+                    returnData: returnData,
                 });
 
-                if (outcome instanceof RoomPosition) {
-                    let structure = outcome.lookFor<Structure>(LOOK_STRUCTURES)[0];
+                if (returnData.nextPos) {
+                    let structure = returnData.nextPos.lookFor<Structure>(LOOK_STRUCTURES)[0];
                     if (structure) {
                         dozer.dismantle(structure);
                     }
                 }
             }
             else {
-                this.empire.travelTo(dozer, this.room.controller);
+                traveler.travelTo(dozer, this.room.controller);
             }
         }
     }

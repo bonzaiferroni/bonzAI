@@ -89,10 +89,12 @@ export class ZombieMission extends Mission {
 
         let destination = zombie.findDestination();
 
-        let position = zombie.moveZombie(destination, zombie.memory.demolishing);
+        let returnData: {nextPos?: RoomPosition} = {};
+        zombie.moveZombie(destination, zombie.memory.demolishing, returnData);
         zombie.memory.demolishing = false;
-        if (zombie.pos.roomName === this.room.name && !zombie.pos.isNearExit(0) && position instanceof RoomPosition) {
-            let structure = position.lookFor<Structure>(LOOK_STRUCTURES)[0];
+        if (zombie.pos.roomName === this.room.name && !zombie.pos.isNearExit(0)) {
+            if (!returnData.nextPos) return;
+            let structure = returnData.nextPos.lookFor<Structure>(LOOK_STRUCTURES)[0];
             if (structure && structure.structureType !== STRUCTURE_ROAD) {
                 zombie.memory.demolishing = true;
                 if (!currentlyHealing) {

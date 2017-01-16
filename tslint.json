@@ -4,6 +4,9 @@
   ],
   "rules": {
     "forin": false,
+    "object-literal-sort-keys": false,
+    "member-ordering": false,
+    "no-empty": false,
     "interface-name": [false],
     "no-console": [false],
     "variable-name": [

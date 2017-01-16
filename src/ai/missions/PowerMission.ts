@@ -174,7 +174,7 @@ export class PowerMission extends Mission {
         else if (myBonnie.fatigue === 0) {
             if (this.memory.currentBank.assisting === undefined) {
                 // traveling from spawn
-                this.empire.travelTo(clyde, {pos: bankPos}, {ignoreRoads: true});
+                traveler.travelTo(clyde, {pos: bankPos}, {ignoreRoads: true});
             }
             else {
                 clyde.moveTo(bankPos, {reusePath: 0});
@@ -244,7 +244,7 @@ export class PowerMission extends Mission {
         let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
         if (!cart.pos.inRangeTo(bankPos, 5)) {
             // traveling from spawn
-            this.empire.travelTo(cart, {pos: bankPos}, {ignoreRoads: true});
+            traveler.travelTo(cart, {pos: bankPos}, {ignoreRoads: true});
         }
         else {
             if (!cart.memory.inPosition) {
@@ -341,7 +341,7 @@ export class PowerMission extends Mission {
         let possibleRoomNames = this.findAlleysInRange(5);
         for (let roomName of possibleRoomNames) {
             let position = helper.pathablePosition(roomName);
-            let ret = this.empire.findTravelPath(spawn, {pos: position});
+            let ret = traveler.findTravelPath(spawn, {pos: position});
             if (ret.incomplete) {
                 notifier.add(`POWER: incomplete path generating scanData (op: ${this.operation.name}, roomName: ${roomName})`);
                 continue;

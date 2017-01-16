@@ -8,6 +8,7 @@ import {EmpireClass} from "../Empire";
 import {OperationPriority, Direction} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
+import {traveler} from "../Traveler";
 export class RaidOperation extends Operation {
 
     squadTypes = {
@@ -548,7 +549,7 @@ export class RaidOperation extends Operation {
             return false;
         }
 
-        let ret = this.empire.findTravelPath(this.spawnGroup, destination, {ignoreStructures: true});
+        let ret = traveler.findTravelPath(this.spawnGroup, destination, {ignoreStructures: true});
         if (ret.incomplete) {
             console.log(`RAID: ${this.name} automation incomplete, incomplete path to attackRoom`);
             return false;
