@@ -119,7 +119,7 @@ export class WorldMap {
             else {
                 if (!Memory.rooms[roomName]) Memory.rooms[roomName] = {} as RoomMemory;
                 let roomMemory = Memory.rooms[roomName];
-                if (Game.time >= roomMemory.nextScan) {
+                if (!roomMemory.nextScan || Game.time >= roomMemory.nextScan) {
                     observer.observeRoom(roomName);
                     break;
                 }

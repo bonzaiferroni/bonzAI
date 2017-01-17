@@ -53,11 +53,12 @@ export class MiningMission extends Mission {
 
     public getMinerBody = () => {
         if (this.remoteSpawning) { return this.workerBody(6, 1, 6); }
-        if (this.minersNeeded === 1) {
+        let minersSupported = this.minersSupported();
+        if (minersSupported === 1) {
             let work = Math.ceil((Math.max(this.source.energyCapacity,
                         SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER) + 1;
             return this.workerBody(work, 1, Math.ceil(work / 2));
-        } else if (this.minersNeeded === 2) {
+        } else if (minersSupported === 2) {
             return this.workerBody(3, 1, 2);
         } else { return this.workerBody(2, 1, 1); }
     };
@@ -366,14 +367,8 @@ export class MiningMission extends Mission {
     get minersNeeded() {
         if (!this._minersNeeded) {
             if (!this.memory.positionCount) { this.memory.positionCount = this.source.pos.openAdjacentSpots(true).length; }
-            let max = 1;
-            if (this.spawnGroup.maxSpawnEnergy < 1050 && !this.remoteSpawning) {
-                max = 2;
-                if (this.spawnGroup.maxSpawnEnergy < 450) {
-                    max = 3;
-                }
-            }
-            this._minersNeeded = Math.min(max, this.memory.positionCount);
+
+            this._minersNeeded = Math.min(this.minersSupported(), this.memory.positionCount);
         }
         return this._minersNeeded;
     }
@@ -383,5 +378,15 @@ export class MiningMission extends Mission {
             this._analysis = this.cacheTransportAnalysis(this.findDistanceToStorage(), Mission.loadFromSource(this.source));
         }
         return this._analysis;
+    }
+
+    private minersSupported(): number {
+        if (this.spawnGroup.maxSpawnEnergy >= 1050 || this.remoteSpawning) {
+            return 1;
+        } else if (this.spawnGroup.maxSpawnEnergy >= 450) {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 }

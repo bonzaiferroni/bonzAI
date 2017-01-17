@@ -172,7 +172,8 @@ export abstract class Operation {
 
     getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
         // invalidated periodically
-        if (!this.memory.spawnRooms || this.memory.spawnRooms.length === 0) {
+        if (!this.memory.spawnRooms ||
+            (this.memory.spawnRooms.length === 0 && Game.time >= this.memory.nextSpawnCheck)) {
             let closestRoomRange = Number.MAX_VALUE;
             let roomNames = [];
             for (let roomName of Object.keys(empire.spawnGroups)) {
@@ -192,6 +193,7 @@ export abstract class Operation {
             }
             console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
             this.memory.spawnRooms = roomNames;
+            this.memory.nextSpawnCheck = Game.time + 1000;
         }
 
         let spawnRoom = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {

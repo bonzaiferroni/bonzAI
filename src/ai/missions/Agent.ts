@@ -1,7 +1,7 @@
 import {Mission} from "./Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {TravelToOptions} from "../Traveler";
+import {TravelToOptions, Traveler} from "../Traveler";
 import {empire} from "../../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 
@@ -332,7 +332,7 @@ export class Agent {
                 }
             }
             if (!ignoreCreeps) {
-                empire.traveler.getCreepMatrix(room);
+                Traveler.addCreepsToMatrix(room, matrix);
             }
             return matrix;
         };
