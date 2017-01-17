@@ -28,6 +28,22 @@ interface Room {
     _defaultMatrix: CostMatrix;
     defaultMatrix: CostMatrix;
     structures: {[structureType: string]: Structure[] }
+    memory: RoomMemory;
+}
+
+interface RoomMemory {
+    owner: string;
+    occupied: boolean;
+    srcPos: string;
+    level: number;
+    nextTrade: number;
+    nextScan: number;
+    nextRadar: number;
+    radarData: { x: number, y: number }
+    spawnMemory: any;
+    boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
+    controllerBatteryId: string;
+    upgraderPositions: RoomPosition[];
 }
 
 interface RoomCoord {
@@ -114,6 +130,7 @@ interface Memory {
         history: number[];
         average: number;
     }
+    rooms: {[roomName: string]: RoomMemory }
 }
 
 interface ProfilerData {

@@ -11,6 +11,7 @@ import {BodyguardMission} from "../missions/BodyguardMission";
 import {TransportMission} from "../missions/TransportMission";
 import {ClaimMission} from "../missions/ClaimMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
+import {empire} from "../../helpers/loopHelper";
 
 
 const CONQUEST_MASON_POTENCY = 4;
@@ -28,8 +29,8 @@ export class ConquestOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super (flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super (flag, name, type);
         this.priority = OperationPriority.Medium;
     }
 
@@ -42,7 +43,7 @@ export class ConquestOperation extends Operation {
             return; // early
         }
 
-        this.spawnGroup = this.empire.getSpawnGroup(this.memory.spawnRoom);
+        this.spawnGroup = empire.getSpawnGroup(this.memory.spawnRoom);
         if (!this.spawnGroup) {
             console.log("Invalid spawn missionRoom specified for", this.name);
             return;
@@ -87,7 +88,7 @@ export class ConquestOperation extends Operation {
         }
 
         // the following can be spawned locally
-        let localSpawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        let localSpawnGroup = empire.getSpawnGroup(this.flag.room.name);
         if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= CONQUEST_LOCAL_MIN_SPAWN_ENERGY) {
             this.waypoints = undefined;
             this.spawnGroup = localSpawnGroup;

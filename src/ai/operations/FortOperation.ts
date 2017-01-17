@@ -1,6 +1,5 @@
 import {Operation} from "./Operation";
 import {Empire} from "../Empire";
-import {OperationPriority, NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "../../config/constants";
 import {EmergencyMinerMission} from "../missions/EmergencyMission";
 import {RefillMission} from "../missions/RefillMission";
 import {DefenseMission} from "../missions/DefenseMission";
@@ -15,6 +14,9 @@ import {UpgradeMission} from "../missions/UpgradeMission";
 import {GeologyMission} from "../missions/GeologyMission";
 import {PaverMission} from "../missions/PaverMission";
 import {DefenseGuru} from "./DefenseGuru";
+import {OperationPriority} from "../../config/constants";
+import {empire} from "../../helpers/loopHelper";
+import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "../TradeNetwork";
 
 
 export class FortOperation extends Operation {
@@ -27,16 +29,15 @@ export class FortOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
         this.priority = OperationPriority.OwnedRoom;
     }
 
     initOperation() {
         if (this.flag.room) {
             // initOperation FortOperation variables
-            this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
-            this.empire.register(this.flag.room);
+            this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
 
             // spawn emergency miner if needed
             this.addMission(new EmergencyMinerMission(this));
@@ -139,20 +140,11 @@ export class FortOperation extends Operation {
         let nuker = _.head(this.flag.room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_NUKER}})) as StructureNuker;
         let outcome = nuker.launchNuke(new RoomPosition(x, y, roomName));
         if (outcome === OK) {
-            this.empire.addNuke({tick: Game.time, roomName: roomName});
+            empire.map.addNuke({tick: Game.time, roomName: roomName});
             return "NUKER: Bombs away! \\o/";
         }
         else {
             return `NUKER: error: ${outcome}`;
         }
-    }
-
-    addAllyRoom(roomName: string) {
-        if (_.includes(this.empire.memory.allyRooms, roomName)) {
-            return "NETWORK: " + roomName + " is already being scanned by " + this.name;
-        }
-
-        this.empire.addAllyRoom(roomName);
-        return "NETWORK: added " + roomName + " to rooms scanned by " + this.name;
     }
 }

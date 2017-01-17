@@ -1,16 +1,14 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
 import {ScoutMission} from "../missions/ScoutMission";
 import {MiningMission} from "../missions/MiningMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {GeologyMission} from "../missions/GeologyMission";
-import {OperationPriority, ROOMTYPE_CORE, IGOR_CAPACITY} from "../../config/constants";
 import {ReserveMission} from "../missions/ReserveMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {SwapMission} from "../missions/SwapMission";
-import {ClaimMission} from "../missions/ClaimMission";
-import {UpgradeMission} from "../missions/UpgradeMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
+import {OperationPriority} from "../../config/constants";
+import {ROOMTYPE_CORE} from "../WorldMap";
 export class MiningOperation extends Operation {
 
     /**
@@ -22,8 +20,8 @@ export class MiningOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
         this.priority = OperationPriority.Low;
     }
 
@@ -61,19 +59,8 @@ export class MiningOperation extends Operation {
         }
 
         // claimers
-        if (this.flag.room.memory.swapActive) {
-            if (!this.flag.room.controller.my) {
-                this.addMission(new ClaimMission(this));
-            }
-            // upgraders
-            let spawnUpgraders = this.flag.room.controller.level < 6 &&
-                this.spawnGroup.room.terminal.store[RESOURCE_CATALYZED_GHODIUM_ACID] >= IGOR_CAPACITY;
-            this.addMission(new UpgradeMission(this, true, spawnUpgraders, false));
-        }
-        else {
-            if (this.flag.room.controller) {
-                this.addMission(new ReserveMission(this));
-            }
+        if (this.flag.room.controller) {
+            this.addMission(new ReserveMission(this));
         }
 
 

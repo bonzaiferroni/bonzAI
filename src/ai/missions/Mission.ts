@@ -1,15 +1,15 @@
 import {Operation} from "../operations/Operation";
-import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
-import {DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_ALLEY} from "../../config/constants";
+import {DESTINATION_REACHED} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
 import {empire} from "../../helpers/loopHelper";
+import {ROOMTYPE_SOURCEKEEPER, WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
+import {Traveler} from "../Traveler";
 export abstract class Mission {
 
     flag: Flag;
-    empire: Empire;
     memory: any;
     spawnGroup: SpawnGroup;
     sources: Source[];
@@ -26,7 +26,6 @@ export abstract class Mission {
         this.name = name;
         this.flag = operation.flag;
         this.room = operation.room;
-        this.empire = operation.empire;
         this.spawnGroup = operation.spawnGroup;
         this.sources = operation.sources;
         if (!operation.memory[name]) operation.memory[name] = {};
@@ -449,7 +448,7 @@ export abstract class Mission {
             }
         }
         else {
-            let storages = _.filter(this.empire.storages, (s: Structure) => s.room.controller.level >= 4);
+            let storages = _.filter(empire.network.storages, s => s.room.controller.level >= 4);
             let storage = pos.findClosestByLongPath(storages) as Storage;
             if (!storage) {
                 storage = pos.findClosestByRoomRange(storages) as Storage;
@@ -646,13 +645,13 @@ export abstract class Mission {
                 }
 
                 // disqualify enemy rooms
-                if (this.empire.memory.hostileRooms[roomName]) {
+                if (Traveler.checkOccupied(roomName)) {
                     return false;
                 }
 
                 let room = Game.rooms[roomName];
                 if (!room) {
-                    let roomType = helper.roomTypeFromName(roomName);
+                    let roomType = WorldMap.roomTypeFromName(roomName);
                     if (roomType === ROOMTYPE_ALLEY) {
                         let matrix = new PathFinder.CostMatrix();
                         return helper.blockOffExits(matrix, AVOID_COST, roomName);
@@ -661,7 +660,7 @@ export abstract class Mission {
                 }
 
                 let matrix = new PathFinder.CostMatrix();
-                helper.addStructuresToMatrix(matrix, room, ROAD_COST);
+                Traveler.addStructuresToMatrix(room, matrix, ROAD_COST);
 
                 // avoid controller
                 if (room.controller) {

@@ -4,8 +4,8 @@ import {OperationPriority} from "../../config/constants";
 import {ZombieMission} from "../missions/ZombieMission";
 export class ZombieOperation extends Operation {
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
         this.priority = OperationPriority.Low;
     }
 

@@ -1,14 +1,5 @@
-export const TICK_TRANSPORT_ANALYSIS = 1;
-export const TICK_FULL_REPORT = 0;
-
+import {RESERVE_AMOUNT} from "../ai/TradeNetwork";
 export const DESTINATION_REACHED = -1201;
-export const ROOMTYPE_SOURCEKEEPER = -1301;
-export const ROOMTYPE_CORE = -1302;
-export const ROOMTYPE_CONTROLLER = -1303;
-export const ROOMTYPE_ALLEY = -1304;
-
-export const OBSERVER_PURPOSE_ALLYTRADE = "allyTrade";
-
 export const CACHE_INVALIDATION_FREQUENCY = 1000;
 export const CACHE_INVALIDATION_PERIOD = 10;
 
@@ -22,81 +13,14 @@ export const PRIORITY_BUILD: string[] = [
     STRUCTURE_STORAGE
 ];
 export const LOADAMOUNT_MINERAL = Math.ceil(33 / 6);
-export const ALLIES = {
-    "taiga": true,
-    "Reini": true,
-    "bonzaiferroni": true,
-    "SteeleR": true,
-    "Vervorris": true,
-    "Jeb": true,
-    "danny": true,
-    "Atavus": true,
-    "Ashburnie": true,
-    "ricane": true,
-    "trebbettes": true,
-    "bovius": true,
-};
-
-export const TRADE_PARTNERS = {
-    "bonzaiferroni": true,
-    "taiga": true,
-    "Reini": true,
-    "Vervorris": true,
-    "Jeb": true,
-    "trebbettes": true,
-    "ricane": true,
-};
 
 export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 
 export enum OperationPriority { Emergency, OwnedRoom, VeryHigh, High, Medium, Low, VeryLow }
 export enum Direction { North = 1, NorthEast = 2, East = 3, SouthEast = 4, South = 5, SouthWest = 6, West = 7, NorthWest = 8 }
-
-// these are the constants that govern your energy balance
-// rooms below this will try to pull energy...
-export const NEED_ENERGY_THRESHOLD = 200000;
-// ...from rooms above this.
-export const SUPPLY_ENERGY_THRESHOLD = 250000;
-// rooms that are above this will try to push energy to any missionRoom accepting energy (like swap operations)
-export const SUPPLY_SWAP_THRESHOLD = 300000;
-// rooms above this will start processing power
-export const POWER_PROCESS_THRESHOLD = 350000;
-// rooms above this will spawn a more powerful wall-builder to try to sink energy that way
-export const ENERGYSINK_THRESHOLD = 450000;
-export const SWAP_RESERVE = 950000;
-
-export const MINERALS_RAW = ["H", "O", "Z", "U", "K", "L", "X"];
-export const PRODUCT_LIST = ["XUH2O", "XLHO2", "XLH2O", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XGH2O"];
-export const TRADE_RESOURCES = PRODUCT_LIST.concat(MINERALS_RAW).concat([RESOURCE_POWER, RESOURCE_ENERGY]);
-export const TRADE_MAX_DISTANCE = 6;
-export const TRADE_ENERGY_AMOUNT = 10000;
 export const IGOR_CAPACITY = 1000;
-export const RESERVE_AMOUNT = 5000;
 // terminals with more than this will try to trade a mineral in the network
 export const PRODUCTION_AMOUNT = Math.ceil((RESERVE_AMOUNT * 2) / IGOR_CAPACITY) * IGOR_CAPACITY;
-
-export const RESOURCE_VALUE = {
-    energy: .05,
-    H: 1,
-    O: 1,
-    Z: 1,
-    K: 1,
-    U: 1,
-    L: 1,
-    X: 1,
-};
-
-export const PRODUCT_PRICE = {
-    XUH2O: 4,
-    XLHO2: 4,
-    XKHO2: 4,
-    XZHO2: 4,
-    XZH2O: 4,
-    XLH2O: 4,
-    XGH2O: 6,
-    XGHO2: 6,
-    G: 2,
-};
 
 export const MINERAL_STORAGE_TARGET = {
     H: 150000,
@@ -149,7 +73,3 @@ export const OPERATION_NAMES = [
     "jeux", "cozy", "lupe", "hazy", "jugs", "quip", "jibs", "quay", "zany", "mojo",
     "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "chic"
 ];
-
-export const ARTROOMS = {
-
-};

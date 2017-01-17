@@ -1,5 +1,8 @@
-import {IGOR_CAPACITY, DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER} from "../config/constants";
 import {helper} from "../helpers/helper";
+import {IGOR_CAPACITY, DESTINATION_REACHED} from "../config/constants";
+import {Traveler} from "../ai/Traveler";
+import {empire} from "../helpers/loopHelper";
+import {ROOMTYPE_SOURCEKEEPER} from "../ai/WorldMap";
 export function initCreepPrototype() {
 
     Creep.prototype.seekBoost = function(boosts: string[], allowUnboosted?: boolean): boolean {
@@ -118,12 +121,7 @@ export function initCreepPrototype() {
             maxRooms: 1,
             roomCallback: (roomName: string): CostMatrix => {
                 if (roomName !== this.room.name) return;
-                if (!this.room.structureMatrix) {
-                    let matrix = new PathFinder.CostMatrix();
-                    helper.addStructuresToMatrix(matrix, this.room);
-                    this.room.structureMatrix = matrix;
-                }
-                return this.room.structureMatrix;
+                return empire.traveler.getStructureMatrix(this.room);
             }
         });
         return this.move(this.pos.getDirectionTo(ret.path[0]));

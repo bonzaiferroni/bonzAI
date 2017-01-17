@@ -1,11 +1,8 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {
-    SUPPLY_SWAP_THRESHOLD, SUPPLY_ENERGY_THRESHOLD, NEED_ENERGY_THRESHOLD,
-    RESERVE_AMOUNT, TRADE_RESOURCES, MINERALS_RAW,
-    MINERAL_STORAGE_TARGET, TRADE_PARTNERS, TRADE_MAX_DISTANCE, TRADE_ENERGY_AMOUNT,
-} from "../../config/constants";
-import {helper} from "../../helpers/helper";
+import {MINERALS_RAW, RESERVE_AMOUNT} from "../TradeNetwork";
+import {MINERAL_STORAGE_TARGET} from "../../config/constants";
+import {empire} from "../../helpers/loopHelper";
 export class TerminalNetworkMission extends Mission {
 
     terminal: StructureTerminal;
@@ -42,13 +39,13 @@ export class TerminalNetworkMission extends Mission {
             if (this.storage.store[mineralType] >= MINERAL_STORAGE_TARGET[mineralType]
                 && this.storage.room.terminal.store[mineralType] >= RESERVE_AMOUNT) {
                 console.log("TRADE: have too much", mineralType, "in", this.storage.room, this.storage.store[mineralType]);
-                this.empire.sellExcess(this.room, mineralType, RESERVE_AMOUNT);
+                empire.market.sellExcess(this.room, mineralType, RESERVE_AMOUNT);
             }
         }
 
         if (_.sum(this.storage.store) >= 940000) {
             console.log("TRADE: have too much energy in", this.storage.room, this.storage.store.energy);
-            this.empire.sellExcess(this.room, RESOURCE_ENERGY, RESERVE_AMOUNT);
+            empire.market.sellExcess(this.room, RESOURCE_ENERGY, RESERVE_AMOUNT);
         }
     }
 
@@ -64,7 +61,7 @@ export class TerminalNetworkMission extends Mission {
             mostStockedResource = resourceType;
         }
 
-        let leastStockedTerminal = _.sortBy(this.empire.terminals, (t: StructureTerminal) => _.sum(t.store))[0];
+        let leastStockedTerminal = _.sortBy(empire.network.terminals, (t: StructureTerminal) => _.sum(t.store))[0];
         this.terminal.send(mostStockedResource, RESERVE_AMOUNT, leastStockedTerminal.room.name);
         console.log("NETWORK: balancing terminal capacity, sending", RESERVE_AMOUNT, mostStockedResource,
             "from", this.room.name, "to", leastStockedTerminal.room.name);

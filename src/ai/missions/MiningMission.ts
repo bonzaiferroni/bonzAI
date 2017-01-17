@@ -4,6 +4,7 @@ import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
+import {empire} from "../../helpers/loopHelper";
 
 export class MiningMission extends Mission {
 
@@ -330,14 +331,13 @@ export class MiningMission extends Mission {
                 let room = Game.rooms[roomName];
                 if (!room) return;
 
-                let matrix = new PathFinder.CostMatrix();
-                helper.addStructuresToMatrix(matrix, room);
+                let matrix = empire.traveler.getStructureMatrix(room);
 
                 return matrix;
             }
         });
         if (ret.incomplete || ret.path.length === 0) {
-            notifier.add(`path used for container placement in ${this.operation.name} incomplete, please investigate`);
+            notifier.log(`path used for container placement in ${this.operation.name} incomplete, please investigate`);
         }
 
         let position = ret.path[0];

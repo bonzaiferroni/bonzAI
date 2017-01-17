@@ -1,6 +1,7 @@
 import {Operation} from "./Operation";
 import {Empire} from "../Empire";
 import {DemolishMission} from "../missions/DemolishMission";
+import {empire} from "../../helpers/loopHelper";
 export class DemolishOperation extends Operation {
 
     /**
@@ -13,12 +14,12 @@ export class DemolishOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
     }
 
     initOperation() {
-        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
 
         this.addMission(new DemolishMission(this));
     }

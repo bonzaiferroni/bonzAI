@@ -1,7 +1,9 @@
-import {MINERALS_RAW, PRODUCT_LIST} from "../config/constants";
 import {Empire} from "../ai/Empire";
 import {Operation} from "../ai/operations/Operation";
 import {helper} from "./helper";
+import {MINERALS_RAW, PRODUCT_LIST} from "../ai/TradeNetwork";
+import {empire} from "./loopHelper";
+import {WorldMap} from "../ai/WorldMap";
 
 declare var emp: Empire;
 
@@ -50,7 +52,7 @@ export var consoleCommands = {
 
     minv() {
         for (let mineralType of MINERALS_RAW) {
-            console.log(mineralType + ":", emp.inventory[mineralType]);
+            console.log(mineralType + ":", empire.network.inventory[mineralType]);
         }
 
     },
@@ -61,7 +63,7 @@ export var consoleCommands = {
 
     pinv() {
         for (let mineralType of PRODUCT_LIST) {
-            console.log(mineralType + ":", emp.inventory[mineralType]);
+            console.log(mineralType + ":", emp.network.inventory[mineralType]);
         }
     },
 
@@ -140,7 +142,7 @@ export var consoleCommands = {
      */
 
     findResource(resourceType: string) {
-        for (let terminal of emp.terminals) {
+        for (let terminal of empire.network.terminals) {
             if (terminal.store[resourceType]) {
                 console.log(terminal.room.name, terminal.store[resourceType]);
             }
@@ -289,7 +291,7 @@ export var consoleCommands = {
             let currentOp = Game.operations[desiredName];
             if (currentOp) {
                 console.log(`current op with that name, changing name to temp`);
-                let tempDir = helper.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
+                let tempDir = WorldMap.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
                 return this.changeOpName(desiredName, opName + "temp" + tempDir);
             }
             console.log(`no temp conflicts`);
@@ -306,14 +308,14 @@ export var consoleCommands = {
                 }
             }
             if (!testOp) { continue; }
-            let correctDir = helper.findRelativeRoomDir(controllerOp.flag.room.name, testOp.flag.room.name);
+            let correctDir = WorldMap.findRelativeRoomDir(controllerOp.flag.room.name, testOp.flag.room.name);
             if (correctDir === direction) { continue; }
             let correctOpName = opName + correctDir;
             console.log(`inconsistent name (${testOpName} at dir ${correctDir} should be ${correctOpName})`);
             let currentOp = Game.operations[correctOpName];
             if (currentOp) {
                 console.log(`current op with that name, changing name to temp`);
-                let tempDir = helper.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
+                let tempDir = WorldMap.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
                 return this.changeOpName(correctOpName, opName + "temp" + tempDir);
             }
             else {

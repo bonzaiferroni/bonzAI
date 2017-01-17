@@ -1,11 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {
-    IGOR_CAPACITY, PRODUCT_LIST, RESERVE_AMOUNT,
-    PRODUCTION_AMOUNT, REAGENT_LIST, MINERALS_RAW, POWER_PROCESS_THRESHOLD
-} from "../../config/constants";
+import {IGOR_CAPACITY,PRODUCTION_AMOUNT, REAGENT_LIST} from "../../config/constants";
 import {IgorCommand, LabProcess, Shortage, BoostRequests} from "../../interfaces";
 import {helper} from "../../helpers/helper";
+import {POWER_PROCESS_THRESHOLD, RESERVE_AMOUNT, PRODUCT_LIST, MINERALS_RAW} from "../TradeNetwork";
 export class IgorMission extends Mission {
 
     igors: Creep[];

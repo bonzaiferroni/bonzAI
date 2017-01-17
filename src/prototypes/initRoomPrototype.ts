@@ -1,5 +1,6 @@
 import {helper} from "../helpers/helper";
-import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY} from "../config/constants";
+import {empire} from "../helpers/loopHelper";
+import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY, WorldMap} from "../ai/WorldMap";
 
 export function initRoomPrototype() {
     Object.defineProperty(Room.prototype, "hostiles", {
@@ -9,7 +10,7 @@ export function initRoomPrototype() {
                 let filteredHostiles = [];
                 for (let hostile of hostiles) {
                     let username = hostile.owner.username;
-                    let isEnemy = helper.checkEnemy(username, this.name);
+                    let isEnemy = empire.diplomat.checkEnemy(username, this.name);
                     if (isEnemy) {
                         filteredHostiles.push(hostile);
                     }
@@ -135,7 +136,7 @@ export function initRoomPrototype() {
     Object.defineProperty(Room.prototype, "coords", {
         get: function myProperty() {
             if (!this.memory.coordinates) {
-                this.memory.coordinates = helper.getRoomCoordinates(this.name);
+                this.memory.coordinates = WorldMap.getRoomCoordinates(this.name);
             }
             return this.memory.coordinates;
         }
@@ -143,11 +144,7 @@ export function initRoomPrototype() {
 
     Object.defineProperty(Room.prototype, "defaultMatrix", {
         get: function myProperty() {
-            if (!this._defaultMatrix) {
-                let matrix = new PathFinder.CostMatrix();
-                this._defaultMatrix = helper.addStructuresToMatrix(matrix, this);
-            }
-            return this._defaultMatrix;
+            return empire.traveler.getStructureMatrix(this);
         }
     });
 

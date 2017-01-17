@@ -1,5 +1,5 @@
 export const notifier = {
-    add(message: string) {
+    log(message: string) {
         console.log(message);
         Memory.notifier.push({time: Game.time, message: message});
     },

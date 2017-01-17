@@ -2,9 +2,9 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
-import {ALLIES} from "../../config/constants";
 import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
+import {WorldMap} from "../WorldMap";
 
 export class PowerMission extends Mission {
 
@@ -120,11 +120,11 @@ export class PowerMission extends Mission {
                 let yDir = this.room.coords.yDir;
                 if (x < 0) {
                     x = Math.abs(x) - 1;
-                    xDir = helper.negaDirection(xDir);
+                    xDir = WorldMap.negaDirection(xDir);
                 }
                 if (y < 0) {
                     y = Math.abs(y) - 1;
-                    yDir = helper.negaDirection(yDir);
+                    yDir = WorldMap.negaDirection(yDir);
                 }
                 let roomName = xDir + x + yDir + y;
                 if ((x % 10 === 0 || y % 10 === 0) && Game.map.isRoomAvailable(roomName)) {
@@ -287,7 +287,7 @@ export class PowerMission extends Mission {
         if (!bank) return;
 
         let allyClyde = bank.room.find(FIND_HOSTILE_CREEPS, {
-            filter: (c: Creep) => c.partCount(ATTACK) === 20 && ALLIES[c.owner.username] && !c.isNearExit(1)
+            filter: (c: Creep) => c.partCount(ATTACK) === 20 && empire.diplomat.allies[c.owner.username] && !c.isNearExit(1)
         })[0] as Creep;
 
         if (!allyClyde) {
@@ -311,12 +311,12 @@ export class PowerMission extends Mission {
                 }
                 this.memory.currentBank.assisting = true;
                 clyde.say("damn", true);
-                notifier.add(`"POWER: ally gets the power! ${bank.room.name}`);
+                notifier.log(`"POWER: ally gets the power! ${bank.room.name}`);
             }
             else {
                 this.memory.currentBank.assisting = false;
                 clyde.say("yay!", true);
-                notifier.add(`"POWER: I get the power! ${bank.room.name}`);
+                notifier.log(`"POWER: I get the power! ${bank.room.name}`);
             }
         }
         else {
@@ -347,7 +347,7 @@ export class PowerMission extends Mission {
             let position = helper.pathablePosition(roomName);
             let ret = empire.traveler.findTravelPath(spawn, {pos: position});
             if (ret.incomplete) {
-                notifier.add(`POWER: incomplete path generating scanData (op: ${this.operation.name}, roomName: ${roomName})`);
+                notifier.log(`POWER: incomplete path generating scanData (op: ${this.operation.name}, roomName: ${roomName})`);
                 continue;
             }
 
@@ -393,7 +393,7 @@ export class PowerMission extends Mission {
             }
         }
         if (Game.time > currentBank.timeout) {
-            notifier.add(`POWER: bank timed out ${JSON.stringify(currentBank)}, removing room from powerObservers`);
+            notifier.log(`POWER: bank timed out ${JSON.stringify(currentBank)}, removing room from powerObservers`);
             delete Memory.powerObservers[this.room.name][this.memory.currentBank.pos.roomName];
             this.memory.currentBank = undefined;
         }

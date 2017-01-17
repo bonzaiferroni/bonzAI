@@ -44,7 +44,7 @@ export class ZombieMission extends Mission {
     finalizeMission() {
 
         if (this.guru.status === ZombieStatus.Complete) {
-            notifier.add(`ZOMBIE: mission complete in ${this.room.name}`);
+            notifier.log(`ZOMBIE: mission complete in ${this.room.name}`);
             this.flag.remove();
         }
     }

@@ -17,8 +17,8 @@ export class KeeperOperation extends Operation {
      * @param empire
      */
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
     }
 
     initOperation() {

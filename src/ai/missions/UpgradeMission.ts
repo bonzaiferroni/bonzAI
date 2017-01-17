@@ -1,9 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
-import {NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD, RESERVE_AMOUNT} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {empire} from "../../helpers/loopHelper";
+import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
 export class UpgradeMission extends Mission {
 
     linkUpgraders: Creep[];
@@ -57,7 +57,7 @@ export class UpgradeMission extends Mission {
 
         // memory
         let memory;
-        if (this.boost || this.empire.hasAbundance(RESOURCE_CATALYZED_GHODIUM_ACID, RESERVE_AMOUNT * 2)) {
+        if (this.boost || empire.network.hasAbundance(RESOURCE_CATALYZED_GHODIUM_ACID, RESERVE_AMOUNT * 2)) {
             memory = {boosts: [RESOURCE_CATALYZED_GHODIUM_ACID], allowUnboosted: this.allowUnboosted};
         }
 

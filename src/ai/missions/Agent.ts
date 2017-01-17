@@ -1,8 +1,9 @@
 import {Mission} from "./Mission";
-import {IGOR_CAPACITY, ROOMTYPE_SOURCEKEEPER} from "../../config/constants";
+import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {TravelToOptions} from "../Traveler";
 import {empire} from "../../helpers/loopHelper";
+import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 
 export class Agent {
 
@@ -316,7 +317,7 @@ export class Agent {
     avoidSK(destination: Flag): number {
         let costCall = (roomName: string, ignoreCreeps: boolean): CostMatrix | boolean => {
             if (roomName !== this.pos.roomName) return;
-            let roomType = helper.roomTypeFromName(roomName);
+            let roomType = WorldMap.roomTypeFromName(roomName);
             if (roomType !== ROOMTYPE_SOURCEKEEPER) return;
             let room = Game.rooms[this.pos.roomName];
             let matrix = new PathFinder.CostMatrix();
@@ -331,7 +332,7 @@ export class Agent {
                 }
             }
             if (!ignoreCreeps) {
-                helper.addCreepsToMatrix(matrix, room);
+                empire.traveler.getCreepMatrix(room);
             }
             return matrix;
         };

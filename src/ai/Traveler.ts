@@ -59,19 +59,9 @@ const DEFAULT_STUCK_VALUE = 5;
 
 export class Traveler {
 
-    private memory: {
-        hostileRooms: {[roomName: string]: number}
-    };
     private structureMatrixCache: {[roomName: number]: CostMatrix};
     private creepMatrixCache: {[roomName: string]: CostMatrix};
     private currentTick: number;
-
-    constructor() {
-        // change this memory path to suit your needs
-        if (!Memory.empire) { Memory.empire = {}; }
-        if (!Memory.empire.hostileRooms) { Memory.empire.hostileRooms = {}; }
-        this.memory = Memory.empire;
-    }
 
     public findAllowedRooms(origin: string, destination: string,
                             options: TravelToOptions = {}): {[roomName: string]: boolean } {
@@ -99,13 +89,16 @@ export class Traveler {
                 }
                 if (!options.allowSK && !Game.rooms[roomName]) {
                     if (!parsed) { parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any; }
-                    let isSK = ((parsed[1] % 10 === 4) || (parsed[1] % 10 === 6)) &&
-                        ((parsed[2] % 10 === 4) || (parsed[2] % 10 === 6));
+                    let fMod = parsed[1] % 10;
+                    let sMod = parsed[2] % 10;
+                    let isSK =  !(fMod === 5 && sMod === 5) &&
+                        ((fMod >= 4) && (fMod <= 6)) &&
+                        ((sMod >= 4) && (sMod <= 6));
                     if (isSK) {
                         return 10;
                     }
                 }
-                if (!options.allowHostile && this.memory.hostileRooms[roomName] &&
+                if (!options.allowHostile && Traveler.checkOccupied(roomName) &&
                     roomName !== destination && roomName !== origin) {
                     return Number.POSITIVE_INFINITY;
                 }
@@ -122,6 +115,18 @@ export class Traveler {
         }
 
         return allowedRooms;
+    }
+
+    roomTravelDistance(origin: string, destination: string): number {
+        let linearDistance = Game.map.getRoomLinearDistance(origin, destination);
+        if (linearDistance >= 20) {
+            return linearDistance;
+        }
+
+        let allowedRooms = this.findAllowedRooms(origin, destination);
+        if (allowedRooms) {
+            return Object.keys(allowedRooms).length;
+        }
     }
 
     public findTravelPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition},
@@ -152,7 +157,7 @@ export class Traveler {
                 if (!allowedRooms[roomName]) {
                     return false;
                 }
-            } else if (this.memory.hostileRooms[roomName] && !options.allowHostile) {
+            } else if (!options.allowHostile && Traveler.checkOccupied(roomName)) {
                 return false;
             }
 
@@ -187,14 +192,16 @@ export class Traveler {
     }
 
     public travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
-        // register hostile rooms entered
+
+        /* uncomment if you would like to register hostile rooms entered
         if (creep.room.controller) {
             if (creep.room.controller.owner && !creep.room.controller.my) {
-                this.memory.hostileRooms[creep.room.name] = creep.room.controller.level;
+                creep.room.memory.occupied = true;
             } else {
-                this.memory.hostileRooms[creep.room.name] = undefined;
+                delete creep.room.memory.occupied;
             }
         }
+        */
 
         // initialize data object
         if (!creep.memory._travel) {
@@ -404,6 +411,10 @@ export class Traveler {
         let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
         let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
         return new RoomPosition(origin.x + offsetX[direction], origin.y + offsetY[direction], origin.roomName);
+    }
+
+    public static checkOccupied(roomName: string) {
+        return Memory.rooms[roomName] && Memory.rooms[roomName].occupied;
     }
 }
 

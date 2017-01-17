@@ -5,14 +5,12 @@ export abstract class Guru {
 
     protected flag: Flag;
     protected room: Room;
-    protected empire: Empire;
     protected memory: any;
     protected host: Mission | Operation;
 
     constructor(host: Mission | Operation, name = "guru") {
         this.flag = host.flag;
         this.room = this.flag.room;
-        this.empire = host.empire;
         let hostMemory = host.memory;
         if (!hostMemory[name]) { hostMemory[name] = {}; }
         this.memory = hostMemory[name];

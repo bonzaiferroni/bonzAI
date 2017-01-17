@@ -1,9 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {ARTROOMS} from "../../config/constants";
 import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {empire} from "../../helpers/loopHelper";
+import {ARTROOMS} from "../WorldMap";
 export class ReserveMission extends Mission {
 
     reservers: Creep[];
@@ -106,7 +106,7 @@ export class ReserveMission extends Mission {
         let ignoredStructures = empire.traveler.findTravelPath(this.spawnGroup, this.room.controller,
             {range: 1, ignoreStructures: true});
         if (ignoredStructures.incomplete) {
-            notifier.add(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
+            notifier.log(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
             console.log(helper.debugPath(ret.path, this.operation.name));
             return false;
         }
@@ -123,7 +123,7 @@ export class ReserveMission extends Mission {
 
         if (dozer.pos.isNearTo(this.room.controller)) {
             this.memory.needBulldozer = false;
-            notifier.add(`RESERVER: bulldozer cleared path in ${this.operation.name}`);
+            notifier.log(`RESERVER: bulldozer cleared path in ${this.operation.name}`);
             dozer.suicide();
         }
         else {

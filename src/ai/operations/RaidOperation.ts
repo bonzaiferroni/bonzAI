@@ -9,6 +9,7 @@ import {OperationPriority, Direction} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {empire} from "../../helpers/loopHelper";
+import {WorldMap} from "../WorldMap";
 export class RaidOperation extends Operation {
 
     squadTypes = {
@@ -43,15 +44,15 @@ export class RaidOperation extends Operation {
         placeFlags: {[flagName: string]: RoomPosition}
     };
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
         this.priority = OperationPriority.VeryHigh;
     }
 
     initOperation() {
         this.flagPlacement();
         this.checkNewPlacement();
-        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
         if (!this.raidData) return;
 
@@ -200,7 +201,7 @@ export class RaidOperation extends Operation {
         if (!this.memory.additionalRooms) this.memory.additionalRooms = [];
         let spawnGroups = [this.spawnGroup];
         for (let roomName of this.memory.additionalRooms) {
-            let spawnGroup = this.empire.getSpawnGroup(roomName);
+            let spawnGroup = empire.getSpawnGroup(roomName);
             if (!spawnGroup) continue;
             spawnGroups.push(spawnGroup);
         }
@@ -226,9 +227,9 @@ export class RaidOperation extends Operation {
     private findAttackDirection(attackRoomCoords: RoomCoord, fallbackRoomCoords: RoomCoord): Direction {
         let directionLetter;
         if (attackRoomCoords.x < fallbackRoomCoords.x) directionLetter = attackRoomCoords.xDir;
-        else if (attackRoomCoords.x > fallbackRoomCoords.x) directionLetter = helper.negaDirection(attackRoomCoords.xDir);
+        else if (attackRoomCoords.x > fallbackRoomCoords.x) directionLetter = WorldMap.negaDirection(attackRoomCoords.xDir);
         else if (attackRoomCoords.y < fallbackRoomCoords.y) directionLetter = attackRoomCoords.yDir;
-        else if (attackRoomCoords.y > fallbackRoomCoords.y) directionLetter = helper.negaDirection(attackRoomCoords.yDir);
+        else if (attackRoomCoords.y > fallbackRoomCoords.y) directionLetter = WorldMap.negaDirection(attackRoomCoords.yDir);
 
         if (directionLetter === "N") return Direction.North;
         else if (directionLetter === "E") return Direction.East;
@@ -237,8 +238,8 @@ export class RaidOperation extends Operation {
     }
 
     resetPositions(attackPos: RoomPosition, fallbackPos: RoomPosition) {
-        let attackCoords = helper.getRoomCoordinates(attackPos.roomName);
-        let fallbackCoords = helper.getRoomCoordinates(fallbackPos.roomName);
+        let attackCoords = WorldMap.getRoomCoordinates(attackPos.roomName);
+        let fallbackCoords = WorldMap.getRoomCoordinates(fallbackPos.roomName);
 
         let attackDirection = this.findAttackDirection(attackCoords, fallbackCoords);
 
@@ -506,7 +507,7 @@ export class RaidOperation extends Operation {
         }
         else {
             if (!this.memory.additionalRooms) this.memory.additionalRooms = [];
-            let spawnGroup = this.empire.getSpawnGroup(roomName);
+            let spawnGroup = empire.getSpawnGroup(roomName);
             if (spawnGroup) {
                 return this.memory.additionalRooms.push(roomName);
             }

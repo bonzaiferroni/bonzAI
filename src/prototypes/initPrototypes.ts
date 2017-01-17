@@ -1,8 +1,4 @@
 import {helper} from "../helpers/helper";
-import {
-    IGOR_CAPACITY, DESTINATION_REACHED, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE,
-    ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY
-} from "../config/constants";
 import {initRoomPrototype} from "./initRoomPrototype";
 import {initRoomPositionPrototype} from "./initRoomPositionPrototype";
 import {initCreepPrototype} from "./initCreepPrototype";
@@ -20,7 +16,7 @@ export function initPrototypes() {
      * @param structureType
      * @param range
      * @param immediate
-     * @returns {T}
+     * @returns Structure[]
      */
     RoomObject.prototype.findMemoStructure = function<T>(structureType: string, range: number, immediate = false): T {
         if (!this.room.memory[structureType]) this.room.memory[structureType] = {};

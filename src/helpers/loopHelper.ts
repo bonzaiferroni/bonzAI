@@ -2,10 +2,6 @@ import {Empire} from "../ai/Empire";
 import {FortOperation} from "../ai/operations/FortOperation";
 import {Operation} from "../ai/operations/Operation";
 import {MiningOperation} from "../ai/operations/MiningOperation";
-import {
-    CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD, MINERALS_RAW, PRODUCT_LIST,
-    USERNAME, RESERVE_AMOUNT
-} from "../config/constants";
 import {KeeperOperation} from "../ai/operations/KeeperOperation";
 import {ConquestOperation} from "../ai/operations/ConquestOperation";
 import {consoleCommands} from "./consoleCommands";
@@ -18,6 +14,8 @@ import {FlexOperation} from "../ai/operations/FlexOperation";
 import {notifier} from "../notifier";
 import {helper} from "./helper";
 import {ZombieOperation} from "../ai/operations/ZombieOperation";
+import {CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD} from "../config/constants";
+import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 
 const OPERATION_CLASSES = {
     conquest: ConquestOperation,
@@ -134,20 +132,20 @@ export var loopHelper = {
         });
 
         for (let resourceType of MINERALS_RAW) {
-            Memory.stats["empire.rawMinerals." + resourceType] = empire.inventory[resourceType];
+            Memory.stats["empire.rawMinerals." + resourceType] = empire.network.inventory[resourceType];
             Memory.stats["empire.mineralCount." + resourceType] = Game.cache[resourceType] || 0;
         }
 
         for (let resourceType of PRODUCT_LIST) {
-            Memory.stats["empire.compounds." + resourceType] = empire.inventory[resourceType];
+            Memory.stats["empire.compounds." + resourceType] = empire.network.inventory[resourceType];
             Memory.stats["empire.processCount." + resourceType] = Game.cache.labProcesses[resourceType] || 0;
         }
 
         Memory.stats["empire.activeLabCount"] = Game.cache.activeLabCount;
 
-        Memory.stats["empire.energy"] = empire.inventory[RESOURCE_ENERGY];
+        Memory.stats["empire.energy"] = empire.network.inventory[RESOURCE_ENERGY];
 
-        for (let storage of empire.storages) {
+        for (let storage of empire.network.storages) {
             Memory.stats["empire.power." + storage.room.name] = storage.store.power ? storage.store.power : 0;
         }
 
@@ -182,7 +180,7 @@ export var loopHelper = {
                 order.amountSent = 0;
             }
 
-            let sortedTerminals = _.sortBy(empire.terminals, (t: StructureTerminal) =>
+            let sortedTerminals = _.sortBy(empire.network.terminals, (t: StructureTerminal) =>
                 Game.map.getRoomLinearDistance(order.roomName, t.room.name)) as StructureTerminal[];
 
             let count = 0;

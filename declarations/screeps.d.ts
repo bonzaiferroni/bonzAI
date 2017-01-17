@@ -1261,7 +1261,7 @@ interface Memory {
         [name: string]: any;
     };
     rooms: {
-        [name: string]: any;
+        [name: string]: RoomMemory; // my modification
     };
     spawns: {
         [name: string]: any;
@@ -1671,7 +1671,7 @@ declare class Room {
     /**
      * A shorthand to Memory.rooms[missionRoom.name]. You can use it for quick access the missionRoom’s specific memory data object.
      */
-    memory: any;
+    memory: RoomMemory; // I changed this
     /**
      * One of the following constants:
      * MODE_SIMULATION, MODE_SURVIVAL, MODE_WORLD, MODE_ARENA
@@ -2050,6 +2050,13 @@ declare class StructureController extends OwnedStructure {
     activateSafeMode(): number;
 
     safeMode: number;
+
+    sign: {
+        username: string,
+        text: string,
+        time: string,
+        dateTime: string,
+    }
 }
 /**
  * Contains energy which can be spent on spawning bigger creeps. Extensions can

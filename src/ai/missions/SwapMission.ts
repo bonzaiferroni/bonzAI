@@ -1,6 +1,7 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {RESERVE_AMOUNT, SWAP_RESERVE} from "../../config/constants";
+import {empire} from "../../helpers/loopHelper";
+import {RESERVE_AMOUNT} from "../TradeNetwork";
 export class SwapMission extends Mission {
 
     postMasters: Creep[];
@@ -24,7 +25,7 @@ export class SwapMission extends Mission {
     initMission() {
         if (!this.hasVision) return;
 
-        this.empire.registerSwap(this.room);
+        // empire.registerSwap(this.room);
         this.mineral = this.room.find<Mineral>(FIND_MINERALS)[0];
         this.towers = this.room.findStructures(STRUCTURE_TOWER) as StructureTower[];
         this.terminal = this.room.terminal;
@@ -86,7 +87,7 @@ export class SwapMission extends Mission {
 
     finalizeMission() {
         if (!this.memory.fortRoomNames) {
-            let roomNames = _.map(this.empire.terminals, (t: StructureTerminal) => t.room.name);
+            let roomNames = _.map(empire.network.terminals, (t: StructureTerminal) => t.room.name);
             this.memory.fortRoomNames = _.sortBy(roomNames, (s: string) => Game.map.getRoomLinearDistance(s, this.room.name, true));
         }
     }
@@ -160,7 +161,7 @@ export class SwapMission extends Mission {
             && this.storage.store.energy >= SWAP_RESERVE
             && this.terminal.store.energy >= 50000 ) {
             console.log(this.name, "needs to swap out mining operations");
-            this.empire.engageSwap(this.room);
+            // this.empire.engageSwap(this.room);
         }
     }
 
@@ -170,7 +171,7 @@ export class SwapMission extends Mission {
         let needtoSell = amount > 100000;
         if (!needtoSell) return; // early
         console.log("TRADE: too much mineral in swap mission " + this.operation.name + ":", amount);
-        this.empire.sellExcess(this.room, this.mineral.mineralType, RESERVE_AMOUNT);
+        empire.market.sellExcess(this.room, this.mineral.mineralType, RESERVE_AMOUNT);
     }
 
     private swapMasonActions(mason: Creep) {
@@ -196,3 +197,5 @@ export class SwapMission extends Mission {
         }
     }
 }
+
+const SWAP_RESERVE = 950000;

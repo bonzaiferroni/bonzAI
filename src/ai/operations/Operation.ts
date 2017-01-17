@@ -11,7 +11,6 @@ export abstract class Operation {
     name: string;
     type: string;
     room: Room;
-    empire: Empire;
     memory: any;
     priority: OperationPriority;
     hasVision: boolean;
@@ -28,12 +27,11 @@ export abstract class Operation {
      * @param type - first part of flag.name, used to determine which operation class to instantiate
      * @param empire - object used for empire-scoped behavior (terminal transmission, etc.)
      */
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
+    constructor(flag: Flag, name: string, type: string) {
         this.flag = flag;
         this.name = name;
         this.type = type;
         this.room = flag.room;
-        this.empire = empire;
         this.memory = flag.memory;
         if (!this.missions) { this.missions = {}; }
         // variables that require vision (null check where appropriate)
@@ -177,13 +175,13 @@ export abstract class Operation {
         if (!this.memory.spawnRooms || this.memory.spawnRooms.length === 0) {
             let closestRoomRange = Number.MAX_VALUE;
             let roomNames = [];
-            for (let roomName of Object.keys(this.empire.spawnGroups)) {
+            for (let roomName of Object.keys(empire.spawnGroups)) {
                 let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
                 if (roomLinearDistance === 0) continue;
                 if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
-                let spawnGroup = this.empire.spawnGroups[roomName];
+                let spawnGroup = empire.spawnGroups[roomName];
                 if (spawnGroup.room.controller.level < levelRequirement) continue;
-                let distance = this.empire.roomTravelDistance(this.flag.pos.roomName, roomName);
+                let distance = empire.traveler.roomTravelDistance(this.flag.pos.roomName, roomName);
                 if (distance < closestRoomRange) {
                     closestRoomRange = distance;
                     roomNames = [roomName];
@@ -206,7 +204,7 @@ export abstract class Operation {
             }
         }).last();
 
-        return this.empire.getSpawnGroup(spawnRoom);
+        return empire.getSpawnGroup(spawnRoom);
     }
 
     manualControllerBattery(id: string) {
@@ -236,7 +234,7 @@ export abstract class Operation {
             roomName = roomName.flag.room.name;
         }
 
-        if (!this.empire.getSpawnGroup(roomName)) {
+        if (!empire.getSpawnGroup(roomName)) {
             return "SPAWN: that missionRoom doesn't appear to host a valid spawnGroup";
         }
 

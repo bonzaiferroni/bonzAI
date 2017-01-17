@@ -4,6 +4,8 @@ import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
+import {Traveler} from "../Traveler";
+import {WorldMap} from "../WorldMap";
 export class RaidGuru extends Guru {
 
     raidRoom: Room;
@@ -60,7 +62,7 @@ export class RaidGuru extends Guru {
         cache.matrix = matrix.serialize();
 
         helper.showMatrix(matrix);
-        notifier.add(`ZOMBIE: init raid at ${roomName}, expectedDamage: ${cache.expectedDamage}, bestExit: ${cache.bestExit}`);
+        notifier.log(`ZOMBIE: init raid at ${roomName}, expectedDamage: ${cache.expectedDamage}, bestExit: ${cache.bestExit}`);
         return cache;
     }
 
@@ -81,7 +83,7 @@ export class RaidGuru extends Guru {
         let bestExit;
         let ret = PathFinder.search(this.spawnGroup.pos, {pos: spawns[0].pos, range: 1}, {
             roomCallback: (roomName: string): CostMatrix | boolean => {
-                if (roomName !== this.room.name && this.empire.memory.hostileRooms[roomName]) { return false; }
+                if (roomName !== this.room.name && Traveler.checkOccupied(roomName)) { return false; }
                 let room = Game.rooms[roomName];
                 if (room) { return room.defaultMatrix; }
             }
@@ -174,19 +176,19 @@ export class RaidGuru extends Guru {
             let fallback = _.clone(bestExit);
             if (fallback.x === 0) {
                 fallback.x = 48;
-                fallback.roomName = helper.findRelativeRoomName(fallback.roomName, -1, 0);
+                fallback.roomName = WorldMap.findRelativeRoomName(fallback.roomName, -1, 0);
             }
             else if (fallback.x === 49) {
                 fallback.x = 1;
-                fallback.roomName = helper.findRelativeRoomName(fallback.roomName, 1, 0);
+                fallback.roomName = WorldMap.findRelativeRoomName(fallback.roomName, 1, 0);
             }
             else if (fallback.y === 0) {
                 fallback.y = 48;
-                fallback.roomName = helper.findRelativeRoomName(fallback.roomName, 0, -1);
+                fallback.roomName = WorldMap.findRelativeRoomName(fallback.roomName, 0, -1);
             }
             else {
                 fallback.y = 1;
-                fallback.roomName = helper.findRelativeRoomName(fallback.roomName, 0, 1);
+                fallback.roomName = WorldMap.findRelativeRoomName(fallback.roomName, 0, 1);
             }
             return fallback;
         }

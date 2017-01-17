@@ -1,15 +1,16 @@
 import {Operation} from "./Operation";
 import {Empire} from "../Empire";
 import {TransportMission} from "../missions/TransportMission";
+import {empire} from "../../helpers/loopHelper";
 
 export class TransportOperation extends Operation {
 
-    constructor(flag: Flag, name: string, type: string, empire: Empire) {
-        super(flag, name, type, empire);
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
     }
 
     initOperation() {
-        this.spawnGroup = this.empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.findOperationWaypoints();
 
         let max = this.memory.max !== undefined ? this.memory.max : 1;

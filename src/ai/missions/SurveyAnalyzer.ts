@@ -1,11 +1,13 @@
 import {SurveyMission} from "./SurveyMission";
 import {helper} from "../../helpers/helper";
-import {ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, USERNAME} from "../../config/constants";
 import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {notifier} from "../../notifier";
 import {Mission} from "./Mission";
 import {empire} from "../../helpers/loopHelper";
+import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER} from "../WorldMap";
+import {Traveler} from "../Traveler";
+import {USERNAME} from "../../config/constants";
 
 interface SurveyData {
     danger: boolean;
@@ -20,7 +22,6 @@ interface SurveyData {
 export class SurveyAnalyzer {
 
     private room: Room;
-    private empire: Empire;
     private spawnGroup: SpawnGroup;
     private opName: string;
     private memory: {
@@ -32,7 +33,6 @@ export class SurveyAnalyzer {
 
     constructor(mission: SurveyMission) {
         this.room = mission.room;
-        this.empire = mission.empire;
         this.spawnGroup = mission.spawnGroup;
         this.memory = mission.memory as any;
         this.opName = mission.operation.name;
@@ -48,7 +48,7 @@ export class SurveyAnalyzer {
                 this.placeFlag(room);
                 delete this.memory.chosenRoom;
                 if (Object.keys(this.memory.surveyRooms).length === 0) {
-                    notifier.add(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
+                    notifier.log(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
                 }
                 else {
                     this.memory.nextAnalysis = Game.time + 1000;
@@ -83,7 +83,7 @@ export class SurveyAnalyzer {
         let data: {[roomName: string]: SurveyData} = {};
 
         // find core
-        let roomCoords = helper.getRoomCoordinates(this.room.name);
+        let roomCoords = WorldMap.getRoomCoordinates(this.room.name);
         let coreX = "" + Math.floor(roomCoords.x / 10) + 5;
         let coreY = "" + Math.floor(roomCoords.y / 10) + 5;
         let nearestCore = roomCoords.xDir + coreX + roomCoords.yDir + coreY;
@@ -100,7 +100,7 @@ export class SurveyAnalyzer {
                 { allowHostile: true, restrictDistance: 1 });
             if (roomsInPath) {
                 for (let roomName in roomsInPath) {
-                    if (this.empire.memory.hostileRooms[roomName]) {
+                    if (Traveler.checkOccupied(roomName)) {
                         noSafePath = true;
                     }
                 }
@@ -109,7 +109,7 @@ export class SurveyAnalyzer {
                 noSafePath = true;
             }
 
-            let type = helper.roomTypeFromName(roomName);
+            let type = WorldMap.roomTypeFromName(roomName);
             if (type === ROOMTYPE_SOURCEKEEPER || noSafePath) {
                 data[roomName] = { danger: true };
             }
@@ -132,7 +132,7 @@ export class SurveyAnalyzer {
             for (let value of _.values<string>(Game.map.describeExits(testRoom))) {
                 if (alreadyChecked[value]) continue;
                 if (Game.map.getRoomLinearDistance(startRoomName, value) > distance) continue;
-                if (_.includes(filterOut, helper.roomTypeFromName(value))) continue;
+                if (_.includes(filterOut, WorldMap.roomTypeFromName(value))) continue;
                 adjacentRooms.push(value);
                 testRooms.push(value);
                 alreadyChecked[value] = true;
@@ -179,7 +179,7 @@ export class SurveyAnalyzer {
         // source info
         let roomDistance = Game.map.getRoomLinearDistance(this.room.name, room.name);
         let sources = room.find<Source>(FIND_SOURCES);
-        let roomType = helper.roomTypeFromName(room.name);
+        let roomType = WorldMap.roomTypeFromName(room.name);
         let distances = [];
         data.sourceCount = sources.length;
         for (let source of sources) {
@@ -193,7 +193,7 @@ export class SurveyAnalyzer {
                 }
             });
             if (ret.incomplete) {
-                notifier.add(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
+                notifier.log(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
             }
 
             let distance = ret.path.length;
@@ -202,7 +202,7 @@ export class SurveyAnalyzer {
 
             // disqualify due to source distance
             if (cartsNeeded > data.sourceCount){
-                notifier.add(`SURVEY: disqualified ${room.name} due to distance to source: ${cartsNeeded}`);
+                notifier.log(`SURVEY: disqualified ${room.name} due to distance to source: ${cartsNeeded}`);
                 delete this.memory.surveyRooms[room.name];
                 return;
             }
@@ -264,8 +264,8 @@ export class SurveyAnalyzer {
 
     private checkReady(): {[roomName: string]: SurveyData} {
 
-        if (!this.empire.underCPULimit()) {
-            notifier.add(`SURVEY: avoiding placement, cpu is over limit`);
+        if (!empire.underCPULimit()) {
+            notifier.log(`SURVEY: avoiding placement, cpu is over limit`);
             this.memory.nextAnalysis = Game.time + 10000;
             return;
         }
@@ -310,7 +310,7 @@ export class SurveyAnalyzer {
     }
 
     private placeFlag(room: Room) {
-        let direction = helper.findRelativeRoomDir(this.room.name, room.name);
+        let direction = WorldMap.findRelativeRoomDir(this.room.name, room.name);
         let opName = this.opName.substr(0, this.opName.length - 1) + direction;
         if (Game.map.getRoomLinearDistance(this.room.name, room.name ) > 1) {
             opName += direction;
@@ -321,7 +321,7 @@ export class SurveyAnalyzer {
         }
         let flagName = `${opType}_${opName}`;
         helper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
-        notifier.add(`SURVEY: created new operation in ${room.name}: ${flagName}`);
+        notifier.log(`SURVEY: created new operation in ${room.name}: ${flagName}`);
         delete this.memory.surveyRooms[room.name];
     }
 }
