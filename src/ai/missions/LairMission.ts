@@ -75,7 +75,7 @@ export class LairMission extends Mission {
     }
 
     private trapperActions(trapper: Agent) {
-        if (trapper.pos.roomName !== this.flag.pos.roomName || !this.targetLair) {
+        if (!this.targetLair) {
             if (trapper.hits < trapper.hitsMax) {
                 trapper.heal(trapper);
             }
@@ -122,11 +122,6 @@ export class LairMission extends Mission {
                 scavenger.travelTo(storage);
             }
             return;
-        }
-
-        if (scavenger.room.name !== this.flag.pos.roomName) {
-            scavenger.idleNear(this.flag);
-            return; // early;
         }
 
         let closest = this.findDroppedEnergy(scavenger);

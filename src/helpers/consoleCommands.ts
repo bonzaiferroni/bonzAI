@@ -107,27 +107,55 @@ export var consoleCommands = {
      */
 
     removeUnusedProperties() {
-        delete Memory.empire["allyForts"];
-        delete Memory.empire["allySwaps"];
 
+        let hostiles = false;
+        if (Memory.empire["hostileRooms"]) {
+            hostiles = true;
+            delete Memory.empire["hostileRooms"];
+        }
+
+        let radarCount = 0;
+        let spawnCount = 0;
+        let analCount = 0;
+        let flagCount = 0;
         for (let flagName in Memory.flags) {
             let flag = Game.flags[flagName];
             if (flag) {
-                let mem = Memory.flags[flagName];
-                delete mem.network;
-                // delete mem.survey;
+                let flagMemory = Memory.flags[flagName];
+                for (let missionName in flagMemory) {
+                    if (!flagMemory.hasOwnProperty(missionName)) { continue; }
+                    let missionMemory = flagMemory[missionName];
+                    if (missionName === "radar") {
+                        radarCount++;
+                        delete flagMemory[missionName];
+                    }
+                    if (missionMemory["spawn"]) {
+                        spawnCount++;
+                        delete missionMemory["spawn"];
+                    }
+                    if (missionMemory["anal"]) { // :)
+                        analCount++;
+                        delete missionMemory["anal"];
+                    }
+                }
             }
             else {
+                flagCount++;
                 delete Memory.flags[flagName];
             }
         }
 
+        let creepCount = 0;
         for (let creepName in Memory.creeps) {
             let creep = Game.creeps[creepName];
             if (!creep) {
+                creepCount++;
                 delete Memory.creeps[creepName];
             }
         }
+
+        return `gc Creeps: ${creepCount}, gc flags: ${flagCount}, spawn: ${spawnCount}, radar: ${radarCount}\n` +
+                `analysis: ${analCount}, hostileRooms: ${hostiles}`
     },
 
     removeMissionData(missionName: string) {

@@ -170,13 +170,24 @@ export class MiningMission extends Mission {
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
 
+            // heal chipped carts
             if (cart.hits < cart.hitsMax) {
-                cart.idleOffRoad();
-                if (cart.room.hostiles.length === 0) {
-                    let tower = cart.pos.findClosestByRange(cart.room.findStructures<StructureTower>(STRUCTURE_TOWER));
-                    if (tower) { tower.heal(cart.creep); }
+                let healersInRoom = _.filter(cart.room.find<Creep>(FIND_MY_CREEPS), c => c.getActiveBodyparts(HEAL));
+                if (healersInRoom.length > 0) {
+                    cart.idleOffRoad();
+                    return;
                 }
-                return;
+                if (cart.room.hostiles.length === 0 && !cart.pos.isNearExit(0)) {
+                    let tower = cart.pos.findClosestByRange(cart.room.findStructures<StructureTower>(STRUCTURE_TOWER));
+                    if (tower) {
+                        tower.heal(cart.creep);
+                        return;
+                    }
+                }
+                if (cart.carryCapacity === 0) {
+                    cart.travelTo(this.storage);
+                    return;
+                }
             }
 
             if (!this.container) {

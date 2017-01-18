@@ -172,7 +172,7 @@ export class UpgradeMission extends Mission {
         if (myPosition) {
             let range = upgrader.pos.getRangeTo(myPosition);
             if (range > 0) {
-                upgrader.travelTo(myPosition);
+                upgrader.travelTo(myPosition, {range: 0});
             }
         }
         else {
