@@ -88,7 +88,7 @@ export class RefillMission extends Mission {
                 cart.memory.hasLoad = false;
             }
             else {
-                cart.idleNear(this.spawnGroup, 12);
+                cart.idleOffRoad(cart.room.controller);
             }
             return;
         }

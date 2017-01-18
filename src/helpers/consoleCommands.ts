@@ -377,5 +377,17 @@ export var consoleCommands = {
             Game.map.getRoomLinearDistance("W25S25", "E25S25");
         }
         return `cpu: ${Game.cpu.getUsed() - cpu - baseline} ${Game.cpu.getUsed() - cpu} ${baseline}`;
+    },
+
+    resetPathCPU() {
+        let count = 0;
+        for (let creepName in Game.creeps) {
+            let creep = Game.creeps[creepName];
+            if (creep.memory._travel) {
+                count++;
+                creep.memory._travel.cpu = 0;
+            }
+        }
+        return `reset cpu for ${count} creeps`
     }
 };

@@ -608,7 +608,7 @@ export abstract class Mission {
             }
         }
         else {
-            paver.travelTo(road);
+            paver.travelTo(road, {range: 0});
         }
 
         if (!paving) {
