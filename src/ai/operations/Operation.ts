@@ -2,7 +2,7 @@ import {Empire} from "../Empire";
 import {Mission} from "../missions/Mission";
 import {SpawnGroup} from "../SpawnGroup";
 import {OperationPriority} from "../../config/constants";
-import {profiler} from "../../profiler";
+import {Profiler} from "../../Profiler";
 import {empire} from "../../helpers/loopHelper";
 
 export abstract class Operation {
@@ -57,9 +57,9 @@ export abstract class Operation {
 
         for (let missionName in this.missions) {
             try {
-                profiler.start("in_m." + missionName.substr(0, 3));
+                Profiler.start("in_m." + missionName.substr(0, 3));
                 this.missions[missionName].initMission();
-                profiler.end("in_m." + missionName.substr(0, 3));
+                Profiler.end("in_m." + missionName.substr(0, 3));
             }
             catch (e) {
                 console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
@@ -76,9 +76,9 @@ export abstract class Operation {
         // mission roleCall
         for (let missionName in this.missions) {
             try {
-                profiler.start("rc_m." + missionName.substr(0, 3));
+                Profiler.start("rc_m." + missionName.substr(0, 3));
                 this.missions[missionName].roleCall();
-                profiler.end("rc_m." + missionName.substr(0, 3));
+                Profiler.end("rc_m." + missionName.substr(0, 3));
             }
             catch (e) {
                 console.log("error caught in roleCall phase, operation:", this.name, "mission:", missionName);
@@ -94,9 +94,9 @@ export abstract class Operation {
         // mission actions
         for (let missionName in this.missions) {
             try {
-                profiler.start("ac_m." + missionName.substr(0, 3));
+                Profiler.start("ac_m." + missionName.substr(0, 3));
                 this.missions[missionName].missionActions();
-                profiler.end("ac_m." + missionName.substr(0, 3));
+                Profiler.end("ac_m." + missionName.substr(0, 3));
             }
             catch (e) {
                 console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName, "in missionRoom ", this.flag.pos.roomName);
@@ -112,9 +112,9 @@ export abstract class Operation {
         // mission actions
         for (let missionName in this.missions) {
             try {
-                profiler.start("fi_m." + missionName.substr(0, 3));
+                Profiler.start("fi_m." + missionName.substr(0, 3));
                 this.missions[missionName].finalizeMission();
-                profiler.end("fi_m." + missionName.substr(0, 3));
+                Profiler.end("fi_m." + missionName.substr(0, 3));
             }
             catch (e) {
                 console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);

@@ -149,7 +149,7 @@ export var loopHelper = {
             Memory.stats["empire.power." + storage.room.name] = storage.store.power ? storage.store.power : 0;
         }
 
-        // profiler check
+        // Profiler check
         for (let identifier in Memory.profiler) {
             let profile = Memory.profiler[identifier];
             Memory.stats["game.prof." + identifier + ".cpt"] = profile.costPerTick;

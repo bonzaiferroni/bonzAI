@@ -1,6 +1,6 @@
 import {SpawnGroup} from "./SpawnGroup";
 import {notifier} from "../notifier";
-import {profiler} from "../profiler";
+import {Profiler} from "../Profiler";
 import {Traveler} from "./Traveler";
 import {WorldMap} from "./WorldMap";
 import {MarketTrader} from "./MarketTrader";
@@ -67,7 +67,7 @@ export class Empire {
     }
 
     underCPULimit() {
-        return profiler.proportionUsed() < .9;
+        return Profiler.proportionUsed() < .9;
     }
 
     private clearErrantConstruction() {

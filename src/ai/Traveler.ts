@@ -229,7 +229,7 @@ export class Traveler {
         if (rangeToDestination <= options.range) {
             return OK;
         } else if (rangeToDestination <= 1) {
-            if (rangeToDestination === 1 && options.range === 0) {
+            if (rangeToDestination === 1 && !options.range) {
                 if (options.returnData) { options.returnData.nextPos = destination.pos; }
                 return creep.move(creep.pos.getDirectionTo(destination));
             }

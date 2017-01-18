@@ -417,5 +417,5 @@ export var consoleCommands = {
             }
         }
         return `reset cpu for ${count} creeps`
-    }
+    },
 };

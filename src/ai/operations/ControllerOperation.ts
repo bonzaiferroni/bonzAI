@@ -19,7 +19,7 @@ import {MasonMission} from "../missions/MasonMission";
 import {OperationPriority} from "../../config/constants";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
-import {profiler} from "../../profiler";
+import {Profiler} from "../../Profiler";
 import {ScoutMission} from "../missions/ScoutMission";
 import {ClaimMission} from "../missions/ClaimMission";
 import {notifier} from "../../notifier";

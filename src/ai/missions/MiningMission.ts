@@ -75,8 +75,14 @@ export class MiningMission extends Mission {
     };
 
     public roleCall() {
+
+        let prespawn = 0;
+        if (this.storage) {
+            prespawn = Game.map.getRoomLinearDistance(this.source.pos.roomName, this.storage.pos.roomName) * 50 + 50;
+        }
+
         this.miners = this.headCount2("miner", this.getMinerBody, this.getMaxMiners,
-            {prespawn: this.memory.prespawn});
+            {prespawn: prespawn});
 
         if (this.memory.roadRepairIds) {
             this.paver = this.spawnPaver();
@@ -257,7 +263,7 @@ export class MiningMission extends Mission {
             }
         }
         else {
-            miner.travelTo(container);
+            miner.travelTo(container, {range: 0});
         }
     }
 

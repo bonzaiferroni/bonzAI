@@ -73,6 +73,7 @@ interface RoomObject {
 
 interface Creep {
     partCount(partType: string): number;
+    blindMoveTo(destination: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
 }
 
 interface CreepMemory {
