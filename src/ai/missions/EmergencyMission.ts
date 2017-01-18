@@ -1,12 +1,12 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class EmergencyMinerMission extends Mission {
 
-    memory: {
+    public emergencyMiners: Agent[];
+    public memory: {
         lastTick: number
     };
-
-    private emergencyMiners: Creep[];
 
     /**
      * Checks every 100 ticks if storage is full or a miner is present, if not spawns an emergency miner. Should come
@@ -24,21 +24,20 @@ export class EmergencyMinerMission extends Mission {
     public roleCall() {
         let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
             (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
-        let body = () => this.workerBody(2, 1, 1);
-
         if (energyAvailable) {
             this.memory.lastTick = Game.time;
         }
 
-        let maxEmergencyMiners = 0;
-        if (!this.memory.lastTick || Game.time - this.memory.lastTick > 100) {
-            if (Game.time % 10 === 0) {
-                console.log("ATTN: Backup miner being spawned in", this.operation.name);
+        let getMaxMiners = () => {
+            if (!this.memory.lastTick || Game.time > this.memory.lastTick + 100) {
+                if (Game.time % 10 === 0) {
+                    console.log("ATTN: Backup miner being spawned in", this.operation.name);
+                }
+                return 2;
             }
-            maxEmergencyMiners = 2;
-        }
+        };
 
-        this.emergencyMiners = this.headCount("emergencyMiner", body, maxEmergencyMiners);
+        this.emergencyMiners = this.headCount2("emergencyMiner", () => this.workerBody(2, 1, 1), getMaxMiners);
     }
 
     public missionActions() {
@@ -52,10 +51,10 @@ export class EmergencyMinerMission extends Mission {
     public invalidateMissionCache() {
     }
 
-    private minerActions(miner: Creep) {
+    private minerActions(miner: Agent) {
         let closest = miner.pos.findClosestByRange(FIND_SOURCES) as Source;
         if (!miner.pos.isNearTo(closest)) {
-            miner.blindMoveTo(closest);
+            miner.travelTo(closest);
             return;
         }
 

@@ -1,9 +1,10 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class LairMission extends Mission {
 
-    trappers: Creep[];
-    scavengers: Creep[];
+    trappers: Agent[];
+    scavengers: Agent[];
     lairs: StructureKeeperLair[];
     targetLair: StructureKeeperLair;
     storeStructure: StructureStorage | StructureContainer | StructureTerminal;
@@ -46,15 +47,15 @@ export class LairMission extends Mission {
     }
 
     roleCall() {
-        let maxTrappers = this.lairs && this.lairs.length > 0 ? 1 : 0;
-        this.trappers = this.headCount("trapper", () => this.configBody({move: 25, attack: 19, heal: 6}), maxTrappers, {
+        let maxTrappers = () => this.lairs && this.lairs.length > 0 ? 1 : 0;
+        this.trappers = this.headCount2("trapper", () => this.configBody({move: 25, attack: 19, heal: 6}), maxTrappers, {
             prespawn: this.distanceToSpawn + 100,
             skipMoveToRoom: true,
         });
 
-        let maxScavengers = this.lairs && this.lairs.length >= 3 && this.storeStructure ? 1 : 0;
+        let maxScavengers = () => this.lairs && this.lairs.length >= 3 && this.storeStructure ? 1 : 0;
         let body = () => this.workerBody(0, 33, 17);
-        this.scavengers = this.headCount("scavenger", body, maxScavengers, 50);
+        this.scavengers = this.headCount2("scavenger", body, maxScavengers, 50);
     }
 
     missionActions() {
@@ -73,12 +74,12 @@ export class LairMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private trapperActions(trapper: Creep) {
+    private trapperActions(trapper: Agent) {
         if (trapper.pos.roomName !== this.flag.pos.roomName || !this.targetLair) {
             if (trapper.hits < trapper.hitsMax) {
                 trapper.heal(trapper);
             }
-            trapper.blindMoveTo(this.flag);
+            trapper.travelTo(this.flag);
             return; // early
         }
 
@@ -94,11 +95,11 @@ export class LairMission extends Mission {
         if (keeper) {
             range = trapper.pos.getRangeTo(keeper);
             if (range > 1) {
-                trapper.blindMoveTo(keeper, { maxRooms: 1 });
+                trapper.travelTo(keeper);
             }
         }
         else {
-            trapper.blindMoveTo(this.targetLair, { maxRooms: 1 });
+            trapper.travelTo(this.targetLair);
         }
 
         if (!isAttacking && (trapper.hits < trapper.hitsMax || range <= 3)) {
@@ -106,26 +107,25 @@ export class LairMission extends Mission {
         }
     }
 
-    private scavengersActions(scavenger: Creep) {
+    private scavengersActions(scavenger: Agent) {
 
         let fleeing = scavenger.fleeHostiles();
         if (fleeing) return; // early
 
-        let hasLoad = this.hasLoad(scavenger);
+        let hasLoad = scavenger.hasLoad();
         if (hasLoad) {
             let storage = this.storeStructure;
             if (scavenger.pos.isNearTo(storage)) {
                 scavenger.transfer(storage, RESOURCE_ENERGY);
-                scavenger.blindMoveTo(this.flag);
-            }
-            else {
-                scavenger.blindMoveTo(storage);
+                scavenger.travelTo(this.flag);
+            } else {
+                scavenger.travelTo(storage);
             }
             return;
         }
 
         if (scavenger.room.name !== this.flag.pos.roomName) {
-            this.idleNear(scavenger, this.flag);
+            scavenger.idleNear(this.flag);
             return; // early;
         }
 
@@ -134,13 +134,12 @@ export class LairMission extends Mission {
             if (scavenger.pos.isNearTo(closest)) {
                 scavenger.pickup(closest);
                 scavenger.say("yoink!", true);
-            }
-            else {
-                scavenger.blindMoveTo(closest, {maxRooms: 1});
+            } else {
+                scavenger.travelTo(closest);
             }
         }
         else {
-            this.idleNear(scavenger, this.flag);
+            scavenger.idleNear(this.flag);
         }
     }
 
@@ -182,7 +181,7 @@ export class LairMission extends Mission {
         }
     }
 
-    private findDroppedEnergy(scavenger: Creep): Resource {
+    private findDroppedEnergy(scavenger: Agent): Resource {
         if (scavenger.memory.resourceId) {
             let resource = Game.getObjectById(scavenger.memory.resourceId) as Resource;
             if (resource) {

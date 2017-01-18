@@ -7,17 +7,22 @@ import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 
 export class Agent {
 
-    creep: Creep;
-    mission: Mission;
-    room: Room;
-    missionRoom: Room;
-    outcome: number;
-    memory: any;
-    carry: StoreDefinition;
-    carryCapacity: number;
-    hits: number;
-    hitsMax: number;
-    pos: RoomPosition;
+    public creep: Creep;
+    public mission: Mission;
+    public room: Room;
+    public missionRoom: Room;
+    public outcome: number;
+    public memory: any;
+    public carry: StoreDefinition;
+    public carryCapacity: number;
+    public hits: number;
+    public hitsMax: number;
+    public pos: RoomPosition;
+    public ticksToLive: number;
+    public name: string;
+    public id: string;
+    public fatigue: number;
+    public spawning: boolean;
 
     constructor(creep: Creep, mission: Mission) {
         this.creep = creep;
@@ -30,40 +35,52 @@ export class Agent {
         this.carryCapacity = creep.carryCapacity;
         this.hits = creep.hits;
         this.hitsMax = creep.hitsMax;
+        this.ticksToLive = creep.ticksToLive;
+        this.name = creep.name;
+        this.id = creep.id;
+        this.fatigue = creep.fatigue;
+        this.spawning = creep.spawning;
     }
 
-    attack(target: Creep|Structure): number { return this.creep.attack(target); }
-    attackController(controller: StructureController): number { return this.creep.attackController(controller); }
-    build(target: ConstructionSite): number { return this.creep.build(target); }
-    claimController(controller: StructureController): number { return this.creep.claimController(controller); }
-    dismantle(target: Structure): number { return this.creep.dismantle(target); }
-    drop(resourceType: string, amount?: number): number { return this.creep.drop(resourceType, amount); }
-    getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }
-    harvest(source: Source): number { return this.creep.harvest(source); }
-    heal(target: Creep): number { return this.creep.heal(target); }
-    move(direction: number): number { return this.creep.move(direction); }
-    pickup(resource: Resource): number { return this.creep.pickup(resource); }
-    rangedAttack(target: Creep|Structure): number { return this.creep.rangedAttack(target); }
-    rangedHeal(target: Creep): number { return this.creep.rangedHeal(target); }
-    rangedMassAttack(): number { return this.creep.rangedMassAttack(); }
-    repair(target: Structure): number { return this.creep.repair(target); }
-    reserveController(controller: StructureController): number { return this.creep.reserveController(controller); }
-    say(message: string): number { return this.creep.say(message); }
-    suicide(): number { return this.creep.suicide(); }
-    transfer(target: Creep|Structure, resourceType: string, amount?: number): number {
+    public attack(target: Creep|Structure): number { return this.creep.attack(target); }
+    public attackController(controller: StructureController): number { return this.creep.attackController(controller); }
+    public build(target: ConstructionSite): number { return this.creep.build(target); }
+    public claimController(controller: StructureController): number { return this.creep.claimController(controller); }
+    public dismantle(target: Structure): number { return this.creep.dismantle(target); }
+    public drop(resourceType: string, amount?: number): number { return this.creep.drop(resourceType, amount); }
+    public getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }
+    public harvest(source: Source|Mineral): number { return this.creep.harvest(source); }
+    public heal(target: Creep|Agent): number {
+        if (target instanceof Agent) {
+            return this.creep.heal(target.creep);
+        } else {
+            return this.creep.heal(target);
+        }
+    }
+    public move(direction: number): number { return this.creep.move(direction); }
+    public pickup(resource: Resource): number { return this.creep.pickup(resource); }
+    public rangedAttack(target: Creep|Structure): number { return this.creep.rangedAttack(target); }
+    public rangedHeal(target: Creep): number { return this.creep.rangedHeal(target); }
+    public rangedMassAttack(): number { return this.creep.rangedMassAttack(); }
+    public repair(target: Structure): number { return this.creep.repair(target); }
+    public reserveController(controller: StructureController): number { return this.creep.reserveController(controller); }
+    public say(message: string, pub?: boolean): number { return this.creep.say(message, pub); }
+    public suicide(): number { return this.creep.suicide(); }
+    public transfer(target: Creep|Structure, resourceType: string, amount?: number): number {
         return this.creep.transfer(target, resourceType, amount); }
-    upgradeController(controller: StructureController): number { return this.creep.upgradeController(controller); }
-    withdraw(target: Creep|Structure, resourceType: string, amount?: number): number {
+    public upgradeController(controller: StructureController): number { return this.creep.upgradeController(controller); }
+    public withdraw(target: Creep|Structure, resourceType: string, amount?: number): number {
         if (target instanceof Creep) { return target.transfer(this.creep, resourceType, amount); }
         else { return this.creep.withdraw(target, resourceType, amount); }
     }
+    public partCount(partType: string) { return this.partCount(partType);}
 
-    travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number | RoomPosition {
+    public travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
         return empire.traveler.travelTo(this.creep, destination, options);
     }
 
-    isFull(margin = 0): boolean {
+    public isFull(margin = 0): boolean {
         return _.sum(this.carry) >= this.carryCapacity - margin;
     }
 
@@ -97,8 +114,7 @@ export class Agent {
 
         if (this.memory.hasLoad && _.sum(this.carry) === 0) {
             this.memory.hasLoad = false;
-        }
-        else if (!this.memory.hasLoad && _.sum(this.carry) === this.carryCapacity) {
+        } else if (!this.memory.hasLoad && _.sum(this.carry) === this.carryCapacity) {
             this.memory.hasLoad = true;
         }
         return this.memory.hasLoad;
@@ -111,7 +127,7 @@ export class Agent {
      * @param maintainDistance
      * @returns {any}
      */
-    idleOffRoad(anchor: {pos: RoomPosition} = this.mission.flag, maintainDistance = false): number {
+    public idleOffRoad(anchor: {pos: RoomPosition} = this.mission.flag, maintainDistance = false): number {
         let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
         if (offRoad) return OK;
 
@@ -140,7 +156,7 @@ export class Agent {
         return this.travelTo(anchor) as number;
     }
 
-    stealNearby(stealSource: string): number {
+    public stealNearby(stealSource: string): number {
         if (stealSource === "creep") {
             let creep = _(this.pos.findInRange<Creep>(FIND_MY_CREEPS, 1))
                 .filter((c: Creep) => c.getActiveBodyparts(WORK) === 0 && c.carry.energy > 0)
@@ -315,12 +331,9 @@ export class Agent {
     }
 
     avoidSK(destination: Flag): number {
-        let costCall = (roomName: string, ignoreCreeps: boolean): CostMatrix | boolean => {
+        let costCall = (roomName: string, matrix: CostMatrix): CostMatrix | boolean => {
             if (roomName !== this.pos.roomName) return;
-            let roomType = WorldMap.roomTypeFromName(roomName);
-            if (roomType !== ROOMTYPE_SOURCEKEEPER) return;
             let room = Game.rooms[this.pos.roomName];
-            let matrix = new PathFinder.CostMatrix();
             let sourceKeepers = _.filter(room.hostiles, (c: Creep) => c.owner.username === "Source Keeper");
             for (let sourceKeeper of sourceKeepers) {
                 const SAFE_RANGE = 4;
@@ -330,9 +343,6 @@ export class Agent {
                         matrix.set(sourceKeeper.pos.x + xDelta, sourceKeeper.pos.y + yDelta, 0xff);
                     }
                 }
-            }
-            if (!ignoreCreeps) {
-                Traveler.addCreepsToMatrix(room, matrix);
             }
             return matrix;
         };
@@ -392,9 +402,14 @@ export class Agent {
         return false;
     }
 
-    fleeByPath(): number {
-        let avoidPositions = _.map(this.pos.findInRange(this.room.hostiles, 5),
-            (c: Creep) => { return {pos: c.pos, range: 10 }; });
+    fleeByPath(avoidObject?: {pos: RoomPosition}): number {
+        let avoidPositions;
+        if (avoidObject) {
+            avoidPositions = [avoidObject.pos];
+        } else {
+            avoidPositions = _.map(this.pos.findInRange(this.room.hostiles, 5),
+                (c: Creep) => { return {pos: c.pos, range: 10 }; });
+        }
 
         let ret = PathFinder.search(this.pos, avoidPositions, {
             flee: true,
@@ -447,5 +462,331 @@ export class Agent {
         // move
         let direction = this.pos.getDirectionTo(position);
         this.creep.move(direction);
+    }
+
+
+    /**
+     * another function for keeping roads clear, this one is more useful for builders and road repairers that are
+     * currently working, will move off road without going out of range of target
+     * @param target - target for which you do not want to move out of range
+     * @param allowSwamps
+     * @returns {number}
+     */
+    public yieldRoad(target: {pos: RoomPosition}, allowSwamps = true): number  {
+        let isOffRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
+        if (isOffRoad) return OK;
+
+        let swampPosition;
+        // find movement options
+        let direction = this.pos.getDirectionTo(target);
+        for (let i = -2; i <= 2; i++) {
+            let relDirection = direction + i;
+            relDirection = helper.clampDirection(relDirection);
+            let position = this.pos.getPositionAtDirection(relDirection);
+            if (!position.inRangeTo(target, 3)) continue;
+            if (position.lookFor(LOOK_STRUCTURES).length > 0) continue;
+            if (!position.isPassible()) continue;
+            if (position.isNearExit(0)) continue;
+            if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
+                swampPosition = position;
+                continue;
+            }
+            return this.move(relDirection);
+        }
+        if (swampPosition && allowSwamps) {
+            return this.move(this.pos.getDirectionTo(swampPosition));
+        }
+        return this.travelTo(target);
+    };
+
+    /**
+     * Only withdraw from a store-holder if there is enough resource to transfer (or if holder is full), cpu-efficiency effort
+     * @param target
+     * @param resourceType
+     * @returns {number}
+     */
+    withdrawIfFull(target: Creep|StructureContainer|StructureStorage|StructureTerminal, resourceType: string): number {
+        if (!this.pos.isNearTo(target)) {
+            return ERR_NOT_IN_RANGE;
+        }
+
+        let norm = Agent.normalizeStore(target);
+        let storageAvailable = this.carryCapacity - _.sum(this.carry);
+        let targetStorageAvailable = norm.storeCapacity - _.sum(norm.store);
+        if (norm.store[resourceType] >= storageAvailable || targetStorageAvailable === 0) {
+            return this.withdraw(target, resourceType);
+        }
+        else {
+            return ERR_NOT_ENOUGH_RESOURCES;
+        }
+    };
+
+    public static normalizeStore(target: Creep|StructureContainer|StructureStorage|StructureTerminal):
+    { store: StoreDefinition, storeCapacity: number } {
+        let store;
+        let storeCapacity;
+        if (target instanceof Creep) {
+            store = target.carry;
+            storeCapacity = target.carryCapacity;
+        }
+        else {
+            store = target.store;
+            storeCapacity = target.storeCapacity;
+        }
+        return {store: store, storeCapacity: storeCapacity };
+    }
+
+    withdrawEverything(target: Creep|StructureContainer|StructureStorage|StructureTerminal): number {
+        let norm = Agent.normalizeStore(target);
+        for (let resourceType in norm.store) {
+            let amount = norm.store[resourceType];
+            if (amount > 0) {
+                return this.withdraw(target, resourceType);
+            }
+        }
+        return ERR_NOT_ENOUGH_RESOURCES;
+    };
+
+    transferEverything(target: Creep|StructureContainer|StructureStorage|StructureTerminal): number {
+        for (let resourceType in this.carry) {
+            let amount = this.carry[resourceType];
+            if (amount > 0) {
+                return this.transfer(target, resourceType);
+            }
+        }
+        return ERR_NOT_ENOUGH_RESOURCES;
+    };
+
+    /**
+     * Find a structure, cache, and invalidate cache based on the functions provided
+     * @param findStructure
+     * @param forget
+     * @param immediate
+     * @param prop
+     * @returns {Structure}
+     */
+
+    rememberStructure(findStructure: () => Structure, forget: (structure: Structure) => boolean,
+                                 prop = "remStructureId", immediate = false): Structure {
+        if (this.memory[prop]) {
+            let structure = Game.getObjectById(this.memory[prop]) as Structure;
+            if (structure && !forget(structure)) {
+                return structure;
+            }
+            else {
+                this.memory[prop] = undefined;
+                return this.rememberStructure(findStructure, forget, prop, true);
+            }
+        }
+        else if (Game.time % 10 === 0 || immediate) {
+            let object = findStructure();
+            if (object) {
+                this.memory[prop] = object.id;
+                return object;
+            }
+        }
+    };
+
+    /**
+     * Find a creep, cache, and invalidate cache based on the functions provided
+     * @param findCreep
+     * @param forget
+     * @returns {Structure}
+     */
+
+    rememberCreep(findCreep: () => Creep, forget: (creep: Creep) => boolean): Creep {
+        if (this.memory.remCreepId) {
+            let creep = Game.getObjectById(this.memory.remCreepId) as Creep;
+            if (creep && !forget(creep)) {
+                return creep;
+            }
+            else {
+                this.memory.remCreepId = undefined;
+                return this.rememberCreep(findCreep, forget);
+            }
+        }
+        else {
+            let object = findCreep();
+            if (object) {
+                this.memory.remCreepId = object.id;
+                return object;
+            }
+        }
+    };
+
+    /**
+     * Find the nearest energy source with greater than 50 energy, cache with creep memory;
+     * @returns {Creep | StructureContainer}
+     */
+    rememberBattery(): Creep | StructureContainer {
+        if (this.memory.batteryId) {
+            let battery = Game.getObjectById(this.memory.batteryId) as Creep | StructureContainer;
+            if (battery && Agent.normalizeStore(battery).store.energy >= 50) {
+                return battery;
+            }
+            else {
+                this.memory.batteryId = undefined;
+                return this.rememberBattery();
+            }
+        }
+        else {
+            let battery = this.room.getAltBattery(this.creep);
+            if (battery) {
+                this.memory.batteryId = battery.id;
+                return battery;
+            }
+        }
+    };
+
+    /**
+     * Pass in position of recycle bin (aka container next to spawn) and will creep go recycle itself there
+     * @param container
+     */
+
+    recycleSelf(container: StructureContainer) {
+
+        if (!container) {
+            console.log(this.name, " needs a container to recycle self");
+            return;
+        }
+
+        let binTooFull = (this.ticksToLive + _.sum(container.store)) > container.storeCapacity;
+        if (binTooFull) {
+            console.log(this.name, " is waiting for space in recycle bin in ", this.pos.roomName);
+            return;
+        }
+
+        if (!this.pos.isEqualTo(container.pos)) {
+            this.travelTo(container, { range: 0 });
+            console.log(this.name, " is heading to recycle bin");
+            return;
+        }
+
+        let spawn = this.pos.findClosestByRange(FIND_MY_SPAWNS) as StructureSpawn;
+        if (!spawn) {
+            console.log("recycleBin is missing spawn in", this.room.name);
+            return;
+        }
+
+        let recycleOutcome = spawn.recycleCreep(this.creep);
+        if (recycleOutcome === OK) {
+            console.log(this.pos.roomName, " recycled creep ", this.name);
+        }
+        else if (recycleOutcome === -9) {
+            console.log(this.name, " is moving to recycle bin at ", container.pos);
+            this.travelTo(container, { range: 0 });
+            return;
+        }
+        else {
+            console.log(this.room.name, " recycling error: ", recycleOutcome);
+        }
+        return;
+    };
+
+    /**
+     * General-purpose energy getting, will look for an energy source in the same missionRoom as the operation flag (not creep)
+     * @param creep
+     * @param nextDestination
+     * @param highPriority - allows you to withdraw energy before a battery reaches an optimal amount of energy, jumping
+     * ahead of any other creeps trying to get energy
+     * @param getFromSource
+     */
+
+    public procureEnergy(nextDestination?: {pos: RoomPosition}, highPriority = false, getFromSource = false) {
+        let battery = this.getBattery();
+
+        if (battery) {
+            if (this.pos.isNearTo(battery)) {
+                let outcome;
+                if (highPriority) {
+                    if (Agent.normalizeStore(battery).store.energy >= 50) {
+                        outcome = this.withdraw(battery, RESOURCE_ENERGY);
+                    }
+                }
+                else {
+                    outcome = this.withdrawIfFull(battery, RESOURCE_ENERGY);
+                }
+                if (outcome === OK) {
+                    this.memory.batteryId = undefined;
+                    if (nextDestination) {
+                        this.travelTo(nextDestination);
+                    }
+                }
+            }
+            else {
+                this.travelTo(battery);
+            }
+        }
+        else {
+            if (getFromSource) {
+                let closest = this.pos.findClosestByRange<Source>(this.mission.sources);
+                if (closest) {
+                    if (this.pos.isNearTo(closest)) {
+                        this.harvest(closest);
+                    }
+                    else {
+                        this.travelTo(closest);
+                    }
+                }
+                else {
+                    this.idleOffRoad();
+                }
+            }
+            else {
+                if (this.memory._travel) {
+                    let moveData = this.memory._travel.dest;
+                    let dest = new RoomPosition(moveData.x, moveData.y, moveData.room);
+                    this.idleOffRoad({pos: dest}, true);
+                }
+                else {
+                    this.idleOffRoad();
+                }
+            }
+        }
+    }
+
+    public nextPositionInPath(): RoomPosition {
+        if (this.memory._travel && this.memory._travel.path && this.memory._travel.path.length > 0) {
+            let position = this.pos.getPositionAtDirection(parseInt(this.memory._travel.path[0], 10));
+            if (!position.isNearExit(0)) {
+                return position;
+            }
+        }
+    }
+
+    /**
+     * Will return storage if it is available, otherwise will look for an alternative battery and cache it
+     * @param creep - return a battery relative to the missionRoom that the creep is currently in
+     * @returns {any}
+     */
+
+    public getBattery(): Creep|StructureContainer|StructureTerminal|StructureStorage {
+        let minEnergy = this.carryCapacity - this.carry.energy;
+        if (this.room.storage && this.room.storage.store.energy > minEnergy) {
+            return this.room.storage;
+        }
+
+        return this.rememberBattery();
+    }
+
+    public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
+                              options?: TravelToOptions): number {
+
+        if (leader.room !== follower.room) {
+            if (leader.pos.isNearExit(0)) {
+                leader.travelTo(target);
+            }
+            follower.travelTo(leader);
+            return;
+        }
+
+        let range = leader.pos.getRangeTo(follower);
+        if (range > 1) {
+            follower.travelTo(leader);
+            // attacker stands still
+        } else if (follower.fatigue === 0) {
+            leader.travelTo(target, options);
+            follower.move(follower.pos.getDirectionTo(leader));
+        }
     }
 }

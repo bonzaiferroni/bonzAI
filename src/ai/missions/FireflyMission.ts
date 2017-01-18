@@ -2,6 +2,7 @@ import {RaidMission} from "./RaidMission";
 import {Operation} from "../operations/Operation";
 import {RaidData, BoostLevel} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
+import {Agent} from "./Agent";
 export class FireflyMission extends RaidMission {
 
     constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number, allowSpawn: boolean) {
@@ -48,7 +49,7 @@ export class FireflyMission extends RaidMission {
         if (closest) {
             let range = this.attacker.pos.getRangeTo(closest);
             if (range > 3) {
-                this.squadTravel(this.attacker, this.healer, closest);
+                Agent.squadTravel(this.attacker, this.healer, closest);
             }
             else if (range < 3) {
                 this.squadFlee(closest);

@@ -1,9 +1,10 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
+import {Agent} from "./Agent";
 export class TransportMission extends Mission {
 
-    carts: Creep[];
+    carts: Agent[];
     maxCarts: number;
     origin: StructureContainer | StructureStorage | StructureTerminal;
     destination: StructureContainer | StructureStorage | StructureTerminal;
@@ -65,14 +66,14 @@ export class TransportMission extends Mission {
         };
 
         let memory = { scavanger: this.resourceType, prep: true };
-        this.carts = this.headCount("cart", body, this.maxCarts, {memory: memory});
+        this.carts = this.headCount2("cart", body, ()=> this.maxCarts, {memory: memory});
     }
 
     missionActions() {
 
         for (let cart of this.carts) {
             if (!this.memory.originPos || !this.memory.destinationPos) {
-                this.idleNear(cart, this.flag);
+                cart.idleNear(this.flag);
             }
 
             this.cartActions(cart);
@@ -85,16 +86,16 @@ export class TransportMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private cartActions(cart: Creep) {
+    private cartActions(cart: Agent) {
 
-        let hasLoad = this.hasLoad(cart);
+        let hasLoad = cart.hasLoad();
         if (!hasLoad) {
             if (!this.origin) {
                 let originPos = helper.deserializeRoomPosition(this.memory.originPos);
-                cart.blindMoveTo(originPos);
+                cart.travelTo(originPos);
             }
             else if (!cart.pos.isNearTo(this.origin)) {
-                cart.blindMoveTo(this.origin);
+                cart.travelTo(this.origin);
             }
             else {
                 let outcome;
@@ -108,7 +109,7 @@ export class TransportMission extends Mission {
                     outcome = cart.withdrawEverything(this.origin);
                 }
                 if (outcome === OK) {
-                    cart.blindMoveTo(this.destination);
+                    cart.travelTo(this.destination);
                 }
             }
             return; // early
@@ -117,10 +118,10 @@ export class TransportMission extends Mission {
         // hasLoad = true
         if (!this.destination) {
             let destinationPos = helper.deserializeRoomPosition(this.memory.destinationPos);
-            cart.blindMoveTo(destinationPos);
+            cart.travelTo(destinationPos);
         }
         else if (!cart.pos.isNearTo(this.destination)) {
-            cart.blindMoveTo(this.destination);
+            cart.travelTo(this.destination);
         }
         else {
             let outcome;
@@ -131,8 +132,9 @@ export class TransportMission extends Mission {
                 outcome = cart.transferEverything(this.destination);
             }
             if (outcome === OK) {
-                cart.blindMoveTo(this.origin);
+                cart.travelTo(this.origin);
             }
         }
     }
 }
+

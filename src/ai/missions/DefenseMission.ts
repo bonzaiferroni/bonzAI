@@ -1,14 +1,15 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class DefenseMission extends Mission {
 
-    refillCarts: Creep[];
-    defenders: Creep[];
+    refillCarts: Agent[];
+    defenders: Agent[];
 
     towers: StructureTower[];
     empties: StructureTower[];
     closestHostile: Creep;
-    healedDefender: Creep;
+    healedDefender: Agent;
 
     playerThreat: boolean;
     attackedCreep: Creep;
@@ -54,15 +55,25 @@ export class DefenseMission extends Mission {
         this.triggerSafeMode();
     }
 
-    roleCall() {
-        let maxDefenders = 0;
-        let maxRefillers = 0;
-        if (this.playerThreat) {
-            maxDefenders = Math.max(this.enemySquads.length, 1);
-            maxRefillers = 1;
-        }
+    getMaxDefenders = () => this.playerThreat ? Math.max(this.enemySquads.length, 1) : 0;
+    getMaxRefillers = () => this.playerThreat ? 1 : 0;
 
-        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), maxRefillers);
+    defenderBody = () => {
+        if (this.enhancedBoost) {
+            let bodyUnit = this.configBody({[TOUGH]: 1, [ATTACK]: 3, [MOVE]: 1});
+            let maxUnits = Math.min(this.spawnGroup.maxUnits(bodyUnit), 8);
+            return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 3, [RANGED_ATTACK]: 1, [MOVE]: maxUnits + 1});
+        }
+        else {
+            let bodyUnit = this.configBody({[TOUGH]: 1, [ATTACK]: 5, [MOVE]: 6});
+            let maxUnits = Math.min(this.spawnGroup.maxUnits(bodyUnit), 4);
+            return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 5, [MOVE]: maxUnits * 6});
+        }
+    };
+
+    roleCall() {
+
+        this.refillCarts = this.headCount2("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers);
 
         let memory = { boosts: [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
             RESOURCE_CATALYZED_UTRIUM_ACID], allowUnboosted: !this.enhancedBoost };
@@ -71,20 +82,7 @@ export class DefenseMission extends Mission {
             memory.boosts.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
         }
 
-        let defenderBody = () => {
-            if (this.enhancedBoost) {
-                let bodyUnit = this.configBody({[TOUGH]: 1, [ATTACK]: 3, [MOVE]: 1});
-                let maxUnits = Math.min(this.spawnGroup.maxUnits(bodyUnit), 8);
-                return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 3, [RANGED_ATTACK]: 1, [MOVE]: maxUnits + 1});
-            }
-            else {
-                let bodyUnit = this.configBody({[TOUGH]: 1, [ATTACK]: 5, [MOVE]: 6});
-                let maxUnits = Math.min(this.spawnGroup.maxUnits(bodyUnit), 4);
-                return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 5, [MOVE]: maxUnits * 6});
-            }
-        };
-
-        this.defenders = this.headCount("defender", defenderBody, maxDefenders, {prespawn: 1, memory: memory});
+        this.defenders = this.headCount2("defender", this.defenderBody, this.getMaxDefenders, {prespawn: 1, memory: memory});
     }
 
     missionActions() {
@@ -108,11 +106,11 @@ export class DefenseMission extends Mission {
     invalidateMissionCache() {
     }
 
-    towerCartActions(cart: Creep) {
+    towerCartActions(cart: Agent) {
 
-        let hasLoad = this.hasLoad(cart);
+        let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            this.procureEnergy(cart, this.findLowestEmpty(cart), true);
+            cart.procureEnergy(this.findLowestEmpty(cart), true);
             return;
         }
 
@@ -125,7 +123,7 @@ export class DefenseMission extends Mission {
 
         // has target
         if (!cart.pos.isNearTo(target)) {
-            cart.blindMoveTo(target, {maxRooms: 1});
+            cart.travelTo(target);
             return;
         }
 
@@ -134,12 +132,12 @@ export class DefenseMission extends Mission {
         if (outcome === OK && cart.carry.energy >= target.energyCapacity) {
             target = this.findLowestEmpty(cart, target);
             if (target && !cart.pos.isNearTo(target)) {
-                cart.blindMoveTo(target, {maxRooms: 1});
+                cart.travelTo(target);
             }
         }
     }
 
-    findLowestEmpty(cart: Creep, pullTarget?: StructureTower): StructureTower {
+    findLowestEmpty(cart: Agent, pullTarget?: StructureTower): StructureTower {
         if (!this.empties) {
             this.empties = _(this.towers)
                 .filter((s: StructureTower) => s.energy < s.energyCapacity)
@@ -154,9 +152,9 @@ export class DefenseMission extends Mission {
         return this.empties[0];
     }
 
-    private defenderActions(defender: Creep, order: number) {
+    private defenderActions(defender: Agent, order: number) {
         if (this.enemySquads.length === 0) {
-            this.idleNear(defender, this.flag);
+            defender.idleOffRoad();
             defender.say("none :(");
             return; // early
         }
@@ -171,7 +169,7 @@ export class DefenseMission extends Mission {
                 }
             }
             else {
-                let outcome = defender.blindMoveTo(closest);
+                let outcome = defender.travelTo(closest);
             }
         }
         else {
@@ -189,7 +187,7 @@ export class DefenseMission extends Mission {
                     closestRampart = currentRampart;
                 }
                 _.pull(this.jonRamparts, closestRampart);
-                defender.blindMoveTo(closestRampart, { costCallback: this.preferRamparts });
+                defender.travelTo(closestRampart, { roomCallback: this.preferRamparts });
             }
             else {
                 defender.idleOffRoad(this.flag);
@@ -233,7 +231,7 @@ export class DefenseMission extends Mission {
 
             // healing as needed
             if (this.healedDefender) {
-                tower.heal(this.healedDefender);
+                tower.heal(this.healedDefender.creep);
             }
 
             // the rest attack

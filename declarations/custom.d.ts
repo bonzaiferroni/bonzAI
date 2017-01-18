@@ -72,30 +72,7 @@ interface RoomObject {
 }
 
 interface Creep {
-    recycleSelf(container: StructureContainer);
-    seekBoost(boosts: string[], allowUnboosted?: boolean): boolean;
-    fleeHostiles(pathFinding?: boolean): boolean;
-    fleeByPath(roomObject: RoomObject): number;
-    blindMoveTo(target: RoomPosition, ops?: any, dareDevil?: boolean): number;
-    blindMoveTo(target: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
-    moveItOrLoseIt(position: RoomPosition, name?: string): number;
-    idleOffRoad(defaultPoint: {pos: RoomPosition}, maintainDistance?: boolean): number;
-    yieldRoad(target: RoomObject, allowSwamps?: boolean): number;
-    _withdraw(target: Structure, resourceType: string, amount?: number): number;
-    withdraw(target: Structure | Creep, resourceType: string, amount?: number): number;
-    withdrawIfFull(target: Creep | Structure, resourceType: string): number;
-    transferEverything(target: { store: StoreDefinition, pos: RoomPosition }): number;
-    withdrawEverything(target: { store: StoreDefinition, pos: RoomPosition }): number;
-    rememberBattery(): Creep | StructureContainer;
-    rememberCreep(findCreep: () => Creep, forget: (creep: Creep) => boolean): Creep;
-    rememberStructure<T>(findStructure: () => Structure, forget: (structure: Structure) => boolean,
-                         propertyName?: string, immediate?: boolean): T;
-    isNearExit(range: number): boolean;
-    travelByWaypoint(flag: Flag[]): number;
-    avoidSK(destination: {pos: RoomPosition}, opts?: any): number;
     partCount(partType: string): number;
-    store: StoreDefinition;
-    storeCapacity: number;
 }
 
 interface CreepMemory {

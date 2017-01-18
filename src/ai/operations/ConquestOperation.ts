@@ -1,5 +1,4 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
 import {RefillMission} from "../missions/RefillMission";
 import {DefenseMission} from "../missions/DefenseMission";
 import {MiningMission} from "../missions/MiningMission";
@@ -8,10 +7,10 @@ import {UpgradeMission} from "../missions/UpgradeMission";
 import {OperationPriority} from "../../config/constants";
 import {ScoutMission} from "../missions/ScoutMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
-import {TransportMission} from "../missions/TransportMission";
 import {ClaimMission} from "../missions/ClaimMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {empire} from "../../helpers/loopHelper";
+import {TransportMission} from "../missions/TransportMission";
 
 
 const CONQUEST_MASON_POTENCY = 4;

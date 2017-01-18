@@ -1,5 +1,6 @@
 import {Operation} from "./ai/operations/Operation";
 import {Empire} from "./ai/Empire";
+import {Agent} from "./ai/missions/Agent";
 
 export interface bonzAI {
     cache: {
@@ -77,7 +78,7 @@ export interface BoostRequests {
 }
 
 export interface RaidData {
-    raidCreeps: Creep[];
+    raidAgents: Agent[];
     injuredCreeps: {[creepName: string]: number};
     breachFlags: Flag[];
     breachStructures: Structure[];
@@ -85,7 +86,7 @@ export interface RaidData {
     fallbackFlag: Flag;
     targetStructures: Structure[];
     fallback: boolean;
-    obstacles: RoomObject[];
+    obstacles: {pos: RoomPosition}[];
 }
 
 export interface RaidCache {

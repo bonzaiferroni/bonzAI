@@ -5,6 +5,7 @@ import {Empire} from "../Empire";
 import {SeedAnalysis} from "../SeedAnalysis";
 import {OperationPriority} from "../../config/constants";
 import {ScoutMission} from "../missions/ScoutMission";
+import {empire} from "../../helpers/loopHelper";
 const MAX_SOURCE_DISTANCE = 100;
 const PATHFINDER_RANGE_ALLOWANCE = 20;
 
@@ -111,7 +112,7 @@ export class AutoOperation extends Operation {
                     if (Game.time % 10 === 0) {
                         console.log(`${this.name} walkabout creep is visiting ${roomName}`);
                     }
-                    walkaboutCreep.avoidSK({pos: new RoomPosition(25, 25, roomName)});
+                    empire.traveler.travelTo(walkaboutCreep, {pos: new RoomPosition(25, 25, roomName)})
                 }
                 else {
                     this.spawnGroup.spawn([MOVE], this.name + "_walkabout", undefined, undefined);

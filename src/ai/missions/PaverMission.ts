@@ -1,7 +1,8 @@
 import {Mission} from "./Mission";
+import {Agent} from "./Agent";
 export class PaverMission extends Mission {
 
-    pavers: Creep[];
+    pavers: Agent[];
     potency: number;
 
     constructor(operation) {
@@ -24,11 +25,7 @@ export class PaverMission extends Mission {
 
     roleCall() {
 
-        let needPaver = this.room && this.room.findStructures(STRUCTURE_ROAD).length > 0;
-        let max = 0;
-        if (needPaver) {
-            max = 1;
-        }
+        let max = () => this.room && this.room.findStructures(STRUCTURE_ROAD).length > 0 ? 1 : 0;
         let body = () => {
             if (this.spawnGroup.maxSpawnEnergy <= 550) {
                 return this.bodyRatio(1, 3, 1, 1);
@@ -37,7 +34,7 @@ export class PaverMission extends Mission {
                 return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);
             }
         };
-        this.pavers = this.headCount(this.name, body, max, {prespawn: 10} );
+        this.pavers = this.headCount2(this.name, body, max, {prespawn: 10} );
     }
 
     missionActions() {
@@ -52,22 +49,22 @@ export class PaverMission extends Mission {
         if (Math.random() < .01) this.memory.potency = undefined;
     }
 
-    private deprecatedPaverActions(paver: Creep) {
+    private deprecatedPaverActions(paver: Agent) {
 
         let fleeing = paver.fleeHostiles();
         if (fleeing) return; // early
 
         let withinRoom = paver.pos.roomName === this.flag.pos.roomName;
         if (!withinRoom) {
-            paver.blindMoveTo(this.flag);
+            paver.travelTo(this.flag);
             return;
         }
 
         // I'm in the missionRoom
         paver.memory.scavanger = RESOURCE_ENERGY;
-        let hasLoad = this.hasLoad(paver);
+        let hasLoad = paver.hasLoad();
         if (!hasLoad) {
-            this.procureEnergy(paver);
+            paver.procureEnergy();
             return;
         }
 
@@ -76,7 +73,7 @@ export class PaverMission extends Mission {
             (s: Structure) => s.hits < s.hitsMax - 1000)[0] as Structure;
         };
         let forget = (s: Structure) => s.hits === s.hitsMax;
-        let target = paver.rememberStructure<StructureRoad>(findRoad, forget);
+        let target = paver.rememberStructure(findRoad, forget);
         if (!target) {
             let repairing = false;
             if (this.room.controller && this.room.controller.my) {
@@ -93,7 +90,7 @@ export class PaverMission extends Mission {
         // and I have a target
         let range = paver.pos.getRangeTo(target);
         if (range > 3) {
-            paver.blindMoveTo(target, {maxRooms: 1});
+            paver.travelTo(target);
             // repair any damaged road i'm standing on
             let road = paver.pos.lookForStructure(STRUCTURE_ROAD);
             if (road && road.hits < road.hitsMax - 100) {
@@ -107,8 +104,8 @@ export class PaverMission extends Mission {
         paver.yieldRoad(target);
     }
 
-    private repairContainers(paver: Creep): boolean {
-        let disrepairedContainer = paver.rememberStructure<StructureContainer>(() => {
+    private repairContainers(paver: Agent): boolean {
+        let disrepairedContainer = paver.rememberStructure(() => {
             return _(this.room.findStructures(STRUCTURE_CONTAINER))
                 .filter((c: StructureContainer) => {return c.hits < c.hitsMax * .5
                     && !c.pos.isNearTo(c.room.find<Mineral>(FIND_MINERALS)[0])})
@@ -123,7 +120,7 @@ export class PaverMission extends Mission {
                 paver.yieldRoad(disrepairedContainer);
             }
             else {
-                paver.blindMoveTo(disrepairedContainer);
+                paver.travelTo(disrepairedContainer);
             }
             return true;
         }

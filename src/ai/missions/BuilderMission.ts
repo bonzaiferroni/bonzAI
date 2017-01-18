@@ -4,10 +4,11 @@ import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {PRIORITY_BUILD} from "../../config/constants";
 import {DefenseGuru} from "../operations/DefenseGuru";
+import {Agent} from "./Agent";
 export class BuilderMission extends Mission {
 
-    builders: Creep[];
-    supplyCarts: Creep[];
+    builders: Agent[];
+    supplyCarts: Agent[];
     sites: ConstructionSite[];
     prioritySites: ConstructionSite[];
     walls: StructureRampart[];
@@ -24,10 +25,12 @@ export class BuilderMission extends Mission {
         manualTargetHits: number
         prespawn: number
     };
+    private _analysis: TransportAnalysis;
 
     /**
      * Spawns a creep to build construction and repair walls. Construction will take priority over walls
      * @param operation
+     * @param defenseGuru
      * @param activateBoost
      */
 
@@ -58,42 +61,42 @@ export class BuilderMission extends Mission {
         if (!this.memory.maxHitsToBuild) this.memory.maxHitsToBuild = 2000;
     }
 
+    maxBuilders = () => {
+        if (this.sites.length === 0 || this.defenseGuru.hostiles.length === 0) {
+            return 0;
+        }
+
+        let potency = this.findBuilderPotency();
+        let builderCost = potency * 100 + Math.ceil(potency / 2) * 50 + 150 * potency;
+        return Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy);
+    };
+
+    maxCarts = () => {
+        if (this.sites.length === 0 || this.defenseGuru.hostiles.length === 0) {
+            return 0;
+        }
+        return this.analysis.cartsNeeded;
+    };
+
+    builderBody = () => {
+        let potency = this.findBuilderPotency();
+        if (this.spawnGroup.maxSpawnEnergy < 550) {
+            return this.bodyRatio(1, 3, .5, 1, potency)
+        }
+
+        let potencyCost = potency * 100 + Math.ceil(potency / 2) * 50;
+        let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
+        let cartCarryCount = this.analysis.carryCount;
+        let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
+        if (this.spawnGroup.room === this.room) {
+            return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
+        }
+        else {
+            return this.workerBody(potency, carryCount, potency);
+        }
+    };
+
     roleCall() {
-
-        let maxBuilders = 0;
-        let potency = 0;
-        if (this.sites.length > 0 && this.defenseGuru.hostiles.length === 0) {
-            potency = this.findBuilderPotency();
-            if (this.room.storage && this.room.storage.store.energy < 50000) {
-                potency = 1;
-            }
-            let builderCost = potency * 100 + Math.ceil(potency / 2) * 50 + 150 * potency;
-            maxBuilders = Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy);
-        }
-
-        let distance = 20;
-        if (this.room.storage) {
-            distance = 10;
-        }
-
-        let analysis = this.cacheTransportAnalysis(distance, potency * 5);
-
-        let builderBody = () => {
-            if (this.spawnGroup.maxSpawnEnergy < 550) {
-                return this.bodyRatio(1, 3, .5, 1, potency)
-            }
-
-            let potencyCost = potency * 100 + Math.ceil(potency / 2) * 50;
-            let energyForCarry = this.spawnGroup.maxSpawnEnergy - potencyCost;
-            let cartCarryCount = analysis.carryCount;
-            let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
-            if (this.spawnGroup.room === this.room) {
-                return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
-            }
-            else {
-                return this.workerBody(potency, carryCount, potency);
-            }
-        };
 
         let builderMemory;
         if (this.activateBoost) {
@@ -107,15 +110,15 @@ export class BuilderMission extends Mission {
             builderMemory = { scavanger: RESOURCE_ENERGY };
         }
 
-        this.builders = this.headCount(this.name, builderBody, maxBuilders,
+        this.builders = this.headCount2(this.name, this.builderBody, this.maxBuilders,
             {prespawn: this.memory.prespawn, memory: builderMemory });
         this.builders = _.sortBy(this.builders, (c: Creep) => c.carry.energy);
 
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
-        this.supplyCarts = this.headCount(this.name + "Cart",
-            () => this.workerBody(0, analysis.carryCount, analysis.moveCount), analysis.cartsNeeded,
+        this.supplyCarts = this.headCount2(this.name + "Cart",
+            () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount), this.maxCarts,
             {prespawn: this.memory.prespawn, memory: cartMemory });
     }
 
@@ -137,16 +140,13 @@ export class BuilderMission extends Mission {
         if (Math.random() < 0.01) this.memory.maxHitsToBuild = undefined;
     }
 
-    private builderActions(builder: Creep) {
+    private builderActions(builder: Agent) {
 
-        if (!builder.memory.setPrespawn) {
-            builder.memory.setPrespawn = true;
-            this.setPrespawn(builder);
-        }
+        this.registerPrespawn(builder);
 
-        let hasLoad = _.filter(this.supplyCarts, (c: Creep) => !c.spawning).length > 0 || this.hasLoad(builder);
+        let hasLoad = builder.hasLoad() || this.supplyCarts.length > 0;
         if (!hasLoad) {
-            this.procureEnergy(builder);
+            builder.procureEnergy();
             return;
         }
 
@@ -158,7 +158,7 @@ export class BuilderMission extends Mission {
                     builder.repair(rampart);
                 }
                 else {
-                    builder.blindMoveTo(rampart);
+                    builder.travelTo(rampart);
                 }
                 return;
             }
@@ -191,16 +191,17 @@ export class BuilderMission extends Mission {
                 this.memory.rampartPos = closest.pos;
             }
 
+            // standing on top of target
             if (range === 0) {
-                builder.blindMoveTo(this.flag);
+                builder.travelTo(this.flag);
             }
         }
         else {
-            builder.blindMoveTo(closest, {maxRooms: 1});
+            builder.travelTo(closest);
         }
     }
 
-    private buildWalls(builder: Creep) {
+    private buildWalls(builder: Agent) {
         let target = this.findMasonTarget(builder);
         if (!target) {
             if (builder.room.controller && builder.room.controller.level < 8) {
@@ -219,11 +220,11 @@ export class BuilderMission extends Mission {
             }
         }
         else {
-            builder.blindMoveTo(target);
+            builder.travelTo(target);
         }
     }
 
-    private findMasonTarget(builder: Creep): Structure {
+    private findMasonTarget(builder: Agent): Structure {
         let manualTarget = this.findManualTarget();
         if (manualTarget) return manualTarget;
 
@@ -298,62 +299,74 @@ export class BuilderMission extends Mission {
         }
     }
 
-    private upgradeController(builder: Creep) {
+    private upgradeController(builder: Agent) {
         if (builder.pos.inRangeTo(builder.room.controller, 3)) {
             builder.upgradeController(builder.room.controller);
             builder.yieldRoad(builder.room.controller);
         }
         else {
-            builder.blindMoveTo(builder.room.controller);
+            builder.travelTo(builder.room.controller);
         }
     }
 
     private findBuilderPotency() {
-        let potency = 1;
         if (this.room.storage) {
-            potency = Math.min(Math.floor(this.room.storage.store.energy / 7500), 10)
+            if (this.room.storage.store.energy < 50000) {
+                return 1;
+            } else {
+                return Math.min(Math.floor(this.room.storage.store.energy / 7500), 10);
+            }
+        } else {
+           return this.room.find(FIND_SOURCES).length * 2
         }
-        else {
-            potency = this.room.find(FIND_SOURCES).length * 2
-        }
-
-        return potency;
     }
 
-    private builderCartActions(cart: Creep) {
+    private builderCartActions(cart: Agent) {
 
-        let suppliedCreep = _.head(this.builders);
-        if (!suppliedCreep) {
+        let suppliedAgent = _.head(this.builders);
+        if (!suppliedAgent) {
             cart.idleOffRoad(this.flag);
             return;
         }
 
-        let hasLoad = this.hasLoad(cart);
+        let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            this.procureEnergy(cart, suppliedCreep);
+            cart.procureEnergy(suppliedAgent);
             return;
         }
 
-        let rangeToBuilder = cart.pos.getRangeTo(suppliedCreep);
+        let rangeToBuilder = cart.pos.getRangeTo(suppliedAgent);
         if (rangeToBuilder > 3) {
-            cart.blindMoveTo(suppliedCreep);
+            cart.travelTo(suppliedAgent);
             return;
         }
 
-        let overCapacity = cart.carry.energy > suppliedCreep.carryCapacity - suppliedCreep.carry.energy
-        if (suppliedCreep.carry.energy > suppliedCreep.carryCapacity * .5 && overCapacity) {
-            cart.yieldRoad(suppliedCreep);
+        let overCapacity = cart.carry.energy > suppliedAgent.carryCapacity - suppliedAgent.carry.energy;
+        if (suppliedAgent.carry.energy > suppliedAgent.carryCapacity * .5 && overCapacity) {
+            cart.yieldRoad(suppliedAgent);
             return;
         }
 
         if (rangeToBuilder > 1) {
-            cart.blindMoveTo(suppliedCreep);
+            cart.travelTo(suppliedAgent);
             return;
         }
 
-        cart.transfer(suppliedCreep, RESOURCE_ENERGY);
+        cart.transfer(suppliedAgent.creep, RESOURCE_ENERGY);
         if (!overCapacity && this.room.storage) {
-            cart.blindMoveTo(this.room.storage)
+            cart.travelTo(this.room.storage)
         }
+    }
+
+    get analysis(): TransportAnalysis {
+        if (!this._analysis) {
+            let potency = this.findBuilderPotency();
+            let distance = 20;
+            if (this.room.storage) {
+                distance = 10;
+            }
+            this._analysis = this.cacheTransportAnalysis(distance, potency * 5);
+        }
+        return this._analysis;
     }
 }

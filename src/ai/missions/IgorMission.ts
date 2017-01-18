@@ -4,9 +4,10 @@ import {IGOR_CAPACITY,PRODUCTION_AMOUNT, REAGENT_LIST} from "../../config/consta
 import {IgorCommand, LabProcess, Shortage, BoostRequests} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {POWER_PROCESS_THRESHOLD, RESERVE_AMOUNT, PRODUCT_LIST, MINERALS_RAW} from "../TradeNetwork";
+import {Agent} from "./Agent";
 export class IgorMission extends Mission {
 
-    igors: Creep[];
+    igors: Agent[];
     labs: StructureLab[];
     reagentLabs: StructureLab[];
     productLabs: StructureLab[];
@@ -50,7 +51,7 @@ export class IgorMission extends Mission {
     }
 
     roleCall() {
-        this.igors = this.headCount("igor", () => this.workerBody(0, 20, 10), 1, {
+        this.igors = this.headCount2("igor", () => this.workerBody(0, 20, 10), () => 1, {
             prespawn: 50,
             memory: { idlePosition: this.memory.idlePosition }
         });
@@ -97,10 +98,10 @@ export class IgorMission extends Mission {
         }
     }
 
-    private igorActions(igor: Creep, order: number) {
+    private igorActions(igor: Agent, order: number) {
 
         if (order > 0) {
-            igor.blindMoveTo(this.flag);
+            igor.idleOffRoad();
             return;
         }
 
@@ -112,7 +113,7 @@ export class IgorMission extends Mission {
                     igor.transferEverything(this.terminal);
                 }
                 else {
-                    igor.blindMoveTo(this.terminal);
+                    igor.travelTo(this.terminal);
                 }
                 return;
             }
@@ -132,11 +133,11 @@ export class IgorMission extends Mission {
                 igor.withdraw(origin, command.resourceType, command.amount);
                 let destination = Game.getObjectById<Structure>(command.destination);
                 if (!igor.pos.isNearTo(destination)) {
-                    igor.blindMoveTo(destination);
+                    igor.travelTo(destination);
                 }
             }
             else {
-                igor.blindMoveTo(origin);
+                igor.travelTo(origin);
             }
             return; // early
         }
@@ -149,7 +150,7 @@ export class IgorMission extends Mission {
             this.memory.command = undefined;
         }
         else {
-            igor.blindMoveTo(destination);
+            igor.travelTo(destination);
         }
     }
 
@@ -217,7 +218,7 @@ export class IgorMission extends Mission {
     }
 
 
-    private accessCommand(igor: Creep): IgorCommand {
+    private accessCommand(igor: Agent): IgorCommand {
         if (!this.memory.command && igor.ticksToLive < 40) {
             igor.suicide();
             return;

@@ -3,12 +3,13 @@ import {Operation} from "../operations/Operation";
 import {Mission} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
+import {Agent} from "./Agent";
 export class GeologyMission extends Mission {
 
-    geologists: Creep[];
-    carts: Creep[];
-    repairers: Creep[];
-    paver: Creep;
+    geologists: Agent[];
+    carts: Agent[];
+    repairers: Agent[];
+    paver: Agent;
     mineral: Mineral;
     store: StructureStorage | StructureTerminal;
     analysis: TransportAnalysis;
@@ -66,29 +67,42 @@ export class GeologyMission extends Mission {
         this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
     }
 
-    roleCall() {
-        let maxGeologists = 0;
-        if (this.hasVision && this.container && this.mineral.mineralAmount > 0 && this.memory.builtExtractor) {
-            maxGeologists = 1;
+    private geoBody = () => {
+        if (this.room.controller && this.room.controller.my) {
+            return this.memory.bestBody;
+        } else {
+            return this.workerBody(33, 0, 17);
         }
+    };
 
-        let geoBody = () => {
-            if (this.room.controller && this.room.controller.my) {
-                return this.memory.bestBody;
-            }
-            else {
-                return this.workerBody(33, 0, 17);
-            }
-        };
-        this.geologists = this.headCount("geologist", geoBody, maxGeologists, this.distanceToSpawn);
+    private getMaxGeo = () => {
+        if (this.hasVision && this.container && this.mineral.mineralAmount > 0 && this.memory.builtExtractor) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    };
 
-        let maxCarts = maxGeologists > 0 ? this.analysis.cartsNeeded : 0;
-        this.carts = this.headCount("geologyCart",
+    private getMaxCarts = () => this.getMaxGeo() > 0 && this.analysis.cartsNeeded ? 1 : 0;
+    private getMaxRepairers = () => {
+        if (this.mineral.mineralAmount > 5000 && this.container && this.container.hits < 50000) {
+            return 1;
+        } else {
+            return 0;
+        }
+    };
+
+    public roleCall() {
+
+        this.geologists = this.headCount2("geologist", this.geoBody, this.getMaxGeo, this.distanceToSpawn);
+
+        this.carts = this.headCount2("geologyCart",
             () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount),
-            maxCarts, {prespawn: this.distanceToSpawn});
+            this.getMaxCarts, {prespawn: this.distanceToSpawn});
 
-        let maxRepairers = this.mineral.mineralAmount > 5000 && this.container && this.container.hits < 50000 ? 1 : 0;
-        this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), maxRepairers);
+        let maxRepairers =
+        this.repairers = this.headCount2("repairer", () => this.workerBody(5, 15, 10), this.getMaxRepairers);
 
         if (this.memory.roadRepairIds) {
             this.paver = this.spawnPaver();
@@ -162,14 +176,14 @@ export class GeologyMission extends Mission {
         return this.workerBody(bestWorkPartsCount, 0, bestMovePartsCount);
     }
 
-    private geologistActions(geologist: Creep) {
+    private geologistActions(geologist: Agent) {
 
         let fleeing = geologist.fleeHostiles();
         if (fleeing) return; // early
 
         if (!this.container) {
             if (!geologist.pos.isNearTo(this.flag)) {
-                geologist.blindMoveTo(this.flag);
+                geologist.travelTo(this.flag);
             }
             return; // early
         }
@@ -194,7 +208,7 @@ export class GeologyMission extends Mission {
 
     }
 
-    private cleanupCartActions(cart: Creep) {
+    private cleanupCartActions(cart: Agent) {
 
         let fleeing = cart.fleeHostiles();
         if (fleeing) return; // early
@@ -204,7 +218,7 @@ export class GeologyMission extends Mission {
                 cart.transferEverything(this.store);
             }
             else {
-                cart.blindMoveTo(this.store);
+                cart.travelTo(this.store);
             }
             return; // early;
         }
@@ -219,7 +233,7 @@ export class GeologyMission extends Mission {
                 }
             }
             else {
-                cart.blindMoveTo(this.container);
+                cart.travelTo(this.container);
             }
         }
         else {
@@ -228,21 +242,21 @@ export class GeologyMission extends Mission {
                     cart.transferEverything(this.store);
                 }
                 else {
-                    cart.blindMoveTo(this.store);
+                    cart.travelTo(this.store);
                 }
                 return; // early;
             }
 
             let spawn = this.spawnGroup.spawns[0];
             if (cart.pos.isNearTo(spawn)) {
-                spawn.recycleCreep(cart);
+                spawn.recycleCreep(cart.creep);
                 let witness = this.room.find<Creep>(FIND_MY_CREEPS)[0];
                 if (witness) {
                     witness.say("valhalla!");
                 }
             }
             else {
-                cart.blindMoveTo(spawn);
+                cart.travelTo(spawn);
             }
             return; // early
         }
@@ -259,23 +273,23 @@ export class GeologyMission extends Mission {
         }
     }
 
-    private cartActions(cart: Creep) {
+    private cartActions(cart: Agent) {
 
         let fleeing = cart.fleeHostiles();
         if (fleeing) return; // early
 
-        let hasLoad = this.hasLoad(cart);
+        let hasLoad = cart.hasLoad();
         if (!hasLoad) {
             if (!this.container) {
                 if (!cart.pos.isNearTo(this.flag)) {
-                    cart.blindMoveTo(this.flag);
+                    cart.travelTo(this.flag);
                 }
                 return;
             }
 
             if (_.sum(this.container.store) < cart.carryCapacity &&
                 this.container.pos.lookFor(LOOK_CREEPS).length === 0) {
-                this.idleNear(cart, this.container, 3);
+                cart.idleNear(this.container, 3);
                 return;
             }
 
@@ -285,13 +299,13 @@ export class GeologyMission extends Mission {
                 }
                 else {
                     let outcome = cart.withdrawIfFull(this.container, this.mineral.mineralType);
-                    if (outcome === OK && this.container.store[this.mineral.mineralType] >= cart.storeCapacity) {
-                        cart.blindMoveTo(this.store);
+                    if (outcome === OK && this.container.store[this.mineral.mineralType] >= cart.carryCapacity) {
+                        cart.travelTo(this.store);
                     }
                 }
             }
             else {
-                cart.blindMoveTo(this.container);
+                cart.travelTo(this.container);
             }
             return; // early
         }
@@ -302,27 +316,27 @@ export class GeologyMission extends Mission {
                 cart.suicide();
             }
             else if (outcome === OK) {
-                cart.blindMoveTo(this.container);
+                cart.travelTo(this.container);
             }
 
         }
         else {
-            cart.blindMoveTo(this.store);
+            cart.travelTo(this.store);
         }
     }
 
-    private repairActions(repairer: Creep) {
+    private repairActions(repairer: Agent) {
         let fleeing = repairer.fleeHostiles();
         if (fleeing) return;
 
-        if (repairer.room.name !== this.flag.pos.roomName) {
-            this.idleNear(repairer, this.flag);
+        if (repairer.room.name !== this.flag.pos.roomName || repairer.pos.isNearExit(0)) {
+            repairer.travelTo(this.flag);
             return;
         }
 
-        let hasLoad = this.hasLoad(repairer);
+        let hasLoad = repairer.hasLoad();
         if (!hasLoad) {
-            this.procureEnergy(repairer);
+            repairer.procureEnergy(this.container);
             return;
         }
 
@@ -336,7 +350,7 @@ export class GeologyMission extends Mission {
             repairer.yieldRoad(this.container);
         }
         else {
-            repairer.blindMoveTo(this.container);
+            repairer.travelTo(this.container);
         }
     }
 

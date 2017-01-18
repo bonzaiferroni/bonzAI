@@ -48,13 +48,6 @@ export var sandBox = {
                     continue;
                 }
 
-                if (creepName === "blindMoveTo") {
-                    if (!creep.pos.inRangeTo(testFlag, 1)) {
-                        profiler.start("blindMoveTo");
-                        creep.blindMoveTo(testFlag);
-                        profiler.end("blindMoveTo");
-                    }
-                }
                 if (creepName === "travelTo") {
                     if (!creep.pos.inRangeTo(testFlag, 0)) {
                         let returnData: {nextPos?: RoomPosition} = {};

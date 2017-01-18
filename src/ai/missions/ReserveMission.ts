@@ -4,10 +4,11 @@ import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {empire} from "../../helpers/loopHelper";
 import {ARTROOMS} from "../WorldMap";
+import {Agent} from "./Agent";
 export class ReserveMission extends Mission {
 
-    reservers: Creep[];
-    bulldozers: Creep[];
+    reservers: Agent[];
+    bulldozers: Agent[];
     controller: StructureController;
 
     memory: {
@@ -29,16 +30,16 @@ export class ReserveMission extends Mission {
     }
 
     roleCall() {
-        let needReserver = !this.controller.my && (!this.controller.reservation ||
-            this.controller.reservation.ticksToEnd < 3000);
-        let maxReservers = needReserver ? 1 : 0;
+        let needReserver = () => !this.controller.my && (!this.controller.reservation ||
+            this.controller.reservation.ticksToEnd < 3000) ? 1 : 0;
         let potency = this.spawnGroup.room.controller.level === 8 ? 5 : 2;
         let reserverBody = () => this.configBody({
             claim: potency,
             move: potency
         });
-        this.reservers = this.headCount("claimer", reserverBody, maxReservers);
-        this.bulldozers = this.headCount("dozer", () => this.bodyRatio(4, 0, 1, 1), this.memory.needBulldozer ? 1 : 0);
+        this.reservers = this.headCount2("claimer", reserverBody, needReserver);
+        this.bulldozers = this.headCount2("dozer", () => this.bodyRatio(4, 0, 1, 1),
+            () => this.memory.needBulldozer ? 1 : 0);
     }
 
     missionActions() {
@@ -57,9 +58,9 @@ export class ReserveMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private reserverActions(reserver: Creep) {
+    private reserverActions(reserver: Agent) {
         if (!this.controller) {
-            reserver.blindMoveTo(this.flag);
+            reserver.travelTo(this.flag);
             return; // early
         }
 
@@ -70,11 +71,11 @@ export class ReserveMission extends Mission {
             }
         }
         else {
-            reserver.blindMoveTo(this.controller);
+            reserver.travelTo(this.controller);
         }
     }
 
-    private destroyWalls(surveyor: Creep, room: Room): boolean {
+    private destroyWalls(surveyor: Agent, room: Room): boolean {
         if (!room.controller) return true;
 
         if (room.controller.my) {
@@ -119,7 +120,7 @@ export class ReserveMission extends Mission {
         }
     }
 
-    private bulldozerActions(dozer: Creep) {
+    private bulldozerActions(dozer: Agent) {
 
         if (dozer.pos.isNearTo(this.room.controller)) {
             this.memory.needBulldozer = false;
@@ -129,7 +130,7 @@ export class ReserveMission extends Mission {
         else {
             if (dozer.room === this.room) {
                 let returnData: {nextPos?: RoomPosition} = {};
-                empire.traveler.travelTo(dozer, this.room.controller, {
+                dozer.travelTo(this.room.controller, {
                     ignoreStructures: true,
                     ignoreStuck: true,
                     returnData: returnData,
@@ -143,7 +144,7 @@ export class ReserveMission extends Mission {
                 }
             }
             else {
-                empire.traveler.travelTo(dozer, this.room.controller);
+                dozer.travelTo(this.room.controller);
             }
         }
     }

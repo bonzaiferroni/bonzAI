@@ -3,10 +3,11 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
 import {empire} from "../../helpers/loopHelper";
+import {Agent} from "./Agent";
 
 export class SurveyMission extends Mission {
 
-    surveyors: Creep[];
+    surveyors: Agent[];
     needsVision: string;
     chosenRoom: {roomName: string, orderDemolition: boolean};
     memory: {
@@ -23,13 +24,18 @@ export class SurveyMission extends Mission {
         this.needsVision = analyzer.run();
     }
 
-    roleCall() {
-        let maxSurveyors = 0;
+    maxSurveyors = () => {
         if (this.needsVision && !this.room.findStructures(STRUCTURE_OBSERVER)[0] || this.chosenRoom) {
-            maxSurveyors = 1;
+            return 1;
+        } else {
+            return 0;
         }
+    };
 
-        this.surveyors = this.headCount("surveyor", () => this.workerBody(0, 0, 1), maxSurveyors);
+    roleCall() {
+
+
+        this.surveyors = this.headCount2("surveyor", () => this.workerBody(0, 0, 1), this.maxSurveyors);
     }
 
     missionActions() {
@@ -53,9 +59,9 @@ export class SurveyMission extends Mission {
     invalidateMissionCache() {
     }
 
-    explorerActions(explorer: Creep) {
+    explorerActions(explorer: Agent) {
         if (this.needsVision) {
-            empire.traveler.travelTo(explorer, {pos: helper.pathablePosition(this.needsVision)});
+            explorer.travelTo({pos: helper.pathablePosition(this.needsVision)});
         }
     }
 }

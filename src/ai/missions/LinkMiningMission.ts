@@ -1,8 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class LinkMiningMission extends Mission {
 
-    linkMiners: Creep[];
+    linkMiners: Agent[];
     source: Source;
     link: StructureLink;
 
@@ -24,7 +25,7 @@ export class LinkMiningMission extends Mission {
     }
 
     roleCall() {
-        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), 1);
+        this.linkMiners = this.headCount2(this.name, () => this.workerBody(5, 4, 5), () => 1);
     }
 
     missionActions() {
@@ -38,7 +39,7 @@ export class LinkMiningMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private minerActions(miner: Creep) {
+    private minerActions(miner: Agent) {
         if (!miner.memory.inPosition) {
             this.moveToPosition(miner);
             return; // early
@@ -56,7 +57,7 @@ export class LinkMiningMission extends Mission {
      * Picks a position between the source and the link and moves there, robbing and killing any miner at that position
      * @param miner
      */
-    private moveToPosition(miner: Creep) {
+    private moveToPosition(miner: Agent) {
         for (let i = 1; i <= 8; i++) {
             let position = this.source.pos.getPositionAtDirection(i);
             if (!position.isPassible(true)) continue;

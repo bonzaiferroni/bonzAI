@@ -1,8 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class ClaimMission extends Mission {
 
-    claimers: Creep[];
+    claimers: Agent[];
     controller: StructureController;
 
     constructor(operation: Operation) {
@@ -16,10 +17,10 @@ export class ClaimMission extends Mission {
         }
     }
 
+    getMax = () => (this.controller && !this.controller.my) || !this.hasVision ? 1 : 0;
+
     roleCall() {
-        let needClaimer = (this.controller && !this.controller.my) || !this.hasVision;
-        let maxClaimers = needClaimer ? 1 : 0;
-        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], maxClaimers, { blindSpawn: true });
+        this.claimers = this.headCount2("claimer", () => [CLAIM, MOVE], this.getMax, { blindSpawn: true });
     }
 
     missionActions() {
@@ -35,10 +36,10 @@ export class ClaimMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private claimerActions(claimer: Creep) {
+    private claimerActions(claimer: Agent) {
 
         if (!this.controller) {
-            this.idleNear(claimer, this.flag);
+            claimer.idleOffRoad();
             return; // early
         }
 
@@ -46,7 +47,7 @@ export class ClaimMission extends Mission {
             claimer.claimController(this.controller);
         }
         else {
-            claimer.blindMoveTo(this.controller);
+            claimer.travelTo(this.controller);
         }
     }
 }

@@ -19,7 +19,7 @@ export abstract class Mission {
     allowSpawn: boolean;
     hasVision: boolean;
     waypoints: Flag[];
-    partnerPairing: {[role: string]: Creep[]} = {};
+    partnerPairing: {[role: string]: Agent[]} = {};
     distanceToSpawn: number;
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
@@ -93,49 +93,10 @@ export abstract class Mission {
      * General purpose function for spawning creeps
      * @param roleName - Used to find creeps belonging to this role, examples: miner, energyCart
      * @param getBody - function that returns the body to be used if a new creep needs to be spawned
-     * @param max - how many creeps are currently desired, pass 0 to halt spawning
+     * @param getMax - function that returns how many creeps are currently desired, pass 0 to halt spawning
      * @param options - Optional parameters like prespawn interval, whether to disable attack notifications, etc.
-     * @returns {Creep[]}
+     * @returns {Agent[]}
      */
-    protected headCount(roleName: string, getBody: () => string[], max: number, options?: HeadCountOptions): Creep[] {
-        if (!options) { options = {}; }
-        let roleArray = [];
-        if (!this.memory.spawn[roleName]) { this.memory.spawn[roleName] = this.findOrphans(roleName); }
-
-        let count = 0;
-        for (let i = 0; i < this.memory.spawn[roleName].length; i++ ) {
-            let creepName = this.memory.spawn[roleName][i];
-            let creep = Game.creeps[creepName];
-            if (creep) {
-
-                // newer code to implement waypoints/boosts
-                let prepared = this.prepCreep(creep, options);
-                if (prepared) {
-                    roleArray.push(creep);
-                }
-
-                let ticksNeeded = 0;
-                if (options.prespawn !== undefined) {
-                    ticksNeeded += creep.body.length * 3;
-                    ticksNeeded += options.prespawn;
-                }
-                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
-            }
-            else {
-                this.memory.spawn[roleName].splice(i, 1);
-                Memory.creeps[creepName] = undefined;
-                i--;
-            }
-        }
-
-        if (count < max && this.allowSpawn && this.spawnGroup.isAvailable && (this.hasVision || options.blindSpawn)) {
-            let creepName = this.operation.name + "_" + roleName + "_" + Math.floor(Math.random() * 100);
-            let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
-            if (_.isString(outcome)) this.memory.spawn[roleName].push(creepName);
-        }
-
-        return roleArray;
-    }
 
     protected headCount2(roleName: string, getBody: () => string[], getMax: () => number,
                          options: HeadCountOptions = {}): Agent[] {
@@ -175,12 +136,12 @@ export abstract class Mission {
         return agentArray;
     }
 
-    protected spawnSharedCreep(roleName: string, getBody: () => string[]) {
+    protected spawnSharedAgent(roleName: string, getBody: () => string[]): Agent {
         let spawnMemory = this.spawnGroup.spawns[0].memory;
         if (!spawnMemory.communityRoles) spawnMemory.communityRoles = {};
 
         let employerName = this.operation.name + this.name;
-        let creep;
+        let creep: Creep;
         if (spawnMemory.communityRoles[roleName]) {
             let creepName = spawnMemory.communityRoles[roleName];
             creep = Game.creeps[creepName];
@@ -188,7 +149,7 @@ export abstract class Mission {
                 if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed || Game.time - creep.memory.lastTickEmployed > 1)) {
                     creep.memory.employer = employerName;
                     creep.memory.lastTickEmployed = Game.time;
-                    return creep;
+                    return new Agent(creep, this);
                 }
             }
             else {
@@ -314,83 +275,6 @@ export abstract class Mission {
         return Math.max(source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
     }
 
-    /**
-     * General-purpose energy getting, will look for an energy source in the same missionRoom as the operation flag (not creep)
-     * @param creep
-     * @param nextDestination
-     * @param highPriority - allows you to withdraw energy before a battery reaches an optimal amount of energy, jumping
-     * ahead of any other creeps trying to get energy
-     * @param getFromSource
-     */
-
-    protected procureEnergy(creep: Creep, nextDestination?: RoomObject, highPriority = false, getFromSource = false) {
-        let battery = this.getBattery(creep);
-
-        if (battery) {
-            if (creep.pos.isNearTo(battery)) {
-                let outcome;
-                if (highPriority) {
-                    if (battery.store.energy >= 50) {
-                        outcome = creep.withdraw(battery, RESOURCE_ENERGY);
-                    }
-                }
-                else {
-                    outcome = creep.withdrawIfFull(battery, RESOURCE_ENERGY);
-                }
-                if (outcome === OK) {
-                    creep.memory.batteryId = undefined;
-                    if (nextDestination) {
-                        creep.blindMoveTo(nextDestination, {maxRooms: 1});
-                    }
-                }
-            }
-            else {
-                creep.blindMoveTo(battery, {maxRooms: 1});
-            }
-        }
-        else {
-            if (getFromSource) {
-                let closest = creep.pos.findClosestByRange<Source>(this.sources);
-                if (closest) {
-                    if (creep.pos.isNearTo(closest)) {
-                        creep.harvest(closest);
-                    }
-                    else {
-                        creep.blindMoveTo(closest);
-                    }
-                }
-                else if (!creep.pos.isNearTo(this.flag)) {
-                    creep.blindMoveTo(this.flag);
-                }
-            }
-            else {
-                if (creep.memory._move) {
-                    let moveData = creep.memory._move.dest;
-                    let dest = new RoomPosition(moveData.x, moveData.y, moveData.room);
-                    creep.idleOffRoad({pos: dest}, true);
-                }
-                else {
-                    creep.idleOffRoad(this.flag, true);
-                }
-            }
-        }
-    }
-
-    /**
-     * Will return storage if it is available, otherwise will look for an alternative battery and cache it
-     * @param creep - return a battery relative to the missionRoom that the creep is currently in
-     * @returns {any}
-     */
-
-    protected getBattery(creep: Creep): Creep | StructureContainer | StructureTerminal | StructureStorage {
-        let minEnergy = creep.carryCapacity - creep.carry.energy;
-        if (creep.room.storage && creep.room.storage.store.energy > minEnergy) {
-            return creep.room.storage;
-        }
-
-        return creep.rememberBattery();
-    }
-
     protected getFlagSet(identifier: string, max = 10): Flag[] {
 
         let flags = [];
@@ -462,20 +346,6 @@ export abstract class Mission {
         }
     }
 
-    idleNear(creep: Creep, place: {pos: RoomPosition}, desiredRange = 3) {
-        let range = creep.pos.getRangeTo(place);
-
-        if (range < desiredRange) {
-            creep.idleOffRoad(place);
-        }
-        else if (range === desiredRange) {
-            creep.idleOffRoad(place, true);
-        }
-        else {
-            creep.blindMoveTo(place);
-        }
-    }
-
     private findOrphans(roleName: string) {
         let creepNames = [];
         for (let creepName in Game.creeps) {
@@ -486,39 +356,14 @@ export abstract class Mission {
         return creepNames;
     }
 
-    protected recycleCreep(creep: Creep) {
+    protected recycleAgent(agent: Agent) {
         let spawn = this.spawnGroup.spawns[0];
-        if (creep.pos.isNearTo(spawn)) {
-            spawn.recycleCreep(creep);
+        if (agent.pos.isNearTo(spawn)) {
+            spawn.recycleCreep(agent.creep);
         }
         else {
-            creep.blindMoveTo(spawn);
+            agent.travelTo(spawn);
         }
-    }
-
-    private prepCreep(creep: Creep, options: HeadCountOptions) {
-        if (!creep.memory.prep) {
-            if (options.disableNotify) {
-                this.disableNotify(creep);
-            }
-            let boosted = creep.seekBoost(creep.memory.boosts, creep.memory.allowUnboosted);
-            if (!boosted) return false;
-            if (creep.spawning) return false;
-            let outcome = creep.travelByWaypoint(this.waypoints);
-            if (outcome !== DESTINATION_REACHED) return false;
-            if (!options.skipMoveToRoom && (creep.room.name !== this.flag.pos.roomName || creep.isNearExit(1))) {
-                if (creep.room.roomType === ROOMTYPE_SOURCEKEEPER) {
-                    creep.avoidSK(this.flag);
-                }
-                else {
-                    empire.traveler.travelTo(creep, this.flag);
-                }
-                return false;
-            }
-            delete creep.memory._travel;
-            creep.memory.prep = true;
-        }
-        return true;
     }
 
     private prepAgent(agent: Agent, options: HeadCountOptions) {
@@ -538,18 +383,18 @@ export abstract class Mission {
         return true;
     }
 
-    findPartnerships(creeps: Creep[], role: string) {
-        for (let creep of creeps) {
-            if (!creep.memory.partner) {
+    protected findPartnerships(agents: Agent[], role: string) {
+        for (let agent of agents) {
+            if (!agent.memory.partner) {
                 if (!this.partnerPairing[role]) this.partnerPairing[role] = [];
-                this.partnerPairing[role].push(creep);
+                this.partnerPairing[role].push(agent);
                 for (let otherRole in this.partnerPairing) {
                     if (role === otherRole) continue;
                     let otherCreeps = this.partnerPairing[otherRole];
                     let closestCreep;
                     let smallestAgeDifference = Number.MAX_VALUE;
                     for (let otherCreep of otherCreeps) {
-                        let ageDifference = Math.abs(creep.ticksToLive - otherCreep.ticksToLive);
+                        let ageDifference = Math.abs(agent.ticksToLive - otherCreep.ticksToLive);
                         if (ageDifference < smallestAgeDifference) {
                             smallestAgeDifference = ageDifference;
                             closestCreep = otherCreep;
@@ -557,10 +402,18 @@ export abstract class Mission {
                     }
 
                     if (closestCreep) {
-                        closestCreep.memory.partner = creep.name;
-                        creep.memory.partner = closestCreep.name;
+                        closestCreep.memory.partner = agent.name;
+                        agent.memory.partner = closestCreep.name;
                     }
                 }
+            }
+        }
+    }
+
+    protected getPartner(agent: Agent, possibilities: Agent[]): Agent {
+        for (let possibility of possibilities) {
+            if (possibility.name === agent.memory.partner) {
+                return possibility;
             }
         }
     }
@@ -726,11 +579,11 @@ export abstract class Mission {
         }
     }
 
-    protected paverActions(paver: Creep) {
+    protected paverActions(paver: Agent) {
 
-        let hasLoad = this.hasLoad(paver);
+        let hasLoad = paver.hasLoad();
         if (!hasLoad) {
-            this.procureEnergy(paver, this.findRoadToRepair());
+            paver.procureEnergy(this.findRoadToRepair());
             return;
         }
 
@@ -755,7 +608,7 @@ export abstract class Mission {
             }
         }
         else {
-            paver.blindMoveTo(road);
+            paver.travelTo(road);
         }
 
         if (!paving) {
@@ -763,13 +616,7 @@ export abstract class Mission {
             if (road && road.hits < road.hitsMax) paver.repair(road);
         }
 
-        let creepsInRange = _.filter(paver.pos.findInRange(FIND_MY_CREEPS, 1), (c: Creep) => {
-            return c.carry.energy > 0 && c.partCount(WORK) === 0;
-        }) as Creep[];
-
-        if (creepsInRange.length > 0) {
-            creepsInRange[0].transfer(paver, RESOURCE_ENERGY);
-        }
+        paver.stealNearby("creep");
     }
 
     private findRoadToRepair(): StructureRoad {
@@ -790,10 +637,10 @@ export abstract class Mission {
         }
     }
 
-    protected spawnPaver(): Creep {
+    protected spawnPaver(): Agent {
         if (this.room.controller && this.room.controller.level === 1) return;
         let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
-        return this.spawnSharedCreep("paver", paverBody);
+        return this.spawnSharedAgent("paver", paverBody);
     }
 
     protected setPrespawn(creep: Creep) {

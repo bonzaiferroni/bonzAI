@@ -239,7 +239,7 @@ export class MasonMission extends Mission {
             if (myRampart) return myRampart;
         };
         let forgetRampart = (s: Structure) => agent.creep.ticksToLive % 500 === 0;
-        return agent.creep.rememberStructure<StructureRampart>(findRampart, forgetRampart, "rampartId");
+        return agent.rememberStructure(findRampart, forgetRampart, "rampartId") as StructureRampart;
     }
 
     getExtension(agent: Agent, rampart: StructureRampart): StructureExtension | StructureStorage {

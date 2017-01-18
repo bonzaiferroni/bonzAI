@@ -5,7 +5,6 @@ import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {GeologyMission} from "../missions/GeologyMission";
 import {ReserveMission} from "../missions/ReserveMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
-import {SwapMission} from "../missions/SwapMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {OperationPriority} from "../../config/constants";
 import {ROOMTYPE_CORE} from "../WorldMap";
@@ -52,11 +51,6 @@ export class MiningOperation extends Operation {
         }
 
         if (!this.flag.room) return;
-
-        // swap mining
-        if (this.memory.swapMining) {
-            this.addMission(new SwapMission(this));
-        }
 
         // claimers
         if (this.flag.room.controller) {

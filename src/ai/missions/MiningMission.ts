@@ -3,7 +3,6 @@ import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
-import {helper} from "../../helpers/helper";
 import {empire} from "../../helpers/loopHelper";
 
 export class MiningMission extends Mission {
@@ -20,7 +19,7 @@ export class MiningMission extends Mission {
 
     private miners: Agent[];
     private minerCarts: Agent[];
-    private paver: Creep;
+    private paver: Agent;
     private source: Source;
     private container: StructureContainer;
     private storage: StructureStorage;
@@ -64,6 +63,7 @@ export class MiningMission extends Mission {
     };
 
     public getMaxCarts = () => {
+        if (!this.storage) { return 0; }
         const FULL_STORAGE_THRESHOLD = STORAGE_CAPACITY - 50000;
         if (_.sum(this.storage.store) > FULL_STORAGE_THRESHOLD) { return 0; }
         if (!this.container) { return 0; }

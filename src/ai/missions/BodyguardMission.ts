@@ -1,8 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class BodyguardMission extends Mission {
 
-    defenders: Creep[];
+    defenders: Agent[];
     hostiles: Creep[];
 
     memory: {
@@ -32,7 +33,23 @@ export class BodyguardMission extends Mission {
         }
     }
 
-    roleCall() {
+    getBody = () => {
+        let unit = this.configBody({
+            tough: 1,
+            move: 5,
+            attack: 3,
+            heal: 1
+        });
+        let potency = Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
+        return this.configBody({
+            tough: potency,
+            move: potency * 5,
+            attack: potency * 3,
+            heal: potency
+        });
+    };
+
+    maxDefenders = () => {
         let maxDefenders = 0;
         if (this.memory.invaderProbable) {
             maxDefenders = 1;
@@ -45,25 +62,13 @@ export class BodyguardMission extends Mission {
                 maxDefenders = 1;
             }
         }
+        return maxDefenders;
+    };
+
+    roleCall() {
 
 
-        let defenderBody = () => {
-            let unit = this.configBody({
-                tough: 1,
-                move: 5,
-                attack: 3,
-                heal: 1
-            });
-            let potency = Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
-            return this.configBody({
-                tough: potency,
-                move: potency * 5,
-                attack: potency * 3,
-                heal: potency
-            });
-        };
-
-        this.defenders = this.headCount("leeroy", defenderBody, maxDefenders, { prespawn: 50 } );
+        this.defenders = this.headCount2("leeroy", this.getBody, this.maxDefenders, { prespawn: 50 } );
     }
 
     missionActions() {
@@ -79,9 +84,8 @@ export class BodyguardMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private defenderActions(defender: Creep) {
+    private defenderActions(defender: Agent) {
         if (!this.hasVision || this.hostiles.length === 0) {
-            this.idleNear(defender, this.flag);
             if (defender.hits < defender.hitsMax) {
                 defender.heal(defender);
             }
@@ -96,7 +100,7 @@ export class BodyguardMission extends Mission {
         if (closest) {
             let range = defender.pos.getRangeTo(closest);
             if (range > 1) {
-                defender.blindMoveTo(closest, {maxRooms: 1, ignoreRoads: true});
+                defender.travelTo(closest);
             }
             else {
                 attacking = defender.attack(closest) === OK;
@@ -104,7 +108,7 @@ export class BodyguardMission extends Mission {
             }
         }
         else {
-            defender.blindMoveTo(this.hostiles[0]);
+            defender.travelTo(this.hostiles[0]);
         }
 
         if (!attacking && defender.hits < defender.hitsMax) {
@@ -163,20 +167,20 @@ export class BodyguardMission extends Mission {
         }
     }
 
-    private healHurtCreeps(defender: Creep) {
+    private healHurtCreeps(defender: Agent) {
         let hurtCreep = this.findHurtCreep(defender);
         if (!hurtCreep) {
-            this.idleNear(defender, this.flag);
+            defender.idleNear(this.flag, 12);
             return;
         }
 
         // move to creep
         let range = defender.pos.getRangeTo(hurtCreep);
         if (range > 1) {
-            defender.blindMoveTo(hurtCreep, {maxRooms: 1});
+            defender.travelTo(hurtCreep, {movingTarget: true});
         }
         else {
-            defender.yieldRoad(hurtCreep);
+            defender.yieldRoad(hurtCreep, true);
         }
 
         if (range === 1) {
@@ -187,7 +191,7 @@ export class BodyguardMission extends Mission {
         }
     }
 
-    private findHurtCreep(defender: Creep) {
+    private findHurtCreep(defender: Agent) {
         if (!this.room) return;
 
         if (defender.memory.healId) {

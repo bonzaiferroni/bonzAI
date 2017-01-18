@@ -1,9 +1,10 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class DemolishMission extends Mission {
 
-    demolishers: Creep[];
-    scavangers: Creep[];
+    demolishers: Agent[];
+    scavangers: Agent[];
 
     demoFlags: Flag[] = [];
     demoStructures: Structure[] = [];
@@ -42,27 +43,18 @@ export class DemolishMission extends Mission {
         this.storeStructure = this.checkStoreStructure();
     }
 
+    getMaxDemolishers = () => {
+        if (this.demoFlags.length === 0) { return 0; }
+        if (this.memory.max !== undefined) { return this.memory.max; }
+        return 1;
+    };
+    getMaxScavengers = () => this.demoFlags.length > 0 && this.storeStructure ? 1 : 0;
+
+
     roleCall() {
 
-        let max = 0;
-        if (this.demoFlags.length > 0) {
-            max = 1;
-            if (this.memory.max !== undefined) {
-                max = this.memory.max;
-            }
-        }
-
-        let demoBody = () => {
-            return this.bodyRatio(1, 0, 1, 1);
-        };
-
-        this.demolishers = this.headCount("demolisher", demoBody, max);
-
-        let maxScavangers = 0;
-        if (this.demoFlags.length > 0 && this.storeStructure) {
-            maxScavangers = max;
-        }
-        this.scavangers = this.headCount("scavanger", () => this.bodyRatio(0, 1, 1, 1), maxScavangers);
+        this.demolishers = this.headCount2("demolisher", () => this.bodyRatio(1, 0, 1, 1), this.getMaxDemolishers);
+        this.scavangers = this.headCount2("scavanger", () => this.bodyRatio(0, 1, 1, 1), this.getMaxScavengers);
     }
 
     missionActions() {
@@ -81,58 +73,49 @@ export class DemolishMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private demolisherActions(demolisher: Creep) {
+    private demolisherActions(demolisher: Agent) {
         let structure = _.head(this.demoStructures);
         if (structure) {
             if (demolisher.pos.isNearTo(structure)) {
                 demolisher.dismantle(structure);
-            }
-            else {
-                demolisher.blindMoveTo(structure);
+            } else {
+                demolisher.travelTo(structure);
             }
             return;
         }
 
         let flag = _.head(this.demoFlags);
         if (flag) {
-            demolisher.blindMoveTo(flag);
+            demolisher.travelTo(flag);
             return;
         }
 
         demolisher.idleOffRoad(this.flag);
     }
 
-    private scavangerActions(scavanger: Creep, demolisher: Creep) {
+    private scavangerActions(scavanger: Agent, demolisher: Agent) {
 
-        if (!demolisher) {
+        if (!demolisher || scavanger.room !== demolisher.room) {
             if (this.demoFlags.length > 0) {
-                scavanger.blindMoveTo(this.demoFlags[0]);
-            }
-            else {
-                this.idleNear(scavanger, this.flag);
+                scavanger.travelTo(this.demoFlags[0])
+            } else {
+                scavanger.idleOffRoad();
             }
             return;
         }
 
-        let hasLoad = this.hasLoad(scavanger);
+        let hasLoad = scavanger.hasLoad();
         if (!hasLoad) {
-
-            if (scavanger.room !== demolisher.room) {
-                scavanger.blindMoveTo(demolisher);
-                return; // early
-            }
 
             let resource = this.findScavangerResource(scavanger, demolisher);
             if (resource) {
                 if (scavanger.pos.isNearTo(resource)) {
                     scavanger.pickup(resource);
+                } else {
+                    scavanger.travelTo(resource);
                 }
-                else {
-                    scavanger.blindMoveTo(resource);
-                }
-            }
-            else {
-                scavanger.blindMoveTo(demolisher);
+            } else {
+                scavanger.travelTo(demolisher);
             }
             return; // early
         }
@@ -145,25 +128,22 @@ export class DemolishMission extends Mission {
         if (scavanger.pos.isNearTo(this.storeStructure)) {
             scavanger.transfer(this.storeStructure, RESOURCE_ENERGY);
             scavanger.memory.resourceId = undefined;
-        }
-        else {
-            scavanger.blindMoveTo(this.storeStructure);
+        } else {
+            scavanger.travelTo(this.storeStructure);
         }
 
     }
 
-    private findScavangerResource(scavanger: Creep, demolisher: Creep): Resource {
+    private findScavangerResource(scavanger: Agent, demolisher: Agent): Resource {
         if (scavanger.memory.resourceId) {
             let resource = Game.getObjectById(scavanger.memory.resourceId) as Resource;
             if (resource) {
                 return resource;
-            }
-            else {
+            } else {
                 scavanger.memory.resourceId = undefined;
                 return this.findScavangerResource(scavanger, demolisher);
             }
-        }
-        else {
+        } else {
             let resources = _.filter(demolisher.room.find(FIND_DROPPED_RESOURCES),
                 (r: Resource) => r.resourceType === RESOURCE_ENERGY );
             let closest = scavanger.pos.findClosestByRange(resources) as Resource;

@@ -1,5 +1,5 @@
+
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
 import {TransportMission} from "../missions/TransportMission";
 import {empire} from "../../helpers/loopHelper";
 
@@ -24,3 +24,4 @@ export class TransportOperation extends Operation {
     }
 
 }
+

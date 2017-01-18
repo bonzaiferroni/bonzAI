@@ -5,12 +5,13 @@ import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
 import {WorldMap} from "../WorldMap";
+import {Agent} from "./Agent";
 
 export class PowerMission extends Mission {
 
-    clydes: Creep[];
-    bonnies: Creep[];
-    carts: Creep[];
+    clydes: Agent[];
+    bonnies: Agent[];
+    carts: Agent[];
 
     memory: {
         currentBank: BankData;
@@ -48,12 +49,12 @@ export class PowerMission extends Mission {
             distance = this.memory.currentBank.distance;
         }
 
-        this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25}), max, {
+        this.bonnies = this.headCount2("bonnie", () => this.configBody({ move: 25, heal: 25}), () => max, {
             prespawn: distance,
             reservation: { spawns: 2, currentEnergy: 8000 }
         });
 
-        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}), this.bonnies.length);
+        this.clydes = this.headCount2("clyde", () => this.configBody({ move: 20, attack: 20}), () => this.bonnies.length);
 
         let unitsPerCart = 1;
         let maxCarts = 0;
@@ -63,7 +64,7 @@ export class PowerMission extends Mission {
             unitsPerCart = Math.ceil(unitsNeeded / maxCarts);
         }
 
-        this.carts = this.headCount("powerCart", () => this.workerBody(0, unitsPerCart * 2, unitsPerCart), maxCarts);
+        this.carts = this.headCount2("powerCart", () => this.workerBody(0, unitsPerCart * 2, unitsPerCart), () => maxCarts);
     }
 
     missionActions() {
@@ -136,10 +137,10 @@ export class PowerMission extends Mission {
         return roomNames;
     }
 
-    private clydeActions(clyde: Creep) {
+    private clydeActions(clyde: Agent) {
 
         let myBonnie = Game.creeps[clyde.memory.myBonnieName];
-        if (!myBonnie || (!clyde.pos.isNearTo(myBonnie) && !clyde.isNearExit(1))) {
+        if (!myBonnie || (!clyde.pos.isNearTo(myBonnie) && !clyde.pos.isNearExit(1))) {
             clyde.idleOffRoad(this.flag);
             return;
         }
@@ -159,8 +160,7 @@ export class PowerMission extends Mission {
             if (bank) {
                 if (bank.hits > 600 || clyde.ticksToLive < 5) {
                     clyde.attack(bank);
-                }
-                else {
+                } else {
                     // wait for carts
                     for (let cart of this.carts) {
                         if (!bankPos.inRangeTo(cart, 5)) {
@@ -170,19 +170,18 @@ export class PowerMission extends Mission {
                     clyde.attack(bank);
                 }
             }
-        }
-        else if (myBonnie.fatigue === 0) {
+        } else if (myBonnie.fatigue === 0) {
             if (this.memory.currentBank.assisting === undefined) {
                 // traveling from spawn
-                empire.traveler.travelTo(clyde, {pos: bankPos}, {ignoreRoads: true});
+                clyde.travelTo({pos: bankPos}, {ignoreRoads: true});
             }
             else {
-                clyde.moveTo(bankPos, {reusePath: 0});
+                clyde.travelTo({pos: bankPos}, {ignoreCreeps: false});
             }
         }
     }
 
-    private bonnieActions(bonnie: Creep) {
+    private bonnieActions(bonnie: Agent) {
         let myClyde = Game.creeps[bonnie.memory.myClydeName];
         if (!myClyde) {
             return;
@@ -202,11 +201,11 @@ export class PowerMission extends Mission {
             }
         }
         else {
-            bonnie.blindMoveTo(myClyde);
+            bonnie.travelTo(myClyde);
         }
     }
 
-    private powerCartActions(cart: Creep, order: number) {
+    private powerCartActions(cart: Agent, order: number) {
         if (!cart.carry.power) {
             if (this.memory.currentBank && this.memory.currentBank.finishing) {
                 this.powerCartApproachBank(cart, order);
@@ -218,16 +217,16 @@ export class PowerMission extends Mission {
                 if (power) {
                     if (cart.pos.isNearTo(power)) {
                         cart.pickup(power);
-                        empire.traveler.travelTo(cart, this.room.storage);
+                        cart.travelTo(this.room.storage);
                     }
                     else {
-                        empire.traveler.travelTo(cart, power);
+                        cart.travelTo(power);
                     }
                     return; //  early;
                 }
             }
 
-            this.recycleCreep(cart);
+            this.recycleAgent(cart);
             return; // early
         }
 
@@ -236,15 +235,15 @@ export class PowerMission extends Mission {
         }
         else {
             // traveling to storage
-            empire.traveler.travelTo(cart, this.room.storage);
+            cart.travelTo(this.room.storage);
         }
     }
 
-    private powerCartApproachBank(cart: Creep, order: number) {
+    private powerCartApproachBank(cart: Agent, order: number) {
         let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
         if (cart.room.name !== bankPos.roomName || cart.pos.isNearExit(0)) {
             // traveling from spawn
-            empire.traveler.travelTo(cart, {pos: bankPos}, {ignoreRoads: true});
+            cart.travelTo({pos: bankPos}, {ignoreRoads: true});
         }
         else {
             if (cart.memory.inPosition) {
@@ -256,7 +255,7 @@ export class PowerMission extends Mission {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        empire.traveler.travelTo(cart, {pos: bankPos} );
+                        cart.travelTo({pos: bankPos} );
                     }
                 }
                 else if (order > 0) {
@@ -265,7 +264,7 @@ export class PowerMission extends Mission {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        empire.traveler.travelTo(cart, lastCart );
+                        cart.travelTo(lastCart );
                     }
                 }
                 else {
@@ -273,21 +272,21 @@ export class PowerMission extends Mission {
                         cart.memory.inPosition = true;
                     }
                     else {
-                        empire.traveler.travelTo(cart, this.clydes[0] );
+                        cart.travelTo(this.clydes[0] );
                     }
                 }
             }
         }
     }
 
-    private checkForAlly(clyde: Creep) {
-        if (clyde.isNearExit(1) || !this.memory.currentBank || !this.memory.currentBank.assisting !== undefined) return;
+    private checkForAlly(clyde: Agent) {
+        if (clyde.pos.isNearExit(1) || !this.memory.currentBank || !this.memory.currentBank.assisting !== undefined) return;
 
         let bank = clyde.room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
         if (!bank) return;
 
         let allyClyde = bank.room.find(FIND_HOSTILE_CREEPS, {
-            filter: (c: Creep) => c.partCount(ATTACK) === 20 && empire.diplomat.allies[c.owner.username] && !c.isNearExit(1)
+            filter: (c: Creep) => c.partCount(ATTACK) === 20 && empire.diplomat.allies[c.owner.username] && !c.pos.isNearExit(1)
         })[0] as Creep;
 
         if (!allyClyde) {

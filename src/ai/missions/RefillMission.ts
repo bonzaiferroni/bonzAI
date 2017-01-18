@@ -1,5 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 
 interface EnergyStructure extends Structure {
     pos: RoomPosition
@@ -9,8 +10,8 @@ interface EnergyStructure extends Structure {
 
 export class RefillMission extends Mission {
 
-    carts: Creep[];
-    emergencyCarts: Creep[];
+    carts: Agent[];
+    emergencyCarts: Agent[];
     emergencyMode: boolean;
     empties: EnergyStructure[];
 
@@ -35,22 +36,11 @@ export class RefillMission extends Mission {
 
     roleCall() {
 
-        let max = 2;
-        if (this.room.storage) {
-            max = 1;
-        }
-
-        if (this.memory.max) {
-            max = this.memory.max;
-        }
-
-        let emergencyMax = 0;
-        if (this.emergencyMode) {
-            emergencyMax = 1;
-        }
+        let max = () => this.room.storage ? 1 : 2;
+        let emergencyMax = () => this.emergencyMode ? 1 : 0;
 
         let emergencyBody = () => { return this.workerBody(0, 4, 2); };
-        this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
+        this.emergencyCarts = this.headCount2("emergency_" + this.name, emergencyBody, emergencyMax);
 
         let cartBody = () => {
             if (this.operation.type === "flex") {
@@ -62,7 +52,7 @@ export class RefillMission extends Mission {
         };
 
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.carts = this.headCount("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
+        this.carts = this.headCount2("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
         this.memory.cartsLastTick = this.carts.length;
     }
 
@@ -79,16 +69,16 @@ export class RefillMission extends Mission {
         }
     }
 
-    spawnCartActions(cart: Creep, order: number) {
+    spawnCartActions(cart: Agent, order: number) {
 
-        let hasLoad = this.hasLoad(cart);
+        let hasLoad = cart.hasLoad();
         if (!hasLoad) {
             if (order !== 0 && cart.ticksToLive < 50) {
                 cart.suicide();
                 return;
             }
             cart.memory.emptyId = undefined;
-            this.procureEnergy(cart, this.findNearestEmpty(cart), true);
+            cart.procureEnergy(this.findNearestEmpty(cart), true);
             return;
         }
 
@@ -98,14 +88,14 @@ export class RefillMission extends Mission {
                 cart.memory.hasLoad = false;
             }
             else {
-                this.idleNear(cart, this.spawnGroup.spawns[0], 12);
+                cart.idleNear(this.spawnGroup, 12);
             }
             return;
         }
 
         // has target
         if (!cart.pos.isNearTo(target)) {
-            cart.blindMoveTo(target, {maxRooms: 1});
+            cart.travelTo(target);
             if (this.room.storage && cart.pos.isNearTo(this.room.storage) &&
                 cart.carry.energy <= cart.carryCapacity - 50) {
                 cart.withdraw(this.room.storage, RESOURCE_ENERGY);
@@ -119,7 +109,7 @@ export class RefillMission extends Mission {
             cart.memory.emptyId = undefined;
             target = this.findNearestEmpty(cart, target);
             if (target && !cart.pos.isNearTo(target)) {
-                cart.blindMoveTo(target, {maxRooms: 1});
+                cart.travelTo(target);
             }
         }
     }
@@ -129,7 +119,7 @@ export class RefillMission extends Mission {
     invalidateMissionCache() {
     }
 
-    findNearestEmpty(cart: Creep, pullTarget?: EnergyStructure): EnergyStructure {
+    findNearestEmpty(cart: Agent, pullTarget?: EnergyStructure): EnergyStructure {
         let findEmpty = (): Structure => {
             if (!this.empties) {
                 this.empties = _.filter(this.room.findStructures(STRUCTURE_SPAWN)
@@ -150,6 +140,6 @@ export class RefillMission extends Mission {
 
         let forgetEmpty = (s: EnergyStructure): boolean => s.energy === s.energyCapacity || Game.time % 5 === 0;
 
-        return cart.rememberStructure<EnergyStructure>(findEmpty, forgetEmpty, "emptyId", true);
+        return cart.rememberStructure(findEmpty, forgetEmpty, "emptyId", true) as EnergyStructure;
     }
 }

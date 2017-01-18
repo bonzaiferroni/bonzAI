@@ -184,7 +184,7 @@ export class RaidOperation extends Operation {
         }
 
         return {
-            raidCreeps: [],
+            raidAgents: [],
             obstacles: [],
             injuredCreeps: undefined,
             breachFlags: breachFlags,

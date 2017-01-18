@@ -1,7 +1,8 @@
 import {Mission} from "./Mission";
+import {Agent} from "./Agent";
 export class ScoutMission extends Mission {
 
-    scouts: Creep[];
+    scouts: Agent[];
 
     constructor(operation) {
         super(operation, "scout");
@@ -11,11 +12,8 @@ export class ScoutMission extends Mission {
     }
 
     roleCall() {
-        let maxScouts = 0;
-        if (!this.hasVision) {
-            maxScouts = 1;
-        }
-        this.scouts = this.headCount(this.name, () => this.workerBody(0, 0, 1), maxScouts, {blindSpawn: true});
+        let maxScouts = () => this.hasVision ? 0 : 1;
+        this.scouts = this.headCount2(this.name, () => this.workerBody(0, 0, 1), maxScouts, {blindSpawn: true});
     }
 
     missionActions() {

@@ -1,7 +1,8 @@
 import {Mission} from "./Mission";
+import {Agent} from "./Agent";
 export class LinkNetworkMission extends Mission {
 
-    conduits: Creep[];
+    conduits: Agent[];
 
     storageLinks: StructureLink[] = [];
     sourceLinks: StructureLink[] = [];
@@ -35,12 +36,9 @@ export class LinkNetworkMission extends Mission {
         let conduitBody = () => {
             return this.workerBody(0, 8, 4);
         };
-        let max = 0;
-        if (this.storageLinks.length > 0 && this.controllerLink) {
-            max = 1;
-        }
+        let max = () => this.storageLinks.length > 0 && this.controllerLink ? 1: 0;
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.conduits = this.headCount("conduit", conduitBody, max, {prespawn: 10, memory: memory });
+        this.conduits = this.headCount2("conduit", conduitBody, max, {prespawn: 10, memory: memory });
     }
 
     missionActions() {
@@ -106,7 +104,7 @@ export class LinkNetworkMission extends Mission {
         }
     }
 
-    private conduitActions(conduit: Creep) {
+    private conduitActions(conduit: Agent) {
         if (!conduit.memory.inPosition) {
             this.moveToPosition(conduit);
             return;
@@ -121,7 +119,7 @@ export class LinkNetworkMission extends Mission {
         }
     }
 
-    private moveToPosition(conduit: Creep) {
+    private moveToPosition(conduit: Agent) {
         for (let i = 1; i <= 8; i++) {
             let position = this.room.storage.pos.getPositionAtDirection(i);
             let invalid = false;
@@ -144,7 +142,7 @@ export class LinkNetworkMission extends Mission {
         console.log("couldn't find valid position for", conduit.name);
     }
 
-    private conduitAlphaActions(conduit: Creep) {
+    private conduitAlphaActions(conduit: Agent) {
         if (conduit.carry.energy < conduit.carryCapacity) {
             conduit.withdraw(this.room.storage, RESOURCE_ENERGY);
         }
@@ -158,7 +156,7 @@ export class LinkNetworkMission extends Mission {
         }
     }
 
-    private conduitBetaActions(conduit: Creep) {
+    private conduitBetaActions(conduit: Agent) {
         if (this.storageLinks.length === 0) return;
 
         let link = this.storageLinks[0];

@@ -223,12 +223,20 @@ export class TradeNetwork {
     }
 
     private acceptableDistance(resourceType: string, surplus: StructureTerminal): number {
-
         if (IGNORE_TRADE_DISTANCE[resourceType]) { return Number.MAX_VALUE; }
-        let ignoreDistanceAmount = 50000;
-        if (resourceType === RESOURCE_ENERGY) { ignoreDistanceAmount = ENERGYSINK_THRESHOLD; }
-        if (surplus.room.storage.store[resourceType] > ignoreDistanceAmount) { return Number.MAX_VALUE; }
-        return TRADE_DISTANCE;
+        else if (resourceType === RESOURCE_ENERGY) {
+            if (_.sum(surplus.room.storage.store) >= 950000) {
+                return Number.MAX_VALUE;
+            } else {
+                return TRADE_DISTANCE;
+            }
+        } else {
+            if (surplus.room.storage.store[resourceType] > 80000) {
+                return Number.MAX_VALUE;
+            } else {
+                return TRADE_DISTANCE;
+            }
+        }
     }
 
     private sendResource(localTerminal: StructureTerminal, resourceType: string, amount: number, otherTerminal: StructureTerminal) {

@@ -1,8 +1,9 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
+import {Agent} from "./Agent";
 export class RemoteBuildMission extends Mission {
 
-    builders: Creep[];
+    builders: Agent[];
     construction: ConstructionSite[];
     recycleWhenDone: boolean;
     private boost: boolean;
@@ -28,7 +29,7 @@ export class RemoteBuildMission extends Mission {
     }
 
     roleCall() {
-        let maxBuilders = this.construction && this.construction.length > 0 ? 1 : 0;
+        let maxBuilders = () => this.construction && this.construction.length > 0 ? 1 : 0;
         let getBody = () => {
             return this.bodyRatio(1, 1, 1, .8, 10);
         };
@@ -36,7 +37,7 @@ export class RemoteBuildMission extends Mission {
         if (this.memory.activateBoost || (this.room.controller && this.room.controller.my)) {
             memory = { boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID], allowUnboosted: true};
         }
-        this.builders = this.headCount("remoteBuilder", getBody, maxBuilders, {memory: memory});
+        this.builders = this.headCount2("remoteBuilder", getBody, maxBuilders, {memory: memory});
     }
 
     missionActions() {
@@ -56,27 +57,29 @@ export class RemoteBuildMission extends Mission {
     invalidateMissionCache() {
     }
 
-    private builderActions(builder: Creep) {
+    private builderActions(builder: Agent) {
 
         let fleeing = builder.fleeHostiles();
         if (fleeing) return; // early
 
         if (!this.hasVision) {
             if (!builder.pos.isNearTo(this.flag)) {
-                builder.blindMoveTo(this.flag);
+                builder.travelTo(this.flag);
             }
             return; // early
         }
 
-        let hasLoad = this.hasLoad(builder);
+        builder.stealNearby("creep");
+
+        let hasLoad = builder.hasLoad();
         if (!hasLoad) {
-            this.procureEnergy(builder, undefined, true, true);
+            builder.procureEnergy(undefined, true, true);
             return; // early
         }
 
         let closest = builder.pos.findClosestByRange(this.construction);
         if (!closest) {
-            this.idleNear(builder, this.flag);
+            builder.idleNear(this.flag);
             return; // early
         }
 
@@ -85,27 +88,27 @@ export class RemoteBuildMission extends Mission {
             builder.yieldRoad(closest);
         }
         else {
-            builder.blindMoveTo(closest, { maxRooms: 1 });
+            builder.travelTo(closest);
         }
     }
 
-    private recycleBuilder(builder: Creep) {
+    private recycleBuilder(builder: Agent) {
         let spawn = this.spawnGroup.spawns[0];
         if (builder.carry.energy > 0 && spawn.room.storage) {
             if (builder.pos.isNearTo(spawn.room.storage)) {
                 builder.transfer(spawn.room.storage, RESOURCE_ENERGY);
             }
             else {
-                builder.blindMoveTo(spawn.room.storage);
+                builder.travelTo(spawn.room.storage);
             }
         }
         else {
             let spawn = this.spawnGroup.spawns[0];
             if (builder.pos.isNearTo(spawn)) {
-                spawn.recycleCreep(builder);
+                spawn.recycleCreep(builder.creep);
             }
             else {
-                builder.blindMoveTo(spawn);
+                builder.travelTo(spawn);
             }
         }
     }

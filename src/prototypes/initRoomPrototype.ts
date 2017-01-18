@@ -1,6 +1,7 @@
 import {helper} from "../helpers/helper";
 import {empire} from "../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY, WorldMap} from "../ai/WorldMap";
+import {Agent} from "../ai/missions/Agent";
 
 export function initRoomPrototype() {
     Object.defineProperty(Room.prototype, "hostiles", {
@@ -116,7 +117,7 @@ export function initRoomPrototype() {
                 possibilities.push(this.terminal);
             }
             this.altBatteries = _.sortBy(possibilities, (p: Creep | StructureContainer) => {
-                return p.store.energy;
+                return Agent.normalizeStore((p)).store.energy;
             });
         }
         if (roomObject) {

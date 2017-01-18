@@ -26,12 +26,13 @@ export interface TravelToOptions {
     allowSK?: boolean;
     range?: number;
     obstacles?: {pos: RoomPosition}[];
-    roomCallback?: (roomName: string, ignoreCreeps: boolean) => CostMatrix | boolean;
+    roomCallback?: (roomName: string, matrix: CostMatrix) => CostMatrix | boolean;
     routeCallback?: (roomName: string) => number;
     returnData?: { nextPos?: RoomPosition; };
     restrictDistance?: number;
     useFindRoute?: boolean;
     maxOps?: number;
+    movingTarget?: boolean;
 }
 
 interface PathfinderReturn {
@@ -133,10 +134,14 @@ export class Traveler {
                           options: TravelToOptions = {}): PathfinderReturn {
         _.defaults(options, {
             ignoreCreeps: true,
-            range: 1,
             maxOps: DEFAULT_MAXOPS,
+            range: 1,
             obstacles: [],
         });
+
+        if (options.movingTarget) {
+            options.range = 0;
+        }
 
         let allowedRooms;
         if (options.useFindRoute || (options.useFindRoute === undefined &&
@@ -146,13 +151,6 @@ export class Traveler {
 
         let callback = (roomName: string): CostMatrix | boolean => {
 
-            if (options.roomCallback) {
-                let outcome = options.roomCallback(roomName, options.ignoreCreeps);
-                if (outcome !== undefined) {
-                    return outcome;
-                }
-            }
-
             if (allowedRooms) {
                 if (!allowedRooms[roomName]) {
                     return false;
@@ -161,23 +159,31 @@ export class Traveler {
                 return false;
             }
 
-            let room = Game.rooms[roomName];
-            if (!room) { return; }
-
             let matrix: CostMatrix;
-            if (options.ignoreStructures) {
-                matrix = new PathFinder.CostMatrix();
-                if (!options.ignoreCreeps) {
-                    Traveler.addCreepsToMatrix(room, matrix);
+            let room = Game.rooms[roomName];
+            if (room) {
+                if (options.ignoreStructures) {
+                    matrix = new PathFinder.CostMatrix();
+                    if (!options.ignoreCreeps) {
+                        Traveler.addCreepsToMatrix(room, matrix);
+                    }
+                } else if (options.ignoreCreeps || roomName !== origin.pos.roomName) {
+                    matrix = this.getStructureMatrix(room);
+                } else {
+                    matrix = this.getCreepMatrix(room);
                 }
-            } else if (options.ignoreCreeps || roomName !== origin.pos.roomName) {
-                matrix = this.getStructureMatrix(room);
-            } else {
-                matrix = this.getCreepMatrix(room);
+
+                for (let obstacle of options.obstacles) {
+                    matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
+                }
             }
 
-            for (let obstacle of options.obstacles) {
-                matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
+            if (options.roomCallback) {
+                if (!matrix) { matrix = new PathFinder.CostMatrix(); }
+                let outcome = options.roomCallback(roomName, matrix);
+                if (outcome !== undefined) {
+                    return outcome;
+                }
             }
 
             return matrix;
@@ -220,8 +226,10 @@ export class Traveler {
 
         // manage case where creep is nearby destination
         let rangeToDestination = creep.pos.getRangeTo(destination);
-        if (rangeToDestination <= 1) {
-            if (rangeToDestination === 1 && !(options.range >= 1)) {
+        if (rangeToDestination <= options.range) {
+            return OK;
+        } else if (rangeToDestination <= 1) {
+            if (rangeToDestination === 1 && options.range === 0) {
                 if (options.returnData) { options.returnData.nextPos = destination.pos; }
                 return creep.move(creep.pos.getDirectionTo(destination));
             }
@@ -255,7 +263,18 @@ export class Traveler {
         // delete path cache if destination is different
         if (!travelData.dest || travelData.dest.x !== destination.pos.x || travelData.dest.y !== destination.pos.y ||
             travelData.dest.roomName !== destination.pos.roomName) {
-            delete travelData.path;
+            if (travelData.dest && options.movingTarget) {
+                let dest = Traveler.initPosition(travelData.dest);
+                if (dest.isNearTo(destination)) {
+                    travelData.path += dest.getDirectionTo(destination);
+                    travelData.dest = destination.pos;
+                } else {
+                    delete travelData.path;
+                }
+            }
+            else {
+                delete travelData.path;
+            }
         }
 
         // pathfinding
