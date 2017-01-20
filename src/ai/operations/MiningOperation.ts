@@ -31,11 +31,14 @@ export class MiningOperation extends Operation {
                 ".setSpawnRoom(otherOpName.flag.missionRoom.name)");
             return;
         }
-        this.spawnGroup = this.getRemoteSpawnGroup();
+        this.spawnGroup = this.getRemoteSpawnGroup(2);
+
         if (!this.spawnGroup) {
             console.log("ATTN: no spawnGroup found for", this.name);
             return; // early
         }
+
+        if (this.spawnGroup.room.controller.level < 4) { return; }
 
         this.addMission(new ScoutMission(this));
 

@@ -197,6 +197,11 @@ export class UpgradeMission extends Mission {
             return;
         }
 
+        if (battery instanceof StructureLink && this.room.controller.level < 5) {
+            battery.destroy();
+            return;
+        }
+
         if (!battery) {
             let spawn = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
             if (!spawn) return;

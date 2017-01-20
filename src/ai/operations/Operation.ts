@@ -172,8 +172,7 @@ export abstract class Operation {
 
     getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
         // invalidated periodically
-        if (!this.memory.spawnRooms ||
-            (this.memory.spawnRooms.length === 0 && Game.time >= this.memory.nextSpawnCheck)) {
+        if (!this.memory.nextSpawnCheck || Game.time >= this.memory.nextSpawnCheck) {
             let closestRoomRange = Number.MAX_VALUE;
             let roomNames = [];
             for (let roomName of Object.keys(empire.spawnGroups)) {
@@ -193,20 +192,28 @@ export abstract class Operation {
             }
             console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
             this.memory.spawnRooms = roomNames;
-            this.memory.nextSpawnCheck = Game.time + 1000;
+            if (roomNames.length > 0) {
+                this.memory.nextSpawnCheck = Game.time + 10000;
+            } else {
+                this.memory.nextSpawnCheck = Game.time + 1000;
+            }
         }
 
-        let spawnRoom = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
-            let spawnGroup = empire.getSpawnGroup(roomName);
-            if (spawnGroup) {
-                return spawnGroup.averageAvailability;
-            }
-            else {
-                _.pull(this.memory.spawnRooms, roomName);
-            }
-        }).last();
+        if (!this.memory.spawnAvailabilityCheck || Game.time >= this.memory.spawnAvailabilityCheck) {
+            let bestAvailable = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
+                let spawnGroup = empire.getSpawnGroup(roomName);
+                if (spawnGroup) {
+                    return spawnGroup.averageAvailability;
+                }
+                else {
+                    _.pull(this.memory.spawnRooms, roomName);
+                }
+            }).last();
+            this.memory.spawnRoom = bestAvailable;
+            this.memory.spawnAvailabilityCheck = Game.time + 1000;
+        }
 
-        return empire.getSpawnGroup(spawnRoom);
+        return empire.getSpawnGroup(this.memory.spawnRoom);
     }
 
     manualControllerBattery(id: string) {

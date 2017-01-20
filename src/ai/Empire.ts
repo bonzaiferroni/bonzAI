@@ -59,7 +59,7 @@ export class Empire {
         }
         else {
             let room = Game.rooms[roomName];
-            if (room && room.find(FIND_MY_SPAWNS).length > 0) {
+            if (room && room.find(FIND_MY_SPAWNS).length > 0 && room.controller.level > 0) {
                 this.spawnGroups[roomName] = new SpawnGroup(room);
                 return this.spawnGroups[roomName];
             }

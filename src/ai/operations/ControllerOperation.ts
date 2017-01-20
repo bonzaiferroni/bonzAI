@@ -80,7 +80,7 @@ export abstract class ControllerOperation extends Operation {
             this.spawnGroup = this.getRemoteSpawnGroup(8);
             this.addMission(new ScoutMission(this));
             this.addMission(new ClaimMission(this));
-            if (!this.hasVision) return; // vision can be assumed after this point
+            if (!this.hasVision || this.room.controller.level === 0) return; // vision can be assumed after this point
             this.addMission(new BodyguardMission(this));
             this.addMission(new RemoteBuildMission(this, false));
         }
@@ -111,8 +111,7 @@ export abstract class ControllerOperation extends Operation {
                 if (link) {
                     this.addMission(new LinkMiningMission(this, "miner" + i, source, link));
                     continue;
-                }
-                else {
+                } else {
                     this.placeLink(source);
                 }
             }
