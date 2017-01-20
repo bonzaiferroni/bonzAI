@@ -4,6 +4,7 @@ import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
+import {Profiler} from "../../Profiler";
 
 export class MiningMission extends Mission {
 

@@ -150,8 +150,13 @@ export class TradeNetwork {
 
     public analyzeResources(room: Room) {
 
+        let tradeResourceTypes = TRADE_WITH_SELF;
+        if (!room.controller.my) {
+            tradeResourceTypes = TRADE_WITH_PARTNERS;
+        }
+
         let terminalFull = _.sum(room.terminal.store) > 270000;
-        for (let resourceType of TRADE_RESOURCES) {
+        for (let resourceType of tradeResourceTypes) {
             if (resourceType === RESOURCE_ENERGY) {
                 if (room.terminal.store.energy < 50000 && room.storage.store.energy < NEED_ENERGY_THRESHOLD
                     && !terminalFull) {
@@ -331,8 +336,10 @@ export const TRADE_DISTANCE = 6;
 export const IGNORE_TRADE_DISTANCE = {
     ["XUH2O"]: true,
     ["XLHO2"]: true,
+    [RESOURCE_POWER]: true,
 };
 export const MINERALS_RAW = ["H", "O", "Z", "U", "K", "L", "X"];
 export const PRODUCT_LIST = ["XUH2O", "XLHO2", "XLH2O", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XGH2O"];
-export const TRADE_RESOURCES = [RESOURCE_ENERGY].concat(PRODUCT_LIST).concat(MINERALS_RAW).concat([RESOURCE_POWER]);
+export const TRADE_WITH_SELF = [RESOURCE_ENERGY].concat(PRODUCT_LIST).concat(MINERALS_RAW).concat(RESOURCE_POWER);
+export const TRADE_WITH_PARTNERS = [RESOURCE_ENERGY].concat(PRODUCT_LIST).concat(MINERALS_RAW);
 export const TRADE_ENERGY_AMOUNT = 10000;

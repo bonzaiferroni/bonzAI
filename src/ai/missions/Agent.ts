@@ -733,9 +733,9 @@ export class Agent {
                 }
             }
             else {
-                if (this.memory._travel) {
-                    let moveData = this.memory._travel.dest;
-                    let dest = new RoomPosition(moveData.x, moveData.y, moveData.room);
+                if (this.memory._travel && this.memory._travel.dest) {
+                    let destPos = this.memory._travel.dest;
+                    let dest = new RoomPosition(destPos.x, destPos.y, destPos.roomName);
                     this.idleOffRoad({pos: dest}, true);
                 }
                 else {
@@ -772,6 +772,7 @@ export class Agent {
     public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
                               options?: TravelToOptions): number {
 
+        if (follower.name === "pony4_roy_47") console.log(Game.time)
         if (leader.room !== follower.room) {
             if (leader.pos.isNearExit(0)) {
                 leader.travelTo(target);

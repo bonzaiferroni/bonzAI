@@ -117,7 +117,11 @@ export class IgorMission extends Mission {
                 }
                 return;
             }
-            igor.idleOffRoad(this.flag);
+            if (this.memory.idlePosition) {
+                igor.moveItOrLoseIt(helper.deserializeRoomPosition(this.memory.idlePosition));
+            } else {
+                igor.idleOffRoad(this.room.controller);
+            }
             return;
         }
 

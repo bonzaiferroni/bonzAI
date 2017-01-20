@@ -216,7 +216,7 @@ export class MarketTrader {
 }
 
 export const RESOURCE_VALUE = {
-    energy: .05,
+    energy: .02,
     H: 1,
     O: 1,
     Z: 1,

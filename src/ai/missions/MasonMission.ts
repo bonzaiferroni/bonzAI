@@ -23,7 +23,7 @@ export class MasonMission extends Mission {
     }
 
     public maxMasons = () => {
-        return this.needMason ? 1 : 0;
+        return this.needMason ? Math.ceil(this.room.storage.store.energy / 500000) : 0;
     };
 
     public maxCarts = () => {

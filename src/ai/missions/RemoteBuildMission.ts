@@ -77,7 +77,7 @@ export class RemoteBuildMission extends Mission {
             return; // early
         }
 
-        let closest = builder.pos.findClosestByRange(this.construction);
+        let closest = this.findConstruction(builder);
         if (!closest) {
             builder.idleNear(this.flag);
             return; // early
@@ -109,6 +109,24 @@ export class RemoteBuildMission extends Mission {
             }
             else {
                 builder.travelTo(spawn);
+            }
+        }
+    }
+
+    private findConstruction(builder: Agent): ConstructionSite {
+        if (builder.memory.siteId) {
+            let site = Game.getObjectById<ConstructionSite>(builder.memory.siteId)
+            if (site) {
+                return site;
+            } else {
+                delete builder.memory.siteId;
+                return this.findConstruction(builder);
+            }
+        } else {
+            let site = builder.pos.findClosestByRange<ConstructionSite>(this.construction);
+            if (site) {
+                builder.memory.siteId = site.id;
+                return site;
             }
         }
     }

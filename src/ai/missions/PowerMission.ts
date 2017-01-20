@@ -280,7 +280,7 @@ export class PowerMission extends Mission {
     }
 
     private checkForAlly(clyde: Agent) {
-        if (clyde.pos.isNearExit(1) || !this.memory.currentBank || !this.memory.currentBank.assisting !== undefined) return;
+        if (clyde.pos.isNearExit(1) || !this.memory.currentBank || this.memory.currentBank.assisting !== undefined) return;
 
         let bank = clyde.room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
         if (!bank) return;

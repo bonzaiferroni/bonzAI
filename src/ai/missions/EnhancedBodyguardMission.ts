@@ -126,7 +126,12 @@ export class EnhancedBodyguardMission extends Mission {
         if (!healer) { attacker.memory.partner = undefined; }
 
         if (!healer || healer.spawning) {
-            attacker.travelTo(this.spawnGroup);
+            if (attacker.room.name !== this.spawnGroup.pos.roomName || attacker.pos.isNearExit(0)) {
+                attacker.travelTo(this.spawnGroup);
+            }
+            else {
+                attacker.idleOffRoad(this.spawnGroup)
+            }
             return;
         }
 
@@ -152,7 +157,7 @@ export class EnhancedBodyguardMission extends Mission {
             this.memory.healUp = true;
         }
         if (this.memory.healUp === true) {
-            Agent.squadTravel(healer, attacker, target);
+            Agent.squadTravel(healer, attacker, this.spawnGroup);
             if (healer.hits > healer.hitsMax * .8 && attacker.hits > attacker.hitsMax * .8) {
                 this.memory.healUp = false;
             }

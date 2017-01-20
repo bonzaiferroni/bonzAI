@@ -1,3 +1,4 @@
+import {Profiler} from "../Profiler";
 /**
  * To start using Traveler, require it in main.js:
  * Example: var Traveler = require('Traveler.js');
@@ -33,6 +34,7 @@ export interface TravelToOptions {
     useFindRoute?: boolean;
     maxOps?: number;
     movingTarget?: boolean;
+    freshMatrix?: boolean;
 }
 
 interface PathfinderReturn {
@@ -54,15 +56,16 @@ interface CachedTravelData {
     tempDest: RoomPosition;
 }
 
-const REPORT_CPU_THRESHOLD = 100;
+const REPORT_CPU_THRESHOLD = 2000;
 const DEFAULT_MAXOPS = 20000;
 const DEFAULT_STUCK_VALUE = 5;
 
 export class Traveler {
 
-    private structureMatrixCache: {[roomName: number]: CostMatrix};
-    private creepMatrixCache: {[roomName: string]: CostMatrix};
-    private currentTick: number;
+    private structureMatrixCache: {[roomName: number]: CostMatrix} = {};
+    private creepMatrixCache: {[roomName: string]: CostMatrix} = {};
+    private creepMatrixTick: number;
+    private structureMatrixTick: number;
 
     public findAllowedRooms(origin: string, destination: string,
                             options: TravelToOptions = {}): {[roomName: string]: boolean } {
@@ -168,7 +171,9 @@ export class Traveler {
                         Traveler.addCreepsToMatrix(room, matrix);
                     }
                 } else if (options.ignoreCreeps || roomName !== origin.pos.roomName) {
-                    matrix = this.getStructureMatrix(room);
+                    Profiler.start("test.getStructureMatrix");
+                    matrix = this.getStructureMatrix(room, options.freshMatrix);
+                    Profiler.end("test.getStructureMatrix");
                 } else {
                     matrix = this.getCreepMatrix(room);
                 }
@@ -180,7 +185,7 @@ export class Traveler {
 
             if (options.roomCallback) {
                 if (!matrix) { matrix = new PathFinder.CostMatrix(); }
-                let outcome = options.roomCallback(roomName, matrix);
+                let outcome = options.roomCallback(roomName, matrix.clone());
                 if (outcome !== undefined) {
                     return outcome;
                 }
@@ -251,6 +256,7 @@ export class Traveler {
         // handle case where creep is stuck
         if (travelData.stuck >= DEFAULT_STUCK_VALUE && !options.ignoreStuck) {
             options.ignoreCreeps = false;
+            options.freshMatrix = true;
             delete travelData.path;
         }
 
@@ -359,9 +365,9 @@ export class Traveler {
         }
     }
 
-    public getStructureMatrix(room: Room): CostMatrix {
-        this.refreshMatrices();
-        if (!this.structureMatrixCache[room.name]) {
+    public getStructureMatrix(room: Room, freshMatrix?: boolean): CostMatrix {
+        if (!this.structureMatrixCache[room.name] || (freshMatrix && Game.time !== this.structureMatrixTick)) {
+            this.structureMatrixTick = Game.time;
             let matrix = new PathFinder.CostMatrix();
             this.structureMatrixCache[room.name] = Traveler.addStructuresToMatrix(room, matrix, 1);
         }
@@ -394,9 +400,10 @@ export class Traveler {
     }
 
     public getCreepMatrix(room: Room) {
-        this.refreshMatrices();
-        if (!this.creepMatrixCache[room.name]) {
-            this.creepMatrixCache[room.name] = Traveler.addCreepsToMatrix(room, this.getStructureMatrix(room).clone());
+        if (!this.creepMatrixCache[room.name] || Game.time !== this.creepMatrixTick) {
+            this.creepMatrixTick = Game.time;
+            this.creepMatrixCache[room.name] = Traveler.addCreepsToMatrix(room,
+                this.getStructureMatrix(room, true).clone());
         }
         return this.creepMatrixCache[room.name];
     }
@@ -418,14 +425,6 @@ export class Traveler {
         return serializedPath;
     }
 
-    private refreshMatrices() {
-        if (Game.time !== this.currentTick) {
-            this.currentTick = Game.time;
-            this.structureMatrixCache = {};
-            this.creepMatrixCache = {};
-        }
-    }
-
     private static positionAtDirection(origin: RoomPosition, direction: number): RoomPosition {
         let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
         let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
@@ -438,7 +437,7 @@ export class Traveler {
 }
 
 // uncomment this to have an instance of traveler available through import
-// export const traveler = new Traveler();
+export const traveler = new Traveler();
 
 // uncomment to assign an instance to global
 // global.traveler = new Traveler();

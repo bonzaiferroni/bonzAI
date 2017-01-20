@@ -138,7 +138,7 @@ export class RefillMission extends Mission {
             return cart.pos.findClosestByRange(this.empties);
         };
 
-        let forgetEmpty = (s: EnergyStructure): boolean => s.energy === s.energyCapacity || Game.time % 5 === 0;
+        let forgetEmpty = (s: EnergyStructure): boolean => s.energy === s.energyCapacity;
 
         return cart.rememberStructure(findEmpty, forgetEmpty, "emptyId", true) as EnergyStructure;
     }

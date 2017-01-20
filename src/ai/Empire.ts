@@ -1,7 +1,7 @@
 import {SpawnGroup} from "./SpawnGroup";
 import {notifier} from "../notifier";
 import {Profiler} from "../Profiler";
-import {Traveler} from "./Traveler";
+import {Traveler, traveler} from "./Traveler";
 import {WorldMap} from "./WorldMap";
 import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
@@ -33,7 +33,7 @@ export class Empire {
      */
 
     init() {
-        this.traveler = new Traveler();
+        this.traveler = traveler;
         this.diplomat = new BonzaiDiplomat();
         this.map = new WorldMap(this.diplomat);
         this.map.init();

@@ -113,7 +113,7 @@ export class FlexGenerator {
         let position = new RoomPosition(x, y, this.roomName);
         if (Game.rooms[this.roomName]) {
             if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) return;
-            if (position.inRangeTo(Game.rooms[this.roomName].controller, 2)) return;
+            if (position.inRangeTo(Game.rooms[this.roomName].controller, 3)) return;
         }
 
         let foundRoad = false;

@@ -372,7 +372,7 @@ export abstract class Mission {
             if (options.disableNotify) {
                 this.disableNotify(agent)
             }
-            let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
+            let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
             if (!boosted) return false;
             if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
                 agent.avoidSK(this.flag);
@@ -580,6 +580,26 @@ export abstract class Mission {
     }
 
     protected paverActions(paver: Agent) {
+
+        // paver, healthyself
+        if (paver.hits < paver.hitsMax) {
+            if (paver.room.hostiles.length === 0 && !paver.pos.isNearExit(0)) {
+                let tower = paver.pos.findClosestByRange(paver.room.findStructures<StructureTower>(STRUCTURE_TOWER));
+                if (tower) {
+                    tower.heal(paver.creep);
+                    return;
+                }
+            }
+            let healersInRoom = _.filter(paver.room.find<Creep>(FIND_MY_CREEPS), c => c.getActiveBodyparts(HEAL));
+            if (healersInRoom.length > 0) {
+                paver.idleOffRoad();
+                return;
+            }
+            if (paver.getActiveBodyparts(WORK) === 0) {
+                paver.travelTo(this.spawnGroup);
+                return;
+            }
+        }
 
         let hasLoad = paver.hasLoad();
         if (!hasLoad) {
