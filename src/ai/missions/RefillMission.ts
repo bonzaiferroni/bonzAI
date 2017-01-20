@@ -118,7 +118,7 @@ export class RefillMission extends Mission {
         // is near to target
         let outcome = cart.transfer(target, RESOURCE_ENERGY);
         if (outcome === OK) {
-            if (cart.carry.energy >= target.energyCapacity) {
+            if (cart.carry.energy > target.energyCapacity) {
                 cart.memory.emptyId = undefined;
                 target = this.findNearestEmpty(cart, target);
                 if (target && !cart.pos.isNearTo(target)) {
