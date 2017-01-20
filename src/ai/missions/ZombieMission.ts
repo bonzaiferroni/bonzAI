@@ -1,33 +1,31 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
-import {RaidCache} from "../../interfaces";
 import {RaidGuru} from "./RaidGuru";
-import {ZombieGuru, ZombieStatus, BOOST_AVERAGE_HITS} from "./ZombieGuru";
-import {ZombieAgent} from "./ZombieAgent";
 import {Agent} from "./Agent";
+
+enum ZombieStatus { Attack, Upgrade, Hold, Complete }
 
 export class ZombieMission extends Mission {
 
     zombies: Agent[];
-    guru: ZombieGuru;
+    guru: RaidGuru;
 
-    constructor(operation: Operation) {
+    constructor(operation: Operation, raidGuru: RaidGuru) {
         super(operation, "zombie");
+        this.guru = raidGuru;
     }
 
     initMission() {
-        this.guru = new ZombieGuru(this);
         this.guru.init(this.flag.pos.roomName, true);
     }
 
     roleCall() {
 
-        let max = () => this.guru.status === ZombieStatus.Attack ? 1 : 0;
+        let max = () => this.status === ZombieStatus.Attack ? 1 : 0;
 
         this.zombies = this.headCount2("zombie", this.getBody, max, {
-                memory: {boosts: this.guru.boost, safeCount: 0},
+                memory: {boosts: this.boost, safeCount: 0},
                 prespawn: this.memory.prespawn,
                 skipMoveToRoom: true,
                 blindSpawn: true});
@@ -41,7 +39,7 @@ export class ZombieMission extends Mission {
 
     finalizeMission() {
 
-        if (this.guru.status === ZombieStatus.Complete) {
+        if (this.status === ZombieStatus.Complete) {
             notifier.log(`ZOMBIE: mission complete in ${this.room.name}`);
             this.flag.remove();
         }
@@ -57,7 +55,7 @@ export class ZombieMission extends Mission {
 
         // retreat condition
         let threshold = 500;
-        if (this.guru.boost) {
+        if (this.boost) {
             threshold = 250;
         }
         if (!this.isFullHealth(zombie, threshold)) {
@@ -168,7 +166,7 @@ export class ZombieMission extends Mission {
         if (this.guru.expectedDamage === 0) {
             return this.workerBody(10, 0, 10);
         }
-        if (this.guru.boost) {
+        if (this.boost) {
             let healCount = Math.ceil((this.guru.expectedDamage * .3) / (HEAL_POWER * 4)); // boosting heal and tough
             let moveCount = 10;
             let rangedAttackCount = 1;
@@ -208,5 +206,38 @@ export class ZombieMission extends Mission {
         else {
             return agent.attack(target);
         }
+    }
+
+    get boost(): string[] {
+        const BOOST_AVERAGE_HITS = 2000000;
+        const BOOST_DRAIN_DAMAGE = 240;
+        if (this.guru.expectedDamage > BOOST_DRAIN_DAMAGE || this.guru.avgWallHits > BOOST_AVERAGE_HITS) {
+            return [RESOURCE_CATALYZED_GHODIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
+                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID];
+        }
+    }
+
+    get status(): ZombieStatus {
+        if (!this.guru.isInitiaized) { return; }
+        if (!this.memory.status && !this.room) return ZombieStatus.Attack;
+
+        const MAX_AVERAGE_HITS = 20000000;
+        const MAX_DRAIN_DAMAGE = 1000;
+
+        if (this.room) {
+            if (this.room.findStructures<StructureSpawn>(STRUCTURE_SPAWN).length === 0) {
+                this.memory.status = ZombieStatus.Complete;
+            }
+            else if (this.guru.expectedDamage > MAX_DRAIN_DAMAGE || this.guru.avgWallHits > MAX_AVERAGE_HITS) {
+                this.memory.status = ZombieStatus.Upgrade
+            }
+            else if (this.room.controller.safeMode) {
+                this.memory.status = ZombieStatus.Hold;
+            }
+            else {
+                this.memory.status = ZombieStatus.Attack;
+            }
+        }
+        return this.memory.status;
     }
 }

@@ -1,26 +1,26 @@
-import {Empire} from "../Empire";
 import {Operation} from "../operations/Operation";
-import {Mission} from "./Mission";
+import {SpawnGroup} from "../SpawnGroup";
 export abstract class Guru {
 
     protected flag: Flag;
-    protected room: Room;
+    protected operation: Operation;
     protected memory: any;
-    protected host: Mission | Operation;
+    protected room: Room;
+    protected spawnGroup: SpawnGroup;
 
-    constructor(host: Mission | Operation, name = "guru") {
-        this.flag = host.flag;
-        this.room = this.flag.room;
-        let hostMemory = host.memory;
-        if (!hostMemory[name]) { hostMemory[name] = {}; }
-        this.memory = hostMemory[name];
-        this.host = host;
+    constructor(operation: Operation, name: string) {
+        this.operation = operation;
+        this.flag = operation.flag;
+        this.room = operation.room;
+        this.spawnGroup = operation.spawnGroup;
+        if (!operation.memory[name]) { operation.memory[name] = {}; }
+        this.memory = operation.memory[name];
     }
 
     observeRoom(roomName: string): Room {
         let room = Game.rooms[roomName];
         if (room) return room;
-        let observer = this.host.spawnGroup.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
+        let observer = this.spawnGroup.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
         if (!observer) { return; }
         observer.observeRoom(this.flag.pos.roomName);
     }

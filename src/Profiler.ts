@@ -45,7 +45,7 @@ export class Profiler {
                 profile.total = 0;
                 profile.count = 0;
             }
-            if (Game.time - profile.lastTickTracked > 10000) {
+            if (Game.time - profile.lastTickTracked > 100) {
                 delete Memory.profiler[identifier];
             }
         }

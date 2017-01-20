@@ -219,7 +219,7 @@ export class UpgradeMission extends Mission {
             console.log(`UPGRADE: placing battery in ${this.operation.name}, outcome: ${outcome}, ${position}`);
         }
 
-        return battery
+        return battery;
     }
 
     private findBatteryPosition(spawn: StructureSpawn): RoomPosition {

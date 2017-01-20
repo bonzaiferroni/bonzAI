@@ -2,6 +2,7 @@ import {Operation} from "./Operation";
 import {Empire} from "../Empire";
 import {OperationPriority} from "../../config/constants";
 import {ZombieMission} from "../missions/ZombieMission";
+import {RaidGuru} from "../missions/RaidGuru";
 export class ZombieOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string) {
@@ -12,7 +13,9 @@ export class ZombieOperation extends Operation {
     initOperation() {
         this.spawnGroup = this.getRemoteSpawnGroup(4, 8);
         if (!this.spawnGroup) return;
-        this.addMission(new ZombieMission(this));
+        let raidGuru = new RaidGuru(this);
+        raidGuru.init(this.flag.pos.roomName, true);
+        this.addMission(new ZombieMission(this, raidGuru));
     }
 
     finalizeOperation() {

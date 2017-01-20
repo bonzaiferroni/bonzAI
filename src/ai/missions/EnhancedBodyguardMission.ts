@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Mission} from "../missions/Mission";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
+import {InvaderGuru} from "./InvaderGuru";
 export class EnhancedBodyguardMission extends Mission {
 
     squadAttackers: Agent[];
@@ -10,15 +11,16 @@ export class EnhancedBodyguardMission extends Mission {
 
     hostiles: Creep[];
     hurtCreeps: Creep[];
+    private invaderGuru: InvaderGuru;
 
-    constructor(operation: Operation, allowSpawn = true) {
+    constructor(operation: Operation, invaderGuru: InvaderGuru,  allowSpawn = true) {
         super(operation, "defense", allowSpawn);
+        this.invaderGuru = invaderGuru;
     }
 
     initMission() {
         if (!this.hasVision) return; // early
         this.hostiles = _.filter(this.room.hostiles, (hostile: Creep) => hostile.owner.username !== "Source Keeper");
-        this.trackEnergyTillInvader();
 
         if (!this.spawnGroup.room.terminal) return;
         if (this.memory.allowUnboosted === undefined) {
@@ -75,7 +77,7 @@ export class EnhancedBodyguardMission extends Mission {
         }
     };
 
-    getMaxSquads = () => this.memory.invaderProbable || this.hasVision && this.hostiles.length > 0 ? 1 : 0;
+    getMaxSquads = () => this.invaderGuru.invaderProbable || this.hasVision && this.hostiles.length > 0 ? 1 : 0;
 
     roleCall() {
         let healerMemory;
@@ -338,50 +340,6 @@ export class EnhancedBodyguardMission extends Mission {
         }
         else if (range <= 3) {
             defender.rangedHeal(hurtCreep);
-        }
-    }
-
-    public trackEnergyTillInvader() {
-        if (!this.memory.invaderTrack) {
-            this.memory.invaderTrack = {energyHarvested: 0, tickLastSeen: Game.time, energyPossible: 0, log: []};
-        }
-
-        let memory = this.memory.invaderTrack;
-
-        // filter source keepers
-        let hostiles = this.hostiles;
-
-        let harvested = 0;
-        let possible = 0;
-        let sources = this.room.find(FIND_SOURCES) as Source[];
-        for (let source of sources) {
-            if (source.ticksToRegeneration === 1) {
-                harvested += source.energyCapacity - source.energy;
-                possible += source.energyCapacity;
-            }
-        }
-
-        memory.energyHarvested += harvested;
-        memory.energyPossible += possible;
-
-        if (sources.length === 3) {
-            this.memory.invaderProbable = memory.energyHarvested > 65000;
-        }
-        else if (sources.length === 2 && Game.time - memory.tickLastSeen < 20000) {
-            this.memory.invaderProbable = memory.energyHarvested > 75000;
-        }
-        else if (sources.length === 1 && Game.time - memory.tickLastSeen < 20000) {
-            this.memory.invaderProbable = memory.energyHarvested > 90000;
-        }
-        else {
-            this.memory.invaderProbable = false;
-        }
-
-        if (hostiles.length > 0 && Game.time - memory.tickLastSeen > 1500) {
-            // reset trackers
-            memory.energyPossible = 0;
-            memory.energyHarvested = 0;
-            memory.tickLastSeen = Game.time;
         }
     }
 }

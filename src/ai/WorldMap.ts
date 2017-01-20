@@ -1,5 +1,7 @@
 import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
+import {SpawnGroup} from "./SpawnGroup";
+import {Profiler} from "../Profiler";
 export class WorldMap {
 
     public controlledRooms: {[roomName: string]: Room } = {};
@@ -26,7 +28,10 @@ export class WorldMap {
         this.activeNukes = Memory.empire.activeNukes;
     }
 
-    init() {
+    init(): {[roomName: string]: SpawnGroup } {
+
+        let spawnGroups = {};
+
         for (let roomName in Memory.rooms) {
             let memory = Memory.rooms[roomName];
             let room = Game.rooms[roomName];
@@ -36,6 +41,9 @@ export class WorldMap {
                 if (room.controller && room.controller.my) {
                     this.radar(room);
                     this.controlledRooms[roomName] = room;
+                    if (room.find(FIND_MY_SPAWNS).length > 0) {
+                        spawnGroups[roomName] = new SpawnGroup(room);
+                    }
                 }
             }
 
@@ -52,6 +60,8 @@ export class WorldMap {
                 if (room) { this.tradeRooms.push(room); }
             }
         }
+
+        return spawnGroups;
     }
 
     actions() {

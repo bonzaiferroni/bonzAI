@@ -8,6 +8,7 @@ import {BodyguardMission} from "../missions/BodyguardMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {OperationPriority} from "../../config/constants";
 import {ROOMTYPE_CORE} from "../WorldMap";
+import {InvaderGuru} from "../missions/InvaderGuru";
 export class MiningOperation extends Operation {
 
     /**
@@ -45,12 +46,14 @@ export class MiningOperation extends Operation {
         // it is not ideal to return early if no vision, but i'm having a hard time figuring out how to do
         // miningmission without vision
 
+        let invaderGuru = new InvaderGuru(this);
+        invaderGuru.init();
         // defense
         if (this.flag.room && this.flag.room.roomType === ROOMTYPE_CORE) {
-            this.addMission(new EnhancedBodyguardMission(this));
+            this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
         }
         else {
-            this.addMission(new BodyguardMission(this));
+            this.addMission(new BodyguardMission(this, invaderGuru));
         }
 
         if (!this.flag.room) return;

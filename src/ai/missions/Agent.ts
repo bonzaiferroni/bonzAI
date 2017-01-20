@@ -275,7 +275,7 @@ export class Agent {
         for (let boost of boosts) {
             if (this.memory[boost]) continue;
 
-            let requests = this.missionRoom.memory.boostRequests;
+            let requests = this.room.memory.boostRequests;
             if (!requests) {
                 this.memory[boost] = true;
                 continue;

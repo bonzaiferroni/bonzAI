@@ -137,6 +137,10 @@ export var consoleCommands = {
                         analCount++;
                         delete missionMemory["anal"];
                     }
+                    if (missionName === "bodyguard" || missionName === "defense") {
+                        delete missionMemory["invaderProbable"];
+                        delete missionMemory["invaderTrack"];
+                    }
                 }
             }
             else {

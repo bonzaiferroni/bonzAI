@@ -97,7 +97,7 @@ export abstract class ControllerOperation extends Operation {
         this.addMission(new PowerMission(this));
 
         // energy network
-        if (this.flag.room.terminal && this.flag.room.storage) {
+        if (this.flag.room.terminal && this.flag.room.storage && this.flag.room.controller.level >= 6) {
             this.addMission(new TerminalNetworkMission(this));
             this.addMission(new IgorMission(this));
         }

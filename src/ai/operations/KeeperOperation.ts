@@ -6,6 +6,7 @@ import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {GeologyMission} from "../missions/GeologyMission";
 import {LairMission} from "../missions/LairMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
+import {InvaderGuru} from "../missions/InvaderGuru";
 export class KeeperOperation extends Operation {
 
     /**
@@ -35,7 +36,8 @@ export class KeeperOperation extends Operation {
         }
 
         this.addMission(new ScoutMission(this));
-        this.addMission(new EnhancedBodyguardMission(this));
+        let invaderGuru = new InvaderGuru(this);
+        this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
         this.addMission(new LairMission(this));
 
         if (!this.hasVision) return; // early

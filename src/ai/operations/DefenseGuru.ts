@@ -1,7 +1,12 @@
 import {Guru} from "../missions/Guru";
+import {Operation} from "./Operation";
 export class DefenseGuru extends Guru {
 
     _hostiles: Creep[];
+
+    constructor(operation: Operation) {
+        super(operation, "defenseGuru")
+    }
 
     get hostiles(): Creep[] {
         if (!this._hostiles) {

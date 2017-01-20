@@ -6,6 +6,7 @@ import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
 import {Traveler} from "../Traveler";
 import {WorldMap} from "../WorldMap";
+import {Operation} from "../operations/Operation";
 export class RaidGuru extends Guru {
 
     raidRoom: Room;
@@ -15,13 +16,19 @@ export class RaidGuru extends Guru {
     cache: RaidCache;
     spawnGroup: SpawnGroup;
 
+    constructor(operation: Operation) {
+        super(operation, "raidGuru");
+    }
+
     get structures() {
         if (!this.raidRoom) return;
         return this.raidRoom.structures;
     }
 
+    get isInitiaized(): boolean { return this.cache !== undefined; }
     get fallbackPos(): RoomPosition { if (this.cache) { return helper.deserializeRoomPosition(this.cache.fallbackPos); } }
     get expectedDamage(): number { if (this.cache) { return this.cache.expectedDamage; }}
+    get avgWallHits(): number { if (this.cache) { return this.cache.avgWallHits; }}
     get matrix(): CostMatrix { if (this.cache) return PathFinder.CostMatrix.deserialize(this.cache.matrix)}
     get startTime(): number { return this.memory.startTime; }
 
@@ -29,7 +36,6 @@ export class RaidGuru extends Guru {
         this.raidRoomName = roomName;
         this.raidRoom = Game.rooms[roomName];
         this.cache = this.memory.cache;
-        this.spawnGroup = this.host.spawnGroup;
 
         if (!this.cache) {
             this.memory.cache = this.generateCache(roomName, safeEntrance);
@@ -58,6 +64,7 @@ export class RaidGuru extends Guru {
             cache.bestExit = this.findBestExit(matrix, towers, spawns);
         }
         cache.expectedDamage = this.calcExpectedDamage(towers, cache.bestExit);
+        cache.avgWallHits = this.calcAverageWallHits(walls);
         cache.fallbackPos = this.findFallback(room, cache.bestExit);
         cache.matrix = matrix.serialize();
 

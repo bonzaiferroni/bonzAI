@@ -21,7 +21,7 @@ export class SpawnGroup {
 
     constructor(room: Room) {
         this.room = room;
-        this.spawns = _.filter(this.room.find<StructureSpawn>(FIND_MY_SPAWNS), s => s.isActive());
+        this.spawns = this.room.find<StructureSpawn>(FIND_MY_SPAWNS);
         if (!this.room.memory.spawnMemory) this.room.memory.spawnMemory = {};
         this.memory = this.room.memory.spawnMemory;
         this.extensions = room.findStructures(STRUCTURE_EXTENSION) as StructureExtension[];
@@ -57,7 +57,7 @@ export class SpawnGroup {
                         "current:", this.currentSpawnEnergy, "max", this.maxSpawnEnergy);
                     }
                 }
-                else if (outcome !== ERR_NAME_EXISTS) {
+                else if (outcome !== ERR_NAME_EXISTS && outcome !== ERR_RCL_NOT_ENOUGH) {
                     console.log("SPAWN:", this.room.name, "had error spawning " + name + ", outcome: " + outcome);
                 }
                 break;

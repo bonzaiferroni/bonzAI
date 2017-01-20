@@ -1,36 +1,31 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
+import {InvaderGuru} from "./InvaderGuru";
 export class BodyguardMission extends Mission {
 
     defenders: Agent[];
     hostiles: Creep[];
 
-    memory: {
-        invaderProbable: boolean
-        invaderTrack: {
-            energyHarvested: number,
-            tickLastSeen: number,
-            energyPossible: number,
-        }
-    };
+    memory: {}
+
+    private invaderGuru: InvaderGuru;
 
     /**
      * Remote defense for non-owned rooms. If boosted invaders are likely, use EnhancedBodyguardMission
      * @param operation
+     * @param invaderGuru
      * @param allowSpawn
      */
 
-    constructor(operation: Operation, allowSpawn = true) {
+    constructor(operation: Operation, invaderGuru?: InvaderGuru, allowSpawn = true) {
         super(operation, "bodyguard", allowSpawn);
+        this.invaderGuru = invaderGuru;
     }
 
     initMission() {
         if (!this.hasVision) return; // early
         this.hostiles = this.room.hostiles;
-        if (this.operation.type === "mining") {
-            this.trackEnergyTillInvader();
-        }
     }
 
     getBody = () => {
@@ -51,7 +46,7 @@ export class BodyguardMission extends Mission {
 
     maxDefenders = () => {
         let maxDefenders = 0;
-        if (this.memory.invaderProbable) {
+        if (this.invaderGuru && this.invaderGuru.invaderProbable) {
             maxDefenders = 1;
         }
         if (this.hasVision) {
@@ -113,57 +108,6 @@ export class BodyguardMission extends Mission {
 
         if (!attacking && defender.hits < defender.hitsMax) {
             defender.heal(defender);
-        }
-    }
-
-    /**
-     * Tracks energy harvested and pre-spawns a defender when an invader becomes likely
-     */
-
-    public trackEnergyTillInvader() {
-        if (!this.memory.invaderTrack) {
-            this.memory.invaderTrack = {
-                energyHarvested: 0,
-                tickLastSeen: Game.time,
-                energyPossible: 0 };
-        }
-
-        let memory = this.memory.invaderTrack;
-
-        // filter source keepers
-        let hostiles = this.hostiles;
-
-        let harvested = 0;
-        let possible = 0;
-        let sources = this.room.find(FIND_SOURCES) as Source[];
-        for (let source of sources) {
-            if (source.ticksToRegeneration === 1) {
-                harvested += source.energyCapacity - source.energy;
-                possible += source.energyCapacity;
-            }
-        }
-
-        memory.energyHarvested += harvested;
-        memory.energyPossible += possible;
-
-        if (sources.length === 3) {
-            this.memory.invaderProbable = memory.energyHarvested > 65000;
-        }
-        else if (sources.length === 2 && Game.time - memory.tickLastSeen < 20000) {
-            this.memory.invaderProbable = memory.energyHarvested > 75000;
-        }
-        else if (sources.length === 1 && Game.time - memory.tickLastSeen < 20000) {
-            this.memory.invaderProbable = memory.energyHarvested > 90000;
-        }
-        else {
-            this.memory.invaderProbable = false;
-        }
-
-        if (hostiles.length > 0 && Game.time - memory.tickLastSeen > CREEP_LIFE_TIME) {
-            // reset trackers
-            memory.energyPossible = 0;
-            memory.energyHarvested = 0;
-            memory.tickLastSeen = Game.time;
         }
     }
 

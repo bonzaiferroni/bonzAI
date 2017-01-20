@@ -11,6 +11,7 @@ import {ClaimMission} from "../missions/ClaimMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {empire} from "../../helpers/loopHelper";
 import {TransportMission} from "../missions/TransportMission";
+import {InvaderGuru} from "../missions/InvaderGuru";
 
 
 const CONQUEST_MASON_POTENCY = 4;

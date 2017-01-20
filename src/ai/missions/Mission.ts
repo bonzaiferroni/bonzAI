@@ -34,7 +34,6 @@ export abstract class Mission {
         this.operation = operation;
         if (this.room) this.hasVision = true;
         // initialize memory to be used by this mission
-        if (!this.memory.spawn) this.memory.spawn = {};
         if (!this.memory.hc) this.memory.hc = {};
         if (operation.waypoints && operation.waypoints.length > 0) {
             this.waypoints = operation.waypoints;
@@ -663,14 +662,11 @@ export abstract class Mission {
         return this.spawnSharedAgent("paver", paverBody);
     }
 
-    protected setPrespawn(creep: Creep) {
-        this.memory.prespawn = 1500 - creep.ticksToLive;
-    }
-
     protected registerPrespawn(agent: Agent) {
         if (!agent.memory.registered) {
             agent.memory.registered = true;
-            this.memory.prespawn = CREEP_LIFE_TIME - agent.creep.ticksToLive;
+            const SANITY_CHECK = CREEP_LIFE_TIME / 2;
+            this.memory.prespawn = Math.max(CREEP_LIFE_TIME - agent.creep.ticksToLive, SANITY_CHECK);
         }
     }
 }

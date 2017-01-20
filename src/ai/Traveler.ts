@@ -171,9 +171,7 @@ export class Traveler {
                         Traveler.addCreepsToMatrix(room, matrix);
                     }
                 } else if (options.ignoreCreeps || roomName !== origin.pos.roomName) {
-                    Profiler.start("test.getStructureMatrix");
                     matrix = this.getStructureMatrix(room, options.freshMatrix);
-                    Profiler.end("test.getStructureMatrix");
                 } else {
                     matrix = this.getCreepMatrix(room);
                 }

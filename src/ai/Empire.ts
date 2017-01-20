@@ -9,7 +9,7 @@ import {BonzaiNetwork} from "./BonzaiNetwork";
 
 export class Empire {
 
-    spawnGroups: {[roomName: string]: SpawnGroup} = {};
+    spawnGroups: {[roomName: string]: SpawnGroup};
     memory: {
         errantConstructionRooms: {};
     };
@@ -36,7 +36,7 @@ export class Empire {
         this.traveler = traveler;
         this.diplomat = new BonzaiDiplomat();
         this.map = new WorldMap(this.diplomat);
-        this.map.init();
+        this.spawnGroups = this.map.init();
         this.network = new BonzaiNetwork(this.map, this.diplomat);
         this.network.init();
         this.market = new MarketTrader(this.network);
