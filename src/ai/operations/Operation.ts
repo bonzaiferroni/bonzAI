@@ -4,6 +4,7 @@ import {SpawnGroup} from "../SpawnGroup";
 import {OperationPriority} from "../../config/constants";
 import {Profiler} from "../../Profiler";
 import {empire} from "../../helpers/loopHelper";
+import {RoomHelper} from "../RoomHelper";
 
 export abstract class Operation {
 
@@ -171,50 +172,44 @@ export abstract class Operation {
     }
 
     getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
+
         // invalidated periodically
-        if (!this.memory.spawnRooms || !this.memory.nextSpawnCheck || Game.time >= this.memory.nextSpawnCheck) {
-            let closestRoomRange = Number.MAX_VALUE;
-            let roomNames = [];
-            for (let roomName of Object.keys(empire.spawnGroups)) {
-                let roomLinearDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName);
-                if (roomLinearDistance === 0) continue;
-                if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
-                let spawnGroup = empire.spawnGroups[roomName];
-                if (spawnGroup.room.controller.level < levelRequirement) continue;
-                let distance = empire.traveler.routeDistance(this.flag.pos.roomName, roomName);
-                if (distance < closestRoomRange) {
-                    closestRoomRange = distance;
-                    roomNames = [roomName];
-                }
-                else if (distance === closestRoomRange) {
-                    roomNames.push(roomName);
-                }
-            }
-            console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
-            this.memory.spawnRooms = roomNames;
-            this.memory.spawnRoom = undefined;
+        if (!this.memory.nextSpawnCheck || Game.time >= this.memory.nextSpawnCheck) {
+            let spawnGroups = _.filter(_.toArray(empire.spawnGroups),
+                spawnGroup => spawnGroup.room.controller.level >= levelRequirement
+                && spawnGroup.room.name !== this.flag.pos.roomName);
+            let bestGroups = RoomHelper.findClosest(this.flag, spawnGroups,
+                {margin: 50, linearDistanceLimit: distanceLimit});
+
+            let roomNames = _(bestGroups)
+                .sortBy(value => value.distance)
+                .map(value => value.destination.pos.roomName)
+                .value();
             if (roomNames.length > 0) {
+                this.memory.spawnRooms = roomNames;
                 this.memory.nextSpawnCheck = Game.time + 10000; // Around 10 hours
             } else {
                 this.memory.nextSpawnCheck = Game.time + 1000; // Around 1 hour
             }
+            console.log(`SPAWN: finding spawn rooms in ${this.name}, result: ${roomNames}`);
         }
 
-        if (!this.memory.spawnRoom || !this.memory.spawnAvailabilityCheck || Game.time >= this.memory.spawnAvailabilityCheck) {
-            let bestAvailable = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
+        if (this.memory.spawnRooms) {
+            let bestAvailability = 0;
+            let bestSpawnGroup;
+            for (let roomName of this.memory.spawnRooms) {
                 let spawnGroup = empire.getSpawnGroup(roomName);
-                if (spawnGroup) {
-                    return spawnGroup.averageAvailability;
+                if (!spawnGroup) { continue; }
+                if (spawnGroup.averageAvailability >= 1) { return spawnGroup; }
+                if (spawnGroup.averageAvailability > bestAvailability) {
+                    bestAvailability = spawnGroup.averageAvailability;
+                    bestSpawnGroup = spawnGroup;
                 }
-                else {
-                    _.pull(this.memory.spawnRooms, roomName);
-                }
-            }).last();
-            this.memory.spawnRoom = bestAvailable;
-            this.memory.spawnAvailabilityCheck = Game.time + 1000;
+            }
+            return bestSpawnGroup;
         }
 
-        return empire.getSpawnGroup(this.memory.spawnRoom);
+        this.memory.nextSpawnCheck = Math.max(this.memory.nextSpawnCheck, Game.time + 100); // Around 6 min
     }
 
     manualControllerBattery(id: string) {

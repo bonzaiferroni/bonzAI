@@ -9,7 +9,7 @@ export interface FindClosestOptions {
 
 export class RoomHelper {
     public static findClosest(origin: {pos: RoomPosition}, destinations: {pos: RoomPosition}[],
-                              options: FindClosestOptions = {}): {pos: RoomPosition}[] {
+                              options: FindClosestOptions = {}): {destination: {pos: RoomPosition}, distance: number}[] {
 
         if (options.linearDistanceLimit === undefined) {
             options.linearDistanceLimit = 16; // pathfinder room search limit
@@ -60,6 +60,6 @@ export class RoomHelper {
         console.log(`FINDCLOSEST: cpu: ${Game.cpu.getUsed() - totalCPU}, # considered: ${destinations.length},` +
             ` # selected ${bestDestinations.length}`);
 
-        return _.map(bestDestinations, value => value.destination);
+        return bestDestinations;
     }
 }

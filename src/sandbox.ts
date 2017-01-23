@@ -33,7 +33,7 @@ export var sandBox = {
             let destinations = _.toArray(empire.spawnGroups);
             let selected = RoomHelper.findClosest(place1, destinations, {margin: 50});
             console.log(`selected the following: `);
-            for (let destination of selected) { console.log(destination.pos)}
+            for (let value of selected) { console.log(value.destination.pos)}
         }
     }
 };
