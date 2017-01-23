@@ -104,7 +104,7 @@ export class RaidGuru extends Guru {
             let exitData = Game.map.describeExits(this.room.name);
             for (let direction in exitData) {
                 let roomName = exitData[direction];
-                let allowedRooms = empire.traveler.findAllowedRooms(this.spawnGroup.pos.roomName, roomName);
+                let allowedRooms = empire.traveler.findRoute(this.spawnGroup.pos.roomName, roomName);
                 if (allowedRooms && Object.keys(allowedRooms).length <= 8) {
                     allowedExits[direction] = true;
                 }

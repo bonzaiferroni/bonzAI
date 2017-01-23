@@ -67,8 +67,8 @@ export class Traveler {
     private creepMatrixTick: number;
     private structureMatrixTick: number;
 
-    public findAllowedRooms(origin: string, destination: string,
-                            options: TravelToOptions = {}): {[roomName: string]: boolean } {
+    public findRoute(origin: string, destination: string,
+                     options: TravelToOptions = {}): {[roomName: string]: boolean } {
         _.defaults(options, { restrictDistance: 16 });
         if (Game.map.getRoomLinearDistance(origin, destination) > options.restrictDistance) { return; }
         let allowedRooms = { [ origin ]: true, [ destination ]: true };
@@ -91,6 +91,7 @@ export class Traveler {
                         return 1;
                     }
                 }
+                // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
                 if (!options.allowSK && !Game.rooms[roomName]) {
                     if (!parsed) { parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any; }
                     let fMod = parsed[1] % 10;
@@ -121,13 +122,13 @@ export class Traveler {
         return allowedRooms;
     }
 
-    roomTravelDistance(origin: string, destination: string): number {
+    routeDistance(origin: string, destination: string): number {
         let linearDistance = Game.map.getRoomLinearDistance(origin, destination);
         if (linearDistance >= 20) {
             return linearDistance;
         }
 
-        let allowedRooms = this.findAllowedRooms(origin, destination);
+        let allowedRooms = this.findRoute(origin, destination);
         if (allowedRooms) {
             return Object.keys(allowedRooms).length;
         }
@@ -149,7 +150,7 @@ export class Traveler {
         let allowedRooms;
         if (options.useFindRoute || (options.useFindRoute === undefined &&
             Game.map.getRoomLinearDistance(origin.pos.roomName, destination.pos.roomName) > 2)) {
-            allowedRooms = this.findAllowedRooms(origin.pos.roomName, destination.pos.roomName, options);
+            allowedRooms = this.findRoute(origin.pos.roomName, destination.pos.roomName, options);
         }
 
         let callback = (roomName: string): CostMatrix | boolean => {

@@ -96,7 +96,7 @@ export class SurveyAnalyzer {
         for (let roomName of adjacentRoomNames) {
 
             let noSafePath = false;
-            let roomsInPath = empire.traveler.findAllowedRooms(this.room.name, roomName,
+            let roomsInPath = empire.traveler.findRoute(this.room.name, roomName,
                 { allowHostile: true, restrictDistance: 1 });
             if (roomsInPath) {
                 for (let roomName in roomsInPath) {

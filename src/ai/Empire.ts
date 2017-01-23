@@ -100,5 +100,18 @@ export class Empire {
             delete this.memory.errantConstructionRooms[roomName];
         }
     }
+
+    spawnFromClosest(pos: RoomPosition, body: string[], name: string) {
+        let closest: SpawnGroup;
+        let bestDistance = Number.MAX_VALUE;
+        for (let roomName in this.spawnGroups) {
+            let distance = Game.map.getRoomLinearDistance(pos.roomName, roomName);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                closest = this.spawnGroups[roomName];
+            }
+        }
+        return closest.spawn(body, name);
+    }
 }
 

@@ -463,10 +463,14 @@ export abstract class Mission {
     protected pavePath(start: {pos: RoomPosition}, finish: {pos: RoomPosition}, rangeAllowance: number, ignoreLimit = false): number {
         if (Game.time - this.memory.paveTick < 1000) return;
 
+        if (Game.map.getRoomLinearDistance(start.pos.roomName, finish.pos.roomName) > 2) {
+            console.log(`PAVER: path too long: ${start.pos.roomName} to ${finish.pos.roomName}`);
+            return;
+        }
         let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
 
         if (!path) {
-            console.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
+            // console.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
             return;
         }
 
@@ -487,6 +491,7 @@ export abstract class Mission {
         }
     }
 
+    // This path making will only be valid for an origin/destination with a roomdistance less than 3
     protected findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
         const ROAD_COST = 3;
         const PLAIN_COST = 4;
@@ -554,9 +559,6 @@ export abstract class Mission {
 
         if (!ret.incomplete) {
             return ret.path;
-        }
-        else {
-            console.log(ret.ops)
         }
     }
 

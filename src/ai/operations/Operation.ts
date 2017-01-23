@@ -181,7 +181,7 @@ export abstract class Operation {
                 if (roomLinearDistance > distanceLimit || roomLinearDistance > closestRoomRange) continue;
                 let spawnGroup = empire.spawnGroups[roomName];
                 if (spawnGroup.room.controller.level < levelRequirement) continue;
-                let distance = empire.traveler.roomTravelDistance(this.flag.pos.roomName, roomName);
+                let distance = empire.traveler.routeDistance(this.flag.pos.roomName, roomName);
                 if (distance < closestRoomRange) {
                     closestRoomRange = distance;
                     roomNames = [roomName];
@@ -191,13 +191,12 @@ export abstract class Operation {
                 }
             }
             console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
-            if (this.name === "root3") console.log("############", roomNames);
             this.memory.spawnRooms = roomNames;
             this.memory.spawnRoom = undefined;
             if (roomNames.length > 0) {
-                this.memory.nextSpawnCheck = Game.time + 10000;
+                this.memory.nextSpawnCheck = Game.time + 10000; // Around 10 hours
             } else {
-                this.memory.nextSpawnCheck = Game.time + 1000;
+                this.memory.nextSpawnCheck = Game.time + 1000; // Around 1 hour
             }
         }
 

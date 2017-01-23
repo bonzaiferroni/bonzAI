@@ -1,7 +1,6 @@
 import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
 import {SpawnGroup} from "./SpawnGroup";
-import {Profiler} from "../Profiler";
 export class WorldMap {
 
     public controlledRooms: {[roomName: string]: Room } = {};
