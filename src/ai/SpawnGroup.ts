@@ -34,7 +34,7 @@ export class SpawnGroup {
         this.pos = _.head(this.spawns).pos;
     }
 
-    spawn (build: string[], name: string, memory: any, reservation: SpawnReservation): string | number {
+    spawn (build: string[], name: string, memory?: any, reservation?: SpawnReservation): string | number {
         let outcome;
         this.isAvailable = false;
         if (reservation) {
