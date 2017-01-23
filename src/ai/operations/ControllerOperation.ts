@@ -174,9 +174,6 @@ export abstract class ControllerOperation extends Operation {
     }
 
     invalidateOperationCache() {
-        if (Math.random() < .01) {
-            this.memory.spawnRooms = undefined;
-        }
     }
 
     public nuke(x: number, y: number, roomName: string): string {

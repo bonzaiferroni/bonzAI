@@ -1,12 +1,13 @@
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
-import {DESTINATION_REACHED} from "../../config/constants";
+import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
 import {empire} from "../../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {Traveler} from "../Traveler";
+import {RoomHelper} from "../RoomHelper";
 export abstract class Mission {
 
     flag: Flag;
@@ -327,29 +328,31 @@ export abstract class Mission {
             }
         }
 
+        // invalidated periodically
+        if (!this.memory.nextStorageCheck || Game.time >= this.memory.nextStorageCheck) {
+            let bestStorages = RoomHelper.findClosest({pos: pos}, empire.network.storages,
+                {linearDistanceLimit: MAX_HARVEST_DISTANCE });
+
+            let resultPosition;
+            if (bestStorages.length > 0) {
+                let result = bestStorages[0].destination;
+                resultPosition = result.pos;
+                this.memory.storageId = result.id;
+                this.memory.nextStorageCheck = Game.time + 10000; // Around 10 hours
+            } else {
+                this.memory.nextStorageCheck = Game.time + 100; // Around 6 minutes
+            }
+            console.log(`MISSION: finding storage for ${this.operation.name}, result: ${resultPosition}`);
+        }
+
         if (this.memory.storageId) {
             let storage = Game.getObjectById<StructureStorage>(this.memory.storageId);
-            if (storage && storage.room.controller.level >= 4 && Game.map.getRoomLinearDistance(this.room.name, storage.room.name) <= 2) {
+            if (storage && storage.room.controller.level >= 4) {
                 return storage;
-            }
-            else {
-                console.log("ATTN: attempting to find better storage for", this.name, "in", this.operation.name);
+            } else {
                 this.memory.storageId = undefined;
+                this.memory.nextStorageCheck = Game.time;
                 return this.getStorage(pos);
-            }
-        }
-        else {
-            let storages = _.filter(empire.network.storages,
-                s => s.room.controller.level >= 4 && Game.map.getRoomLinearDistance(this.room.name, s.room.name) <= 2);
-            let storage = pos.findClosestByLongPath(storages) as Storage;
-            if (!storage) {
-                storage = pos.findClosestByRoomRange(storages) as Storage;
-                console.log("couldn't find storage via path, fell back to find closest by missionRoom range for", this.operation.name);
-            }
-            if (storage) {
-                console.log("ATTN: attempting to find better storage for", this.name, "in", this.operation.name);
-                this.memory.storageId = storage.id;
-                return storage;
             }
         }
     }
@@ -470,7 +473,7 @@ export abstract class Mission {
         let path = this.findPavedPath(start.pos, finish.pos, rangeAllowance);
 
         if (!path) {
-            // console.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
+            console.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${start.pos}, finish: ${finish.pos}, mission: ${this.name}`);
             return;
         }
 

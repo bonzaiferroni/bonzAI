@@ -57,8 +57,5 @@ export class KeeperOperation extends Operation {
     finalizeOperation() {
     }
     invalidateOperationCache() {
-        if (Math.random() < .01) {
-            this.memory.spawnRooms = undefined;
-        }
     }
 }

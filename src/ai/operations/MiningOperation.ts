@@ -6,7 +6,7 @@ import {GeologyMission} from "../missions/GeologyMission";
 import {ReserveMission} from "../missions/ReserveMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
-import {OperationPriority} from "../../config/constants";
+import {OperationPriority, MAX_HARVEST_DISTANCE} from "../../config/constants";
 import {ROOMTYPE_CORE} from "../WorldMap";
 import {InvaderGuru} from "../missions/InvaderGuru";
 export class MiningOperation extends Operation {
@@ -32,7 +32,7 @@ export class MiningOperation extends Operation {
                 ".setSpawnRoom(otherOpName.flag.missionRoom.name)");
             return;
         }
-        this.spawnGroup = this.getRemoteSpawnGroup(2);
+        this.spawnGroup = this.getRemoteSpawnGroup(MAX_HARVEST_DISTANCE, 4);
 
         if (!this.spawnGroup) {
             console.log("ATTN: no spawnGroup found for", this.name);
@@ -81,8 +81,5 @@ export class MiningOperation extends Operation {
     finalizeOperation() {
     }
     invalidateOperationCache() {
-        if (Math.random() < .01) {
-            this.memory.spawnRooms = undefined;
-        }
     }
 }

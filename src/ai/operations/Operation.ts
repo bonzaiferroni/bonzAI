@@ -209,7 +209,7 @@ export abstract class Operation {
             return bestSpawnGroup;
         }
 
-        this.memory.nextSpawnCheck = Math.max(this.memory.nextSpawnCheck, Game.time + 100); // Around 6 min
+        this.memory.nextSpawnCheck = Math.min(this.memory.nextSpawnCheck, Game.time + 100); // Around 6 min
     }
 
     manualControllerBattery(id: string) {

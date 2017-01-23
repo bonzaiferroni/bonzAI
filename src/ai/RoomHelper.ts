@@ -8,8 +8,8 @@ export interface FindClosestOptions {
 }
 
 export class RoomHelper {
-    public static findClosest(origin: {pos: RoomPosition}, destinations: {pos: RoomPosition}[],
-                              options: FindClosestOptions = {}): {destination: {pos: RoomPosition}, distance: number}[] {
+    public static findClosest<T extends {pos: RoomPosition}>(origin: {pos: RoomPosition}, destinations: T[],
+                              options: FindClosestOptions = {}): {destination: T, distance: number}[] {
 
         if (options.linearDistanceLimit === undefined) {
             options.linearDistanceLimit = 16; // pathfinder room search limit
@@ -26,7 +26,7 @@ export class RoomHelper {
             .sortBy( dest => Game.map.getRoomLinearDistance(origin.pos.roomName, dest.pos.roomName))
             .value();
 
-        let bestDestinations: {destination: {pos: RoomPosition}, distance: number}[] = [];
+        let bestDestinations: {destination: T, distance: number}[] = [];
         let bestLinearDistance = Number.MAX_VALUE;
         let bestDistance = Number.MAX_VALUE;
         for (let dest of filtered) {
