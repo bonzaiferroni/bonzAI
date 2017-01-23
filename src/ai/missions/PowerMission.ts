@@ -49,12 +49,12 @@ export class PowerMission extends Mission {
             distance = this.memory.currentBank.distance;
         }
 
-        this.bonnies = this.headCount2("bonnie", () => this.configBody({ move: 25, heal: 25}), () => max, {
+        this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25}), () => max, {
             prespawn: distance,
             reservation: { spawns: 2, currentEnergy: 8000 }
         });
 
-        this.clydes = this.headCount2("clyde", () => this.configBody({ move: 20, attack: 20}), () => this.bonnies.length);
+        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}), () => this.bonnies.length);
 
         let unitsPerCart = 1;
         let maxCarts = 0;
@@ -64,7 +64,7 @@ export class PowerMission extends Mission {
             unitsPerCart = Math.ceil(unitsNeeded / maxCarts);
         }
 
-        this.carts = this.headCount2("powerCart", () => this.workerBody(0, unitsPerCart * 2, unitsPerCart), () => maxCarts);
+        this.carts = this.headCount("powerCart", () => this.workerBody(0, unitsPerCart * 2, unitsPerCart), () => maxCarts);
     }
 
     missionActions() {

@@ -35,7 +35,7 @@ export class SurveyMission extends Mission {
     roleCall() {
 
 
-        this.surveyors = this.headCount2("surveyor", () => this.workerBody(0, 0, 1), this.maxSurveyors);
+        this.surveyors = this.headCount("surveyor", () => this.workerBody(0, 0, 1), this.maxSurveyors);
     }
 
     missionActions() {

@@ -38,7 +38,7 @@ export class KeeperOperation extends Operation {
         this.addMission(new ScoutMission(this));
         let invaderGuru = new InvaderGuru(this);
         this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
-        this.addMission(new LairMission(this));
+        this.addMission(new LairMission(this, invaderGuru));
 
         if (!this.hasVision) return; // early
 
@@ -60,58 +60,5 @@ export class KeeperOperation extends Operation {
         if (Math.random() < .01) {
             this.memory.spawnRooms = undefined;
         }
-    }
-
-    public buildKeeperRoads(operation: string, segments: number[] = [0, 1, 2, 3, 4]) {
-        let opFlag = Game.flags["keeper_" + operation];
-
-        _.forEach(segments, function(segment) {
-            let path = KeeperOperation.getKeeperPath(operation, segment);
-            _.forEach(path, function(p) {
-                opFlag.room.createConstructionSite(p.x, p.y, STRUCTURE_ROAD);
-            });
-        });
-    }
-
-    private static getKeeperPath(operation: string, segment: number) {
-        let A;
-        if (segment === 0) {
-            A = Game.flags["keeper_" + operation];
-        }
-        else {
-            A = Game.flags[operation + "_lair:" + (segment - 1)];
-        }
-
-        let B;
-        B = Game.flags[operation + "_lair:" + segment];
-        if (!B) {
-            B = Game.flags[operation + "_lair:0"];
-        }
-        if (!A || !B) {
-            return;
-        }
-
-        let r = Game.rooms[A.pos.roomName];
-        if (!r) {
-            return;
-        }
-
-        if (!_.isEmpty(A.pos.findInRange(FIND_SOURCES, 6))) {
-            A = A.pos.findInRange(FIND_SOURCES, 6)[0];
-        }
-
-        if (!_.isEmpty(B.pos.findInRange(FIND_SOURCES, 6))) {
-            B = B.pos.findInRange(FIND_SOURCES, 6)[0];
-        }
-
-        if (!_.isEmpty(A.pos.findInRange(FIND_MINERALS, 6))) {
-            A = A.pos.findInRange(FIND_MINERALS, 6)[0];
-        }
-
-        if (!_.isEmpty(B.pos.findInRange(FIND_MINERALS, 6))) {
-            B = B.pos.findInRange(FIND_MINERALS, 6)[0];
-        }
-
-        return A.pos.findPathTo(B.pos, {ignoreCreeps: true});
     }
 }

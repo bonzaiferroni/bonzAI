@@ -51,7 +51,7 @@ export class IgorMission extends Mission {
     }
 
     roleCall() {
-        this.igors = this.headCount2("igor", () => this.workerBody(0, 20, 10), () => 1, {
+        this.igors = this.headCount("igor", () => this.workerBody(0, 20, 10), () => 1, {
             prespawn: 50,
             memory: { idlePosition: this.memory.idlePosition }
         });

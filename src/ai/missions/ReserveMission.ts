@@ -37,8 +37,8 @@ export class ReserveMission extends Mission {
             claim: potency,
             move: potency
         });
-        this.reservers = this.headCount2("claimer", reserverBody, needReserver);
-        this.bulldozers = this.headCount2("dozer", () => this.bodyRatio(4, 0, 1, 1),
+        this.reservers = this.headCount("claimer", reserverBody, needReserver);
+        this.bulldozers = this.headCount("dozer", () => this.bodyRatio(4, 0, 1, 1),
             () => this.memory.needBulldozer ? 1 : 0);
     }
 

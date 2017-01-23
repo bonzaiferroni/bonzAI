@@ -66,7 +66,7 @@ export class TransportMission extends Mission {
         };
 
         let memory = { scavanger: this.resourceType, prep: true };
-        this.carts = this.headCount2("cart", body, ()=> this.maxCarts, {memory: memory});
+        this.carts = this.headCount("cart", body, ()=> this.maxCarts, {memory: memory});
     }
 
     missionActions() {

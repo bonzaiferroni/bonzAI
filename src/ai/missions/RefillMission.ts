@@ -40,7 +40,7 @@ export class RefillMission extends Mission {
         let emergencyMax = () => this.emergencyMode ? 1 : 0;
 
         let emergencyBody = () => { return this.workerBody(0, 4, 2); };
-        this.emergencyCarts = this.headCount2("emergency_" + this.name, emergencyBody, emergencyMax);
+        this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
 
         let cartBody = () => {
             if (this.operation.type === "flex") {
@@ -52,7 +52,7 @@ export class RefillMission extends Mission {
         };
 
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.carts = this.headCount2("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
+        this.carts = this.headCount("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
         this.memory.cartsLastTick = this.carts.length;
     }
 

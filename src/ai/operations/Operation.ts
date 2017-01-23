@@ -172,8 +172,7 @@ export abstract class Operation {
 
     getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
         // invalidated periodically
-        let refreshedRooms = false;
-        if (!this.memory.nextSpawnCheck || Game.time >= this.memory.nextSpawnCheck) {
+        if (!this.memory.spawnRooms || !this.memory.nextSpawnCheck || Game.time >= this.memory.nextSpawnCheck) {
             let closestRoomRange = Number.MAX_VALUE;
             let roomNames = [];
             for (let roomName of Object.keys(empire.spawnGroups)) {
@@ -192,8 +191,9 @@ export abstract class Operation {
                 }
             }
             console.log(`SPAWN: finding spawn rooms in ${this.name}, ${roomNames}`);
+            if (this.name === "root3") console.log("############", roomNames);
             this.memory.spawnRooms = roomNames;
-            refreshedRooms = true;
+            this.memory.spawnRoom = undefined;
             if (roomNames.length > 0) {
                 this.memory.nextSpawnCheck = Game.time + 10000;
             } else {
@@ -201,7 +201,7 @@ export abstract class Operation {
             }
         }
 
-        if (!this.memory.spawnAvailabilityCheck || Game.time >= this.memory.spawnAvailabilityCheck || refreshedRooms) {
+        if (!this.memory.spawnRoom || !this.memory.spawnAvailabilityCheck || Game.time >= this.memory.spawnAvailabilityCheck) {
             let bestAvailable = _(this.memory.spawnRooms as string[]).sortBy((roomName: string) => {
                 let spawnGroup = empire.getSpawnGroup(roomName);
                 if (spawnGroup) {

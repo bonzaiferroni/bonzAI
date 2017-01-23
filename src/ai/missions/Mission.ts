@@ -97,9 +97,17 @@ export abstract class Mission {
      * @returns {Agent[]}
      */
 
-    protected headCount2(roleName: string, getBody: () => string[], getMax: () => number,
-                         options: HeadCountOptions = {}): Agent[] {
+    protected headCount(roleName: string, getBody: () => string[], getMax: () => number,
+                        options: HeadCountOptions = {}): Agent[] {
         let agentArray = [];
+        if (!this.memory.hc[roleName]) {
+            if (roleName.indexOf("cart") > 0) {
+                this.memory.hc[roleName] = this.memory.hc.minerCart;
+            }
+            else {
+                this.memory.hc[roleName] = this.memory.hc.miner;
+            }
+        }
         if (!this.memory.hc[roleName]) this.memory.hc[roleName] = this.findOrphans(roleName);
         let creepNames = this.memory.hc[roleName] as string[];
 
@@ -321,7 +329,7 @@ export abstract class Mission {
 
         if (this.memory.storageId) {
             let storage = Game.getObjectById<StructureStorage>(this.memory.storageId);
-            if (storage && storage.room.controller.level >= 4) {
+            if (storage && storage.room.controller.level >= 4 && Game.map.getRoomLinearDistance(this.room.name, storage.room.name) <= 2) {
                 return storage;
             }
             else {
@@ -331,7 +339,8 @@ export abstract class Mission {
             }
         }
         else {
-            let storages = _.filter(empire.network.storages, s => s.room.controller.level >= 4);
+            let storages = _.filter(empire.network.storages,
+                s => s.room.controller.level >= 4 && Game.map.getRoomLinearDistance(this.room.name, s.room.name) <= 2);
             let storage = pos.findClosestByLongPath(storages) as Storage;
             if (!storage) {
                 storage = pos.findClosestByRoomRange(storages) as Storage;
@@ -367,12 +376,12 @@ export abstract class Mission {
 
     private prepAgent(agent: Agent, options: HeadCountOptions) {
         if (!agent.memory.prep) {
-            if (agent.creep.spawning) return false;
             if (options.disableNotify) {
                 this.disableNotify(agent)
             }
             let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
             if (!boosted) return false;
+            if (agent.creep.spawning) return false;
             if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
                 agent.avoidSK(this.flag);
                 return;

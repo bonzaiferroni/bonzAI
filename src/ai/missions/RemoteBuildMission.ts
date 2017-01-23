@@ -37,7 +37,7 @@ export class RemoteBuildMission extends Mission {
         if (this.memory.activateBoost || (this.room.controller && this.room.controller.my)) {
             memory = { boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID], allowUnboosted: true};
         }
-        this.builders = this.headCount2("remoteBuilder", getBody, maxBuilders, {memory: memory});
+        this.builders = this.headCount("remoteBuilder", getBody, maxBuilders, {memory: memory});
     }
 
     missionActions() {

@@ -87,9 +87,9 @@ export class EnhancedBodyguardMission extends Mission {
             healerMemory = {boosts: [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE], allowUnboosted: true};
         }
 
-        this.squadAttackers = this.headCount2("lee", this.squadAttackerBody, this.getMaxSquads,
+        this.squadAttackers = this.headCount("lee", this.squadAttackerBody, this.getMaxSquads,
             {prespawn: 50, memory: attackerMemory, skipMoveToRoom: true});
-        this.squadHealers = this.headCount2("roy", this.squadHealerBody, this.getMaxSquads,
+        this.squadHealers = this.headCount("roy", this.squadHealerBody, this.getMaxSquads,
             {prespawn: 50, memory: healerMemory, skipMoveToRoom: true});
     }
 

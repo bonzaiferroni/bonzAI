@@ -82,7 +82,7 @@ export class MiningMission extends Mission {
             prespawn = Game.map.getRoomLinearDistance(this.source.pos.roomName, this.storage.pos.roomName) * 50 + 50;
         }
 
-        this.miners = this.headCount2("miner", this.getMinerBody, this.getMaxMiners,
+        this.miners = this.headCount(this.name, this.getMinerBody, this.getMaxMiners,
             {prespawn: prespawn});
 
         if (this.memory.roadRepairIds) {
@@ -90,7 +90,7 @@ export class MiningMission extends Mission {
         }
 
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.minerCarts = this.headCount2("minerCart", this.getCartBody, this.getMaxCarts,
+        this.minerCarts = this.headCount(this.name + "cart", this.getCartBody, this.getMaxCarts,
             {prespawn: this.analysis.distance, memory: memory});
     }
 
@@ -120,6 +120,10 @@ export class MiningMission extends Mission {
                     {filter: ( (s: ConstructionSite) => s.structureType === STRUCTURE_SPAWN)})[0];
             }
             if (startingPosition) {
+                if (Game.map.getRoomLinearDistance(startingPosition.pos.roomName, this.container.pos.roomName) > 2) {
+                    console.log(`path too long for miner in ${this.operation.name}`);
+                    return;
+                }
                 let distance = this.pavePath(startingPosition, this.container, 2);
                 if (distance) {
                     this.memory.distanceToStorage = distance;

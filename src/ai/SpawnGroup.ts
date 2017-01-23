@@ -21,7 +21,8 @@ export class SpawnGroup {
 
     constructor(room: Room) {
         this.room = room;
-        this.spawns = this.room.find<StructureSpawn>(FIND_MY_SPAWNS);
+        this.spawns = _.filter(this.room.find<StructureSpawn>(FIND_MY_SPAWNS),
+            s => s.canCreateCreep([MOVE]) !== ERR_RCL_NOT_ENOUGH);
         if (!this.room.memory.spawnMemory) this.room.memory.spawnMemory = {};
         this.memory = this.room.memory.spawnMemory;
         this.extensions = room.findStructures(STRUCTURE_EXTENSION) as StructureExtension[];

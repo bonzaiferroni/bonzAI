@@ -53,8 +53,8 @@ export class DemolishMission extends Mission {
 
     roleCall() {
 
-        this.demolishers = this.headCount2("demolisher", () => this.bodyRatio(1, 0, 1, 1), this.getMaxDemolishers);
-        this.scavangers = this.headCount2("scavanger", () => this.bodyRatio(0, 1, 1, 1), this.getMaxScavengers);
+        this.demolishers = this.headCount("demolisher", () => this.bodyRatio(1, 0, 1, 1), this.getMaxDemolishers);
+        this.scavangers = this.headCount("scavanger", () => this.bodyRatio(0, 1, 1, 1), this.getMaxScavengers);
     }
 
     missionActions() {

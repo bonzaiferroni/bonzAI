@@ -73,7 +73,7 @@ export class DefenseMission extends Mission {
 
     roleCall() {
 
-        this.refillCarts = this.headCount2("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers);
+        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers);
 
         let memory = { boosts: [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
             RESOURCE_CATALYZED_UTRIUM_ACID], allowUnboosted: !this.enhancedBoost };
@@ -82,7 +82,7 @@ export class DefenseMission extends Mission {
             memory.boosts.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
         }
 
-        this.defenders = this.headCount2("defender", this.defenderBody, this.getMaxDefenders, {prespawn: 1, memory: memory});
+        this.defenders = this.headCount("defender", this.defenderBody, this.getMaxDefenders, {prespawn: 1, memory: memory});
     }
 
     missionActions() {

@@ -34,7 +34,7 @@ export class PaverMission extends Mission {
                 return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);
             }
         };
-        this.pavers = this.headCount2(this.name, body, max, {prespawn: 10} );
+        this.pavers = this.headCount(this.name, body, max, {prespawn: 10} );
     }
 
     missionActions() {

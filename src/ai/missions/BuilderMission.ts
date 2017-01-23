@@ -110,14 +110,14 @@ export class BuilderMission extends Mission {
             builderMemory = { scavanger: RESOURCE_ENERGY };
         }
 
-        this.builders = this.headCount2(this.name, this.builderBody, this.maxBuilders,
+        this.builders = this.headCount(this.name, this.builderBody, this.maxBuilders,
             {prespawn: this.memory.prespawn, memory: builderMemory });
         this.builders = _.sortBy(this.builders, (c: Creep) => c.carry.energy);
 
         let cartMemory = {
             scavanger: RESOURCE_ENERGY
         };
-        this.supplyCarts = this.headCount2(this.name + "Cart",
+        this.supplyCarts = this.headCount(this.name + "Cart",
             () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount), this.maxCarts,
             {prespawn: this.memory.prespawn, memory: cartMemory });
     }

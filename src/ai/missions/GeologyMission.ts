@@ -95,14 +95,14 @@ export class GeologyMission extends Mission {
 
     public roleCall() {
 
-        this.geologists = this.headCount2("geologist", this.geoBody, this.getMaxGeo, this.distanceToSpawn);
+        this.geologists = this.headCount("geologist", this.geoBody, this.getMaxGeo, this.distanceToSpawn);
 
-        this.carts = this.headCount2("geologyCart",
+        this.carts = this.headCount("geologyCart",
             () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount),
             this.getMaxCarts, {prespawn: this.distanceToSpawn});
 
         let maxRepairers =
-        this.repairers = this.headCount2("repairer", () => this.workerBody(5, 15, 10), this.getMaxRepairers);
+        this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), this.getMaxRepairers);
 
         if (this.memory.roadRepairIds) {
             this.paver = this.spawnPaver();

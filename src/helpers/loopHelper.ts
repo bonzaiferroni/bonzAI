@@ -164,6 +164,7 @@ export var loopHelper = {
         Memory.stats["game.cpu.tickLimit"] = Game.cpu.tickLimit;
         Memory.stats["game.cpu.bucket"] = Game.cpu.bucket;
         Memory.stats["game.cpu.used"] = Game.cpu.getUsed();
+        Memory.stats["game.cpu.perCreep"] = Game.cpu.getUsed() / Object.keys(Game.creeps).length;
     },
 
     sendResourceOrder: function(empire: Empire) {

@@ -63,7 +63,7 @@ export class BodyguardMission extends Mission {
     roleCall() {
 
 
-        this.defenders = this.headCount2("leeroy", this.getBody, this.maxDefenders, { prespawn: 50 } );
+        this.defenders = this.headCount("leeroy", this.getBody, this.maxDefenders, { prespawn: 50 } );
     }
 
     missionActions() {

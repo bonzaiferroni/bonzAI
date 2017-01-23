@@ -1,23 +1,27 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
+import {InvaderGuru} from "./InvaderGuru";
 export class LairMission extends Mission {
 
-    trappers: Agent[];
-    scavengers: Agent[];
-    lairs: StructureKeeperLair[];
-    targetLair: StructureKeeperLair;
-    storeStructure: StructureStorage | StructureContainer | StructureTerminal;
-
-    memory: {
+    public memory: {
         travelOrder: number[];
     };
 
-    constructor(operation: Operation) {
+    private trappers: Agent[];
+    private scavengers: Agent[];
+    private rangers: Agent[];
+    private lairs: StructureKeeperLair[];
+    private targetLair: StructureKeeperLair;
+    private storeStructure: StructureStorage | StructureContainer | StructureTerminal;
+    private invaderGuru: InvaderGuru;
+
+    constructor(operation: Operation, invaderGuru: InvaderGuru) {
         super(operation, "lair");
+        this.invaderGuru = invaderGuru;
     }
 
-    initMission() {
+    public initMission() {
         if (!this.hasVision) return; // early
         // should be ordered in a preferable travel order
         this.lairs = _.filter(this.room.findStructures<StructureKeeperLair>(STRUCTURE_KEEPER_LAIR),
@@ -48,24 +52,50 @@ export class LairMission extends Mission {
 
     roleCall() {
         let maxTrappers = () => this.lairs && this.lairs.length > 0 ? 1 : 0;
-        this.trappers = this.headCount2("trapper", () => this.configBody({move: 25, attack: 19, heal: 6}), maxTrappers, {
+        this.trappers = this.headCount("trapper", () => this.configBody({move: 25, attack: 19, heal: 6}), maxTrappers, {
             prespawn: this.distanceToSpawn + 100,
             skipMoveToRoom: true,
         });
 
         let maxScavengers = () => this.lairs && this.lairs.length >= 3 && this.storeStructure ? 1 : 0;
         let body = () => this.workerBody(0, 33, 17);
-        this.scavengers = this.headCount2("scavenger", body, maxScavengers, 50);
+        this.scavengers = this.headCount("scavenger", body, maxScavengers, 50);
+
+        /*
+        let rangerBody = () => this.configBody({[RANGED_ATTACK]: 30, [MOVE]: 17, [HEAL]: 3});
+        let maxRangers = () => this.invaderGuru.invaders && this.invaderGuru.invaders.length > 0 ||
+            this.invaderGuru.invaderProbable ? 1 : 0;
+
+        this.rangers = this.headCount("ranger", rangerBody, maxRangers);
+        */
     }
 
     missionActions() {
+/*
+        if (this.invaderGuru.invaders.length > 0 && this.trappers.length > 0) {
+            if (!_.find(this.trappers, t => t.memory.invaderDuty)) {
+                _.last(this.trappers).memory.invaderDuty = true;
+            }
+        }
+ */
+
+        let invaderKiller;
         for (let trapper of this.trappers) {
-            this.trapperActions(trapper);
+            if (trapper.memory.invaderDuty) {
+                invaderKiller = trapper;
+            } else {
+                this.trapperActions(trapper);
+            }
         }
 
         for (let scavenger of this.scavengers) {
             this.scavengersActions(scavenger);
         }
+/*
+        for (let ranger of this.rangers) {
+
+        }
+        */
     }
 
     finalizeMission() {

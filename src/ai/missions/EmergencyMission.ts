@@ -37,7 +37,7 @@ export class EmergencyMinerMission extends Mission {
             }
         };
 
-        this.emergencyMiners = this.headCount2("emergencyMiner", () => this.workerBody(2, 1, 1), getMaxMiners);
+        this.emergencyMiners = this.headCount("emergencyMiner", () => this.workerBody(2, 1, 1), getMaxMiners);
     }
 
     public missionActions() {

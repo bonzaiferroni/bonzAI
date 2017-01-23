@@ -85,12 +85,12 @@ export class UpgradeMission extends Mission {
 
         if (this.battery instanceof StructureContainer) {
             let analysis = this.cacheTransportAnalysis(25, this.totalPotency);
-            this.batterySupplyCarts = this.headCount2("upgraderCart",
+            this.batterySupplyCarts = this.headCount("upgraderCart",
                 () => this.workerBody(0, analysis.carryCount, analysis.moveCount),
                 () => analysis.cartsNeeded, { prespawn: this.distanceToSpawn,});
         }
 
-        this.linkUpgraders = this.headCount2("upgrader", this.linkUpgraderBody, this.getMax, {
+        this.linkUpgraders = this.headCount("upgrader", this.linkUpgraderBody, this.getMax, {
             prespawn: this.distanceToSpawn,
             memory: memory
         } );
@@ -109,7 +109,7 @@ export class UpgradeMission extends Mission {
             }
         }
         let influxCartBody = () => this.workerBody(0,25,25);
-        this.influxCarts = this.headCount2("influxCart", influxCartBody, () => maxInfluxCarts,
+        this.influxCarts = this.headCount("influxCart", influxCartBody, () => maxInfluxCarts,
             { memory: influxMemory, skipMoveToRoom: true });
     }
 

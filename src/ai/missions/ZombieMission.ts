@@ -24,7 +24,7 @@ export class ZombieMission extends Mission {
 
         let max = () => this.status === ZombieStatus.Attack ? 1 : 0;
 
-        this.zombies = this.headCount2("zombie", this.getBody, max, {
+        this.zombies = this.headCount("zombie", this.getBody, max, {
                 memory: {boosts: this.boost, safeCount: 0},
                 prespawn: this.memory.prespawn,
                 skipMoveToRoom: true,

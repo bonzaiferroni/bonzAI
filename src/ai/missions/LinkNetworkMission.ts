@@ -38,7 +38,7 @@ export class LinkNetworkMission extends Mission {
         };
         let max = () => this.storageLinks.length > 0 && this.controllerLink ? 1: 0;
         let memory = { scavanger: RESOURCE_ENERGY };
-        this.conduits = this.headCount2("conduit", conduitBody, max, {prespawn: 10, memory: memory });
+        this.conduits = this.headCount("conduit", conduitBody, max, {prespawn: 10, memory: memory });
     }
 
     missionActions() {

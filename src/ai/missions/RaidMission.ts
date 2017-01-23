@@ -70,7 +70,7 @@ export abstract class RaidMission extends Mission {
             reservation.currentEnergy = this.spawnCost;
         }
 
-        this.attacker = _.head(this.headCount2(this.name + "Attacker", this.attackerBody, max, {
+        this.attacker = _.head(this.headCount(this.name + "Attacker", this.attackerBody, max, {
             memory: {boosts: this.attackerBoosts },
             reservation: reservation
         }));
@@ -80,7 +80,7 @@ export abstract class RaidMission extends Mission {
             this.raidData.obstacles.push(this.attacker);
         }
 
-        this.healer = _.head(this.headCount2(this.name + "Healer", this.healerBody, max, {
+        this.healer = _.head(this.headCount(this.name + "Healer", this.healerBody, max, {
             memory: { boosts: this.healerBoosts }
         }));
 

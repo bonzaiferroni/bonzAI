@@ -38,12 +38,12 @@ export class MasonMission extends Mission {
             boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID];
             allowUnboosted = !(this.room.terminal && this.room.terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ACID] > 1000);
         }
-        this.masons = this.headCount2("mason", () => this.workerBody(16, 8, 12), this.maxMasons, {
+        this.masons = this.headCount("mason", () => this.workerBody(16, 8, 12), this.maxMasons, {
             boosts: boosts,
             allowUnboosted: allowUnboosted,
             prespawn: 1
         });
-        this.carts = this.headCount2("masonCart", () => this.workerBody(0, 4, 2), this.maxCarts);
+        this.carts = this.headCount("masonCart", () => this.workerBody(0, 4, 2), this.maxCarts);
     }
 
     public missionActions() {

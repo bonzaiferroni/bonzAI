@@ -3,6 +3,12 @@ import {Operation} from "../operations/Operation";
 export class InvaderGuru extends Guru {
 
     public invaders: Creep[];
+    public healers: Creep[] = [];
+    public melee: Creep[] = [];
+    public ranged: Creep[] = [];
+    public boostedHealers = 0;
+    public boostedRanged = 0;
+    public boostedMelee = 0;
 
     memory: {
         invaderProbable: boolean
@@ -20,6 +26,7 @@ export class InvaderGuru extends Guru {
     public init() {
         if (!this.room) { return; }
         this.invaders = _.filter(this.room.hostiles, c => c.owner.username === "Invader");
+        this.categorizeInvaders();
         this.trackEnergyTillInvader();
     }
 
@@ -70,6 +77,29 @@ export class InvaderGuru extends Guru {
             memory.energyPossible = 0;
             memory.energyHarvested = 0;
             memory.tickLastSeen = Game.time;
+        }
+    }
+
+    private categorizeInvaders() {
+
+
+        for (let invader of this.invaders) {
+            if (invader.partCount(HEAL) > 0) {
+                if (_.find(invader.body, b => b.boost)) {
+                    this.boostedHealers++;
+                }
+                this.healers.push(invader);
+            } else if (invader.partCount(ATTACK) > 0) {
+                if (_.find(invader.body, b => b.boost)) {
+                    this.boostedMelee++;
+                }
+                this.melee.push(invader);
+            } else if (invader.partCount(RANGED_ATTACK) > 1) {
+                if (_.find(invader.body, b => b.boost)) {
+                    this.boostedRanged++;
+                }
+                this.ranged.push(invader);
+            }
         }
     }
 }
