@@ -127,9 +127,8 @@ export class LairMission extends Mission {
             if (range > 1) {
                 trapper.travelTo(keeper);
             }
-        }
-        else {
-            trapper.travelTo(this.targetLair);
+        } else {
+            trapper.travelTo(this.targetLair, {range: 1});
         }
 
         if (!isAttacking && (trapper.hits < trapper.hitsMax || range <= 3)) {

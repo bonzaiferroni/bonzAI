@@ -62,13 +62,13 @@ export class BuilderMission extends Mission {
     }
 
     maxBuilders = () => {
-        if (this.sites.length === 0 || this.defenseGuru.hostiles.length === 0) {
+        if (this.sites.length === 0 || this.defenseGuru.hostiles.length > 0) {
             return 0;
         }
 
         let potency = this.findBuilderPotency();
         let builderCost = potency * 100 + Math.ceil(potency / 2) * 50 + 150 * potency;
-        return Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy);
+        return Math.min(Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy), 3);
     };
 
     maxCarts = () => {

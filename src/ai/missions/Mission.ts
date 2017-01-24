@@ -101,13 +101,6 @@ export abstract class Mission {
     protected headCount(roleName: string, getBody: () => string[], getMax: () => number,
                         options: HeadCountOptions = {}): Agent[] {
         let agentArray = [];
-        if (!this.memory.hc[roleName]) {
-            if (roleName.indexOf("cart") > 0) {
-                this.memory.hc[roleName] = this.memory.hc.minerCart;
-            } else {
-                this.memory.hc[roleName] = this.memory.hc.miner;
-            }
-        }
         if (!this.memory.hc[roleName]) this.memory.hc[roleName] = this.findOrphans(roleName);
         let creepNames = this.memory.hc[roleName] as string[];
 

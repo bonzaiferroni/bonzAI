@@ -35,6 +35,11 @@ export var sandBox = {
             console.log(`selected the following: `);
             for (let value of selected) { console.log(value.destination.pos)}
         }
+
+        if (Game.time % 10 === 0) {
+            console.log("cpu: " + _.round(Memory.cpu.average, 2), "perCreep: " +
+                _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2))
+        }
     }
 };
 
