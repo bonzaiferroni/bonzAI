@@ -12,14 +12,19 @@ export abstract class Operation {
     name: string;
     type: string;
     room: Room;
-    memory: any;
     priority: OperationPriority;
     hasVision: boolean;
     sources: Source[];
     mineral: Mineral;
     spawnGroup: SpawnGroup;
-    missions: {[roleName: string]: Mission};
+    remoteSpawn: {distance: number, spawnGroup: SpawnGroup};
+    missions: {[roleName: string]: Mission} = {};
     waypoints: Flag[];
+    spawnData: {
+        spawnRooms: { distance: number, roomName: string }[];
+        nextSpawnCheck: number;
+    };
+    memory: any;
 
     /**
      *
@@ -34,7 +39,8 @@ export abstract class Operation {
         this.type = type;
         this.room = flag.room;
         this.memory = flag.memory;
-        if (!this.missions) { this.missions = {}; }
+        if (!this.memory.spawnData) { this.memory.spawnData = {}; }
+        this.spawnData = this.memory.spawnData;
         // variables that require vision (null check where appropriate)
         if (this.flag.room) {
             this.hasVision = true;
@@ -171,45 +177,47 @@ export abstract class Operation {
         this.missions[mission.name] = mission;
     }
 
-    getRemoteSpawnGroup(distanceLimit = 4, levelRequirement = 1): SpawnGroup {
+    initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0) {
 
         // invalidated periodically
-        if (!this.memory.nextSpawnCheck || Game.time >= this.memory.nextSpawnCheck) {
+        if (!this.spawnData.nextSpawnCheck || Game.time >= this.spawnData.nextSpawnCheck) {
             let spawnGroups = _.filter(_.toArray(empire.spawnGroups),
                 spawnGroup => spawnGroup.room.controller.level >= levelRequirement
                 && spawnGroup.room.name !== this.flag.pos.roomName);
             let bestGroups = RoomHelper.findClosest(this.flag, spawnGroups,
-                {margin: 50, linearDistanceLimit: distanceLimit});
+                {margin: margin, linearDistanceLimit: roomDistanceLimit});
 
-            let roomNames = _(bestGroups)
-                .sortBy(value => value.distance)
-                .map(value => value.destination.pos.roomName)
-                .value();
-            if (roomNames.length > 0) {
-                this.memory.spawnRooms = roomNames;
-                this.memory.nextSpawnCheck = Game.time + 10000; // Around 10 hours
+            if (bestGroups.length > 0) {
+                bestGroups = _.sortBy(bestGroups, value => value.distance);
+                this.spawnData.spawnRooms = _.map(bestGroups, value => {
+                    return {distance: value.distance, roomName: value.destination.room.name}
+                });
+                this.spawnData.nextSpawnCheck = Game.time + 10000; // Around 10 hours
             } else {
-                this.memory.nextSpawnCheck = Game.time + 1000; // Around 1 hour
+                this.spawnData.nextSpawnCheck = Game.time + 1000; // Around 1 hour
             }
-            console.log(`SPAWN: finding spawn rooms in ${this.name}, result: ${roomNames}`);
+            console.log(`SPAWN: finding spawn rooms in ${this.name}, result: ${bestGroups.length} found`);
         }
 
-        if (this.memory.spawnRooms) {
+        if (this.spawnData.spawnRooms) {
             let bestAvailability = 0;
-            let bestSpawnGroup;
-            for (let roomName of this.memory.spawnRooms) {
-                let spawnGroup = empire.getSpawnGroup(roomName);
+            let bestSpawn: {distance: number, roomName: string };
+            for (let data of this.spawnData.spawnRooms) {
+                let spawnGroup = empire.getSpawnGroup(data.roomName);
                 if (!spawnGroup) { continue; }
-                if (spawnGroup.averageAvailability >= 1) { return spawnGroup; }
+                if (spawnGroup.averageAvailability >= 1) {
+                    bestSpawn = data;
+                    break;
+                }
                 if (spawnGroup.averageAvailability > bestAvailability) {
                     bestAvailability = spawnGroup.averageAvailability;
-                    bestSpawnGroup = spawnGroup;
+                    bestSpawn = data;
                 }
             }
-            return bestSpawnGroup;
+            if (bestSpawn) {
+                this.remoteSpawn = {distance: bestSpawn.distance, spawnGroup: empire.getSpawnGroup(bestSpawn.roomName)};
+            }
         }
-
-        this.memory.nextSpawnCheck = Math.min(this.memory.nextSpawnCheck, Game.time + 100); // Around 6 min
     }
 
     manualControllerBattery(id: string) {
@@ -233,31 +241,6 @@ export abstract class Operation {
         }
     }
 
-    setSpawnRoom(roomName: string | Operation, portalTravel = false) {
-
-        if (roomName instanceof Operation) {
-            roomName = roomName.flag.room.name;
-        }
-
-        if (!empire.getSpawnGroup(roomName)) {
-            return "SPAWN: that missionRoom doesn't appear to host a valid spawnGroup";
-        }
-
-        if (!this.waypoints || !this.waypoints[0]) {
-            if (portalTravel) {
-                return "SPAWN: please set up waypoints before setting spawn missionRoom with portal travel";
-            }
-        }
-        else {
-            this.waypoints[0].memory.portalTravel = portalTravel;
-        }
-
-        this.memory.spawnRoom = roomName;
-        _.each(this.missions, (mission) => mission.invalidateSpawnDistance());
-        return "SPAWN: spawnRoom for " + this.name + " set to " + roomName + " (map range: " +
-            Game.map.getRoomLinearDistance(this.flag.pos.roomName, roomName) + ")";
-    }
-
     setMax(missionName: string, max: number) {
         if (!this.memory[missionName]) return "SPAWN: no " + missionName + " mission in " + this.name;
         let oldValue = this.memory[missionName].max;
@@ -270,17 +253,5 @@ export abstract class Operation {
         let oldValue = this.memory[missionName].activateBoost;
         this.memory[missionName].activateBoost = activateBoost;
         return "SPAWN: " + missionName + " boost value changed from " + oldValue + " to " + activateBoost;
-    }
-
-    repair(id: string, hits: number) {
-        if (!id || !hits) return "usage: opName.repair(id, hits)";
-        if (!this.memory.mason) return "no mason available for repair instructions";
-        let object = Game.getObjectById(id);
-        if (!object) return "that object doesn't seem to exist";
-        if (!(object instanceof Structure)) return "that isn't a structure";
-        if (hits > object.hitsMax) return object.structureType + " cannot have more than " + object.hitsMax + " hits";
-        this.memory.mason.manualTargetId = id;
-        this.memory.mason.manualTargetHits = hits;
-        return "MASON: repairing " + object.structureType + " to " + hits + " hits";
     }
 }

@@ -3,6 +3,7 @@ export const DESTINATION_REACHED = -1201;
 export const CACHE_INVALIDATION_FREQUENCY = 1000;
 export const CACHE_INVALIDATION_PERIOD = 10;
 export const MAX_HARVEST_DISTANCE = 2;
+export const MAX_HARVEST_PATH = 165;
 
 export const PRIORITY_BUILD: string[] = [
     STRUCTURE_SPAWN,

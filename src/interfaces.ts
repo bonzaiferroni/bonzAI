@@ -1,6 +1,7 @@
 import {Operation} from "./ai/operations/Operation";
 import {Empire} from "./ai/Empire";
 import {Agent} from "./ai/missions/Agent";
+import {SpawnGroup} from "./ai/SpawnGroup";
 
 export interface bonzAI {
     cache: {
@@ -63,6 +64,7 @@ export interface HeadCountOptions {
     skipMoveToRoom?: boolean;
     boosts?: string[];
     allowUnboosted?: boolean;
+    altSpawnGroup?: SpawnGroup;
 }
 
 export interface SpawnReservation {

@@ -11,7 +11,13 @@ export class ZombieOperation extends Operation {
     }
 
     initOperation() {
-        this.spawnGroup = this.getRemoteSpawnGroup(4, 8);
+        this.initRemoteSpawn(4, 8);
+        if (this.remoteSpawn) {
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
+        } else {
+            return;
+        }
+
         if (!this.spawnGroup) return;
         let raidGuru = new RaidGuru(this);
         raidGuru.init(this.flag.pos.roomName, true);

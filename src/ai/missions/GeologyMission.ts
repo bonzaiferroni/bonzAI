@@ -4,6 +4,7 @@ import {Mission} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
+import {empire} from "../../helpers/loopHelper";
 export class GeologyMission extends Mission {
 
     geologists: Agent[];
@@ -263,13 +264,14 @@ export class GeologyMission extends Mission {
     }
 
     private buildContainer() {
-        if (!this.memory.containerPosition) {
-            this.memory.containerPosition = this.mineral.pos.walkablePath(this.store.pos)[0];
-        }
-        let position = helper.deserializeRoomPosition(this.memory.containerPosition);
-        if (position.lookFor(LOOK_CONSTRUCTION_SITES).length === 0 && !position.lookForStructure(STRUCTURE_CONTAINER)) {
+        if (this.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length === 0) {
+            let ret = empire.traveler.findTravelPath(this.mineral, this.store);
+            if (ret.incomplete) {
+                console.log(`MINER: bad path for finding container position ${this.flag.pos.roomName}`);
+                return;
+            }
             console.log("GEO: building container in", this.operation.name);
-            position.createConstructionSite(STRUCTURE_CONTAINER);
+            ret.path[0].createConstructionSite(STRUCTURE_CONTAINER);
         }
     }
 

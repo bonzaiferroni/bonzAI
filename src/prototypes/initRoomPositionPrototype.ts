@@ -96,60 +96,6 @@ export function initRoomPositionPrototype() {
         }
     };
 
-
-    /**
-     * Returns the nearest object to the current position based on the linear distance of rooms;
-     * @param roomObjects
-     * @returns {any}
-     */
-    RoomPosition.prototype.findClosestByRoomRange = function (roomObjects: {pos: RoomPosition}[]): {pos: RoomPosition} {
-        if (roomObjects.length === 0) return;
-        let sorted = _.sortBy(roomObjects,
-            (s: {pos: RoomPosition}) => Game.map.getRoomLinearDistance(s.pos.roomName, this.roomName));
-        return _.head(sorted);
-    };
-
-    /**
-     * Returns the nearest object to the current position, works for objects that may not be in the same missionRoom;
-     * @param roomObjects
-     * @returns {any}
-     */
-
-    RoomPosition.prototype.findClosestByLongPath = function (roomObjects: {pos: RoomPosition}[]): {pos: RoomPosition} {
-        if (roomObjects.length === 0) return;
-
-        let sorted = _.sortBy(roomObjects,
-            (s: {pos: RoomPosition}) => Game.map.getRoomLinearDistance(s.pos.roomName, this.roomName));
-
-        let closestLinearDistance = Game.map.getRoomLinearDistance(sorted[0].pos.roomName, this.roomName);
-        if (closestLinearDistance >= 5) {
-            return sorted[0];
-        }
-
-        let acceptableRange = closestLinearDistance + 1;
-        let filtered = _.filter(sorted,
-            (s: {pos: RoomPosition}) => Game.map.getRoomLinearDistance(s.pos.roomName, this.roomName) <= acceptableRange);
-
-        let bestPathLength = Number.MAX_VALUE;
-        let bestObject;
-        for (let roomObject of filtered) {
-            let results = PathFinder.search(this, { pos: roomObject.pos, range: 1 });
-            if (results.incomplete) {
-                console.log("findClosestByLongPath: object in", roomObject.pos.roomName, "was overlooked");
-                continue;
-            }
-
-            let pathLength = results.path.length;
-
-            if (pathLength < bestPathLength) {
-                bestObject = roomObject;
-                bestPathLength = pathLength;
-            }
-        }
-
-        return bestObject;
-    };
-
     /**
      * Returns all surrounding positions that are currently open
      * @param ignoreCreeps - if true, will consider positions containing a creep to be open
@@ -250,60 +196,5 @@ export function initRoomPositionPrototype() {
     RoomPosition.prototype.lookForStructure = function(structureType: string): Structure {
         let structures = this.lookFor(LOOK_STRUCTURES);
         return _.find(structures, {structureType: structureType}) as Structure;
-    };
-
-    /**
-     *
-     */
-    RoomPosition.prototype.walkablePath = function (pos: RoomPosition, ignoreRoads = false): RoomPosition[] {
-        let ret = PathFinder.search(this, { pos: pos, range: 1 }, {
-            maxOps: 3000,
-            plainCost: 2,
-            swampCost: 10,
-            roomCallback: (roomName: string) => {
-                let room = Game.rooms[roomName];
-                if (room) {
-
-                    if (!room.basicMatrix) {
-                        let costs = new PathFinder.CostMatrix();
-                        let structures = room.find<Structure>(FIND_STRUCTURES);
-                        for (let structure of structures) {
-                            if (structure instanceof StructureRoad) {
-                                if (!ignoreRoads) {
-                                    costs.set(structure.pos.x, structure.pos.y, 1);
-                                }
-                            }
-                            else if (structure instanceof StructureRampart) {
-                                if (!structure.my) {
-                                    costs.set(structure.pos.x, structure.pos.y, 0xff);
-                                }
-                            }
-                            else if (structure.structureType !== STRUCTURE_CONTAINER) {
-                                costs.set(structure.pos.x, structure.pos.y, 0xff);
-                            }
-                        }
-                        room.basicMatrix = costs;
-                    }
-
-                    return room.basicMatrix;
-                }
-            }
-        });
-        if (ret.incomplete) {
-            console.log("ERROR: roomPosition.walkablePath(pos) PathFinding was incomplete, ops:", ret.ops);
-        }
-        else {
-            return ret.path;
-        }
-    };
-
-    RoomPosition.prototype.getPathDistanceTo = function(pos: RoomPosition, ignoreRoads = false): number {
-        let path = this.walkablePath(pos, ignoreRoads);
-        if (path) {
-            return path.length;
-        }
-        else {
-            return Game.map.getRoomLinearDistance(pos.roomName, this.roomName) * 50;
-        }
     };
 }

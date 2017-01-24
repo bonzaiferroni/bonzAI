@@ -38,7 +38,12 @@ export class AutoOperation extends Operation {
 
     initOperation() {
 
-        this.spawnGroup = this.getRemoteSpawnGroup();
+        this.initRemoteSpawn(4, 8);
+        if (this.remoteSpawn) {
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
+        } else {
+            return;
+        }
         if (!this.spawnGroup) return;
         this.addMission(new ScoutMission(this));
         if (!this.flag.room) return;

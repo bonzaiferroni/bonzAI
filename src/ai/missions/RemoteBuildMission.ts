@@ -12,12 +12,13 @@ export class RemoteBuildMission extends Mission {
      * Builds construction in remote locations, can recycle self when finished
      * @param operation
      * @param recycleWhenDone - recycles creep in spawnroom if there are no available construction sites
-     * @param boost
+     * @param allowSpawn
      */
 
-    constructor(operation: Operation, recycleWhenDone: boolean) {
+    constructor(operation: Operation, recycleWhenDone: boolean, allowSpawn = true) {
         super(operation, "remoteBuild");
         this.recycleWhenDone = recycleWhenDone;
+        this.allowSpawn = allowSpawn;
     }
 
     initMission() {

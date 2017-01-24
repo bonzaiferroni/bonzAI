@@ -28,8 +28,6 @@ import {DefenseMission} from "../missions/DefenseMission";
 import {DefenseGuru} from "./DefenseGuru";
 import {empire} from "../../helpers/loopHelper";
 
-const GEO_SPAWN_COST = 5000;
-
 export abstract class ControllerOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string) {
@@ -73,16 +71,27 @@ export abstract class ControllerOperation extends Operation {
     initOperation() {
         this.autoLayout();
 
-        // scout missionRoom
         this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
+        this.initRemoteSpawn(8, 8);
+
+        let remoteSpawning = false;
         if (!this.spawnGroup) {
-            if (!this.memory.spawnRooms) { return; }
-            this.spawnGroup = this.getRemoteSpawnGroup(8);
+            remoteSpawning = true;
+
+            if (!this.remoteSpawn) {
+                console.log(`${this.name} is unable to spawn, no local or remote spawnGroup`);
+                return;
+            }
+
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
             this.addMission(new ScoutMission(this));
             this.addMission(new ClaimMission(this));
             if (!this.hasVision || this.room.controller.level === 0) return; // vision can be assumed after this point
+        }
+
+        this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
+        if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
             this.addMission(new BodyguardMission(this));
-            this.addMission(new RemoteBuildMission(this, false));
         }
 
         if (this.flag.room.findStructures(STRUCTURE_SPAWN).length > 0) {
@@ -140,37 +149,9 @@ export abstract class ControllerOperation extends Operation {
 
         // upkeep roads and walls
         this.towerRepair();
-
-        // reassign spawngroups for remote boosting
-        if (this.flag.room.controller.level < 6) {
-            if (!this.memory.spawnRooms) return;
-            let boostSpawnGroup = this.getRemoteSpawnGroup(6);
-            if (boostSpawnGroup) {
-
-                if (this.flag.room.controller.level < 3) {
-                    let bodyguard = new BodyguardMission(this);
-                    this.addMission(bodyguard);
-                    bodyguard.setSpawnGroup(boostSpawnGroup);
-                    let remoteBuilder = new RemoteBuildMission(this, false);
-                    this.addMission(remoteBuilder);
-                    remoteBuilder.setSpawnGroup(boostSpawnGroup);
-                }
-
-                if (Game.map.getRoomLinearDistance(this.flag.room.name, boostSpawnGroup.room.name) > 4) {
-                    return;
-                }
-
-                if (boostSpawnGroup.room.controller.level >= 8) {
-                    buildMission.activateBoost = true;
-                    upgradeMission.setSpawnGroup(boostSpawnGroup);
-                    buildMission.setSpawnGroup(boostSpawnGroup);
-                }
-            }
-        }
     }
 
     finalizeOperation() {
-        this.getRemoteSpawnGroup(8);
     }
 
     invalidateOperationCache() {
@@ -456,20 +437,23 @@ export abstract class ControllerOperation extends Operation {
         if (source.pos.findInRange(source.room.findStructures(STRUCTURE_LINK), 2).length > 0) return;
 
         let positions: RoomPosition[] = [];
-        for (let xDelta = -2; xDelta <= 2; xDelta++) {
-            for (let yDelta = -2; yDelta <= 2; yDelta++) {
-                if (Math.abs(xDelta) !== 2 && Math.abs(yDelta) !== 2) {
-                    continue;
-                }
-                let position = new RoomPosition(source.pos.x + xDelta, source.pos.y + yDelta, this.flag.room.name);
-                if (!position.isPassible(true)) continue;
-                if (position.findInRange(FIND_SOURCES, 2).length > 1) continue;
-                if (position.getPathDistanceTo(source.pos) > 1) continue;
-                positions.push(position);
-            }
+        let ret = empire.traveler.findTravelPath(this.room.storage, source);
+        if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.flag.pos.roomName}`); }
+        let minerPos = _.last(ret.path);
+        for (let position of minerPos.openAdjacentSpots(true)) {
+            if (!position.isPassible(true)) { continue; }
+            if (position.findInRange([this.room.controller], 3).length > 0) { continue; }
+            if (position.findInRange(FIND_SOURCES, 2).length > 1) { continue; }
+            if (position.findInRange(ret.path, 0).length > 0) {continue; }
+            positions.push(position);
         }
+        if (positions.length === 0) {
+            console.log(`LINKMINER: no suitable position for link ${this.flag.pos.roomName}`);
+        }
+
         positions = _.sortBy(positions, (p: RoomPosition) => p.getRangeTo(this.flag.room.storage));
         positions[0].createConstructionSite(STRUCTURE_LINK);
         notifier.log(`placed link ${this.flag.room.name}`);
+
     }
 }

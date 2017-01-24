@@ -1,7 +1,7 @@
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
-import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE} from "../../config/constants";
+import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
 import {empire} from "../../helpers/loopHelper";
@@ -104,8 +104,7 @@ export abstract class Mission {
         if (!this.memory.hc[roleName]) {
             if (roleName.indexOf("cart") > 0) {
                 this.memory.hc[roleName] = this.memory.hc.minerCart;
-            }
-            else {
+            } else {
                 this.memory.hc[roleName] = this.memory.hc.miner;
             }
         }
@@ -134,10 +133,15 @@ export abstract class Mission {
             }
         }
 
-        let allowSpawn = this.spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
+        let spawnGroup = this.spawnGroup;
+        if (options.altSpawnGroup) {
+            spawnGroup = options.altSpawnGroup;
+        }
+
+        let allowSpawn = spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
         if (allowSpawn && count < getMax()) {
             let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
-            let outcome = this.spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
+            let outcome = spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) { creepNames.push(creepName); }
         }
 
@@ -333,6 +337,8 @@ export abstract class Mission {
             let bestStorages = RoomHelper.findClosest({pos: pos}, empire.network.storages,
                 {linearDistanceLimit: MAX_HARVEST_DISTANCE });
 
+            bestStorages = _.filter(bestStorages, value => value.distance < MAX_HARVEST_PATH);
+
             let resultPosition;
             if (bestStorages.length > 0) {
                 let result = bestStorages[0].destination;
@@ -432,16 +438,15 @@ export abstract class Mission {
     protected findDistanceToSpawn(destination: RoomPosition): number {
         if (!this.memory.distanceToSpawn) {
             let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
-            if (roomLinearDistance === 0) {
-                let distance = this.spawnGroup.pos.getPathDistanceTo(destination);
-                if (!distance) {
+            if (roomLinearDistance <= OBSERVER_RANGE) {
+                let ret = empire.traveler.findTravelPath(this.spawnGroup, {pos: destination});
+                if (ret.incomplete) {
                     console.log(`SPAWN: error finding distance in ${this.operation.name} for object at ${destination}`);
-                    return;
+                    console.log(`fallback to linearRoomDistance`);
+                    this.memory.distanceToSpawn = roomLinearDistance * 50 + 25;
+                } else {
+                    this.memory.distanceToSpawn = ret.path.length;
                 }
-                this.memory.distanceToSpawn = distance;
-            }
-            else if (roomLinearDistance <= OBSERVER_RANGE) {
-                this.memory.distanceToSpawn = (roomLinearDistance + 1) * 50;
             }
             else {
                 console.log(`SPAWN: likely portal travel detected in ${this.operation.name}, setting distance to 200`);

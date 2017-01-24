@@ -52,7 +52,7 @@ export function initPrototypes() {
             }
         }
         else {
-            let battery = _(this.pos.findInRange(FIND_STRUCTURES, 4))
+            let battery = _(this.pos.findInRange(FIND_STRUCTURES, 3))
                 .filter((structure: Structure) => {
                 if (structureType) {
                     return structure.structureType === structureType;

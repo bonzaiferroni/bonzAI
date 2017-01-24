@@ -7,6 +7,7 @@ import {GeologyMission} from "../missions/GeologyMission";
 import {LairMission} from "../missions/LairMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
+import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 export class KeeperOperation extends Operation {
 
     /**
@@ -23,16 +24,13 @@ export class KeeperOperation extends Operation {
     }
 
     initOperation() {
-        this.findOperationWaypoints();
-        if (this.waypoints.length > 0 && !this.memory.spawnRoom) {
-            console.log("SPAWN: waypoints detected, manually set spawn missionRoom, example:", this.name +
-                ".setSpawnRoom(otherOpName.flag.missionRoom.name)");
-            return;
-        }
-        this.spawnGroup = this.getRemoteSpawnGroup();
-        if (!this.spawnGroup) {
+
+        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
+        if (this.remoteSpawn) {
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
+        } else {
             console.log("ATTN: no spawnGroup found for", this.name);
-            return; // early
+            return;
         }
 
         this.addMission(new ScoutMission(this));

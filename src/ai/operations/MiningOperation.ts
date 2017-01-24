@@ -6,7 +6,7 @@ import {GeologyMission} from "../missions/GeologyMission";
 import {ReserveMission} from "../missions/ReserveMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
-import {OperationPriority, MAX_HARVEST_DISTANCE} from "../../config/constants";
+import {OperationPriority, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {ROOMTYPE_CORE} from "../WorldMap";
 import {InvaderGuru} from "../missions/InvaderGuru";
 export class MiningOperation extends Operation {
@@ -26,25 +26,17 @@ export class MiningOperation extends Operation {
     }
 
     initOperation() {
-        this.findOperationWaypoints();
-        if (this.waypoints.length > 0 && !this.memory.spawnRoom) {
-            console.log("SPAWN: waypoints detected, manually set spawn missionRoom, example:", this.name +
-                ".setSpawnRoom(otherOpName.flag.missionRoom.name)");
-            return;
-        }
-        this.spawnGroup = this.getRemoteSpawnGroup(MAX_HARVEST_DISTANCE, 4);
 
-        if (!this.spawnGroup) {
-            console.log("ATTN: no spawnGroup found for", this.name);
-            return; // early
+        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 4, 50);
+        if (this.remoteSpawn) {
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
+        } else {
+            return;
         }
 
         if (this.spawnGroup.room.controller.level < 4) { return; }
 
         this.addMission(new ScoutMission(this));
-
-        // it is not ideal to return early if no vision, but i'm having a hard time figuring out how to do
-        // miningmission without vision
 
         let invaderGuru = new InvaderGuru(this);
         invaderGuru.init();
