@@ -208,7 +208,7 @@ export class MiningMission extends Mission {
 
             let range = cart.pos.getRangeTo(this.container);
             if (range > 3) {
-                cart.travelTo(this.container);
+                cart.travelTo(this.container, {offRoad: true});
                 return;
             }
 
@@ -228,9 +228,8 @@ export class MiningMission extends Mission {
         if (outcome === OK) {
             if (cart.creep.ticksToLive < this.analysis.distance * 2) {
                 cart.creep.suicide();
-            }
-            else {
-                cart.travelTo(this.container);
+            } else if (cart.capacityAvailable(this.container)) {
+                cart.travelTo(this.container, {offRoad: true});
             }
         }
     }
