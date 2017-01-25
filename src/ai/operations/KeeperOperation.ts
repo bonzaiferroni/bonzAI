@@ -35,6 +35,7 @@ export class KeeperOperation extends Operation {
 
         this.addMission(new ScoutMission(this));
         let invaderGuru = new InvaderGuru(this);
+        invaderGuru.init();
         this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
         this.addMission(new LairMission(this, invaderGuru));
 
