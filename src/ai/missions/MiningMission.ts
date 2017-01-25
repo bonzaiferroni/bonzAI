@@ -64,7 +64,7 @@ export class MiningMission extends Mission {
     };
 
     public getMaxCarts = () => {
-        if (!this.storage || !this.storage.isActive()) { return 0; }
+        if (!this.storage || this.storage.room.controller.level < 4) { return 0; }
         const FULL_STORAGE_THRESHOLD = STORAGE_CAPACITY - 50000;
         if (_.sum(this.storage.store) > FULL_STORAGE_THRESHOLD) { return 0; }
         if (!this.container) { return 0; }

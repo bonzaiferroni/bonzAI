@@ -24,7 +24,11 @@ export var sandBox = {
         let sandboxFlag = Game.flags["sandbox"];
         if (sandboxFlag) {
             let sandboxOp = new SandboxOperation(sandboxFlag, "sand0", "sandbox");
+            global.sand0 = sandboxOp;
             sandboxOp.init();
+            sandboxOp.roleCall();
+            sandboxOp.actions();
+            sandboxOp.finalize();
         }
 
         if (!Memory.temp.ranTest) {

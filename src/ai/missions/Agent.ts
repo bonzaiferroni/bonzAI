@@ -270,6 +270,7 @@ export class Agent {
     seekBoost(boosts: string[], allowUnboosted: boolean) {
         if (!boosts) return true;
         if (this.missionRoom.findStructures(STRUCTURE_LAB).length === 0) return true;
+        if (this.room.controller.level < 6) return true;
 
         let boosted = true;
         for (let boost of boosts) {

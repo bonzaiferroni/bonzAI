@@ -77,11 +77,7 @@ export var consoleCommands = {
             let flag = Game.flags[flagName];
             if (flag) {
                 for (let propertyName of Object.keys(flag.memory)) {
-                    if (propertyName === "swapMining") continue;
-                    if (propertyName === "powerMining") continue;
                     if (propertyName === "power") continue;
-                    if (propertyName === "spawnRoom") continue;
-                    if (propertyName === "distance") continue;
                     if (propertyName === "centerPosition") continue;
                     if (propertyName === "rotation") continue;
                     if (propertyName === "radius") continue;

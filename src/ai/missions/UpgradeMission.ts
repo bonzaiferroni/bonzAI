@@ -87,7 +87,7 @@ export class UpgradeMission extends Mission {
             let analysis = this.cacheTransportAnalysis(25, this.totalPotency);
             this.batterySupplyCarts = this.headCount("upgraderCart",
                 () => this.workerBody(0, analysis.carryCount, analysis.moveCount),
-                () => analysis.cartsNeeded, { prespawn: this.distanceToSpawn,});
+                () => Math.min(analysis.cartsNeeded, 3), { prespawn: this.distanceToSpawn,});
         }
 
         this.linkUpgraders = this.headCount("upgrader", this.linkUpgraderBody, this.getMax, {
