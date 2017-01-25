@@ -2,10 +2,13 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 import {InvaderGuru} from "./InvaderGuru";
+import {helper} from "../../helpers/helper";
+import {traveler} from "../Traveler";
 export class LairMission extends Mission {
 
     public memory: {
-        travelOrder: number[];
+        bestLairOrder: string[];
+        nextLairCheck: number;
     };
 
     private trappers: Agent[];
@@ -27,11 +30,10 @@ export class LairMission extends Mission {
         this.lairs = _.filter(this.room.findStructures<StructureKeeperLair>(STRUCTURE_KEEPER_LAIR),
             (s: Structure) => s.pos.lookFor(LOOK_FLAGS).length === 0) as StructureKeeperLair[];
 
-        if (!this.memory.travelOrder || this.memory.travelOrder.length !== this.lairs.length) {
-            // this.memory.travelOrder = this.findTravelOrder(this.lairs);
+        if (!this.memory.bestLairOrder || Game.time <= this.memory.nextLairCheck) {
+            this.memory.bestLairOrder = this.bestLairOrder();
+            this.memory.nextLairCheck = Game.time + helper.randomInterval(10000);
         }
-
-        this.distanceToSpawn = this.findDistanceToSpawn(this.flag.pos);
 
         this.assignKeepers();
         this.targetLair = this.findTargetLair();
@@ -61,23 +63,19 @@ export class LairMission extends Mission {
         let body = () => this.workerBody(0, 33, 17);
         this.scavengers = this.headCount("scavenger", body, maxScavengers, 50);
 
-        /*
         let rangerBody = () => this.configBody({[RANGED_ATTACK]: 30, [MOVE]: 17, [HEAL]: 3});
         let maxRangers = () => this.invaderGuru.invaders && this.invaderGuru.invaders.length > 0 ||
             this.invaderGuru.invaderProbable ? 1 : 0;
 
-        this.rangers = this.headCount("ranger", rangerBody, maxRangers);
-        */
+        // this.rangers = this.headCount("ranger", rangerBody, maxRangers);
     }
 
     missionActions() {
-/*
         if (this.invaderGuru.invaders.length > 0 && this.trappers.length > 0) {
             if (!_.find(this.trappers, t => t.memory.invaderDuty)) {
                 _.last(this.trappers).memory.invaderDuty = true;
             }
         }
- */
 
         let invaderKiller;
         for (let trapper of this.trappers) {
@@ -91,11 +89,6 @@ export class LairMission extends Mission {
         for (let scavenger of this.scavengers) {
             this.scavengersActions(scavenger);
         }
-/*
-        for (let ranger of this.rangers) {
-
-        }
-        */
     }
 
     finalizeMission() {
@@ -227,7 +220,38 @@ export class LairMission extends Mission {
         }
     }
 
-    private findTravelOrder(lairs: StructureKeeperLair[]) {
+    private bestLairOrder(): string[] {
+        let keeperLairs: StructureKeeperLair[] = this.room.findStructures<StructureKeeperLair>(STRUCTURE_KEEPER_LAIR);
+        let distanceBetweenLairAB: {[AtoB: string]: number} = {};
 
+        let order = 0;
+        let indices = _.map(keeperLairs, lair => order++);
+
+        console.log(`Finding best keeper path in ${this.room.name}`);
+
+        let bestPermutation: number[];
+        let bestSum = Number.MAX_VALUE;
+        for (let permutation of helper.permutator(indices)) {
+            let sum = 0;
+            for (let i = 0; i < permutation.length; i++) {
+                let indexA = permutation[i];
+                let indexB = permutation[(i + 1) % permutation.length];
+                let key = _.sortBy([indexA, indexB]).join("");
+                if (!distanceBetweenLairAB[key]) {
+                    distanceBetweenLairAB[key] = traveler.findTravelPath(keeperLairs[indexA], keeperLairs[indexB]).path.length;
+                }
+
+                sum += distanceBetweenLairAB[key];
+            }
+
+            if (sum < bestSum) {
+                console.log(`new shortest (${sum}) `, _.map(permutation,
+                    i => [keeperLairs[i].pos.x, keeperLairs[i].pos.y] + " to ").join(""));
+                bestSum = sum;
+                bestPermutation = permutation;
+            }
+        }
+
+        return _.map(bestPermutation, index => keeperLairs[index].id);
     }
 }

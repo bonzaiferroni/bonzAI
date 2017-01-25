@@ -791,4 +791,9 @@ export class Agent {
             follower.move(follower.pos.getDirectionTo(leader));
         }
     }
+
+    capacityAvailable(container: Creep|StructureContainer|StructureTerminal|StructureStorage) {
+        let norm = Agent.normalizeStore(container);
+        return _.sum(this.carry) <= norm.storeCapacity - _.sum(norm.store);
+    }
 }

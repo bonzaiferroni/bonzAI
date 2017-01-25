@@ -337,7 +337,7 @@ export abstract class Mission {
                 let result = bestStorages[0].destination;
                 resultPosition = result.pos;
                 this.memory.storageId = result.id;
-                this.memory.nextStorageCheck = Game.time + 10000; // Around 10 hours
+                this.memory.nextStorageCheck = Game.time + helper.randomInterval(10000); // Around 10 hours
             } else {
                 this.memory.nextStorageCheck = Game.time + 100; // Around 6 minutes
             }

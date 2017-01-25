@@ -5,6 +5,7 @@ import {OperationPriority} from "../../config/constants";
 import {Profiler} from "../../Profiler";
 import {empire} from "../../helpers/loopHelper";
 import {RoomHelper} from "../RoomHelper";
+import {helper} from "../../helpers/helper";
 
 export abstract class Operation {
 
@@ -192,9 +193,9 @@ export abstract class Operation {
                 this.spawnData.spawnRooms = _.map(bestGroups, value => {
                     return {distance: value.distance, roomName: value.destination.room.name}
                 });
-                this.spawnData.nextSpawnCheck = Game.time + 10000; // Around 10 hours
+                this.spawnData.nextSpawnCheck = Game.time + helper.randomInterval(10000); // Around 10 hours
             } else {
-                this.spawnData.nextSpawnCheck = Game.time + 1000; // Around 1 hour
+                this.spawnData.nextSpawnCheck = Game.time + 100; // Around 6 min
             }
             console.log(`SPAWN: finding spawn rooms in ${this.name}, result: ${bestGroups.length} found`);
         }

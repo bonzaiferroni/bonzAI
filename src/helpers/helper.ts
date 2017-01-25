@@ -215,4 +215,28 @@ export var helper = {
         return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
             (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE))
     },
+
+    permutator(inputArr): number[][] {
+        let result = [];
+
+        const permute = (arr, m = []) => {
+            if (arr.length === 0) {
+                result.push(m)
+            } else {
+                for (let i = 0; i < arr.length; i++) {
+                    let curr = arr.slice();
+                    let next = curr.splice(i, 1);
+                    permute(curr.slice(), m.concat(next))
+                }
+            }
+        };
+
+        permute(inputArr);
+
+        return result;
+    },
+
+    randomInterval(interval: number): number {
+        return interval + Math.floor((Math.random() - .5) * interval * .2);
+    }
 };
