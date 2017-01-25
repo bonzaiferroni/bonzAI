@@ -554,6 +554,11 @@ export abstract class Mission {
                     }
                 }
 
+                // avoid going too close to lairs
+                for (let lair of room.findStructures<StructureKeeperLair>(STRUCTURE_KEEPER_LAIR)) {
+                    helper.blockOffPosition(matrix, lair, 1, AVOID_COST);
+                }
+
                 return matrix;
             },
         });
