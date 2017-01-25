@@ -35,6 +35,7 @@ export interface TravelToOptions {
     maxOps?: number;
     movingTarget?: boolean;
     freshMatrix?: boolean;
+    offRoad?: boolean;
 }
 
 interface PathfinderReturn {
@@ -195,9 +196,9 @@ export class Traveler {
 
         return PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
             maxOps: options.maxOps,
-            plainCost: options.ignoreRoads ? 1 : 2,
+            plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
+            swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
-            swampCost: options.ignoreRoads ? 5 : 10,
         } );
     }
 
