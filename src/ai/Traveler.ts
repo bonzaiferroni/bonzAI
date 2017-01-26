@@ -29,7 +29,7 @@ export interface TravelToOptions {
     obstacles?: {pos: RoomPosition}[];
     roomCallback?: (roomName: string, matrix: CostMatrix) => CostMatrix | boolean;
     routeCallback?: (roomName: string) => number;
-    returnData?: { nextPos?: RoomPosition; };
+    returnData?: { nextPos: RoomPosition; };
     restrictDistance?: number;
     useFindRoute?: boolean;
     maxOps?: number;
@@ -259,6 +259,7 @@ export class Traveler {
             options.freshMatrix = true;
             delete travelData.path;
         }
+
 
         // handle case where creep wasn't traveling last tick and may have moved, but destination is still the same
         if (Game.time - travelData.tick > 1 && hasMoved) {

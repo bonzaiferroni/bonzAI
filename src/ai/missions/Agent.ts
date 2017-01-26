@@ -5,6 +5,7 @@ import {TravelToOptions, Traveler, TravelData} from "../Traveler";
 import {empire} from "../../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
+import {notifier} from "../../notifier";
 
 export class Agent {
 
@@ -386,9 +387,14 @@ export class Agent {
 
         let closest = this.pos.findClosestByRange(fleeObjects);
         let rangeToClosest = 50;
-        if (closest) { rangeToClosest = this.pos.getRangeTo(closest); }
+        if (closest) {
+            if (closest["owner"] && closest["owner"].username === "Source Keeper") {
+                fleeRange = 4;
+            }
+            rangeToClosest = this.pos.getRangeTo(closest);
+        }
 
-        if (rangeToClosest > fleeRange + 1) {
+        if (rangeToClosest > fleeRange) {
             if (!this.memory._flee) {
                 return false; // where most creeps exit function
             }
@@ -400,20 +406,15 @@ export class Agent {
                 return true;
             }
 
-            if (fleeDelay === 0) {
+            if (fleeData.delay <= 0) {
                 delete this.memory._flee;
                 return false; // safe to resume
             }
-            if (fleeData.delay === undefined) {
-                fleeData.delay = fleeDelay;
-            } else {
-                fleeData.delay--;
-            }
+            fleeData.delay--;
 
             return true;
         }
 
-        if (rangeToClosest === fleeRange + 1) { return true; } // stay put
         if (this.fatigue > 0) {
             if (closest instanceof Creep) {
                 let moveCount = this.getActiveBodyparts(MOVE);
@@ -425,7 +426,8 @@ export class Agent {
 
         if (!this.memory._flee) { this.memory._flee = {} as FleeData; }
 
-        let fleeData = this.memory._flee;
+        let fleeData = this.memory._flee as FleeData;
+        fleeData.delay = fleeDelay;
 
         if (fleeData.nextPos) {
             let position = helper.deserializeRoomPosition(fleeData.nextPos);
@@ -851,7 +853,6 @@ export class Agent {
     public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
                               options?: TravelToOptions): number {
 
-        if (follower.name === "pony4_roy_47") console.log(Game.time)
         if (leader.room !== follower.room) {
             if (leader.pos.isNearExit(0)) {
                 leader.travelTo(target);
@@ -951,5 +952,26 @@ export class Agent {
         }
 
         return false;
+    }
+
+    public isStuck() {
+        return this.memory._travel && this.memory._travel.stuck >= 2
+    }
+
+    public pushyTravelTo(destination: {pos: RoomPosition}, exclusion?: string, options: TravelToOptions = {}) {
+        if (this.isStuck()) {
+            options.returnData = {nextPos: undefined };
+            this.travelTo(destination, options);
+            if (options.returnData.nextPos) {
+                let creep = options.returnData.nextPos.lookFor<Creep>(LOOK_CREEPS)[0];
+                if (creep && creep.my && (!exclusion || creep.name.indexOf(exclusion) < 0)) {
+                    notifier.log(`pushed creep ${creep.pos}`);
+                    this.say("excuse me", true);
+                    creep.move(creep.pos.getDirectionTo(this));
+                }
+            }
+        } else {
+            this.travelTo(destination, options);
+        }
     }
 }

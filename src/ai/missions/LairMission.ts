@@ -59,13 +59,13 @@ export class LairMission extends Mission {
 
     missionActions() {
         if (this.invaderGuru.invadersPresent) {
-            let invaderKiller = this.findInvaderKiller();
+            let invaderKiller = this.findInvaderDuty();
             // if (!invaderKiller) { this.assignInvaderDuty(); }
         }
 
         for (let trapper of this.trappers) {
             if (trapper.memory.invaderDuty && this.invaderGuru.invadersPresent) {
-                this.invaderKillerActions(trapper);
+                this.invaderDutyActions(trapper);
             } else {
                 this.trapperActions(trapper);
             }
@@ -96,21 +96,21 @@ export class LairMission extends Mission {
         }
 
         let isAttacking = false;
+        let range;
         let nearestHostile = trapper.pos.findClosestByRange(this.room.hostiles) as Creep;
         if (nearestHostile && trapper.pos.isNearTo(nearestHostile)) {
             isAttacking = trapper.attack(nearestHostile) === OK;
             trapper.move(trapper.pos.getDirectionTo(nearestHostile));
-        }
-
-        let keeper = this.targetLair.keeper;
-        let range;
-        if (keeper) {
-            range = trapper.pos.getRangeTo(keeper);
-            if (range > 1) {
-                trapper.travelTo(keeper);
-            }
         } else {
-            trapper.travelTo(this.targetLair, {range: 1});
+            let keeper = this.targetLair.keeper;
+            if (keeper) {
+                range = trapper.pos.getRangeTo(keeper);
+                if (range > 1) {
+                    trapper.pushyTravelTo(keeper, "trapper");
+                }
+            } else {
+                trapper.pushyTravelTo(this.targetLair, "trapper", {range: 1});
+            }
         }
 
         if (!isAttacking && (trapper.hits < trapper.hitsMax || range <= 3)) {
@@ -277,43 +277,74 @@ export class LairMission extends Mission {
 
         if (Game.time === ranger.memory.leaderControl) { return; }
 
-        let hitAndRun = this.rangerTactic(ranger);
-        if (hitAndRun) {
-            let chasers = _.filter(this.invaderGuru.invaders,
-                hostileAgent => hostileAgent.potentials[RANGED_ATTACK] > 0);
-            ranger.retreat(chasers);
+        let tactic = this.rangerTactic(ranger);
+
+        // charge
+        if (tactic === RangerTactic.Charge) {
+            let bestTarget = _(this.invaderGuru.invaders)
+                .filter(hostileAgent => hostileAgent.potentials[HEAL] > 0)
+                .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(ranger))
+                .head();
+            if (!bestTarget) {
+                bestTarget = _(this.invaderGuru.invaders)
+                    .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(ranger))
+                    .head();
+            }
+
+            let movingTarget = false;
+            if (ranger.room !== this.room) {
+                movingTarget = true;
+            }
+            ranger.travelTo(bestTarget, {range: 0, movingTarget: movingTarget});
             return;
-        } else {
-            // ranger.travelTo()
+        }
+
+
+        let chasers = _.filter(this.invaderGuru.invaders,
+            hostileAgent => hostileAgent.potentials[RANGED_ATTACK] > 0);
+        if (tactic === RangerTactic.Retreat) {
+            ranger.fleeByPath(chasers, 5, 5);
+        } else if (tactic === RangerTactic.HitAndRun) {
+            ranger.fleeByPath(chasers, 2, 0);
         }
     }
 
-    private findInvaderKiller(): Agent {
+    private findInvaderDuty(): Agent {
         return _.find(this.trappers, t => t.memory.invaderDuty);
     }
 
-    private invaderKillerActions(trapper: Agent) {
+    private invaderDutyActions(trapper: Agent) {
         let ranger = trapper.pos.findClosestByRange(this.rangers);
         if (!ranger) {
-            this.soloKillerActions(trapper);
+            this.soloDutyActions(trapper);
             return;
         }
-    }
 
-    private soloKillerActions(trapper: Agent) {
 
     }
 
-    private rangerTactic(ranger: Agent) {
+    private soloDutyActions(trapper: Agent) {
+        let fleeing = trapper.fleeByPath(this.invaderGuru.invaders, 10, 5);
+        if (!fleeing) {
+            this.trapperActions(trapper);
+        }
+    }
+
+
+    private rangerTactic(ranger: Agent): RangerTactic {
         let healPotential = ranger.getActiveBodyparts(HEAL) * 12;
         if (ranger.hits < ranger.hitsMax - healPotential) {
-            return true;
+            return RangerTactic.Retreat;
         }
 
-        let expectedDamage = _.sum(ranger.pos.findInRange(this.invaderGuru.invaders, 4),
+        let expectedDamage = _.sum(ranger.pos.findInRange(this.invaderGuru.invaders, 5),
             hostileAgent => hostileAgent.potentials[RANGED_ATTACK]);
         if (expectedDamage > healPotential) {
-            return true;
+            return RangerTactic.HitAndRun;
+        } else {
+            return RangerTactic.Charge;
         }
     }
 }
+
+enum RangerTactic { Retreat, HitAndRun, Charge }

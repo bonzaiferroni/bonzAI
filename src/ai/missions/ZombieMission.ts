@@ -85,7 +85,7 @@ export class ZombieMission extends Mission {
 
         let destination = this.findDestination(zombie);
 
-        let returnData: {nextPos?: RoomPosition} = {};
+        let returnData: {nextPos: RoomPosition} = { nextPos: undefined };
         this.moveZombie(zombie, destination, zombie.memory.demolishing, returnData);
         zombie.memory.demolishing = false;
         if (zombie.pos.roomName === this.room.name && !zombie.pos.isNearExit(0)) {
@@ -101,7 +101,7 @@ export class ZombieMission extends Mission {
     }
 
     private moveZombie(agent: Agent, destination: {pos: RoomPosition}, demolishing: boolean,
-               returnData: {nextPos?: RoomPosition}): number | RoomPosition {
+               returnData: {nextPos: RoomPosition}): number | RoomPosition {
 
         let roomCallback = (roomName: string) => {
             if (roomName === this.guru.raidRoomName) {

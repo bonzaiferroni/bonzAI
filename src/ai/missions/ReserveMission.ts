@@ -129,7 +129,7 @@ export class ReserveMission extends Mission {
         }
         else {
             if (dozer.room === this.room) {
-                let returnData: {nextPos?: RoomPosition} = {};
+                let returnData: {nextPos: RoomPosition} = {nextPos: undefined};
                 dozer.travelTo(this.room.controller, {
                     ignoreStructures: true,
                     ignoreStuck: true,
