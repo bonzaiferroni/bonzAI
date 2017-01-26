@@ -253,7 +253,7 @@ export abstract class RaidMission extends Mission {
 
         if (this.attacker.pos.isNearTo(this.healer)) {
             if (this.attacker.pos.inRangeTo(roomObject, 2)) {
-                this.healer.fleeByPath(roomObject);
+                this.healer.retreat([roomObject]);
                 this.attacker.move(this.attacker.pos.getDirectionTo(this.healer));
             }
         }
@@ -400,7 +400,7 @@ export abstract class RaidMission extends Mission {
                     this.attacker.attack(closest);
                     this.attacker.rangedAttack(closest);
                     if (range < this.attackRange) {
-                        this.attacker.fleeByPath(closest);
+                        this.attacker.retreat([closest]);
                     }
                 }
                 else {

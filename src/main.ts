@@ -40,6 +40,7 @@ module.exports.loop = function () {
     try { loopHelper.sendResourceOrder(empire); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
     try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
+    try { loopHelper.garbageCollection(); } catch (e) { console.log("error during garbage collection:\n", e.stack ); }
     Profiler.end("postOperations");
     try { Profiler.finalize(); } catch (e) { console.log("error checking Profiler:\n", e.stack); }
     try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }

@@ -238,7 +238,7 @@ export class EnhancedBodyguardMission extends Mission {
                 healer.heal(healer);
             }
             else {
-                this.healHurtCreeps(healer);
+                this.medicActions(healer);
             }
             return;
         }
@@ -279,67 +279,6 @@ export class EnhancedBodyguardMission extends Mission {
         }
         else if (healer.hits < healer.hitsMax) {
             healer.heal(healer);
-        }
-    }
-
-    private findHurtCreep(defender: Agent) {
-        if (!this.room) return;
-
-        if (defender.memory.healId) {
-            let creep = Game.getObjectById(defender.memory.healId) as Creep;
-            if (creep && creep.room.name === defender.room.name && creep.hits < creep.hitsMax) {
-                return creep;
-            }
-            else {
-                defender.memory.healId = undefined;
-                return this.findHurtCreep(defender);
-            }
-        }
-        else if (!defender.memory.healCheck || Game.time - defender.memory.healCheck > 25) {
-            defender.memory.healCheck = Game.time;
-            if (!this.hurtCreeps || this.hurtCreeps.length === 0) {
-                this.hurtCreeps = this.room.find(FIND_MY_CREEPS, {filter: (c: Creep) => {
-                    return c.hits < c.hitsMax && c.ticksToLive > 100 && c.partCount(WORK) > 0;
-                }}) as Creep[];
-            }
-            if (this.hurtCreeps.length === 0) {
-                this.hurtCreeps = this.room.find(FIND_MY_CREEPS, {filter: (c: Creep) => {
-                    return c.hits < c.hitsMax && c.ticksToLive > 100 && c.partCount(CARRY) > 0 && c.carry.energy === 0;
-                }}) as Creep[];
-            }
-
-            if (this.hurtCreeps.length > 0) {
-                let closest = defender.pos.findClosestByRange(this.hurtCreeps);
-                if (closest) {
-                    this.hurtCreeps = _.pull(this.hurtCreeps, closest);
-                    defender.memory.healId = closest.id;
-                    return closest;
-                }
-            }
-        }
-    }
-
-    private healHurtCreeps(defender: Agent) {
-        let hurtCreep = this.findHurtCreep(defender);
-        if (!hurtCreep) {
-            defender.idleNear(this.flag);
-            return;
-        }
-
-        // move to creep
-        let range = defender.pos.getRangeTo(hurtCreep);
-        if (range > 1) {
-            defender.travelTo(hurtCreep);
-        }
-        else {
-            defender.yieldRoad(hurtCreep);
-        }
-
-        if (range === 1) {
-            defender.heal(hurtCreep);
-        }
-        else if (range <= 3) {
-            defender.rangedHeal(hurtCreep);
         }
     }
 }

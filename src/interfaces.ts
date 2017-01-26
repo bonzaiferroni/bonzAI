@@ -145,9 +145,8 @@ export interface BankData {
     timeout: number;
 }
 
-export interface AllowedRoomsOptions {
-    preferHighway?: boolean;
-    allowHostile?: boolean;
-    allowSK?: boolean;
-    restrictDistance?: number;
+export interface FleeData {
+    path: string;
+    nextPos: RoomPosition;
+    delay: number;
 }

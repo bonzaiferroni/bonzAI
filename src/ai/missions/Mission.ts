@@ -686,4 +686,55 @@ export abstract class Mission {
             this.memory.prespawn = Math.max(CREEP_LIFE_TIME - agent.creep.ticksToLive, SANITY_CHECK);
         }
     }
+
+    protected medicActions(defender: Agent) {
+        let hurtCreep = this.findHurtCreep(defender);
+        if (!hurtCreep) {
+            defender.idleNear(this.flag, 12);
+            return;
+        }
+
+        // move to creep
+        let range = defender.pos.getRangeTo(hurtCreep);
+        if (range > 1) {
+            defender.travelTo(hurtCreep, {movingTarget: true});
+        }
+        else {
+            defender.yieldRoad(hurtCreep, true);
+        }
+
+        if (range === 1) {
+            defender.heal(hurtCreep);
+        }
+        else if (range <= 3) {
+            defender.rangedHeal(hurtCreep);
+        }
+    }
+
+    private findHurtCreep(defender: Agent) {
+        if (!this.room) return;
+
+        if (defender.memory.healId) {
+            let creep = Game.getObjectById(defender.memory.healId) as Creep;
+            if (creep && creep.room.name === defender.room.name && creep.hits < creep.hitsMax) {
+                return creep;
+            }
+            else {
+                defender.memory.healId = undefined;
+                return this.findHurtCreep(defender);
+            }
+        }
+        else if (!defender.memory.healCheck || Game.time - defender.memory.healCheck > 25) {
+            defender.memory.healCheck = Game.time;
+            let hurtCreep = _(this.room.find<Creep>(FIND_MY_CREEPS))
+                .filter((c: Creep) => c.hits < c.hitsMax && c.ticksToLive > 100)
+                .sortBy((c: Creep) => -c.partCount(WORK))
+                .head();
+
+            if (hurtCreep) {
+                defender.memory.healId = hurtCreep.id;
+                return hurtCreep;
+            }
+        }
+    }
 }

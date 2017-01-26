@@ -97,6 +97,7 @@ export var loopHelper = {
                 history: [],
                 average: Game.cpu.getUsed(),
             },
+            hostileMemory: {}
         });
     },
 
@@ -218,4 +219,16 @@ export var loopHelper = {
         global.note = notifier;
         global.helper = helper;
     },
+
+    garbageCollection: function() {
+
+        if (Game.time < Memory.nextGC) { return; }
+
+        for (let id in Memory.hostileMemory) {
+            let creep = Game.getObjectById<Creep>(id);
+            if (!creep) { delete Memory.hostileMemory[id]; }
+        }
+
+        Memory.nextGC = Game.time += helper.randomInterval(100);
+    }
 };

@@ -588,7 +588,7 @@ export class RaidOperation extends Operation {
             let matrix = new PathFinder.CostMatrix();
             let walls: Structure[] = [];
             walls.concat(attackRoom.findStructures<StructureWall>(STRUCTURE_WALL));
-            walls.concat(attackRoom.findStructures<StructureRampart>(STRUCTURE_RAMPART));
+            walls.concat(attackRoom.findStructures<Structure>(STRUCTURE_RAMPART));
             let maxHits = 0;
             for (let wall of walls) { if (wall.hits > maxHits) { maxHits = wall.hits; } }
             for (let wall of walls) {

@@ -68,6 +68,18 @@ class SandboxMission extends Mission {
     }
 
     missionActions() {
+        this.squadTravelTest();
+        this.fleeByPathTest();
+    }
+
+    finalizeMission() {
+    }
+
+    invalidateMissionCache() {
+    }
+
+
+    squadTravelTest() {
         let leaderCreep = Game.creeps["leader"];
         let leader;
         if (leaderCreep) {
@@ -89,10 +101,21 @@ class SandboxMission extends Mission {
         Agent.squadTravel(leader, follower, this.flag);
     }
 
-    finalizeMission() {
-    }
+    private fleeByPathTest() {
+        let fleeFlag = Game.flags["fleeFlag"];
+        if (!fleeFlag) { return; }
 
-    invalidateMissionCache() {
-    }
+        let fleeCreep = Game.creeps["fleeCreep"];
+        if (!fleeCreep) {
+            empire.spawnFromClosest(fleeFlag.pos, [MOVE], "fleeCreep");
+            return;
+        }
 
+        let agent = new Agent(fleeCreep, this);
+        fleeFlag["id"] = "scaryGuy";
+        let fleeing = agent.fleeByPath([fleeFlag as any], 6, 3);
+        if (!fleeing) {
+            agent.travelTo(fleeFlag);
+        }
+    }
 }

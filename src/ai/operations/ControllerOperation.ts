@@ -434,7 +434,7 @@ export abstract class ControllerOperation extends Operation {
 
     private placeLink(source: Source) {
         if (source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) return;
-        if (source.pos.findInRange(source.room.findStructures(STRUCTURE_LINK), 2).length > 0) return;
+        if (source.pos.findInRange(source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) return;
 
         let positions: RoomPosition[] = [];
         let ret = empire.traveler.findTravelPath(this.room.storage, source);

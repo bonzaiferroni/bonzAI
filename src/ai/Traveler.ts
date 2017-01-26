@@ -298,7 +298,7 @@ export class Traveler {
                     `origin: ${creep.pos}, dest: ${destination.pos}`);
             }
             if (ret.incomplete) {
-                console.log(`TRAVELER: incomplete path for ${creep.name}`);
+                // console.log(`TRAVELER: incomplete path for ${creep.name}`);
                 if (ret.ops < 2000 && options.useFindRoute === undefined && travelData.stuck < DEFAULT_STUCK_VALUE) {
                     options.useFindRoute = false;
                     ret = this.findTravelPath(creep, destination, options);
@@ -379,16 +379,19 @@ export class Traveler {
     }
 
     public static addStructuresToMatrix(room: Room, matrix: CostMatrix, roadCost: number): CostMatrix {
+
+        let impassibleStructures: Structure[] = [];
         for (let structure of room.find<Structure>(FIND_STRUCTURES)) {
             if (structure instanceof StructureRampart) {
                 if (!structure.my) {
-                    matrix.set(structure.pos.x, structure.pos.y, 0xff);
+                    impassibleStructures.push(structure);
                 }
             } else if (structure instanceof StructureRoad) {
                 matrix.set(structure.pos.x, structure.pos.y, roadCost);
-            } else if (structure.structureType !== STRUCTURE_CONTAINER) {
-                // Can't walk through non-walkable buildings
-                matrix.set(structure.pos.x, structure.pos.y, 0xff);
+            } else if (structure instanceof StructureContainer) {
+                matrix.set(structure.pos.x, structure.pos.y, 5);
+            } else {
+                impassibleStructures.push(structure);
             }
         }
 
@@ -396,6 +399,11 @@ export class Traveler {
             if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD) { continue; }
             matrix.set(site.pos.x, site.pos.y, 0xff);
         }
+
+        for (let structure of impassibleStructures) {
+            matrix.set(structure.pos.x, structure.pos.y, 0xff);
+        }
+
         return matrix;
     }
 

@@ -1,5 +1,6 @@
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
+
 export abstract class Guru {
 
     protected flag: Flag;

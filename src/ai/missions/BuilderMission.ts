@@ -11,7 +11,7 @@ export class BuilderMission extends Mission {
     supplyCarts: Agent[];
     sites: ConstructionSite[];
     prioritySites: ConstructionSite[];
-    walls: StructureRampart[];
+    walls: Structure[];
     remoteSpawn: boolean;
     activateBoost: boolean;
     defenseGuru: DefenseGuru;
@@ -232,12 +232,12 @@ export class BuilderMission extends Mission {
             if (!this.walls) {
                 this.walls = _(this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)))
                     .sortBy("hits")
-                    .value() as StructureRampart[];
+                    .value() as Structure[];
             }
             let lowest = this.walls[0];
             _.pull(this.walls, lowest);
             if (builder.memory.emergencyRepairId) {
-                let structure = Game.getObjectById(builder.memory.emergencyRepairId) as StructureRampart;
+                let structure = Game.getObjectById(builder.memory.emergencyRepairId) as Structure;
                 if (structure && !builder.pos.inRangeTo(lowest, 3)) {
                     return structure;
                 }

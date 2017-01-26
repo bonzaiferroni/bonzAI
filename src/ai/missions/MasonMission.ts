@@ -151,7 +151,7 @@ export class MasonMission extends Mission {
             }
             else {
                 const MIN_RAMPART_HITS = 50000000;
-                let lowestRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)).sortBy("hits").head();
+                let lowestRampart = _(this.room.findStructures<Structure>(STRUCTURE_RAMPART)).sortBy("hits").head();
                 this.memory.needMason = lowestRampart && lowestRampart.hits < MIN_RAMPART_HITS;
             }
         }
@@ -199,7 +199,7 @@ export class MasonMission extends Mission {
         let topBound = 50;
         let bottomBound = 0;
         let wallRamparts = [];
-        for (let rampart of this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)) {
+        for (let rampart of this.room.findStructures<Structure>(STRUCTURE_RAMPART)) {
             if (rampart.pos.lookForStructure(STRUCTURE_ROAD)) continue;
             if (rampart.pos.lookForStructure(STRUCTURE_EXTENSION)) continue;
             wallRamparts.push(rampart);
@@ -225,24 +225,24 @@ export class MasonMission extends Mission {
         return sandbags;
     }
 
-    getRampart(agent: Agent): StructureRampart {
+    getRampart(agent: Agent): Structure {
         let findRampart = () => {
             let lowestHits = 100000;
-            let lowestRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)).sortBy("hits").head();
+            let lowestRampart = _(this.room.findStructures<Structure>(STRUCTURE_RAMPART)).sortBy("hits").head();
             if (lowestRampart) {
                 lowestHits = lowestRampart.hits;
             }
-            let myRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART))
-                .filter((s: StructureRampart) => s.hits < lowestHits + 100000)
-                .sortBy((s: StructureRampart) => agent.pos.getRangeTo(s))
+            let myRampart = _(this.room.findStructures<Structure>(STRUCTURE_RAMPART))
+                .filter((s: Structure) => s.hits < lowestHits + 100000)
+                .sortBy((s: Structure) => agent.pos.getRangeTo(s))
                 .head();
             if (myRampart) return myRampart;
         };
         let forgetRampart = (s: Structure) => agent.creep.ticksToLive % 500 === 0;
-        return agent.rememberStructure(findRampart, forgetRampart, "rampartId") as StructureRampart;
+        return agent.rememberStructure(findRampart, forgetRampart, "rampartId") as Structure;
     }
 
-    getExtension(agent: Agent, rampart: StructureRampart): StructureExtension | StructureStorage {
+    getExtension(agent: Agent, rampart: Structure): StructureExtension | StructureStorage {
         let fullExtensions = _.filter(this.room.findStructures<StructureExtension>(STRUCTURE_EXTENSION),
             (e: StructureExtension) => e.energy > 0);
         let extension = rampart.pos.findClosestByRange<StructureExtension>(fullExtensions);

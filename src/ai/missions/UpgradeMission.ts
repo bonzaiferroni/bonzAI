@@ -361,7 +361,7 @@ export class UpgradeMission extends Mission {
 
             if (this.battery instanceof StructureLink && this.room.storage) {
                 let cooldown = this.battery.pos.getRangeTo(this.room.storage) + 3;
-                let linkCount = this.room.storage.pos.findInRange(this.room.findStructures(STRUCTURE_LINK), 2).length;
+                let linkCount = this.room.storage.pos.findInRange(this.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length;
                 return Math.min(Math.floor(((LINK_CAPACITY * .97) * linkCount) / cooldown), storageCapacity);
             }
             else if (this.battery instanceof StructureContainer) {

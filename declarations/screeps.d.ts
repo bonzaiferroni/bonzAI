@@ -1564,7 +1564,10 @@ declare class RoomPosition {
      * @param range The range distance.
      * @param opts See Room.find.
      */
-    findInRange<T>(objects: T[] | RoomPosition[], range: number, opts?: {
+    findInRange(objects: RoomPosition[], range: number, opts?: {
+        filter?: any | string;
+    }): RoomPosition[];
+    findInRange<T extends {pos: RoomPosition}>(objects: T[], range: number, opts?: {
         filter?: any | string;
     }): T[];
     /**

@@ -22,7 +22,7 @@ interface Room {
     getAltBattery(roomObject?: RoomObject): StructureContainer | Creep;
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
-    fleeObjects: RoomObject[];
+    fleeObjects: (Creep|Structure)[];
     coords: RoomCoord;
     roomType: number;
     _defaultMatrix: CostMatrix;
@@ -99,12 +99,18 @@ interface Memory {
         message: string,
     }[];
     roomAttacks: any;
-    powerObservers: {[scanningRoomName: string]: {[roomName: string]: number}}
+    powerObservers: {[scanningRoomName: string]: {[roomName: string]: number}};
     cpu: {
         history: number[];
         average: number;
-    }
-    rooms: {[roomName: string]: RoomMemory }
+    };
+    rooms: {[roomName: string]: RoomMemory };
+    hostileMemory: {[id: string]: HostileMemory };
+    nextGC: number;
+}
+
+interface HostileMemory {
+    potentials: {[partType: string]: number}
 }
 
 interface ProfilerData {

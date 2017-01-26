@@ -19,8 +19,8 @@ export class DefenseMission extends Mission {
     healers: Creep[] = [];
     attackers: Creep[] = [];
 
-    wallRamparts: StructureRampart[];
-    jonRamparts: StructureRampart[];
+    wallRamparts: Structure[];
+    jonRamparts: Structure[];
 
     enemySquads = [];
 
@@ -180,9 +180,9 @@ export class DefenseMission extends Mission {
                 return;
             }
 
-            let closestRampart = target.pos.findClosestByRange(this.jonRamparts) as StructureRampart;
+            let closestRampart = target.pos.findClosestByRange(this.jonRamparts) as Structure;
             if (closestRampart) {
-                let currentRampart = defender.pos.lookForStructure(STRUCTURE_RAMPART) as StructureRampart;
+                let currentRampart = defender.pos.lookForStructure(STRUCTURE_RAMPART) as Structure;
                 if (currentRampart && currentRampart.pos.getRangeTo(target) <= closestRampart.pos.getRangeTo(target)) {
                     closestRampart = currentRampart;
                 }
@@ -318,11 +318,11 @@ export class DefenseMission extends Mission {
             }
 
             this.likelyTowerDrainAttempt = this.attackers.length === 0;
-            this.wallRamparts = _.filter(this.room.findStructures(STRUCTURE_RAMPART), (r: StructureRampart) => {
+            this.wallRamparts = _.filter(this.room.findStructures(STRUCTURE_RAMPART), (r: Structure) => {
                 return _.filter(r.pos.lookFor(LOOK_STRUCTURES), (s: Structure) => {
                         return s.structureType !== STRUCTURE_ROAD;
                     }).length === 1;
-            }) as StructureRampart[];
+            }) as Structure[];
             this.jonRamparts = this.wallRamparts.slice(0);
 
             // find squads
