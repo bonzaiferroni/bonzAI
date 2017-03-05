@@ -178,7 +178,7 @@ export abstract class ControllerOperation extends Operation {
         return `moving layout, run command ${this.name}.showLayout(true) to display`
     }
 
-    public showLayout(show: boolean, type: kind = "all"): string {
+    public showLayout(show: boolean, type = "all"): string {
         if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
             return "No layout defined";
         }
@@ -191,7 +191,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         for (let structureType of Object.keys(CONSTRUCTION_COST)) {
-            if ( kind == "all" || kind == structureType ) {
+            if (type == "all" || type == structureType ) {
                let coords = this.layoutCoords(structureType);
                 let order = 0;
                 for (let coord of coords) {
@@ -228,10 +228,10 @@ export abstract class ControllerOperation extends Operation {
                     }
                     position.createFlag(flagName, color);
                 }
-            } 
+            }
         }
 
-        return `showing layout flags for: ${kind}`
+        return `showing layout flags for: ${type}`
     }
 
     private autoLayout() {
