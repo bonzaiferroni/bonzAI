@@ -2,6 +2,7 @@ import {loopHelper, empire} from "./helpers/loopHelper";
 import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
 import {Profiler} from "./Profiler";
+import {TimeoutTracker} from "./TimeoutTracker";
 
 loopHelper.initMemory();
 initPrototypes();
@@ -9,6 +10,9 @@ initPrototypes();
 module.exports.loop = function () {
     Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
         activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}};
+
+    // TimeoutTracker - Diagnoses CPU timeouts
+    try { TimeoutTracker.init(); } catch (e) { console.log("error initializing TimeoutTracker:\n", e.stack); }
 
     // Init phase - Information is gathered about the game state and game objects instantiated
     Profiler.start("init");
@@ -43,6 +47,7 @@ module.exports.loop = function () {
     try { loopHelper.garbageCollection(); } catch (e) { console.log("error during garbage collection:\n", e.stack ); }
     Profiler.end("postOperations");
     try { Profiler.finalize(); } catch (e) { console.log("error checking Profiler:\n", e.stack); }
+    try { TimeoutTracker.finalize(); } catch (e) { console.log("error finalizing TimeoutTracker:\n", e.stack); }
     try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
 };
 
