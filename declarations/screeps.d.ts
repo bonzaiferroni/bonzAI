@@ -2428,3 +2428,16 @@ declare class StructurePortal extends Structure {
      */
     ticksToDecay: number;
 }
+
+declare class RoomVisual {
+    constructor(roomName: string);
+
+    line(pos1: RoomPosition, pos2: RoomPosition, style?: RoomVisualLineStyle);
+}
+
+interface RoomVisualLineStyle {
+    width?: number;
+    color?: string;
+    opacity?: number;
+    lineStyle?: string;
+}
