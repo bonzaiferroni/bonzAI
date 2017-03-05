@@ -380,19 +380,14 @@ export class Agent {
     }
 
     fleeHostiles(): boolean {
-        return this.fleeByPath(this.room.fleeObjects, 6, 3, false);
+        return this.fleeByPath(this.room.fleeObjects, 6, 2, false);
     }
 
     fleeByPath(fleeObjects: {pos: RoomPosition}[], fleeRange: number, fleeDelay: number, confineToRoom = false): boolean {
 
         let closest = this.pos.findClosestByRange(fleeObjects);
         let rangeToClosest = 50;
-        if (closest) {
-            if (closest["owner"] && closest["owner"].username === "Source Keeper") {
-                fleeRange = 4;
-            }
-            rangeToClosest = this.pos.getRangeTo(closest);
-        }
+        if (closest) { rangeToClosest = this.pos.getRangeTo(closest); }
 
         if (rangeToClosest > fleeRange) {
             if (!this.memory._flee) {
@@ -876,7 +871,7 @@ export class Agent {
         return _.sum(this.carry) <= norm.storeCapacity - _.sum(norm.store);
     }
 
-    standardHealing(agents: Agent[]): boolean {
+    public standardHealing(agents: Agent[]): boolean {
         let hurtAgents = _(this.pos.findInRange(agents, 3))
             .filter(agent => agent.hits < agent.hitsMax)
             .sortBy(agent => agent.hits - agent.hitsMax)
@@ -906,22 +901,33 @@ export class Agent {
         }
     }
 
-    standardRangedAttack() {
-        let hostilesInRange = this.pos.findInRange<Creep>(FIND_HOSTILE_CREEPS, 3);
+    public standardRangedAttack(): Creep {
+        let hostilesInRange = _(this.pos.findInRange<Creep>(FIND_HOSTILE_CREEPS, 3))
+            .sortBy(creep => creep.hits - creep.hitsMax)
+            .value();
         if (hostilesInRange.length > 0) {
-            if (hostilesInRange.length > 1 || this.pos.findClosestByRange(hostilesInRange).pos.isNearTo(this)) {
+            if (hostilesInRange.length > 2 || this.pos.findClosestByRange(hostilesInRange).pos.isNearTo(this)) {
                 this.rangedMassAttack();
-                return true;
+                return hostilesInRange[0];
             } else {
-                this.rangedAttack(_.sortBy(hostilesInRange, "hits")[0]);
-                return true;
+                this.rangedAttack(hostilesInRange[0]);
+                return hostilesInRange[0];
             }
-        } else {
-            return false;
         }
     }
 
-    private moveOffExit(): number {
+    public standardMelee(damageThreshold = 0): Creep {
+        if (this.hits < damageThreshold) { return; }
+        let hostilesInRange = _(this.pos.findInRange<Creep>(FIND_HOSTILE_CREEPS, 1))
+            .sortBy(creep => creep.hits - creep.hitsMax)
+            .value();
+        if (hostilesInRange.length > 0) {
+            this.attack(hostilesInRange[0]);
+            return hostilesInRange[0];
+        }
+    }
+
+    public moveOffExit(): number {
         let swampDirection;
         for (let direction = 1; direction < 8; direction++) {
             let position = this.pos.getPositionAtDirection(direction);
