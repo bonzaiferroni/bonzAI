@@ -534,12 +534,16 @@ export abstract class Mission {
                     helper.blockOffPosition(matrix, room.controller, 3, AVOID_COST);
                 }
 
-                // avoid container adjacency
+                // avoid container/link adjacency
                 let sources = room.find<Source>(FIND_SOURCES);
                 for (let source of sources) {
-                    let container = source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
-                    if (container) {
-                        helper.blockOffPosition(matrix, container, 1, AVOID_COST);
+                    let structure = source.findMemoStructure<Structure>(STRUCTURE_CONTAINER, 1);
+                    if (!structure) {
+                        structure = source.findMemoStructure<Structure>(STRUCTURE_LINK, 1);
+                    }
+
+                    if (structure) {
+                        helper.blockOffPosition(matrix, structure, 1, AVOID_COST);
                     }
                 }
 
