@@ -36,6 +36,7 @@ export interface TravelToOptions {
     movingTarget?: boolean;
     freshMatrix?: boolean;
     offRoad?: boolean;
+    stuckValue?: number;
 }
 
 interface PathfinderReturn {
@@ -254,7 +255,8 @@ export class Traveler {
         }
 
         // handle case where creep is stuck
-        if (travelData.stuck >= DEFAULT_STUCK_VALUE && !options.ignoreStuck) {
+        if (!options.stuckValue) { options.stuckValue = DEFAULT_STUCK_VALUE; }
+        if (travelData.stuck >= options.stuckValue && !options.ignoreStuck) {
             options.ignoreCreeps = false;
             options.freshMatrix = true;
             delete travelData.path;
@@ -323,6 +325,7 @@ export class Traveler {
         return creep.move(nextDirection);
     }
 
+    // unused and untested so far
     public generateCachedPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}): CachedPath {
         let ret = this.findTravelPath(origin, destination);
         if (ret.incomplete) {
@@ -337,6 +340,7 @@ export class Traveler {
         };
     }
 
+    // unused and untested so far
     public travelByCachedPath(creep: Creep, cachedPath: CachedPath) {
         if (!creep.memory._ctrav) { creep.memory._ctrav =  { progress: 0, phase: 0 }; }
         let travelData = creep.memory._ctrav as CachedTravelData;
@@ -422,11 +426,14 @@ export class Traveler {
         return matrix;
     }
 
-    public static serializePath(startPos: RoomPosition, path: RoomPosition[]): string {
+    public static serializePath(startPos: RoomPosition, path: RoomPosition[], display = true): string {
         let serializedPath = "";
         let lastPosition = startPos;
         for (let position of path) {
             if (position.roomName === lastPosition.roomName) {
+                if (display) {
+                    new RoomVisual(position.roomName).line(position, lastPosition, {color: 'orange', lineStyle: 'dashed'});
+                }
                 serializedPath += lastPosition.getDirectionTo(position);
             }
             lastPosition = position;
