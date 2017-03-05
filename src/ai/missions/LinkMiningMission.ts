@@ -58,20 +58,32 @@ export class LinkMiningMission extends Mission {
      * @param miner
      */
     private moveToPosition(miner: Agent) {
+        let roadPos: RoomPosition;
+
         for (let i = 1; i <= 8; i++) {
             let position = this.source.pos.getPositionAtDirection(i);
             if (!position.isPassible(true)) continue;
             if (!position.isNearTo(this.link)) continue;
-            if (position.lookForStructure(STRUCTURE_ROAD)) continue;
+            if (position.lookForStructure(STRUCTURE_ROAD)) {
+                roadPos = position;
+            }
 
             if (miner.pos.inRangeTo(position, 0)) {
                 miner.memory.inPosition = true;
-            }
-            else {
+            } else {
                 miner.moveItOrLoseIt(position, "miner");
             }
             return; // early
         }
-        console.log("couldn't find valid position for", miner.name, "in ", miner.room.name);
+        if (!miner.memory.posNotify) {
+            miner.memory.posNotify = true;
+            console.log("couldn't find valid position for", miner.name, "in ", miner.room.name);
+        }
+
+        if (miner.pos.inRangeTo(roadPos, 0)) {
+            miner.memory.inPosition = true;
+        } else {
+            miner.moveItOrLoseIt(roadPos, "miner");
+        }
     }
 }
