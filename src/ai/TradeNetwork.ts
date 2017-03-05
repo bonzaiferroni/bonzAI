@@ -158,8 +158,7 @@ export class TradeNetwork {
         let terminalFull = _.sum(room.terminal.store) > 270000;
         for (let resourceType of tradeResourceTypes) {
             if (resourceType === RESOURCE_ENERGY) {
-                if (room.terminal.store.energy < 50000 && room.storage.store.energy < NEED_ENERGY_THRESHOLD
-                    && !terminalFull) {
+                if (room.terminal.store.energy < 50000 && room.storage.store.energy < NEED_ENERGY_THRESHOLD) {
                     this.registerShortage(resourceType, room.terminal);
                 }
                 else if (room.storage.store.energy > SUPPLY_ENERGY_THRESHOLD) {
