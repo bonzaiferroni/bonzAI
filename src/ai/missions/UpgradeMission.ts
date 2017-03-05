@@ -79,7 +79,7 @@ export class UpgradeMission extends Mission {
 
         // memory
         let memory;
-        if (this.boost || empire.network.hasAbundance(RESOURCE_CATALYZED_GHODIUM_ACID, RESERVE_AMOUNT * 2)) {
+        if (this.boost || empire.network.hasAbundance(RESOURCE_CATALYZED_GHODIUM_ACID)) {
             memory = {boosts: [RESOURCE_CATALYZED_GHODIUM_ACID], allowUnboosted: this.allowUnboosted};
         }
 
