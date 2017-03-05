@@ -4,6 +4,7 @@ import {Agent} from "./Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {helper} from "../../helpers/helper";
 import {traveler} from "../Traveler";
+import {HostileAgent} from "./HostileAgent";
 export class LairMission extends Mission {
 
     public memory: {
@@ -106,10 +107,10 @@ export class LairMission extends Mission {
             if (keeper) {
                 range = trapper.pos.getRangeTo(keeper);
                 if (range > 1) {
-                    trapper.pushyTravelTo(keeper, "trapper");
+                    trapper.travelTo(keeper);
                 }
             } else {
-                trapper.pushyTravelTo(this.targetLair, "trapper", {range: 1});
+                trapper.travelTo(this.targetLair, {range: 1});
             }
         }
 
@@ -281,15 +282,7 @@ export class LairMission extends Mission {
 
         // charge
         if (tactic === RangerTactic.Charge) {
-            let bestTarget = _(this.invaderGuru.invaders)
-                .filter(hostileAgent => hostileAgent.potentials[HEAL] > 0)
-                .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(ranger))
-                .head();
-            if (!bestTarget) {
-                bestTarget = _(this.invaderGuru.invaders)
-                    .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(ranger))
-                    .head();
-            }
+            let bestTarget = this.findBestTarget(ranger);
 
             let movingTarget = false;
             if (ranger.room !== this.room) {
@@ -320,7 +313,38 @@ export class LairMission extends Mission {
             return;
         }
 
+        let attackedCreep = trapper.standardMelee(2000);
 
+        if (!trapper.isNearTo(ranger)) {
+            if (!trapper.memory.needHeal && trapper.hits < trapper.hitsMax - 500) {
+                trapper.memory.needHeal = true;
+            }
+            if (trapper.memory.needHeal && trapper.hits === trapper.hitsMax) {
+                trapper.memory.needHeal = false;
+            }
+
+            if (trapper.memory.needHeal) {
+                if (!attackedCreep) { trapper.heal(trapper); }
+                trapper.fleeByPath(this.room.fleeObjects, 5, 5);
+                return;
+            }
+
+            if (!attackedCreep && trapper.hits < trapper.hitsMax) { trapper.heal(trapper); }
+            trapper.travelTo(ranger);
+            return;
+        }
+
+        ranger.memory.leaderControl = Game.time;
+
+        let target = this.findBestTarget(trapper);
+        if (target.potentials[HEAL] > 0) {
+            trapper.travelTo(target, {range: 0});
+            ranger.travelTo(trapper, {range: 0});
+            return;
+        } else {
+            ranger.travelTo(target, {range: 0});
+            trapper.travelTo(target, {range: 0})
+        }
     }
 
     private soloDutyActions(trapper: Agent) {
@@ -344,6 +368,19 @@ export class LairMission extends Mission {
         } else {
             return RangerTactic.Charge;
         }
+    }
+
+    private findBestTarget(agent: Agent): HostileAgent {
+        let bestTarget = _(this.invaderGuru.invaders)
+            .filter(hostileAgent => hostileAgent.potentials[HEAL] > 0)
+            .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(agent))
+            .head();
+        if (!bestTarget) {
+            bestTarget = _(this.invaderGuru.invaders)
+                .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(agent))
+                .head();
+        }
+        return bestTarget;
     }
 }
 
