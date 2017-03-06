@@ -5,6 +5,7 @@ import {helper} from "../../helpers/helper";
 import {empire} from "../../helpers/loopHelper";
 import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
 import {Agent} from "./Agent";
+import {PathMission} from "./PathMission";
 export class UpgradeMission extends Mission {
 
     linkUpgraders: Agent[];
@@ -53,6 +54,24 @@ export class UpgradeMission extends Mission {
             this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
         }
         this.battery = this.findControllerBattery();
+
+        // instantiate path-paver
+        if (this.battery) {
+            let startingPosition: {pos: RoomPosition} = this.room.storage;
+            if (!startingPosition) {
+                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            }
+            if (startingPosition) {
+                let pathMission = new PathMission(this.operation, this.name + "Path", {
+                    start: startingPosition,
+                    end: this.battery,
+                    rangeToEnd: 1,
+                    ignoreConstructionLimit: true,
+                });
+                pathMission.initMission();
+                this.operation.addMission(pathMission);
+            }
+        }
     }
 
     linkUpgraderBody = () => {
@@ -95,10 +114,6 @@ export class UpgradeMission extends Mission {
             memory: memory
         } );
 
-        if (this.memory.roadRepairIds && !this.remoteSpawning) {
-            this.paver = this.spawnPaver();
-        }
-
         let maxInfluxCarts = 0;
         let influxMemory;
         if (this.remoteSpawning) {
@@ -120,10 +135,6 @@ export class UpgradeMission extends Mission {
             index++;
         }
 
-        if (this.paver) {
-            this.paverActions(this.paver);
-        }
-
         if (this.batterySupplyCarts) {
             for (let cart of this.batterySupplyCarts) {
                 this.batterySupplyCartActions(cart);
@@ -132,16 +143,6 @@ export class UpgradeMission extends Mission {
 
         for (let influxCart of this.influxCarts) {
             this.influxCartActions(influxCart);
-        }
-
-        if (this.battery) {
-            let startingPosition: {pos: RoomPosition} = this.room.storage;
-            if (!startingPosition) {
-                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
-            }
-            if (startingPosition) {
-                this.pavePath(startingPosition, this.battery, 1, true);
-            }
         }
     }
 
@@ -223,8 +224,8 @@ export class UpgradeMission extends Mission {
     }
 
     private findBatteryPosition(spawn: StructureSpawn): RoomPosition {
-        let path = this.findPavedPath(spawn.pos, this.room.controller.pos, 1);
-        let positionsInRange = this.room.controller.pos.findInRange(path, 3);
+        let ret = empire.traveler.findTravelPath(spawn, this.room.controller);
+        let positionsInRange = this.room.controller.pos.findInRange(ret.path, 3);
         positionsInRange = _.sortBy(positionsInRange, (pos: RoomPosition) => pos.getRangeTo(spawn.pos));
 
         let mostSpots = 0;

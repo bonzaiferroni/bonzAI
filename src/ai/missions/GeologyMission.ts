@@ -5,6 +5,7 @@ import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
 import {empire} from "../../helpers/loopHelper";
+import {PathMission} from "./PathMission";
 export class GeologyMission extends Mission {
 
     geologists: Agent[];
@@ -66,6 +67,19 @@ export class GeologyMission extends Mission {
             this.buildContainer();
         }
         this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
+
+        if (this.memory.builtExtractor) {
+            let pathMission = new PathMission(this.operation, this.name + "Path", {
+                start: this.store,
+                end: this.mineral,
+                rangeToEnd: 2,
+            });
+            pathMission.initMission();
+            this.operation.addMission(pathMission);
+            if (pathMission.distance) {
+                this.memory.distanceToStorage = pathMission.distance;
+            }
+        }
     }
 
     private geoBody = () => {
@@ -102,12 +116,7 @@ export class GeologyMission extends Mission {
             () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount),
             this.getMaxCarts, {prespawn: this.distanceToSpawn});
 
-        let maxRepairers =
         this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), this.getMaxRepairers);
-
-        if (this.memory.roadRepairIds) {
-            this.paver = this.spawnPaver();
-        }
     }
 
     missionActions() {
@@ -126,17 +135,6 @@ export class GeologyMission extends Mission {
 
         for (let repairer of this.repairers) {
             this.repairActions(repairer);
-        }
-
-        if (this.paver) {
-            this.paverActions(this.paver);
-        }
-
-        if (this.memory.builtExtractor) {
-            let distance = this.pavePath(this.store, this.mineral, 2);
-            if (distance) {
-                this.memory.distanceToStorage = distance;
-            }
         }
     }
 
