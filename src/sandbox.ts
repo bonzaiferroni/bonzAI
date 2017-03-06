@@ -68,8 +68,9 @@ class SandboxMission extends Mission {
     }
 
     missionActions() {
-        this.squadTravelTest();
-        this.fleeByPathTest();
+        // this.squadTravelTest();
+        // this.fleeByPathTest();
+        this.fatigueTest();
     }
 
     finalizeMission() {
@@ -117,5 +118,15 @@ class SandboxMission extends Mission {
         if (!fleeing) {
             agent.travelTo(fleeFlag);
         }
+    }
+
+    private fatigueTest() {
+        let fattyCreep = Game.creeps["fatty"];
+        if (!fattyCreep) {
+            empire.spawnFromClosest(this.flag.pos, [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE], "fatty");
+            return;
+        }
+        let fatty = new Agent(fattyCreep, this);
+        fatty.travelTo(this.flag);
     }
 }

@@ -2433,6 +2433,7 @@ declare class RoomVisual {
     constructor(roomName: string);
 
     line(pos1: RoomPosition, pos2: RoomPosition, style?: RoomVisualLineStyle);
+    text(text: string, x: number, y: number, style?: RoomVisualTextStyle)
 }
 
 interface RoomVisualLineStyle {
@@ -2440,4 +2441,15 @@ interface RoomVisualLineStyle {
     color?: string;
     opacity?: number;
     lineStyle?: string;
+}
+
+interface RoomVisualTextStyle {
+    color?: string;
+    font?: number|string;
+    stroke?: string;
+    strokeWidth?: number;
+    background?: string;
+    backgroundPadding?: string;
+    align?: string;
+    opacity?: number;
 }

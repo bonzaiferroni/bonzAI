@@ -7,6 +7,7 @@ import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
 import {BonzaiNetwork} from "./BonzaiNetwork";
 import {TimeoutTracker} from "../TimeoutTracker";
+import {Visualizer} from "./Visualizer";
 
 export class Empire {
 
@@ -20,6 +21,7 @@ export class Empire {
     public map: WorldMap;
     public network: BonzaiNetwork;
     public market: MarketTrader;
+    public vis: Visualizer;
 
     constructor() {
         if (!Memory.empire) Memory.empire = {};
@@ -41,6 +43,7 @@ export class Empire {
         this.network = new BonzaiNetwork(this.map, this.diplomat);
         this.network.init();
         this.market = new MarketTrader(this.network);
+        this.vis = new Visualizer();
     }
 
     /**
@@ -52,6 +55,7 @@ export class Empire {
         this.network.actions();
         this.market.actions();
         this.clearErrantConstruction();
+        this.vis.finalize();
     }
 
     getSpawnGroup(roomName: string) {

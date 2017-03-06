@@ -70,6 +70,7 @@ export abstract class ControllerOperation extends Operation {
 
     initOperation() {
         this.autoLayout();
+        empire.vis.add(this.flag.pos.roomName, "hello world!");
 
         this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
         this.initRemoteSpawn(8, 8);
