@@ -2,15 +2,15 @@ import {Mission} from "./Mission";
 import {Agent} from "./Agent";
 export class PaverMission extends Mission {
 
-    pavers: Agent[];
-    potency: number;
+    private pavers: Agent[];
+    private potency: number;
 
     constructor(operation) {
         super(operation, "paver");
     }
 
-    initMission() {
-        if (!this.hasVision) return; // early
+    public initMission() {
+        if (!this.hasVision) { return; }
 
         if (!this.memory.potency) {
             let roads = this.room.findStructures(STRUCTURE_ROAD) as StructureRoad[];
@@ -23,36 +23,35 @@ export class PaverMission extends Mission {
         this.potency = this.memory.potency;
     }
 
-    roleCall() {
+    public roleCall() {
 
         let max = () => this.room && this.room.findStructures(STRUCTURE_ROAD).length > 0 ? 1 : 0;
         let body = () => {
             if (this.spawnGroup.maxSpawnEnergy <= 550) {
                 return this.bodyRatio(1, 3, 1, 1);
-            }
-            else {
+            } else {
                 return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);
             }
         };
         this.pavers = this.headCount(this.name, body, max, {prespawn: 10} );
     }
 
-    missionActions() {
+    public missionActions() {
         for (let paver of this.pavers) {
             this.deprecatedPaverActions(paver);
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
-    invalidateMissionCache() {
-        if (Math.random() < .01) this.memory.potency = undefined;
+    public invalidateMissionCache() {
+        if (Math.random() < .01) { this.memory.potency = undefined; }
     }
 
     private deprecatedPaverActions(paver: Agent) {
 
         let fleeing = paver.fleeHostiles();
-        if (fleeing) return; // early
+        if (fleeing) { return; } // early
 
         let withinRoom = paver.pos.roomName === this.flag.pos.roomName;
         if (!withinRoom) {
@@ -86,7 +85,6 @@ export class PaverMission extends Mission {
             return;
         }
 
-
         // and I have a target
         let range = paver.pos.getRangeTo(target);
         if (range > 3) {
@@ -107,8 +105,8 @@ export class PaverMission extends Mission {
     private repairContainers(paver: Agent): boolean {
         let disrepairedContainer = paver.rememberStructure(() => {
             return _(this.room.findStructures(STRUCTURE_CONTAINER))
-                .filter((c: StructureContainer) => {return c.hits < c.hitsMax * .5
-                    && !c.pos.isNearTo(c.room.find<Mineral>(FIND_MINERALS)[0])})
+                .filter((c: StructureContainer) => { return c.hits < c.hitsMax * .5
+                    && !c.pos.isNearTo(c.room.find<Mineral>(FIND_MINERALS)[0]); })
                 .head() as StructureContainer;
         }, (s: Structure) => {
             return s.hits === s.hitsMax;
@@ -118,13 +116,11 @@ export class PaverMission extends Mission {
             if (paver.pos.isNearTo(disrepairedContainer)) {
                 paver.repair(disrepairedContainer);
                 paver.yieldRoad(disrepairedContainer);
-            }
-            else {
+            } else {
                 paver.travelTo(disrepairedContainer);
             }
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }

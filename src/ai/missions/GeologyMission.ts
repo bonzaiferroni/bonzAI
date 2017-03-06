@@ -8,16 +8,16 @@ import {empire} from "../../helpers/loopHelper";
 import {PathMission} from "./PathMission";
 export class GeologyMission extends Mission {
 
-    geologists: Agent[];
-    carts: Agent[];
-    repairers: Agent[];
-    paver: Agent;
-    mineral: Mineral;
-    store: StructureStorage | StructureTerminal;
-    analysis: TransportAnalysis;
-    container: StructureContainer;
+    private geologists: Agent[];
+    private carts: Agent[];
+    private repairers: Agent[];
+    private paver: Agent;
+    private mineral: Mineral;
+    private store: StructureStorage | StructureTerminal;
+    private analysis: TransportAnalysis;
+    private container: StructureContainer;
 
-    memory: {
+    public memory: {
         distanceToStorage: number;
         distanceToSpawn: number;
         builtExtractor: boolean;
@@ -34,12 +34,12 @@ export class GeologyMission extends Mission {
         this.store = storeStructure;
     }
 
-    initMission() {
-        if (!this.hasVision) return;
+    public initMission() {
+        if (!this.hasVision) { return; }
 
         this.mineral = this.room.find<Mineral>(FIND_MINERALS)[0];
-        if (!this.store) this.store = this.getStorage(this.mineral.pos);
-        if (!this.store) return;
+        if (!this.store) { this.store = this.getStorage(this.mineral.pos); }
+        if (!this.store) { return; }
         this.mineralStats();
 
         if ((!this.room.controller || this.room.controller.level >= 7) && !this.memory.builtExtractor) {
@@ -93,8 +93,7 @@ export class GeologyMission extends Mission {
     private getMaxGeo = () => {
         if (this.hasVision && this.container && this.mineral.mineralAmount > 0 && this.memory.builtExtractor) {
             return 1;
-        }
-        else {
+        } else {
             return 0;
         }
     };
@@ -119,7 +118,7 @@ export class GeologyMission extends Mission {
         this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), this.getMaxRepairers);
     }
 
-    missionActions() {
+    public missionActions() {
         for (let geologist of this.geologists) {
             this.geologistActions(geologist);
         }
@@ -127,8 +126,7 @@ export class GeologyMission extends Mission {
         for (let cart of this.carts) {
             if (this.mineral.mineralAmount > 0) {
                 this.cartActions(cart);
-            }
-            else {
+            } else {
                 this.cleanupCartActions(cart);
             }
         }
@@ -138,10 +136,10 @@ export class GeologyMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
         if (Math.random() < .01) {
             this.memory.storageId = undefined;
             this.memory.transportAnalysis = undefined;
@@ -178,7 +176,7 @@ export class GeologyMission extends Mission {
     private geologistActions(geologist: Agent) {
 
         let fleeing = geologist.fleeHostiles();
-        if (fleeing) return; // early
+        if (fleeing) { return; } // early
 
         if (!this.container) {
             if (!geologist.pos.isNearTo(this.flag)) {
@@ -202,7 +200,7 @@ export class GeologyMission extends Mission {
 
         if (!this.container.store[this.mineral.mineralType] ||
             this.container.store[this.mineral.mineralType] < this.container.storeCapacity - 33) {
-            if (Game.time % 6 === 0) geologist.harvest(this.mineral);
+            if (Game.time % 6 === 0) { geologist.harvest(this.mineral); }
         }
 
     }
@@ -210,13 +208,12 @@ export class GeologyMission extends Mission {
     private cleanupCartActions(cart: Agent) {
 
         let fleeing = cart.fleeHostiles();
-        if (fleeing) return; // early
+        if (fleeing) { return; } // early
 
         if (_.sum(cart.carry) === cart.carryCapacity) {
             if (cart.pos.isNearTo(this.store)) {
                 cart.transferEverything(this.store);
-            }
-            else {
+            } else {
                 cart.travelTo(this.store);
             }
             return; // early;
@@ -226,21 +223,17 @@ export class GeologyMission extends Mission {
             if (cart.pos.isNearTo(this.container)) {
                 if (this.container.store.energy > 0) {
                     cart.withdraw(this.container, RESOURCE_ENERGY);
-                }
-                else if (this.container.store[this.mineral.mineralType] > 0) {
+                } else if (this.container.store[this.mineral.mineralType] > 0) {
                     cart.withdraw(this.container, this.mineral.mineralType);
                 }
-            }
-            else {
+            } else {
                 cart.travelTo(this.container);
             }
-        }
-        else {
+        } else {
             if (_.sum(cart.carry) > 0) {
                 if (cart.pos.isNearTo(this.store)) {
                     cart.transferEverything(this.store);
-                }
-                else {
+                } else {
                     cart.travelTo(this.store);
                 }
                 return; // early;
@@ -253,8 +246,7 @@ export class GeologyMission extends Mission {
                 if (witness) {
                     witness.say("valhalla!");
                 }
-            }
-            else {
+            } else {
                 cart.travelTo(spawn);
             }
             return; // early
@@ -276,7 +268,7 @@ export class GeologyMission extends Mission {
     private cartActions(cart: Agent) {
 
         let fleeing = cart.fleeHostiles();
-        if (fleeing) return; // early
+        if (fleeing) { return; } // early
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
@@ -296,15 +288,13 @@ export class GeologyMission extends Mission {
             if (cart.pos.isNearTo(this.container)) {
                 if (this.container.store.energy > 0) {
                     cart.withdraw(this.container, RESOURCE_ENERGY);
-                }
-                else {
+                } else {
                     let outcome = cart.withdrawIfFull(this.container, this.mineral.mineralType);
                     if (outcome === OK && this.container.store[this.mineral.mineralType] >= cart.carryCapacity) {
                         cart.travelTo(this.store);
                     }
                 }
-            }
-            else {
+            } else {
                 cart.travelTo(this.container);
             }
             return; // early
@@ -314,20 +304,18 @@ export class GeologyMission extends Mission {
             let outcome = cart.transferEverything(this.store);
             if (outcome === OK && cart.ticksToLive < this.analysis.distance) {
                 cart.suicide();
-            }
-            else if (outcome === OK) {
+            } else if (outcome === OK) {
                 cart.travelTo(this.container);
             }
 
-        }
-        else {
+        } else {
             cart.travelTo(this.store);
         }
     }
 
     private repairActions(repairer: Agent) {
         let fleeing = repairer.fleeHostiles();
-        if (fleeing) return;
+        if (fleeing) { return; }
 
         if (repairer.room.name !== this.flag.pos.roomName || repairer.pos.isNearExit(0)) {
             repairer.travelTo(this.flag);
@@ -348,14 +336,13 @@ export class GeologyMission extends Mission {
         if (repairer.pos.inRangeTo(this.container, 3)) {
             repairer.repair(this.container);
             repairer.yieldRoad(this.container);
-        }
-        else {
+        } else {
             repairer.travelTo(this.container);
         }
     }
 
-    mineralStats() {
-        if (!Game.cache[this.mineral.mineralType]) Game.cache[this.mineral.mineralType] = 0;
+    private mineralStats() {
+        if (!Game.cache[this.mineral.mineralType]) { Game.cache[this.mineral.mineralType] = 0; }
         Game.cache[this.mineral.mineralType]++;
     }
 }

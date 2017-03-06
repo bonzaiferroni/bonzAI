@@ -1,17 +1,17 @@
 import {SpawnReservation} from "../interfaces";
 export class SpawnGroup {
 
-    spawns: Spawn[];
-    extensions: Extension[];
-    room: Room;
-    pos: RoomPosition;
+    public spawns: Spawn[];
+    public extensions: Extension[];
+    public room: Room;
+    public pos: RoomPosition;
 
-    availableSpawnCount: number;
-    isAvailable: boolean;
-    currentSpawnEnergy: number;
-    maxSpawnEnergy: number;
+    public availableSpawnCount: number;
+    public isAvailable: boolean;
+    public currentSpawnEnergy: number;
+    public maxSpawnEnergy: number;
 
-    memory: {
+    public memory: {
         log: {
             availability: number
             history: number[]
@@ -23,7 +23,7 @@ export class SpawnGroup {
         this.room = room;
         this.spawns = _.filter(this.room.find<StructureSpawn>(FIND_MY_SPAWNS),
             s => s.canCreateCreep([MOVE]) !== ERR_RCL_NOT_ENOUGH);
-        if (!this.room.memory.spawnMemory) this.room.memory.spawnMemory = {};
+        if (!this.room.memory.spawnMemory) { this.room.memory.spawnMemory = {}; }
         this.memory = this.room.memory.spawnMemory;
         this.extensions = room.findStructures(STRUCTURE_EXTENSION) as StructureExtension[];
         this.manageSpawnLog();
@@ -34,31 +34,31 @@ export class SpawnGroup {
         this.pos = _.head(this.spawns).pos;
     }
 
-    spawn (build: string[], name: string, memory?: any, reservation?: SpawnReservation): string | number {
+    public spawn (build: string[], name: string, memory?: any, reservation?: SpawnReservation): string | number {
         let outcome;
         this.isAvailable = false;
         if (reservation) {
-            if (this.availableSpawnCount < reservation.spawns) return ERR_BUSY;
-            if (this.currentSpawnEnergy < reservation.currentEnergy) return ERR_NOT_ENOUGH_RESOURCES;
+            if (this.availableSpawnCount < reservation.spawns) { return ERR_BUSY; }
+            if (this.currentSpawnEnergy < reservation.currentEnergy) { return ERR_NOT_ENOUGH_RESOURCES; }
         }
         for (let spawn of this.spawns) {
             if (spawn.spawning == null) {
                 outcome = spawn.createCreep(build, name, memory);
-                if (Memory.playerConfig.muteSpawn) break; // early
+                if (Memory.playerConfig.muteSpawn) { break; } // early
 
                 if (outcome === ERR_INVALID_ARGS) {
-                    console.log("SPAWN: invalid args for creep\nbuild:", build, "\nname:", name, "\ncount:", build.length);
+                    console.log("SPAWN: invalid args for creep\nbuild:", build, "\nname:", name, "\ncount:",
+                        build.length);
                 }
                 if (_.isString(outcome)) {
                     console.log("SPAWN: building " + name);
-                }
-                else if (outcome === ERR_NOT_ENOUGH_RESOURCES) {
+                } else if (outcome === ERR_NOT_ENOUGH_RESOURCES) {
                     if (Game.time % 10 === 0) {
-                        console.log("SPAWN:", this.room.name, "not enough energy for", name, "cost:", SpawnGroup.calculateBodyCost(build),
-                        "current:", this.currentSpawnEnergy, "max", this.maxSpawnEnergy);
+                        console.log("SPAWN:", this.room.name, "not enough energy for", name, "cost:",
+                            SpawnGroup.calculateBodyCost(build), "current:", this.currentSpawnEnergy, "max",
+                            this.maxSpawnEnergy);
                     }
-                }
-                else if (outcome !== ERR_NAME_EXISTS && outcome !== ERR_RCL_NOT_ENOUGH) {
+                } else if (outcome !== ERR_NAME_EXISTS && outcome !== ERR_RCL_NOT_ENOUGH) {
                     console.log("SPAWN:", this.room.name, "had error spawning " + name + ", outcome: " + outcome);
                 }
                 break;
@@ -112,7 +112,7 @@ export class SpawnGroup {
     }
 
     // proportion allows you to scale down the body size if you don't want to use all of your spawning energy
-    // for example, proportion of .5 would return the max units per cost if only want to use half of your spawning capacity
+    // for example, proportion of .5 would return the max units per cost if only want to use half of your spawn-capacity
     public maxUnitsPerCost(unitCost: number, proportion: number = 1): number {
         return Math.floor((this.maxSpawnEnergy * proportion) / unitCost);
     }
@@ -123,9 +123,9 @@ export class SpawnGroup {
     }
 
     private manageSpawnLog() {
-        if (!this.memory.log) this.memory.log = {availability: 0, history: [], longHistory: []};
+        if (!this.memory.log) { this.memory.log = {availability: 0, history: [], longHistory: []}; }
 
-        if (Game.time % 100 !== 0) return; // early
+        if (Game.time % 100 !== 0) { return; } // early
         let log = this.memory.log;
         let average = log.availability / 100;
         log.availability = 0;
@@ -136,12 +136,12 @@ export class SpawnGroup {
             this.spawns.length, "), might want to reduce harvesting");
             */
         log.history.push(average);
-        while (log.history.length > 5) log.history.shift();
+        while (log.history.length > 5) { log.history.shift(); }
 
-        if (Game.time % 500 !== 0) return; // early
+        if (Game.time % 500 !== 0) { return; } // early
         let longAverage = _.sum(log.history) / 5;
         log.longHistory.push(longAverage);
-        while (log.longHistory.length > 5) log.longHistory.shift();
+        while (log.longHistory.length > 5) { log.longHistory.shift(); }
     }
 
     public showHistory() {

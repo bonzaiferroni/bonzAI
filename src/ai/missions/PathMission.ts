@@ -32,33 +32,33 @@ export class PathMission extends Mission {
         this.pathData = this.memory.pathData;
     }
 
-    initMission() {
+    public initMission() {
         this.spawnGroup = empire.getSpawnGroup(this.start.pos.roomName);
         this.checkPath();
     }
 
-    roleCall() {
+    public roleCall() {
         if (!this.pathData.roadRepairIds) { return; }
-        if (this.room.controller && this.room.controller.level === 1) return;
+        if (this.room.controller && this.room.controller.level === 1) { return; }
         let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
         this.paver = this.spawnSharedAgent("paver", paverBody);
     }
 
-    missionActions() {
+    public missionActions() {
         if (!this.paver) { return; }
         this.paverActions(this.paver);
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     get distance(): number { return this.pathData.distance; }
 
     private checkPath() {
-        if (!this.pathData.pathCheck || Game.time < this.pathData.pathCheck) return;
+        if (!this.pathData.pathCheck || Game.time < this.pathData.pathCheck) { return; }
 
         if (Game.map.getRoomLinearDistance(this.start.pos.roomName, this.end.pos.roomName) > 2) {
             console.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
@@ -147,8 +147,7 @@ export class PathMission extends Mission {
                 for (let site of constructionSites) {
                     if (site.structureType === STRUCTURE_ROAD) {
                         matrix.set(site.pos.x, site.pos.y, ROAD_COST);
-                    }
-                    else {
+                    } else {
                         matrix.set(site.pos.x, site.pos.y, 0xff);
                     }
                 }
@@ -174,8 +173,8 @@ export class PathMission extends Mission {
 
         for (let i = 0; i < path.length; i++) {
             let position = path[i];
-            if (!Game.rooms[position.roomName]) return;
-            if (position.isNearExit(0)) continue;
+            if (!Game.rooms[position.roomName]) { return; }
+            if (position.isNearExit(0)) { continue; }
             let road = position.lookForStructure(STRUCTURE_ROAD);
             if (road) {
                 repairIds.push(road.id);
@@ -189,7 +188,7 @@ export class PathMission extends Mission {
                 continue;
             }
             let construction = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
-            if (construction) continue;
+            if (construction) { continue; }
             return position;
         }
     }
@@ -236,36 +235,32 @@ export class PathMission extends Mission {
             let hitsLeftToRepair = road.hitsMax - road.hits;
             if (hitsLeftToRepair > 10000) {
                 paver.yieldRoad(road, true);
+            } else if (hitsLeftToRepair > 1500) {
+                paver.yieldRoad(road, false);
             }
-            else if (hitsLeftToRepair > 1500) {
-                paver.yieldRoad(road, false)
-            }
-        }
-        else {
+        } else {
             paver.travelTo(road, {range: 0});
         }
 
         if (!paving) {
             road = paver.pos.lookForStructure(STRUCTURE_ROAD) as StructureRoad;
-            if (road && road.hits < road.hitsMax) paver.repair(road);
+            if (road && road.hits < road.hitsMax) { paver.repair(road); }
         }
 
         paver.stealNearby("creep");
     }
 
     private findRoadToRepair(): StructureRoad {
-        if (!this.pathData.roadRepairIds) return;
+        if (!this.pathData.roadRepairIds) { return; }
 
         let road = Game.getObjectById<StructureRoad>(this.pathData.roadRepairIds[0]);
         if (road && road.hits < road.hitsMax) {
             return road;
-        }
-        else {
+        } else {
             this.pathData.roadRepairIds.shift();
             if (this.pathData.roadRepairIds.length > 0) {
                 return this.findRoadToRepair();
-            }
-            else {
+            } else {
                 this.pathData.roadRepairIds = undefined;
             }
         }

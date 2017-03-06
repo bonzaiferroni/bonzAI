@@ -3,12 +3,10 @@ import {Mission} from "./Mission";
 import {RaidGuru} from "./RaidGuru";
 export class RaidAgent extends Agent {
 
-    guru: RaidGuru;
+    private guru: RaidGuru;
 
     constructor(creep: Creep, mission: Mission, guru: RaidGuru) {
         super(creep, mission);
         this.guru = guru;
     }
-
-
 }

@@ -4,7 +4,8 @@ import {RaidData} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 export class WreckerMission extends RaidMission {
 
-    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number, allowSpawn: boolean) {
+    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+                allowSpawn: boolean) {
         super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
         this.specialistPart = WORK;
         this.specialistBoost = RESOURCE_CATALYZED_ZYNTHIUM_ACID;
@@ -19,7 +20,7 @@ export class WreckerMission extends RaidMission {
         ];
     }
 
-    clearActions(attackingCreep: boolean) {
+    protected clearActions(attackingCreep: boolean) {
         this.standardClearActions(attackingCreep);
     }
 }

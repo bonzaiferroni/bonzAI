@@ -7,7 +7,7 @@ export class InvaderGuru extends Guru {
     public invadersPresent: boolean;
     public hasVision = false;
 
-    memory: {
+    public memory: {
         invaderProbable: boolean
         invaderTrack: {
             energyHarvested: number,
@@ -62,14 +62,11 @@ export class InvaderGuru extends Guru {
 
         if (sources.length === 3) {
             this.memory.invaderProbable = memory.energyHarvested > 65000;
-        }
-        else if (sources.length === 2 && Game.time - memory.tickLastSeen < 20000) {
+        } else if (sources.length === 2 && Game.time - memory.tickLastSeen < 20000) {
             this.memory.invaderProbable = memory.energyHarvested > 75000;
-        }
-        else if (sources.length === 1 && Game.time - memory.tickLastSeen < 20000) {
+        } else if (sources.length === 1 && Game.time - memory.tickLastSeen < 20000) {
             this.memory.invaderProbable = memory.energyHarvested > 90000;
-        }
-        else {
+        } else {
             this.memory.invaderProbable = false;
         }
 

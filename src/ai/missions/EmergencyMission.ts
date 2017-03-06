@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 export class EmergencyMinerMission extends Mission {
 
-    public emergencyMiners: Agent[];
+    private emergencyMiners: Agent[];
     public memory: {
         lastTick: number
     };

@@ -5,40 +5,41 @@ import {MINERAL_STORAGE_TARGET} from "../../config/constants";
 import {empire} from "../../helpers/loopHelper";
 export class TerminalNetworkMission extends Mission {
 
-    terminal: StructureTerminal;
-    storage: StructureStorage;
+    private terminal: StructureTerminal;
+    private storage: StructureStorage;
 
     constructor(operation: Operation) {
         super(operation, "network");
     }
 
-    initMission() {
+    public initMission() {
         this.terminal = this.room.terminal;
         this.storage = this.room.storage;
     }
 
-    roleCall() {
+    public roleCall() {
     }
 
-    missionActions() {
+    public missionActions() {
         this.sellOverstock();
         this.checkOverstock();
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     private sellOverstock() {
 
-        if (Game.time % 100 !== 1) return;
+        if (Game.time % 100 !== 1) { return; }
 
         for (let mineralType of MINERALS_RAW) {
             if (this.storage.store[mineralType] >= MINERAL_STORAGE_TARGET[mineralType]
                 && this.storage.room.terminal.store[mineralType] >= RESERVE_AMOUNT) {
-                console.log("TRADE: have too much", mineralType, "in", this.storage.room, this.storage.store[mineralType]);
+                console.log("TRADE: have too much", mineralType, "in", this.storage.room,
+                    this.storage.store[mineralType]);
                 empire.market.sellExcess(this.room, mineralType, RESERVE_AMOUNT);
             }
         }
@@ -50,13 +51,13 @@ export class TerminalNetworkMission extends Mission {
     }
 
     private checkOverstock() {
-        if (Game.time % 100 !== 0 || _.sum(this.terminal.store) < 250000) return;
+        if (Game.time % 100 !== 0 || _.sum(this.terminal.store) < 250000) { return; }
 
         let mostStockedAmount = 0;
         let mostStockedResource: string;
         for (let resourceType in this.terminal.store) {
-            if (resourceType === RESOURCE_ENERGY) continue;
-            if (this.terminal.store[resourceType] < mostStockedAmount) continue;
+            if (resourceType === RESOURCE_ENERGY) { continue; }
+            if (this.terminal.store[resourceType] < mostStockedAmount) { continue; }
             mostStockedAmount = this.terminal.store[resourceType];
             mostStockedResource = resourceType;
         }

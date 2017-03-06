@@ -1,6 +1,5 @@
 import {SurveyMission} from "./SurveyMission";
 import {helper} from "../../helpers/helper";
-import {Empire} from "../Empire";
 import {SpawnGroup} from "../SpawnGroup";
 import {notifier} from "../../notifier";
 import {Mission} from "./Mission";
@@ -49,8 +48,7 @@ export class SurveyAnalyzer {
                 delete this.memory.chosenRoom;
                 if (Object.keys(this.memory.surveyRooms).length === 0) {
                     notifier.log(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
-                }
-                else {
+                } else {
                     this.memory.nextAnalysis = Game.time + 1000;
                 }
             }
@@ -61,9 +59,9 @@ export class SurveyAnalyzer {
         let exploreRoomName;
         if (!this.memory.surveyRooms) { this.memory.surveyRooms = this.initSurveyData(); }
         exploreRoomName = this.completeSurveyData(this.memory.surveyRooms);
-        if (exploreRoomName) return exploreRoomName;
+        if (exploreRoomName) { return exploreRoomName; }
         exploreRoomName = this.updateOwnershipData();
-        if (exploreRoomName) return;
+        if (exploreRoomName) { return; }
 
         let chosenRoom;
         let readyList = this.checkReady();
@@ -72,8 +70,7 @@ export class SurveyAnalyzer {
         }
         if (chosenRoom) {
             this.memory.chosenRoom = chosenRoom;
-        }
-        else if (this.memory.nextAnalysis < Game.time) {
+        } else if (this.memory.nextAnalysis < Game.time) {
             this.memory.nextAnalysis = Game.time + 1000;
         }
 
@@ -104,16 +101,14 @@ export class SurveyAnalyzer {
                         noSafePath = true;
                     }
                 }
-            }
-            else {
+            } else {
                 noSafePath = true;
             }
 
             let type = WorldMap.roomTypeFromName(roomName);
             if (type === ROOMTYPE_SOURCEKEEPER || noSafePath) {
                 data[roomName] = { danger: true };
-            }
-            else {
+            } else {
                 data[roomName] = { danger: false };
             }
         }
@@ -121,8 +116,7 @@ export class SurveyAnalyzer {
         return data;
     }
 
-
-    findAdjacentRooms(startRoomName: string, distance = 1, filterOut: number[] = []): string[] {
+    private findAdjacentRooms(startRoomName: string, distance = 1, filterOut: number[] = []): string[] {
         let alreadyChecked: {[roomName: string]: boolean } = { [startRoomName]: true };
         let adjacentRooms: string[] = [];
         let testRooms: string[] = [startRoomName];
@@ -130,9 +124,9 @@ export class SurveyAnalyzer {
             let testRoom = testRooms.pop();
             alreadyChecked[testRoom] = true;
             for (let value of _.values<string>(Game.map.describeExits(testRoom))) {
-                if (alreadyChecked[value]) continue;
-                if (Game.map.getRoomLinearDistance(startRoomName, value) > distance) continue;
-                if (_.includes(filterOut, WorldMap.roomTypeFromName(value))) continue;
+                if (alreadyChecked[value]) { continue; }
+                if (Game.map.getRoomLinearDistance(startRoomName, value) > distance) { continue; }
+                if (_.includes(filterOut, WorldMap.roomTypeFromName(value))) { continue; }
                 adjacentRooms.push(value);
                 testRooms.push(value);
                 alreadyChecked[value] = true;
@@ -145,7 +139,7 @@ export class SurveyAnalyzer {
 
         for (let roomName in surveyRooms) {
             let data = surveyRooms[roomName];
-            if (data.sourceCount) continue;
+            if (data.sourceCount) { continue; }
             let room = Game.rooms[roomName];
             if (room) {
                 this.analyzeRoom(room, data);
@@ -153,9 +147,8 @@ export class SurveyAnalyzer {
             }
             if (!data.danger) {
                 return roomName;
-            }
-            else {
-                if (this.room.controller.level < 8) continue;
+            } else {
+                if (this.room.controller.level < 8) { continue; }
                 return roomName;
             }
         }
@@ -190,7 +183,7 @@ export class SurveyAnalyzer {
                     if (Game.map.getRoomLinearDistance(this.room.name, roomName) > roomDistance) {
                         return false;
                     }
-                }
+                },
             });
             if (ret.incomplete) {
                 notifier.log(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
@@ -201,7 +194,7 @@ export class SurveyAnalyzer {
             let cartsNeeded = Mission.analyzeTransport(distance, Mission.loadFromSource(source), 12900).cartsNeeded;
 
             // disqualify due to source distance
-            if (cartsNeeded > data.sourceCount){
+            if (cartsNeeded > data.sourceCount) {
                 notifier.log(`SURVEY: disqualified ${room.name} due to distance to source: ${cartsNeeded}`);
                 delete this.memory.surveyRooms[room.name];
                 return;
@@ -224,12 +217,10 @@ export class SurveyAnalyzer {
         if (room.controller) {
             if (room.controller.reservation) {
                 return room.controller.reservation.username;
-            }
-            else if (room.controller.owner) {
+            } else if (room.controller.owner) {
                 return room.controller.owner.username;
             }
-        }
-        else {
+        } else {
             for (let source of room.find<Source>(FIND_SOURCES)) {
                 let nearbyCreeps = _.filter(source.pos.findInRange<Creep>(FIND_CREEPS, 1),
                     (c: Creep) => !c.owner || c.owner.username !== "Source Keeper");
@@ -250,12 +241,10 @@ export class SurveyAnalyzer {
                     data.owner = this.checkOwnership(room);
                     if (data.owner === USERNAME) {
                         delete this.memory.surveyRooms[room.name];
-                    }
-                    else {
+                    } else {
                         data.lastCheckedOwner = Game.time;
                     }
-                }
-                else {
+                } else {
                     return roomName;
                 }
             }
@@ -269,8 +258,6 @@ export class SurveyAnalyzer {
             this.memory.nextAnalysis = Game.time + 10000;
             return;
         }
-
-
 
         let readyList = {};
 

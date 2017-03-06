@@ -2,21 +2,21 @@ import {Mission} from "./Mission";
 import {Agent} from "./Agent";
 export class ScoutMission extends Mission {
 
-    scouts: Agent[];
+    private scouts: Agent[];
 
     constructor(operation) {
         super(operation, "scout");
     }
 
-    initMission() {
+    public initMission() {
     }
 
-    roleCall() {
+    public roleCall() {
         let maxScouts = () => this.hasVision ? 0 : 1;
         this.scouts = this.headCount(this.name, () => this.workerBody(0, 0, 1), maxScouts, {blindSpawn: true});
     }
 
-    missionActions() {
+    public missionActions() {
         for (let scout of this.scouts) {
 
             if (!scout.pos.isNearTo(this.flag)) {
@@ -25,9 +25,9 @@ export class ScoutMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 }

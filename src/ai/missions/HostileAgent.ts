@@ -27,7 +27,7 @@ export class HostileAgent {
         if (!Memory.hostileMemory[creep.id]) { Memory.hostileMemory[creep.id] = {} as HostileMemory; }
         this.memory = Memory.hostileMemory[creep.id];
 
-        if (!this.memory.potentials) { this.memory.potentials = this.findPotentials();}
+        if (!this.memory.potentials) { this.memory.potentials = this.findPotentials(); }
         this.potentials = this.memory.potentials;
     }
     public getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }

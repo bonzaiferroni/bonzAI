@@ -10,18 +10,18 @@ import {Traveler} from "../Traveler";
 import {RoomHelper} from "../RoomHelper";
 export abstract class Mission {
 
-    flag: Flag;
-    memory: any;
-    spawnGroup: SpawnGroup;
-    sources: Source[];
-    room: Room;
-    name: string;
-    operation: Operation;
-    allowSpawn: boolean;
-    hasVision: boolean;
-    waypoints: Flag[];
-    partnerPairing: {[role: string]: Agent[]} = {};
-    distanceToSpawn: number;
+    public flag: Flag;
+    public memory: any;
+    public spawnGroup: SpawnGroup;
+    public sources: Source[];
+    public room: Room;
+    public name: string;
+    public operation: Operation;
+    public allowSpawn: boolean;
+    public hasVision: boolean;
+    public waypoints: Flag[];
+    public partnerPairing: {[role: string]: Agent[]} = {};
+    public distanceToSpawn: number;
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.name = name;
@@ -29,13 +29,13 @@ export abstract class Mission {
         this.room = operation.room;
         this.spawnGroup = operation.spawnGroup;
         this.sources = operation.sources;
-        if (!operation.memory[name]) operation.memory[name] = {};
+        if (!operation.memory[name]) { operation.memory[name] = {}; }
         this.memory = operation.memory[name];
         this.allowSpawn = allowSpawn;
         this.operation = operation;
-        if (this.room) this.hasVision = true;
+        if (this.room) { this.hasVision = true; }
         // initialize memory to be used by this mission
-        if (!this.memory.hc) this.memory.hc = {};
+        if (!this.memory.hc) { this.memory.hc = {}; }
         if (operation.waypoints && operation.waypoints.length > 0) {
             this.waypoints = operation.waypoints;
         }
@@ -69,7 +69,8 @@ export abstract class Mission {
     public setBoost(activateBoost: boolean) {
         let oldValue = this.memory.activateBoost;
         this.memory.activateBoost = activateBoost;
-        return `changing boost activation for ${this.name} in ${this.operation.name} from ${oldValue} to ${activateBoost}`;
+        return `changing boost activation for ${this.name} in ${this.operation.name} from ${oldValue} to ` +
+            `${activateBoost}`;
     }
 
     public setMax(max: number) {
@@ -101,7 +102,7 @@ export abstract class Mission {
     protected headCount(roleName: string, getBody: () => string[], getMax: () => number,
                         options: HeadCountOptions = {}): Agent[] {
         let agentArray = [];
-        if (!this.memory.hc[roleName]) this.memory.hc[roleName] = this.findOrphans(roleName);
+        if (!this.memory.hc[roleName]) { this.memory.hc[roleName] = this.findOrphans(roleName); }
         let creepNames = this.memory.hc[roleName] as string[];
 
         let count = 0;
@@ -111,15 +112,14 @@ export abstract class Mission {
             if (creep) {
                 let agent = new Agent(creep, this);
                 let prepared = this.prepAgent(agent, options);
-                if (prepared) agentArray.push(agent);
+                if (prepared) { agentArray.push(agent); }
                 let ticksNeeded = 0;
                 if (options.prespawn !== undefined) {
                     ticksNeeded += creep.body.length * 3;
                     ticksNeeded += options.prespawn;
                 }
                 if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
-            }
-            else {
+            } else {
                 creepNames.splice(i, 1);
                 delete Memory.creeps[creepName];
                 i--;
@@ -143,7 +143,7 @@ export abstract class Mission {
 
     protected spawnSharedAgent(roleName: string, getBody: () => string[]): Agent {
         let spawnMemory = this.spawnGroup.spawns[0].memory;
-        if (!spawnMemory.communityRoles) spawnMemory.communityRoles = {};
+        if (!spawnMemory.communityRoles) { spawnMemory.communityRoles = {}; }
 
         let employerName = this.operation.name + this.name;
         let creep: Creep;
@@ -151,13 +151,13 @@ export abstract class Mission {
             let creepName = spawnMemory.communityRoles[roleName];
             creep = Game.creeps[creepName];
             if (creep && Game.map.getRoomLinearDistance(this.spawnGroup.room.name, creep.room.name) <= 3) {
-                if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed || Game.time - creep.memory.lastTickEmployed > 1)) {
+                if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed ||
+                    Game.time - creep.memory.lastTickEmployed > 1)) {
                     creep.memory.employer = employerName;
                     creep.memory.lastTickEmployed = Game.time;
                     return new Agent(creep, this);
                 }
-            }
-            else {
+            } else {
                 delete Memory.creeps[creepName];
                 delete spawnMemory.communityRoles[roleName];
             }
@@ -171,8 +171,7 @@ export abstract class Mission {
             let outcome = this.spawnGroup.spawn(getBody(), creepName, undefined, undefined);
             if (_.isString(outcome)) {
                 spawnMemory.communityRoles[roleName] = outcome;
-            }
-            else if (Game.time % 10 !== 0 && outcome !== ERR_NOT_ENOUGH_RESOURCES) {
+            } else if (Game.time % 10 !== 0 && outcome !== ERR_NOT_ENOUGH_RESOURCES) {
                 console.log(`error spawning community ${roleName} in ${this.operation.name} outcome: ${outcome}`);
             }
         }
@@ -215,14 +214,15 @@ export abstract class Mission {
      * @param workRatio
      * @param carryRatio
      * @param moveRatio
-     * @param spawnFraction - proportion of spawn energy to be used up to 50 body parts, .5 would use half, 1 would use all
+     * @param spawnFraction - proportion of spawn energy to be used up to 50 body parts
      * @param limit - set a limit to the number of units (useful if you know the exact limit, like with miners)
      * @returns {string[]}
      */
-    protected bodyRatio(workRatio: number, carryRatio: number, moveRatio: number, spawnFraction: number, limit?: number): string[] {
+    protected bodyRatio(workRatio: number, carryRatio: number, moveRatio: number, spawnFraction: number,
+                        limit?: number): string[] {
         let sum = workRatio * 100 + carryRatio * 50 + moveRatio * 50;
         let partsPerUnit = workRatio + carryRatio + moveRatio;
-        if (!limit) limit = Math.floor(50 / partsPerUnit);
+        if (!limit) { limit = Math.floor(50 / partsPerUnit); }
         let maxUnits = Math.min(Math.floor((this.spawnGroup.maxSpawnEnergy * spawnFraction) / sum), limit);
         return this.workerBody(workRatio * maxUnits, carryRatio * maxUnits, moveRatio * maxUnits);
     }
@@ -235,8 +235,7 @@ export abstract class Mission {
     protected hasLoad(creep: Creep): boolean {
         if (creep.memory.hasLoad && _.sum(creep.carry) === 0) {
             creep.memory.hasLoad = false;
-        }
-        else if (!creep.memory.hasLoad && _.sum(creep.carry) === creep.carryCapacity) {
+        } else if (!creep.memory.hasLoad && _.sum(creep.carry) === creep.carryCapacity) {
             creep.memory.hasLoad = true;
         }
         return creep.memory.hasLoad;
@@ -252,13 +251,13 @@ export abstract class Mission {
     protected cacheTransportAnalysis(distance: number, load: number): TransportAnalysis {
         if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load
             || distance !== this.memory.transportAnalysis.distance) {
-            this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy)
+            this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy);
         }
         return this.memory.transportAnalysis;
     }
 
     // deprecated
-    static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number): TransportAnalysis {
+    public static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number): TransportAnalysis {
         // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100 and costs 150
         let maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
             ((BODYPART_COST[CARRY] * 2) + BODYPART_COST[MOVE])), 16);
@@ -276,7 +275,7 @@ export abstract class Mission {
     }
 
     // deprecated
-    static loadFromSource(source: Source): number {
+    public static loadFromSource(source: Source): number {
         return Math.max(source.energyCapacity, SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME;
     }
 
@@ -302,8 +301,7 @@ export abstract class Mission {
                 let object = _.head(flag.pos.lookFor(lookConstant));
                 if (object) {
                     objects.push(object);
-                }
-                else {
+                } else {
                     flag.remove();
                 }
             }
@@ -313,13 +311,12 @@ export abstract class Mission {
     }
 
     // deprecated, use similar function on TransportGuru
-    getStorage(pos: RoomPosition): StructureStorage {
+    protected getStorage(pos: RoomPosition): StructureStorage {
         if (this.memory.tempStorageId) {
             let storage = Game.getObjectById<StructureStorage>(this.memory.tempStorageId);
             if (storage) {
                 return storage;
-            }
-            else {
+            } else {
                 console.log("ATTN: Clearing temporary storage id due to not finding object in", this.operation.name);
                 this.memory.tempStorageId = undefined;
             }
@@ -370,8 +367,7 @@ export abstract class Mission {
         let spawn = this.spawnGroup.spawns[0];
         if (agent.pos.isNearTo(spawn)) {
             spawn.recycleCreep(agent.creep);
-        }
-        else {
+        } else {
             agent.travelTo(spawn);
         }
     }
@@ -379,11 +375,11 @@ export abstract class Mission {
     private prepAgent(agent: Agent, options: HeadCountOptions) {
         if (!agent.memory.prep) {
             if (options.disableNotify) {
-                this.disableNotify(agent)
+                this.disableNotify(agent);
             }
             let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
-            if (!boosted) return false;
-            if (agent.creep.spawning) return false;
+            if (!boosted) { return false; }
+            if (agent.creep.spawning) { return false; }
             if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
                 agent.avoidSK(this.flag);
                 return;
@@ -396,10 +392,10 @@ export abstract class Mission {
     protected findPartnerships(agents: Agent[], role: string) {
         for (let agent of agents) {
             if (!agent.memory.partner) {
-                if (!this.partnerPairing[role]) this.partnerPairing[role] = [];
+                if (!this.partnerPairing[role]) { this.partnerPairing[role] = []; }
                 this.partnerPairing[role].push(agent);
                 for (let otherRole in this.partnerPairing) {
-                    if (role === otherRole) continue;
+                    if (role === otherRole) { continue; }
                     let otherCreeps = this.partnerPairing[otherRole];
                     let closestCreep;
                     let smallestAgeDifference = Number.MAX_VALUE;
@@ -440,8 +436,7 @@ export abstract class Mission {
                 } else {
                     this.memory.distanceToSpawn = ret.path.length;
                 }
-            }
-            else {
+            } else {
                 console.log(`SPAWN: likely portal travel detected in ${this.operation.name}, setting distance to 200`);
                 this.memory.distanceToSpawn = 200;
             }
@@ -480,33 +475,29 @@ export abstract class Mission {
         let range = defender.pos.getRangeTo(hurtCreep);
         if (range > 1) {
             defender.travelTo(hurtCreep, {movingTarget: true});
-        }
-        else {
+        } else {
             defender.yieldRoad(hurtCreep, true);
         }
 
         if (range === 1) {
             defender.heal(hurtCreep);
-        }
-        else if (range <= 3) {
+        } else if (range <= 3) {
             defender.rangedHeal(hurtCreep);
         }
     }
 
     private findHurtCreep(defender: Agent) {
-        if (!this.room) return;
+        if (!this.room) { return; }
 
         if (defender.memory.healId) {
             let creep = Game.getObjectById(defender.memory.healId) as Creep;
             if (creep && creep.room.name === defender.room.name && creep.hits < creep.hitsMax) {
                 return creep;
-            }
-            else {
+            } else {
                 defender.memory.healId = undefined;
                 return this.findHurtCreep(defender);
             }
-        }
-        else if (!defender.memory.healCheck || Game.time - defender.memory.healCheck > 25) {
+        } else if (!defender.memory.healCheck || Game.time - defender.memory.healCheck > 25) {
             defender.memory.healCheck = Game.time;
             let hurtCreep = _(this.room.find<Creep>(FIND_MY_CREEPS))
                 .filter((c: Creep) => c.hits < c.hitsMax && c.ticksToLive > 100)

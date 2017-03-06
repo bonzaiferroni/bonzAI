@@ -18,10 +18,11 @@ export var consoleCommands = {
 
     removeConstructionSites(roomName: string, leaveProgressStarted = true, structureType?: string) {
         Game.rooms[roomName].find(FIND_MY_CONSTRUCTION_SITES).forEach( (site: ConstructionSite) => {
-            if ((!structureType || site.structureType === structureType) &&(!leaveProgressStarted || site.progress === 0)) {
+            if ((!structureType || site.structureType === structureType) && (!leaveProgressStarted ||
+                site.progress === 0)) {
                 site.remove();
             }
-        })
+        });
     },
     // shorthand
     rc(roomName: string, leaveProgressStarted: boolean, structureType: string) {
@@ -68,8 +69,8 @@ export var consoleCommands = {
     },
 
     /**
-     * remove most memory while leaving more important stuff intact, strongly not recommended unless you know what you are
-     * doing
+     * remove most memory while leaving more important stuff intact, strongly not recommended unless you know what you
+     * are doing
      */
 
     wipeMemory() {
@@ -77,15 +78,14 @@ export var consoleCommands = {
             let flag = Game.flags[flagName];
             if (flag) {
                 for (let propertyName of Object.keys(flag.memory)) {
-                    if (propertyName === "power") continue;
-                    if (propertyName === "centerPosition") continue;
-                    if (propertyName === "rotation") continue;
-                    if (propertyName === "radius") continue;
-                    if (propertyName === "layoutMap") continue;
+                    if (propertyName === "power") { continue; }
+                    if (propertyName === "centerPosition") { continue; }
+                    if (propertyName === "rotation") { continue; }
+                    if (propertyName === "radius") { continue; }
+                    if (propertyName === "layoutMap") { continue; }
                     delete flag.memory[propertyName];
                 }
-            }
-            else {
+            } else {
                 delete Memory.flags[flagName];
             }
         }
@@ -148,8 +148,7 @@ export var consoleCommands = {
                         paveTick++;
                     }
                 }
-            }
-            else {
+            } else {
                 flagCount++;
                 delete Memory.flags[flagName];
             }
@@ -188,7 +187,6 @@ export var consoleCommands = {
         }
     },
 
-
     /**
      * Empty resources from a terminal, will only try to send one resource each tick so this must be called repeatedly
      * on multiple ticks with the same arguments to completely empty a terminal
@@ -201,14 +199,13 @@ export var consoleCommands = {
         let originTerminal = Game.rooms[origin].terminal;
         let outcome;
         for (let resourceType in originTerminal.store) {
-            if (!originTerminal.store.hasOwnProperty(resourceType)) continue;
+            if (!originTerminal.store.hasOwnProperty(resourceType)) { continue; }
             let amount = originTerminal.store[resourceType];
             if (amount >= 100) {
                 if (resourceType !== RESOURCE_ENERGY) {
                     outcome = originTerminal.send(resourceType, amount, destination);
                     break;
-                }
-                else if (Object.keys(originTerminal.store).length === 1 ) {
+                } else if (Object.keys(originTerminal.store).length === 1 ) {
                     let distance = Game.map.getRoomLinearDistance(origin, destination, true);
                     let stored = originTerminal.store.energy;
                     let amountSendable = Math.floor(stored / (1 + 0.1 * distance));
@@ -230,7 +227,7 @@ export var consoleCommands = {
 
     changeOpName(opName: string, newOpName: string) {
         let operation = Game.operations[opName] as Operation;
-        if (!operation) return "you don't have an operation by that name";
+        if (!operation) { return "you don't have an operation by that name"; }
 
         let newFlagName = operation.type + "_" + newOpName;
         let outcome = operation.flag.pos.createFlag(newFlagName, operation.flag.color, operation.flag.secondaryColor);
@@ -238,8 +235,7 @@ export var consoleCommands = {
             Memory.flags[newFlagName] = operation.memory;
             operation.flag.remove();
             return `success, changed ${opName} to ${newOpName} (removing old flag)`;
-        }
-        else {
+        } else {
             return "error changing name: " + outcome;
         }
     },
@@ -249,8 +245,8 @@ export var consoleCommands = {
      * @param resourceType
      * @param amount
      * @param roomName
-     * @param efficiency - the number of terminals that should send the resource per tick, use a lower number to only send
-     * from the nearest terminals
+     * @param efficiency - the number of terminals that should send the resource per tick, use a lower number to only
+     * send from the nearest terminals
      * @returns {any}
      */
 
@@ -272,36 +268,20 @@ export var consoleCommands = {
         return "TRADE: scheduling " + amount + " " + resourceType + " to be sent to " + roomName;
     },
 
-    /**
-     * One-time send resource from all terminals to a specific missionRoom. For more control use cc.order()
-     * @param resourceType
-     * @param amount
-     * @param roomName
-     */
-
-    sendFromAll(resourceType: string, amount: number, roomName: string) {
-        _.forEach(Game.rooms, (room: Room) => {
-            if (room.controller && room.controller.level > 6 && room.terminal && room.terminal.my) {
-                let outcome = room.terminal.send(resourceType, amount, roomName)
-                console.log(room.name, " sent ",amount," to ",roomName);
-            }
-        })
-    },
-
     patchTraderMemory() {
         for (let username in Memory.traders) {
             let data = Memory.traders[username] as any;
             if (data.recieved) {
                 for (let resourceType in data.recieved) {
                     let amount = data.recieved[resourceType];
-                    if (data[resourceType] === undefined) data[resourceType] = 0;
+                    if (data[resourceType] === undefined) { data[resourceType] = 0; }
                     data[resourceType] += amount;
                 }
             }
             if (data.sent) {
                 for (let resourceType in data.sent) {
                     let amount = data.sent[resourceType];
-                    if (data[resourceType] === undefined) data[resourceType] = 0;
+                    if (data[resourceType] === undefined) { data[resourceType] = 0; }
                     data[resourceType] -= amount;
                 }
             }
@@ -324,7 +304,7 @@ export var consoleCommands = {
 
         for (let direction = 1; direction <= 8; direction++) {
             let tempName = opName + "temp" + direction;
-            if (!Game.operations[tempName]) continue;
+            if (!Game.operations[tempName]) { continue; }
             console.log(`found temp ${tempName}`);
             let desiredName = opName + direction;
             let currentOp = Game.operations[desiredName];
@@ -356,8 +336,7 @@ export var consoleCommands = {
                 console.log(`current op with that name, changing name to temp`);
                 let tempDir = WorldMap.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
                 return this.changeOpName(correctOpName, opName + "temp" + tempDir);
-            }
-            else {
+            } else {
                 console.log(`no current op with that name`);
                 return this.changeOpName(testOpName, correctOpName);
             }
@@ -373,7 +352,7 @@ export var consoleCommands = {
         let firstCPU = Game.cpu.getUsed();
         let ret = PathFinder.search(fromPos, toPos, {
             maxOps: 20000,
-            roomCallback: (roomName) => consideredRooms[roomName] = true
+            roomCallback: (roomName) => consideredRooms[roomName] = true,
         });
         firstCPU = Game.cpu.getUsed() - firstCPU;
         let consideredRooms2 = {};
@@ -386,7 +365,7 @@ export var consoleCommands = {
                     return false;
                 }
                 consideredRooms2[roomName] = true;
-            }
+            },
         });
         secondCPU = Game.cpu.getUsed() - secondCPU;
         return `First path:\n` +
@@ -427,6 +406,6 @@ export var consoleCommands = {
                 creep.memory._travel.cpu = 0;
             }
         }
-        return `reset cpu for ${count} creeps`
+        return `reset cpu for ${count} creeps`;
     },
 };

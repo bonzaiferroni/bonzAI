@@ -6,29 +6,29 @@ import {empire} from "../../helpers/loopHelper";
 import {Agent} from "./Agent";
 export abstract class RaidMission extends Mission {
 
-    attacker: Agent;
-    healer: Agent;
+    protected attacker: Agent;
+    protected healer: Agent;
 
-    raidData: RaidData;
+    protected raidData: RaidData;
 
-    specialistPart: string;
-    specialistBoost: string;
-    spawnCost: number;
+    protected specialistPart: string;
+    protected specialistBoost: string;
+    protected spawnCost: number;
 
-    raidWaypoints: Flag[];
+    protected raidWaypoints: Flag[];
 
-    spawned: boolean;
-    boostLevel: number;
+    public spawned: boolean;
+    protected boostLevel: number;
 
-    healerBoosts: string[];
-    attackerBoosts: string[];
+    protected healerBoosts: string[];
+    protected attackerBoosts: string[];
 
-    killCreeps: boolean;
+    protected killCreeps: boolean;
 
-    attackRange: number;
-    attacksCreeps: boolean;
+    protected attackRange: number;
+    protected attacksCreeps: boolean;
 
-    memory: {
+    public memory: {
         healerLead: boolean;
         spawned: boolean;
         spawn: {[roleName: string]: string}
@@ -37,33 +37,31 @@ export abstract class RaidMission extends Mission {
         targetId: string;
     };
 
-    abstract clearActions(attackingCreep: boolean);
+    protected abstract clearActions(attackingCreep: boolean);
 
-    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number, allowSpawn: boolean) {
+    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+                allowSpawn: boolean) {
         super(operation, name, allowSpawn);
         this.raidData = raidData;
         this.spawnGroup = spawnGroup;
         this.boostLevel = boostLevel;
     }
 
-    initMission() {
+    public initMission() {
         this.raidWaypoints = this.getFlagSet("_waypoints_", 15);
         this.raidWaypoints.push(this.raidData.fallbackFlag);
         if (this.boostLevel === BoostLevel.Training || this.boostLevel === BoostLevel.Unboosted) {
             this.healerBoosts = [];
             this.attackerBoosts = [];
-        }
-        else {
+        } else {
             this.healerBoosts = [
                 RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
                 RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
                 RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
         }
-
-        // if (this.raidData.breachFlags[0].missionRoom && !this.memory.fallback && this.raidData.breachFlags[0].missionRoom.controller.safeMode.)
     }
 
-    roleCall() {
+    public roleCall() {
         let max = () => !this.memory.spawned ? 1 : 0;
         let reservation = { spawns: 2, currentEnergy: undefined };
         if (this.spawnGroup.maxSpawnEnergy >= this.spawnCost) {
@@ -72,7 +70,7 @@ export abstract class RaidMission extends Mission {
 
         this.attacker = _.head(this.headCount(this.name + "Attacker", this.attackerBody, max, {
             memory: {boosts: this.attackerBoosts },
-            reservation: reservation
+            reservation: reservation,
         }));
 
         if (this.attacker) {
@@ -81,7 +79,7 @@ export abstract class RaidMission extends Mission {
         }
 
         this.healer = _.head(this.headCount(this.name + "Healer", this.healerBody, max, {
-            memory: { boosts: this.healerBoosts }
+            memory: { boosts: this.healerBoosts },
         }));
 
         if (this.healer) {
@@ -89,13 +87,13 @@ export abstract class RaidMission extends Mission {
         }
     }
 
-    missionActions() {
+    public missionActions() {
 
         /* ------PREPARE PHASE------ */
 
         // prep, wait for the other to boost
         let prepared = this.preparePhase();
-        if (!prepared) return;
+        if (!prepared) { return; }
 
         // healing and attacking will be active from this point on
         this.healCreeps();
@@ -106,12 +104,12 @@ export abstract class RaidMission extends Mission {
 
         if (this.killCreeps || this.memory.targetId) {
             let foundHostiles = this.focusCreeps();
-            if (foundHostiles) return;
+            if (foundHostiles) { return; }
         }
 
         /* ------TRAVEL PHASE------ */
         let waypointsTraveled = this.waypointSquadTravel(this.healer, this.attacker, this.raidWaypoints);
-        if (!waypointsTraveled) return;
+        if (!waypointsTraveled) { return; }
 
         /* --------FALLBACK-------- */
         if (this.raidData.fallback) {
@@ -148,7 +146,7 @@ export abstract class RaidMission extends Mission {
         this.finishActions(attackingCreep);
     }
 
-    finalizeMission() {
+    public finalizeMission() {
         if (!this.memory.spawned && this.memory.spawn[this.name + "Attacker"].length > 0
             && this.memory.spawn[this.name + "Healer"].length > 0) {
             this.memory.spawned = true;
@@ -172,7 +170,7 @@ export abstract class RaidMission extends Mission {
         }
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     protected standardClearActions(attackingCreep) {
@@ -180,11 +178,9 @@ export abstract class RaidMission extends Mission {
         let target;
         if (this.raidData.breachStructures.length > 0) {
             target = this.findMissionTarget(this.raidData.breachStructures);
-        }
-        else if (this.raidData.targetStructures.length > 0) {
+        } else if (this.raidData.targetStructures.length > 0) {
             target = this.findMissionTarget(this.raidData.targetStructures);
-        }
-        else {
+        } else {
             target = this.findMissionTarget(this.room.hostiles);
         }
 
@@ -200,8 +196,7 @@ export abstract class RaidMission extends Mission {
             if (!this.healer.pos.isNearTo(this.attacker)) {
                 this.healer.travelTo(this.attacker);
             }
-        }
-        else {
+        } else {
             Agent.squadTravel(this.attacker, this.healer, target, this.attackRange);
         }
     }
@@ -249,67 +244,59 @@ export abstract class RaidMission extends Mission {
     }
 
     protected squadFlee(roomObject: RoomObject) {
-        if (this.attacker.fatigue > 0) return ERR_BUSY;
+        if (this.attacker.fatigue > 0) { return ERR_BUSY; }
 
         if (this.attacker.pos.isNearTo(this.healer)) {
             if (this.attacker.pos.inRangeTo(roomObject, 2)) {
                 this.healer.retreat([roomObject]);
                 this.attacker.move(this.attacker.pos.getDirectionTo(this.healer));
             }
-        }
-        else {
+        } else {
             this.attacker.travelTo(this.healer, {ignoreCreeps: false});
         }
     }
 
-    healerBody = (): string[] => {
+    protected healerBody = (): string[] => {
         if (this.boostLevel === BoostLevel.Training) {
             return this.configBody({ [TOUGH]: 1, [MOVE]: 2, [HEAL]: 1 });
-        }
-        else if (this.boostLevel === BoostLevel.Unboosted) {
+        } else if (this.boostLevel === BoostLevel.Unboosted) {
             return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [HEAL]: 20 });
-        }
-        else if (this.boostLevel === BoostLevel.SuperTough) {
+        } else if (this.boostLevel === BoostLevel.SuperTough) {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [HEAL]: 28 });
-        }
-        else if (this.boostLevel === BoostLevel.RCL7) {
+        } else if (this.boostLevel === BoostLevel.RCL7) {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [HEAL]: 20 });
-        }
-        else {
+        } else {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [HEAL]: 28 });
         }
     };
 
-    attackerBody = (): string[] => {
+    protected attackerBody = (): string[] => {
         if (this.boostLevel === BoostLevel.Training) {
             return this.configBody({ [TOUGH]: 1, [MOVE]: 3, [this.specialistPart]: 1, [RANGED_ATTACK]: 1 });
-        }
-        else if (this.boostLevel === BoostLevel.Unboosted) {
+        } else if (this.boostLevel === BoostLevel.Unboosted) {
             return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 });
-        }
-        else if (this.boostLevel === BoostLevel.SuperTough) {
+        } else if (this.boostLevel === BoostLevel.SuperTough) {
             return this.configBody({ [TOUGH]: 24, [MOVE]: 10, [this.specialistPart]: 15, [RANGED_ATTACK]: 1 });
-        }
-        else if (this.boostLevel === BoostLevel.RCL7) {
+        } else if (this.boostLevel === BoostLevel.RCL7) {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 });
-        }
-        else {
+        } else {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [this.specialistPart]: 27, [RANGED_ATTACK]: 1 });
         }
     };
 
     private healCreeps() {
-        if (!this.healer) return;
+        if (!this.healer) { return; }
 
         if (!this.raidData.injuredCreeps) {
             this.raidData.injuredCreeps = {};
             for (let creep of this.raidData.raidAgents) {
-                if (creep.hits === creep.hitsMax) continue;
+                if (creep.hits === creep.hitsMax) { continue; }
                 this.raidData.injuredCreeps[creep.name] = creep.hits;
             }
         }
 
-        let injuredCreeps = _.map(Object.keys(this.raidData.injuredCreeps), (name: string) => Game.creeps[name]) as Creep[];
+        let injuredCreeps = _.map(Object.keys(this.raidData.injuredCreeps),
+            (name: string) => Game.creeps[name]) as Creep[];
         for (let creep of injuredCreeps) {
             if (!(creep instanceof Creep)) {
                 console.log(`found a bad creep in injured creeps: ${creep}`);
@@ -331,9 +318,9 @@ export abstract class RaidMission extends Mission {
             .sortBy("hits")
             .head();
         if (closeRange) {
-            if (!this.healer) console.log("no healer?");
+            if (!this.healer) { console.log("no healer?"); }
             let outcome = this.healer.heal(closeRange);
-            if (outcome !== OK) console.log(`healing error: ${outcome}`);
+            if (outcome !== OK) { console.log(`healing error: ${outcome}`); }
             this.raidData.injuredCreeps[closeRange.name] += healedAmount(this.healer, true);
             if (this.raidData.injuredCreeps[closeRange.name] > closeRange.hitsMax) {
                 delete this.raidData.injuredCreeps[closeRange.name];
@@ -345,9 +332,9 @@ export abstract class RaidMission extends Mission {
             .sortBy("hits")
             .head();
         if (longRange) {
-            if (!this.healer) console.log("no healer?");
+            if (!this.healer) { console.log("no healer?"); }
             let outcome = this.healer.rangedHeal(longRange);
-            if (outcome !== OK) console.log(`healing error: ${outcome}`);
+            if (outcome !== OK) { console.log(`healing error: ${outcome}`); }
             this.raidData.injuredCreeps[longRange.name] += healedAmount(this.healer, true);
             if (this.raidData.injuredCreeps[longRange.name] > longRange.hitsMax) {
                 delete this.raidData.injuredCreeps[longRange.name];
@@ -376,8 +363,7 @@ export abstract class RaidMission extends Mission {
 
         if (range === 1 || creepTargets.length > 1) {
             this.attacker.rangedMassAttack();
-        }
-        else {
+        } else {
             this.attacker.rangedAttack(closest);
         }
 
@@ -402,26 +388,22 @@ export abstract class RaidMission extends Mission {
                     if (range < this.attackRange) {
                         this.attacker.retreat([closest]);
                     }
-                }
-                else {
+                } else {
                     this.attacker.travelTo(closest);
 
                 }
-            }
-            else if (this.attacker.room === this.raidData.attackRoom) {
+            } else if (this.attacker.room === this.raidData.attackRoom) {
                 let closest = this.attacker.pos.findClosestByRange<Structure>(this.raidData.targetStructures);
                 if (closest) {
                     if (this.attacker.pos.inRangeTo(closest, this.attackRange)) {
                         this.attacker.dismantle(closest);
                         this.attacker.attack(closest);
                         this.attacker.rangedMassAttack();
-                    }
-                    else {
+                    } else {
                         this.attacker.travelTo(closest);
                     }
                 }
-            }
-            else {
+            } else {
                 this.attacker.idleOffRoad(this.flag);
             }
         }
@@ -457,19 +439,16 @@ export abstract class RaidMission extends Mission {
             let range = this.attacker.pos.getRangeTo(closest);
             if (range > 1) {
                 Agent.squadTravel(this.attacker, this.healer, closest);
-            }
-            else if (range === 1 && this.healer.fatigue === 0) {
+            } else if (range === 1 && this.healer.fatigue === 0) {
                 this.attacker.move(this.attacker.pos.getDirectionTo(closest));
                 if (this.healer.pos.getRangeTo(this.attacker) === 1) {
                     this.healer.move(this.healer.pos.getDirectionTo(this.attacker));
-                }
-                else {
+                } else {
                     this.healer.travelTo(this.attacker);
                 }
             }
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -479,13 +458,11 @@ export abstract class RaidMission extends Mission {
             let target = Game.getObjectById<{pos: RoomPosition, id: string}>(this.attacker.memory.attackTargetId);
             if (target && this.hasValidPath(this.attacker, target)) {
                 return target;
-            }
-            else {
+            } else {
                 delete this.attacker.memory.attackTargetId;
                 return this.findMissionTarget(possibleTargets);
             }
-        }
-        else {
+        } else {
             let closest = this.attacker.pos.findClosestByRange<{pos: RoomPosition, id: string}>(possibleTargets);
             if (!closest) {
                 return;

@@ -4,7 +4,7 @@ interface SeedSelection {seedType: string, origin: Coord, rotation: number, ener
 
 export class SeedMission extends Mission {
 
-    memory: {
+    public memory: {
         seedRooms: {
             [roomName: string]: {
                 foundSeeds: boolean
@@ -31,22 +31,22 @@ export class SeedMission extends Mission {
         super(operation, "seed");
     }
 
-    initMission() {
+    public initMission() {
         for (let roomName in this.memory.seedRooms) {
 
         }
     }
 
-    roleCall() {
+    public roleCall() {
     }
 
-    missionActions() {
+    public missionActions() {
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
 }

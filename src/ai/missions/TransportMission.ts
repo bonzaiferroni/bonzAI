@@ -4,13 +4,13 @@ import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
 export class TransportMission extends Mission {
 
-    carts: Agent[];
-    maxCarts: number;
-    origin: StructureContainer | StructureStorage | StructureTerminal;
-    destination: StructureContainer | StructureStorage | StructureTerminal;
-    resourceType: string;
-    offroad: boolean;
-    waypoints: Flag[];
+    private carts: Agent[];
+    private maxCarts: number;
+    private origin: StructureContainer | StructureStorage | StructureTerminal;
+    private destination: StructureContainer | StructureStorage | StructureTerminal;
+    private resourceType: string;
+    private offroad: boolean;
+    public waypoints: Flag[];
 
     constructor(operation: Operation, maxCarts: number,
                 origin?: StructureContainer | StructureStorage | StructureTerminal,
@@ -30,14 +30,15 @@ export class TransportMission extends Mission {
         this.offroad = offroad;
     }
 
-    initMission() {
+    public initMission() {
         this.waypoints = [];
         if (!this.origin) {
             let originFlag = Game.flags[this.operation.name + "_origin"];
             if (originFlag) {
                 this.memory.originPos = originFlag.pos;
                 if (originFlag.room) {
-                    this.origin = originFlag.pos.lookFor(LOOK_STRUCTURES)[0] as StructureContainer | StructureStorage | StructureTerminal;
+                    this.origin = originFlag.pos.lookFor(
+                        LOOK_STRUCTURES)[0] as StructureContainer | StructureStorage | StructureTerminal;
                 }
             }
         }
@@ -46,7 +47,8 @@ export class TransportMission extends Mission {
             if (destinationFlag) {
                 this.memory.destinationPos = destinationFlag.pos;
                 if (destinationFlag.room) {
-                    this.destination = destinationFlag.pos.lookFor(LOOK_STRUCTURES)[0] as StructureContainer | StructureStorage | StructureTerminal;
+                    this.destination = destinationFlag.pos.lookFor(
+                        LOOK_STRUCTURES)[0] as StructureContainer | StructureStorage | StructureTerminal;
                 }
             }
         }
@@ -54,22 +56,21 @@ export class TransportMission extends Mission {
         this.waypoints = this.getFlagSet("_waypoints_", 1);
     }
 
-    roleCall() {
+    public roleCall() {
 
         let body = () => {
             if (this.offroad) {
                 return this.bodyRatio(0, 1, 1, 1);
-            }
-            else {
+            } else {
                 return this.bodyRatio(0, 2, 1, 1);
             }
         };
 
         let memory = { scavanger: this.resourceType, prep: true };
-        this.carts = this.headCount("cart", body, ()=> this.maxCarts, {memory: memory});
+        this.carts = this.headCount("cart", body, () => this.maxCarts, {memory: memory});
     }
 
-    missionActions() {
+    public missionActions() {
 
         for (let cart of this.carts) {
             if (!this.memory.originPos || !this.memory.destinationPos) {
@@ -80,10 +81,10 @@ export class TransportMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     private cartActions(cart: Agent) {
@@ -93,19 +94,15 @@ export class TransportMission extends Mission {
             if (!this.origin) {
                 let originPos = helper.deserializeRoomPosition(this.memory.originPos);
                 cart.travelTo(originPos);
-            }
-            else if (!cart.pos.isNearTo(this.origin)) {
+            } else if (!cart.pos.isNearTo(this.origin)) {
                 cart.travelTo(this.origin);
-            }
-            else {
+            } else {
                 let outcome;
                 if (this.resourceType) {
                     outcome = cart.withdraw(this.origin, this.resourceType);
-                }
-                else if (this.origin instanceof StructureLab) {
+                } else if (this.origin instanceof StructureLab) {
                     outcome = cart.withdraw(this.origin, (this.origin as StructureLab).mineralType);
-                }
-                else {
+                } else {
                     outcome = cart.withdrawEverything(this.origin);
                 }
                 if (outcome === OK) {
@@ -119,16 +116,13 @@ export class TransportMission extends Mission {
         if (!this.destination) {
             let destinationPos = helper.deserializeRoomPosition(this.memory.destinationPos);
             cart.travelTo(destinationPos);
-        }
-        else if (!cart.pos.isNearTo(this.destination)) {
+        } else if (!cart.pos.isNearTo(this.destination)) {
             cart.travelTo(this.destination);
-        }
-        else {
+        } else {
             let outcome;
             if (this.resourceType) {
                 outcome = cart.transfer(this.destination, this.resourceType);
-            }
-            else {
+            } else {
                 outcome = cart.transferEverything(this.destination);
             }
             if (outcome === OK) {
@@ -137,4 +131,3 @@ export class TransportMission extends Mission {
         }
     }
 }
-

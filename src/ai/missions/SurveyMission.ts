@@ -2,15 +2,14 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
-import {empire} from "../../helpers/loopHelper";
 import {Agent} from "./Agent";
 
 export class SurveyMission extends Mission {
 
-    surveyors: Agent[];
-    needsVision: string;
-    chosenRoom: {roomName: string, orderDemolition: boolean};
-    memory: {
+    private surveyors: Agent[];
+    private needsVision: string;
+    private chosenRoom: {roomName: string, orderDemolition: boolean};
+    public memory: {
         surveyComplete: boolean;
     };
 
@@ -18,13 +17,13 @@ export class SurveyMission extends Mission {
         super(operation, "survey");
     }
 
-    initMission() {
+    public initMission() {
         if (this.memory.surveyComplete) { return; }
         let analyzer = new SurveyAnalyzer(this);
         this.needsVision = analyzer.run();
     }
 
-    maxSurveyors = () => {
+    private maxSurveyors = () => {
         if (this.needsVision && !this.room.findStructures(STRUCTURE_OBSERVER)[0] || this.chosenRoom) {
             return 1;
         } else {
@@ -32,13 +31,11 @@ export class SurveyMission extends Mission {
         }
     };
 
-    roleCall() {
-
-
+    public roleCall() {
         this.surveyors = this.headCount("surveyor", () => this.workerBody(0, 0, 1), this.maxSurveyors);
     }
 
-    missionActions() {
+    public missionActions() {
 
         for (let surveyor of this.surveyors) {
             if (this.needsVision) {
@@ -53,13 +50,13 @@ export class SurveyMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
-    explorerActions(explorer: Agent) {
+    private explorerActions(explorer: Agent) {
         if (this.needsVision) {
             explorer.travelTo({pos: helper.pathablePosition(this.needsVision)});
         }

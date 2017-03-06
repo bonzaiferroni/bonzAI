@@ -3,16 +3,16 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 export class DemolishMission extends Mission {
 
-    demolishers: Agent[];
-    scavangers: Agent[];
+    private demolishers: Agent[];
+    private scavangers: Agent[];
 
-    demoFlags: Flag[] = [];
-    demoStructures: Structure[] = [];
-    potency: number;
-    storeStructure: StructureContainer|StructureStorage|StructureTerminal;
+    private demoFlags: Flag[] = [];
+    private demoStructures: Structure[] = [];
+    private potency: number;
+    private storeStructure: StructureContainer|StructureStorage|StructureTerminal;
 
     /**
-     * Spawn a demolisher when there are flags that match his pattern ("Flag + n"), he will visit those flags and remove the
+     * Spawn a demolisher when there are flags that match his pattern ("Flag + n"), he will visit those flags and remove
      * structures underneath. This pattern happens to be the default flag pattern used by the game UI, be careful
      * @param operation
      * @param potency
@@ -24,18 +24,17 @@ export class DemolishMission extends Mission {
         super(operation, "demolish");
     }
 
-    initMission() {
+    public initMission() {
 
         for (let i = 0; i <= 50; i++ ) {
             let flag = Game.flags["Flag" + i];
-            if (!flag) continue;
+            if (!flag) { continue; }
             this.demoFlags.push(flag);
-            if (!flag.room) continue;
+            if (!flag.room) { continue; }
             let structure = flag.pos.lookFor<Structure>(LOOK_STRUCTURES)[0];
             if (structure) {
                 this.demoStructures.push(structure);
-            }
-            else {
+            } else {
                 flag.remove();
             }
         }
@@ -43,21 +42,20 @@ export class DemolishMission extends Mission {
         this.storeStructure = this.checkStoreStructure();
     }
 
-    getMaxDemolishers = () => {
+    private getMaxDemolishers = () => {
         if (this.demoFlags.length === 0) { return 0; }
         if (this.memory.max !== undefined) { return this.memory.max; }
         return 1;
     };
-    getMaxScavengers = () => this.demoFlags.length > 0 && this.storeStructure ? 1 : 0;
+    private getMaxScavengers = () => this.demoFlags.length > 0 && this.storeStructure ? 1 : 0;
 
-
-    roleCall() {
+    public roleCall() {
 
         this.demolishers = this.headCount("demolisher", () => this.bodyRatio(1, 0, 1, 1), this.getMaxDemolishers);
         this.scavangers = this.headCount("scavanger", () => this.bodyRatio(0, 1, 1, 1), this.getMaxScavengers);
     }
 
-    missionActions() {
+    public missionActions() {
         for (let demolisher of this.demolishers) {
             this.demolisherActions(demolisher);
         }
@@ -67,10 +65,10 @@ export class DemolishMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     private demolisherActions(demolisher: Agent) {
@@ -97,7 +95,7 @@ export class DemolishMission extends Mission {
 
         if (!demolisher || scavanger.room !== demolisher.room) {
             if (this.demoFlags.length > 0) {
-                scavanger.travelTo(this.demoFlags[0])
+                scavanger.travelTo(this.demoFlags[0]);
             } else {
                 scavanger.idleOffRoad();
             }
@@ -161,7 +159,7 @@ export class DemolishMission extends Mission {
             let storeStructure = _(flag.pos.lookFor(LOOK_STRUCTURES))
                 .filter((s: any) => s.store !== undefined)
                 .head() as StructureContainer | StructureStorage | StructureTerminal;
-            if (storeStructure) return storeStructure;
+            if (storeStructure) { return storeStructure; }
         }
     }
 }

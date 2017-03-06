@@ -3,28 +3,28 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 export class DefenseMission extends Mission {
 
-    refillCarts: Agent[];
-    defenders: Agent[];
+    private refillCarts: Agent[];
+    private defenders: Agent[];
 
-    towers: StructureTower[];
-    empties: StructureTower[];
-    closestHostile: Creep;
-    healedDefender: Agent;
+    private towers: StructureTower[];
+    private empties: StructureTower[];
+    private closestHostile: Creep;
+    private healedDefender: Agent;
 
-    playerThreat: boolean;
-    attackedCreep: Creep;
-    enhancedBoost: boolean;
-    likelyTowerDrainAttempt: boolean;
+    private playerThreat: boolean;
+    private attackedCreep: Creep;
+    private enhancedBoost: boolean;
+    private likelyTowerDrainAttempt: boolean;
 
-    healers: Creep[] = [];
-    attackers: Creep[] = [];
+    private healers: Creep[] = [];
+    private attackers: Creep[] = [];
 
-    wallRamparts: Structure[];
-    jonRamparts: Structure[];
+    private wallRamparts: Structure[];
+    private jonRamparts: Structure[];
 
-    enemySquads = [];
+    private enemySquads = [];
 
-    memory: {
+    public memory: {
         idlePosition: RoomPosition;
         unleash: boolean;
         disableSafeMode: boolean;
@@ -38,7 +38,7 @@ export class DefenseMission extends Mission {
         super(operation, "defense");
     }
 
-    initMission() {
+    public initMission() {
         this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
 
         this.analyzePlayerThreat();
@@ -55,23 +55,23 @@ export class DefenseMission extends Mission {
         this.triggerSafeMode();
     }
 
-    getMaxDefenders = () => this.playerThreat ? Math.max(this.enemySquads.length, 1) : 0;
-    getMaxRefillers = () => this.playerThreat ? 1 : 0;
+    private getMaxDefenders = () => this.playerThreat ? Math.max(this.enemySquads.length, 1) : 0;
+    private getMaxRefillers = () => this.playerThreat ? 1 : 0;
 
-    defenderBody = () => {
+    private defenderBody = () => {
         if (this.enhancedBoost) {
             let bodyUnit = this.configBody({[TOUGH]: 1, [ATTACK]: 3, [MOVE]: 1});
             let maxUnits = Math.min(this.spawnGroup.maxUnits(bodyUnit), 8);
-            return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 3, [RANGED_ATTACK]: 1, [MOVE]: maxUnits + 1});
-        }
-        else {
+            return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 3, [RANGED_ATTACK]: 1,
+                [MOVE]: maxUnits + 1});
+        } else {
             let bodyUnit = this.configBody({[TOUGH]: 1, [ATTACK]: 5, [MOVE]: 6});
             let maxUnits = Math.min(this.spawnGroup.maxUnits(bodyUnit), 4);
             return this.configBody({[TOUGH]: maxUnits, [ATTACK]: maxUnits * 5, [MOVE]: maxUnits * 6});
         }
     };
 
-    roleCall() {
+    public roleCall() {
 
         this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers);
 
@@ -82,10 +82,11 @@ export class DefenseMission extends Mission {
             memory.boosts.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
         }
 
-        this.defenders = this.headCount("defender", this.defenderBody, this.getMaxDefenders, {prespawn: 1, memory: memory});
+        this.defenders = this.headCount("defender", this.defenderBody, this.getMaxDefenders,
+            {prespawn: 1, memory: memory});
     }
 
-    missionActions() {
+    public missionActions() {
 
         let order = 0;
         for (let defender of this.defenders) {
@@ -100,13 +101,13 @@ export class DefenseMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
-    towerCartActions(cart: Agent) {
+    private towerCartActions(cart: Agent) {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
@@ -137,7 +138,7 @@ export class DefenseMission extends Mission {
         }
     }
 
-    findLowestEmpty(cart: Agent, pullTarget?: StructureTower): StructureTower {
+    private findLowestEmpty(cart: Agent, pullTarget?: StructureTower): StructureTower {
         if (!this.empties) {
             this.empties = _(this.towers)
                 .filter((s: StructureTower) => s.energy < s.energyCapacity)
@@ -167,12 +168,10 @@ export class DefenseMission extends Mission {
                 if (defender.attack(closest) === OK) {
                     this.attackedCreep = closest;
                 }
-            }
-            else {
+            } else {
                 let outcome = defender.travelTo(closest);
             }
-        }
-        else {
+        } else {
 
             let target = defender.pos.findClosestByRange(this.enemySquads[order % this.enemySquads.length]) as Creep;
             if (!target) {
@@ -188,8 +187,7 @@ export class DefenseMission extends Mission {
                 }
                 _.pull(this.jonRamparts, closestRampart);
                 defender.travelTo(closestRampart, { roomCallback: this.preferRamparts });
-            }
-            else {
+            } else {
                 defender.idleOffRoad(this.flag);
             }
 
@@ -200,8 +198,7 @@ export class DefenseMission extends Mission {
                          this.attackedCreep = this.closestHostile;
                      }
                  }
-            }
-            else {
+            } else {
                 let closeCreep = defender.pos.findInRange(this.room.hostiles, 1)[0] as Creep;
                 if (closeCreep) {
                     if (defender.attack(closeCreep) === OK) {
@@ -218,7 +215,7 @@ export class DefenseMission extends Mission {
     }
 
     private towerTargeting(towers: StructureTower[]) {
-        if (!towers || towers.length === 0) return;
+        if (!towers || towers.length === 0) { return; }
 
         for (let tower of this.towers) {
 
@@ -241,19 +238,19 @@ export class DefenseMission extends Mission {
 
     private triggerSafeMode() {
         if (this.playerThreat && !this.memory.disableSafeMode) {
-            let wallCount = this.room.findStructures(STRUCTURE_WALL).concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
+            let wallCount = this.room.findStructures(STRUCTURE_WALL)
+                .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
             if (this.memory.wallCount && wallCount < this.memory.wallCount) {
                 this.room.controller.activateSafeMode();
                 this.memory.unleash = true;
             }
             this.memory.wallCount = wallCount;
-        }
-        else {
+        } else {
             this.memory.wallCount = undefined;
         }
     }
 
-    preferRamparts = (roomName: string, matrix: CostMatrix) => {
+    private preferRamparts = (roomName: string, matrix: CostMatrix) => {
         if (roomName === this.room.name) {
 
             // block off hostiles and adjacent squares
@@ -277,12 +274,11 @@ export class DefenseMission extends Mission {
         let wall = Game.getObjectById(this.memory.closestWallId) as Structure;
         if (wall && creep.pos.isNearTo(wall)) {
             return true;
-        }
-        else {
-            let walls = this.room.findStructures(STRUCTURE_RAMPART) as Structure[];
-            for (let wall of walls) {
-                if (creep.pos.isNearTo(wall)) {
-                    this.memory.closestWallId = wall.id;
+        } else {
+            let ramparts = this.room.findStructures(STRUCTURE_RAMPART) as Structure[];
+            for (let rampart of ramparts) {
+                if (creep.pos.isNearTo(rampart)) {
+                    this.memory.closestWallId = rampart.id;
                     return true;
                 }
             }
@@ -295,24 +291,25 @@ export class DefenseMission extends Mission {
         }
 
         let playerCreeps = _.filter(this.room.hostiles, (c: Creep) => {
-            return c.owner.username !== "Invader" && c.body.length >= 40 && _.filter(c.body, part => part.boost).length > 0;
+            return c.owner.username !== "Invader" && c.body.length >= 40 &&
+                _.filter(c.body, part => part.boost).length > 0;
         }) as Creep[];
 
         this.playerThreat = playerCreeps.length > 1 || this.memory.preSpawn;
 
         if (this.playerThreat) {
-            if (!Memory.roomAttacks) Memory.roomAttacks = {};
+            if (!Memory.roomAttacks) { Memory.roomAttacks = {}; }
             Memory.roomAttacks[playerCreeps[0].owner.username] = Game.time;
 
             if (Game.time % 10 === 5) {
-                console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " + this.flag.pos.roomName);
+                console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " +
+                    this.flag.pos.roomName);
             }
 
             for (let creep of this.room.hostiles) {
                 if (creep.partCount(HEAL) > 12) {
                     this.healers.push(creep);
-                }
-                else {
+                } else {
                     this.attackers.push(creep);
                 }
             }
@@ -336,7 +333,8 @@ export class DefenseMission extends Mission {
                 attackers = _.difference(attackers, squad);
             }
 
-            this.enhancedBoost = this.room.terminal && this.room.terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE] > 1000;
+            this.enhancedBoost = this.room.terminal &&
+                this.room.terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE] > 1000;
         }
     }
 }

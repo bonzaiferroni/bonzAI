@@ -3,9 +3,9 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 export class LinkMiningMission extends Mission {
 
-    linkMiners: Agent[];
-    source: Source;
-    link: StructureLink;
+    private linkMiners: Agent[];
+    private source: Source;
+    private link: StructureLink;
 
     /**
      * Sends a miner to a source with a link, energy transfer is managed by LinkNetworkMission
@@ -21,22 +21,22 @@ export class LinkMiningMission extends Mission {
         this.link = link;
     }
 
-    initMission() {
+    public initMission() {
     }
 
-    roleCall() {
+    public roleCall() {
         this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), () => 1);
     }
 
-    missionActions() {
+    public missionActions() {
         for (let miner of this.linkMiners) {
             this.minerActions(miner);
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     private minerActions(miner: Agent) {
@@ -62,8 +62,8 @@ export class LinkMiningMission extends Mission {
 
         for (let i = 1; i <= 8; i++) {
             let position = this.source.pos.getPositionAtDirection(i);
-            if (!position.isPassible(true)) continue;
-            if (!position.isNearTo(this.link)) continue;
+            if (!position.isPassible(true)) { continue; }
+            if (!position.isNearTo(this.link)) { continue; }
             if (position.lookForStructure(STRUCTURE_ROAD)) {
                 roadPos = position;
             }

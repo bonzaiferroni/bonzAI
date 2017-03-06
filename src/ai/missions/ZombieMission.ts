@@ -8,19 +8,19 @@ enum ZombieStatus { Attack, Upgrade, Hold, Complete }
 
 export class ZombieMission extends Mission {
 
-    zombies: Agent[];
-    guru: RaidGuru;
+    private zombies: Agent[];
+    private guru: RaidGuru;
 
     constructor(operation: Operation, raidGuru: RaidGuru) {
         super(operation, "zombie");
         this.guru = raidGuru;
     }
 
-    initMission() {
+    public initMission() {
         this.guru.init(this.flag.pos.roomName, true);
     }
 
-    roleCall() {
+    public roleCall() {
 
         let max = () => this.status === ZombieStatus.Attack ? 1 : 0;
 
@@ -31,13 +31,13 @@ export class ZombieMission extends Mission {
                 blindSpawn: true});
     }
 
-    missionActions() {
+    public missionActions() {
         for (let zombie of this.zombies) {
             this.zombieActions(zombie);
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
 
         if (this.status === ZombieStatus.Complete) {
             notifier.log(`ZOMBIE: mission complete in ${this.room.name}`);
@@ -45,7 +45,7 @@ export class ZombieMission extends Mission {
         }
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
     private zombieActions(zombie: Agent) {
@@ -72,14 +72,14 @@ export class ZombieMission extends Mission {
         }
 
         if (zombie.pos.isNearExit(0)) {
-            if (this.isFullHealth(zombie)) {zombie.memory.safeCount++; }
-            else {zombie.memory.safeCount = 0;}
+            if (this.isFullHealth(zombie)) {
+                zombie.memory.safeCount++;
+            } else {zombie.memory.safeCount = 0; }
             console.log(zombie.creep.hits, zombie.memory.safeCount);
             if (zombie.memory.safeCount < 10) {
                 return;
             }
-        }
-        else {
+        } else {
             zombie.memory.safeCount = 0;
         }
 
@@ -89,7 +89,7 @@ export class ZombieMission extends Mission {
         this.moveZombie(zombie, destination, zombie.memory.demolishing, returnData);
         zombie.memory.demolishing = false;
         if (zombie.pos.roomName === this.room.name && !zombie.pos.isNearExit(0)) {
-            if (!returnData.nextPos) return;
+            if (!returnData.nextPos) { return; }
             let structure = returnData.nextPos.lookFor<Structure>(LOOK_STRUCTURES)[0];
             if (structure && structure.structureType !== STRUCTURE_ROAD) {
                 zombie.memory.demolishing = true;
@@ -101,7 +101,7 @@ export class ZombieMission extends Mission {
     }
 
     private moveZombie(agent: Agent, destination: {pos: RoomPosition}, demolishing: boolean,
-               returnData: {nextPos: RoomPosition}): number | RoomPosition {
+                       returnData: {nextPos: RoomPosition}): number | RoomPosition {
 
         let roomCallback = (roomName: string) => {
             if (roomName === this.guru.raidRoomName) {
@@ -109,15 +109,16 @@ export class ZombieMission extends Mission {
 
                 // add other zombies, whitelist nearby exits, and attack same target
                 for (let otherZomb of this.zombies) {
-                    if (agent === otherZomb || otherZomb.room !== this.room || otherZomb.pos.isNearExit(0)) { continue; }
+                    if (agent === otherZomb || otherZomb.room !== this.room || otherZomb.pos.isNearExit(0)) {
+                        continue;
+                    }
                     matrix.set(otherZomb.pos.x, otherZomb.pos.y, 0xff);
                     for (let direction = 1; direction <= 8; direction ++) {
                         let position = otherZomb.pos.getPositionAtDirection(direction);
                         if (position.isNearExit(0)) {
                             matrix.set(position.x, position.y, 1);
-                        }
-                        else if (position.lookForStructure(STRUCTURE_WALL) ||
-                            position.lookForStructure(STRUCTURE_RAMPART)){
+                        } else if (position.lookForStructure(STRUCTURE_WALL) ||
+                            position.lookForStructure(STRUCTURE_RAMPART)) {
                             let currentCost = matrix.get(position.x, position.y);
                             matrix.set(position.x, position.y, Math.ceil(currentCost / 2));
                         }
@@ -147,10 +148,10 @@ export class ZombieMission extends Mission {
             ignoreStuck: demolishing,
             returnData: returnData,
             roomCallback: roomCallback,
-        })
+        });
     }
 
-    findDestination(agent: Agent) {
+    private findDestination(agent: Agent) {
         let destination: {pos: RoomPosition} = this.flag;
         if (agent.pos.roomName === destination.pos.roomName) {
             let closestSpawn = agent.pos.findClosestByRange<Structure>(
@@ -162,7 +163,7 @@ export class ZombieMission extends Mission {
         return destination;
     }
 
-    getBody = (): string[] => {
+    private getBody = (): string[] => {
         if (this.guru.expectedDamage === 0) {
             return this.workerBody(10, 0, 10);
         }
@@ -173,37 +174,35 @@ export class ZombieMission extends Mission {
             let toughCount = 8;
             let dismantleCount = MAX_CREEP_SIZE - moveCount - rangedAttackCount - toughCount - healCount;
             return this.configBody({[TOUGH]: toughCount, [WORK]: dismantleCount, [RANGED_ATTACK]: rangedAttackCount,
-                [MOVE]: moveCount, [HEAL]: healCount})
-        }
-        else {
+                [MOVE]: moveCount, [HEAL]: healCount});
+        } else {
             let healCount = Math.ceil(this.guru.expectedDamage / HEAL_POWER);
             let moveCount = 17; // move once every other tick
             let dismantleCount = MAX_CREEP_SIZE - healCount - moveCount;
-            return this.configBody({[WORK]: dismantleCount, [MOVE]: 17, [HEAL]: healCount })
+            return this.configBody({[WORK]: dismantleCount, [MOVE]: 17, [HEAL]: healCount });
         }
     };
 
-    massRangedAttackInRoom(agent: Agent) {
+    private massRangedAttackInRoom(agent: Agent) {
         if (agent.room.name === this.guru.raidRoomName) {
             return agent.rangedMassAttack();
         }
     }
 
-    isFullHealth(agent: Agent, margin = 0) {
+    private isFullHealth(agent: Agent, margin = 0) {
         return agent.hits >= agent.hitsMax - margin;
     }
 
-    healWhenHurt(agent: Agent, margin = 0) {
+    private healWhenHurt(agent: Agent, margin = 0) {
         if (agent.hits < agent.hitsMax - margin) {
             return agent.heal(agent);
         }
     }
 
-    attack(agent: Agent, target: Structure | Creep): number {
+    private attack(agent: Agent, target: Structure | Creep): number {
         if (target instanceof Structure && agent.partCount(WORK) > 0) {
             return agent.dismantle(target);
-        }
-        else {
+        } else {
             return agent.attack(target);
         }
     }
@@ -219,7 +218,7 @@ export class ZombieMission extends Mission {
 
     get status(): ZombieStatus {
         if (!this.guru.isInitiaized) { return; }
-        if (!this.memory.status && !this.room) return ZombieStatus.Attack;
+        if (!this.memory.status && !this.room) { return ZombieStatus.Attack; }
 
         const MAX_AVERAGE_HITS = 20000000;
         const MAX_DRAIN_DAMAGE = 1000;
@@ -227,14 +226,11 @@ export class ZombieMission extends Mission {
         if (this.room) {
             if (this.room.findStructures<StructureSpawn>(STRUCTURE_SPAWN).length === 0) {
                 this.memory.status = ZombieStatus.Complete;
-            }
-            else if (this.guru.expectedDamage > MAX_DRAIN_DAMAGE || this.guru.avgWallHits > MAX_AVERAGE_HITS) {
-                this.memory.status = ZombieStatus.Upgrade
-            }
-            else if (this.room.controller.safeMode) {
+            } else if (this.guru.expectedDamage > MAX_DRAIN_DAMAGE || this.guru.avgWallHits > MAX_AVERAGE_HITS) {
+                this.memory.status = ZombieStatus.Upgrade;
+            } else if (this.room.controller.safeMode) {
                 this.memory.status = ZombieStatus.Hold;
-            }
-            else {
+            } else {
                 this.memory.status = ZombieStatus.Attack;
             }
         }

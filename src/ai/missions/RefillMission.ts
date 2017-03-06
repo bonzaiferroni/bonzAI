@@ -3,19 +3,19 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 
 interface EnergyStructure extends Structure {
-    pos: RoomPosition
-    energy: number
-    energyCapacity: number
+    pos: RoomPosition;
+    energy: number;
+    energyCapacity: number;
 }
 
 export class RefillMission extends Mission {
 
-    carts: Agent[];
-    emergencyCarts: Agent[];
-    emergencyMode: boolean;
-    empties: EnergyStructure[];
+    private carts: Agent[];
+    private emergencyCarts: Agent[];
+    private emergencyMode: boolean;
+    private empties: EnergyStructure[];
 
-    memory: {
+    public memory: {
         cartsLastTick: number,
         max: number
     };
@@ -30,11 +30,11 @@ export class RefillMission extends Mission {
         super(operation, "refill");
     }
 
-    initMission() {
+    public initMission() {
         this.emergencyMode = this.memory.cartsLastTick === 0;
     }
 
-    roleCall() {
+    public roleCall() {
 
         let max = () => this.room.storage ? 1 : 2;
         let emergencyMax = () => this.emergencyMode ? 1 : 0;
@@ -45,8 +45,7 @@ export class RefillMission extends Mission {
         let cartBody = () => {
             if (this.operation.type === "flex") {
                 return this.bodyRatio(0, 2, 1, 1, 16);
-            }
-            else {
+            } else {
                 return this.bodyRatio(0, 2, 1, 1, 10);
             }
         };
@@ -56,7 +55,7 @@ export class RefillMission extends Mission {
         this.memory.cartsLastTick = this.carts.length;
     }
 
-    missionActions() {
+    public missionActions() {
 
         for (let cart of this.emergencyCarts) {
             this.spawnCartActions(cart, 0);
@@ -69,7 +68,7 @@ export class RefillMission extends Mission {
         }
     }
 
-    spawnCartActions2(cart: Agent, order: number) {
+    private spawnCartActions2(cart: Agent, order: number) {
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
             if (order !== 0 && cart.ticksToLive < 50) {
@@ -82,7 +81,7 @@ export class RefillMission extends Mission {
         }
     }
 
-    spawnCartActions(cart: Agent, order: number) {
+    private spawnCartActions(cart: Agent, order: number) {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
@@ -130,12 +129,12 @@ export class RefillMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
-    findNearestEmpty(cart: Agent, pullTarget?: EnergyStructure): EnergyStructure {
+    private findNearestEmpty(cart: Agent, pullTarget?: EnergyStructure): EnergyStructure {
         if (cart.memory.emptyId) {
             let empty = Game.getObjectById<EnergyStructure>(cart.memory.emptyId);
             if (empty && empty.energy < empty.energyCapacity) {
@@ -161,7 +160,7 @@ export class RefillMission extends Mission {
         }
     }
 
-    getEmpties(pullTarget?: EnergyStructure): EnergyStructure[] {
+    private getEmpties(pullTarget?: EnergyStructure): EnergyStructure[] {
         if (!this.empties) {
             this.empties = _.filter(this.room.findStructures<EnergyStructure>(STRUCTURE_SPAWN)
                 .concat(this.room.findStructures<EnergyStructure>(STRUCTURE_EXTENSION)), (s: StructureSpawn) => {

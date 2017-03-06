@@ -5,7 +5,8 @@ import {SpawnGroup} from "../SpawnGroup";
 import {Agent} from "./Agent";
 export class FireflyMission extends RaidMission {
 
-    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number, allowSpawn: boolean) {
+    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+                allowSpawn: boolean) {
         super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
         this.specialistPart = RANGED_ATTACK;
         this.specialistBoost = RESOURCE_CATALYZED_KEANIUM_ALKALIDE;
@@ -20,24 +21,20 @@ export class FireflyMission extends RaidMission {
         this.killCreeps = operation.memory.killCreeps;
     }
 
-    clearActions(attackingCreep: boolean) {
+    protected clearActions(attackingCreep: boolean) {
         this.standardClearActions(attackingCreep);
     }
 
-    attackerBody = (): string[] => {
+    protected attackerBody = (): string[] => {
         if (this.boostLevel === BoostLevel.Training) {
             return this.configBody({ [TOUGH]: 1, [MOVE]: 2, [RANGED_ATTACK]: 1 });
-        }
-        else if (this.boostLevel === BoostLevel.Unboosted) {
+        } else if (this.boostLevel === BoostLevel.Unboosted) {
             return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [RANGED_ATTACK]: 20 });
-        }
-        else if (this.boostLevel === BoostLevel.SuperTough) {
+        } else if (this.boostLevel === BoostLevel.SuperTough) {
             return this.configBody({ [TOUGH]: 24, [MOVE]: 10, [RANGED_ATTACK]: 16 });
-        }
-        else if (this.boostLevel === BoostLevel.RCL7) {
+        } else if (this.boostLevel === BoostLevel.RCL7) {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [RANGED_ATTACK]: 20 });
-        }
-        else {
+        } else {
             return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [RANGED_ATTACK]: 28});
         }
     };
@@ -50,13 +47,11 @@ export class FireflyMission extends RaidMission {
             let range = this.attacker.pos.getRangeTo(closest);
             if (range > 3) {
                 Agent.squadTravel(this.attacker, this.healer, closest);
-            }
-            else if (range < 3) {
+            } else if (range < 3) {
                 this.squadFlee(closest);
             }
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }

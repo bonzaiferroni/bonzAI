@@ -7,16 +7,16 @@ import {DefenseGuru} from "../operations/DefenseGuru";
 import {Agent} from "./Agent";
 export class BuilderMission extends Mission {
 
-    builders: Agent[];
-    supplyCarts: Agent[];
-    sites: ConstructionSite[];
-    prioritySites: ConstructionSite[];
-    walls: Structure[];
-    remoteSpawn: boolean;
-    activateBoost: boolean;
-    defenseGuru: DefenseGuru;
+    private builders: Agent[];
+    private supplyCarts: Agent[];
+    private sites: ConstructionSite[];
+    private prioritySites: ConstructionSite[];
+    private walls: Structure[];
+    private remoteSpawn: boolean;
+    private activateBoost: boolean;
+    private defenseGuru: DefenseGuru;
 
-    memory: {
+    public memory: {
         maxHitsToBuild: number
         max: number
         transportAnalysis: TransportAnalysis
@@ -40,7 +40,7 @@ export class BuilderMission extends Mission {
         this.activateBoost = activateBoost;
     }
 
-    initMission() {
+    public initMission() {
         if (this.room !== this.spawnGroup.room) {
             this.remoteSpawn = true;
         }
@@ -49,7 +49,6 @@ export class BuilderMission extends Mission {
         this.prioritySites = _.filter(this.sites, s => PRIORITY_BUILD.indexOf(s.structureType) > -1);
 
         if (Game.time % 10 === 5) {
-            // this should be a little more cpu-friendly since it basically will only run in missionRoom that has construction
             for (let site of this.sites) {
                 if (site.structureType === STRUCTURE_RAMPART || site.structureType === STRUCTURE_WALL) {
                     this.memory.maxHitsToBuild = 2000;
@@ -58,10 +57,10 @@ export class BuilderMission extends Mission {
             }
         }
 
-        if (!this.memory.maxHitsToBuild) this.memory.maxHitsToBuild = 2000;
+        if (!this.memory.maxHitsToBuild) { this.memory.maxHitsToBuild = 2000; }
     }
 
-    maxBuilders = () => {
+    private maxBuilders = () => {
         if (this.sites.length === 0 || this.defenseGuru.hostiles.length > 0) {
             return 0;
         }
@@ -71,17 +70,17 @@ export class BuilderMission extends Mission {
         return Math.min(Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy), 3);
     };
 
-    maxCarts = () => {
+    private maxCarts = () => {
         if (this.sites.length === 0 || this.defenseGuru.hostiles.length === 0) {
             return 0;
         }
         return this.analysis.cartsNeeded;
     };
 
-    builderBody = () => {
+    private builderBody = () => {
         let potency = this.findBuilderPotency();
         if (this.spawnGroup.maxSpawnEnergy < 550) {
-            return this.bodyRatio(1, 3, .5, 1, potency)
+            return this.bodyRatio(1, 3, .5, 1, potency);
         }
 
         let potencyCost = potency * 100 + Math.ceil(potency / 2) * 50;
@@ -89,24 +88,22 @@ export class BuilderMission extends Mission {
         let cartCarryCount = this.analysis.carryCount;
         let carryCount = Math.min(Math.floor(energyForCarry / 50), cartCarryCount);
         if (this.spawnGroup.room === this.room) {
-            return this.workerBody(potency, carryCount, Math.ceil(potency / 2))
-        }
-        else {
+            return this.workerBody(potency, carryCount, Math.ceil(potency / 2));
+        } else {
             return this.workerBody(potency, carryCount, potency);
         }
     };
 
-    roleCall() {
+    public roleCall() {
 
         let builderMemory;
         if (this.activateBoost) {
             builderMemory = {
                 scavanger: RESOURCE_ENERGY,
                 boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
-                allowUnboosted: true
+                allowUnboosted: true,
             };
-        }
-        else {
+        } else {
             builderMemory = { scavanger: RESOURCE_ENERGY };
         }
 
@@ -115,14 +112,14 @@ export class BuilderMission extends Mission {
         this.builders = _.sortBy(this.builders, (c: Creep) => c.carry.energy);
 
         let cartMemory = {
-            scavanger: RESOURCE_ENERGY
+            scavanger: RESOURCE_ENERGY,
         };
         this.supplyCarts = this.headCount(this.name + "Cart",
             () => this.workerBody(0, this.analysis.carryCount, this.analysis.moveCount), this.maxCarts,
             {prespawn: this.memory.prespawn, memory: cartMemory });
     }
 
-    missionActions() {
+    public missionActions() {
         for (let builder of this.builders) {
             this.builderActions(builder);
         }
@@ -132,12 +129,12 @@ export class BuilderMission extends Mission {
         }
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
         this.memory.transportAnalysis = undefined;
-        if (Math.random() < 0.01) this.memory.maxHitsToBuild = undefined;
+        if (Math.random() < 0.01) { this.memory.maxHitsToBuild = undefined; }
     }
 
     private builderActions(builder: Agent) {
@@ -156,13 +153,11 @@ export class BuilderMission extends Mission {
             if (rampart && rampart.hits < 10000) {
                 if (rampart.pos.inRangeTo(builder, 3)) {
                     builder.repair(rampart);
-                }
-                else {
+                } else {
                     builder.travelTo(rampart);
                 }
                 return;
-            }
-            else {
+            } else {
                 this.memory.rampartPos = undefined;
             }
         }
@@ -195,8 +190,7 @@ export class BuilderMission extends Mission {
             if (range === 0) {
                 builder.travelTo(this.flag);
             }
-        }
-        else {
+        } else {
             builder.travelTo(closest);
         }
     }
@@ -206,8 +200,7 @@ export class BuilderMission extends Mission {
         if (!target) {
             if (builder.room.controller && builder.room.controller.level < 8) {
                 this.upgradeController(builder);
-            }
-            else {
+            } else {
                 builder.idleOffRoad(this.flag);
             }
             return;
@@ -218,19 +211,19 @@ export class BuilderMission extends Mission {
             if (outcome === OK) {
                 builder.yieldRoad(target);
             }
-        }
-        else {
+        } else {
             builder.travelTo(target);
         }
     }
 
     private findMasonTarget(builder: Agent): Structure {
         let manualTarget = this.findManualTarget();
-        if (manualTarget) return manualTarget;
+        if (manualTarget) { return manualTarget; }
 
         if (this.room.hostiles.length > 0 && this.room.hostiles[0].owner.username !== "Invader") {
             if (!this.walls) {
-                this.walls = _(this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)))
+                this.walls = _(this.room.findStructures(STRUCTURE_RAMPART)
+                    .concat(this.room.findStructures(STRUCTURE_WALL)))
                     .sortBy("hits")
                     .value() as Structure[];
             }
@@ -240,8 +233,7 @@ export class BuilderMission extends Mission {
                 let structure = Game.getObjectById(builder.memory.emergencyRepairId) as Structure;
                 if (structure && !builder.pos.inRangeTo(lowest, 3)) {
                     return structure;
-                }
-                else {
+                } else {
                     builder.memory.emergencyRepairId = undefined;
                 }
             }
@@ -252,13 +244,11 @@ export class BuilderMission extends Mission {
             let wall = Game.getObjectById(builder.memory.wallId) as Structure;
             if (wall && wall.hits < this.memory.maxHitsToBuild) {
                 return wall;
-            }
-            else {
+            } else {
                 builder.memory.wallId = undefined;
                 return this.findMasonTarget(builder);
             }
-        }
-        else {
+        } else {
             // look for ramparts under maxHitsToBuild
             let structures = _.filter(this.room.findStructures(STRUCTURE_RAMPART),
                 (s: Structure) => s.hits < this.memory.maxHitsToBuild * .9);
@@ -270,9 +260,11 @@ export class BuilderMission extends Mission {
 
             if (structures.length === 0) {
                 // increase maxHitsToBuild if there are walls/ramparts in missionRoom and re-call function
-                if (this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)).length > 0) {
+                if (this.room.findStructures(STRUCTURE_RAMPART)
+                        .concat(this.room.findStructures(STRUCTURE_WALL)).length > 0) {
                     // TODO: seems to produce some pretty uneven walls, find out why
-                    this.memory.maxHitsToBuild += Math.pow(10, Math.floor(Math.log(this.memory.maxHitsToBuild) / Math.log(10)));
+                    this.memory.maxHitsToBuild += Math.pow(10,
+                        Math.floor(Math.log(this.memory.maxHitsToBuild) / Math.log(10)));
                     return this.findMasonTarget(builder);
                 }
                 // do nothing if there are no walls/ramparts in missionRoom
@@ -291,8 +283,7 @@ export class BuilderMission extends Mission {
             let target = Game.getObjectById(this.memory.manualTargetId) as Structure;
             if (target && target.hits < this.memory.manualTargetHits) {
                 return target;
-            }
-            else {
+            } else {
                 this.memory.manualTargetId = undefined;
                 this.memory.manualTargetHits = undefined;
             }
@@ -303,8 +294,7 @@ export class BuilderMission extends Mission {
         if (builder.pos.inRangeTo(builder.room.controller, 3)) {
             builder.upgradeController(builder.room.controller);
             builder.yieldRoad(builder.room.controller);
-        }
-        else {
+        } else {
             builder.travelTo(builder.room.controller);
         }
     }
@@ -317,7 +307,7 @@ export class BuilderMission extends Mission {
                 return Math.min(Math.floor(this.room.storage.store.energy / 7500), 10);
             }
         } else {
-           return this.room.find(FIND_SOURCES).length * 2
+           return this.room.find(FIND_SOURCES).length * 2;
         }
     }
 
@@ -354,7 +344,7 @@ export class BuilderMission extends Mission {
 
         cart.transfer(suppliedAgent.creep, RESOURCE_ENERGY);
         if (!overCapacity && this.room.storage) {
-            cart.travelTo(this.room.storage)
+            cart.travelTo(this.room.storage);
         }
     }
 
