@@ -115,6 +115,7 @@ export var consoleCommands = {
         let analCount = 0;
         let flagCount = 0;
         let pathGarbage = 0;
+        let paveTick = 0;
         for (let flagName in Memory.flags) {
             let flag = Game.flags[flagName];
             if (flag) {
@@ -125,10 +126,6 @@ export var consoleCommands = {
                     if (missionName === "radar") {
                         radarCount++;
                         delete flagMemory[missionName];
-                    }
-                    if (missionMemory["spawn"]) {
-                        spawnCount++;
-                        delete missionMemory["spawn"];
                     }
                     if (missionMemory["anal"]) { // :)
                         analCount++;
@@ -145,6 +142,10 @@ export var consoleCommands = {
                     if (missionMemory["paveTick"]) {
                         delete missionMemory["paveTick"];
                         pathGarbage++;
+                    }
+                    if (missionMemory.hasOwnProperty("pathData") && missionMemory.pathData.paveTick) {
+                        delete missionMemory.pathData.paveTick;
+                        paveTick++;
                     }
                 }
             }
@@ -164,7 +165,8 @@ export var consoleCommands = {
         }
 
         return `gc Creeps: ${creepCount}, gc flags: ${flagCount}, spawn: ${spawnCount}, radar: ${radarCount}\n` +
-                `analysis: ${analCount}, hostileRooms: ${hostiles}, pathGarbage: ${pathGarbage}`
+                `analysis: ${analCount}, hostileRooms: ${hostiles}, pathGarbage: ${pathGarbage}\n` +
+                `paveTick ${paveTick}`;
     },
 
     removeMissionData(missionName: string) {

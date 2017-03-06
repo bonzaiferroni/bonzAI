@@ -107,11 +107,6 @@ interface Memory {
     rooms: {[roomName: string]: RoomMemory };
     hostileMemory: {[id: string]: HostileMemory };
     nextGC: number;
-    timeoutTracker: {
-        operation: string;
-        mission: string;
-        phase: string;
-    }
 }
 
 interface HostileMemory {

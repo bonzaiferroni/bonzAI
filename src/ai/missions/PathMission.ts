@@ -13,7 +13,7 @@ export class PathMission extends Mission {
     private pathData: {
         distance: number;
         roadRepairIds: string[];
-        paveTick: number;
+        pathCheck: number;
     };
     private paver: Agent;
 
@@ -58,7 +58,7 @@ export class PathMission extends Mission {
     get distance(): number { return this.pathData.distance; }
 
     private checkPath() {
-        if (Game.time - this.pathData.paveTick < 1000) return;
+        if (!this.pathData.pathCheck || Game.time < this.pathData.pathCheck) return;
 
         if (Game.map.getRoomLinearDistance(this.start.pos.roomName, this.end.pos.roomName) > 2) {
             console.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
@@ -81,7 +81,7 @@ export class PathMission extends Mission {
                 newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
             }
         }  else {
-            this.pathData.paveTick = Game.time;
+            this.pathData.pathCheck = Game.time + helper.randomInterval(1000);
             if (_.last(path).inRangeTo(this.end.pos, this.rangeToEnd)) {
                 this.pathData.distance = path.length;
             }
