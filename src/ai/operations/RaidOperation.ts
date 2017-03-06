@@ -492,15 +492,6 @@ export class RaidOperation extends Operation {
         }
     }
 
-    copyWaypoints(from: string, to: string) {
-        for (let i = 0; i < 100; i++) {
-            let flag = Game.flags[`${from}_waypoints_${i}`];
-            if (flag) {
-
-            }
-        }
-    }
-
     addRoom(roomName: string) {
         if (roomName === "clear") {
             this.memory.additionalRooms = undefined;
