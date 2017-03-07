@@ -4,7 +4,7 @@ export class TimeoutTracker {
         if (global.timeoutTracker && global.timeoutTracker.phase !== "finished") {
             let data = global.timeoutTracker;
             notifier.log(`TIMEOUT: operation: ${data.operation}, mission: ${data.mission}, phase: ${data.phase}, ` +
-                `function: ${data.func}`);
+                `function: ${data.func}, tick: ${data.tick}, current: ${Game.time}`);
             delete global.timeoutTracker;
         }
 
@@ -12,7 +12,9 @@ export class TimeoutTracker {
             phase: "pre-operation init",
             operation: undefined,
             mission: undefined,
-            func: undefined };
+            func: undefined,
+            tick: Game.time,
+        };
     }
 
     public static log(phase: string, operation?: string, mission?: string, func?: string) {
