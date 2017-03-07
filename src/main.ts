@@ -3,6 +3,7 @@ import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
 import {Profiler} from "./Profiler";
 import {TimeoutTracker} from "./TimeoutTracker";
+import {notifier} from "./notifier";
 
 loopHelper.initMemory();
 initPrototypes();

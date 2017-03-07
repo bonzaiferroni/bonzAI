@@ -155,6 +155,7 @@ export var loopHelper = {
             let profile = Memory.profiler[identifier];
             Memory.stats["game.prof." + identifier + ".cpt"] = profile.costPerTick;
             Memory.stats["game.prof." + identifier + ".cpc"] = profile.costPerCall;
+            Memory.stats["game.prof." + identifier + ".max"] = profile.highest;
         }
 
         Memory.stats["game.time"] = Game.time;
@@ -229,6 +230,6 @@ export var loopHelper = {
             if (!creep) { delete Memory.hostileMemory[id]; }
         }
 
-        Memory.nextGC = Game.time += helper.randomInterval(100);
+        Memory.nextGC = Game.time + helper.randomInterval(100);
     }
 };

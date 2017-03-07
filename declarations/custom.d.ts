@@ -107,6 +107,7 @@ interface Memory {
     rooms: {[roomName: string]: RoomMemory };
     hostileMemory: {[id: string]: HostileMemory };
     nextGC: number;
+    gameTimeLastTick: number;
 }
 
 interface HostileMemory {
@@ -114,8 +115,6 @@ interface HostileMemory {
 }
 
 interface ProfilerData {
-    startOfPeriod: number;
-    lastTickTracked: number;
     total: number;
     count: number;
     costPerCall: number;
@@ -124,6 +123,9 @@ interface ProfilerData {
     cpu: number;
     consoleReport: boolean;
     period: number;
+    highest: number;
+    endOfPeriod: number;
+    lastTickTracked: number;
 }
 
 interface ResourceOrder {

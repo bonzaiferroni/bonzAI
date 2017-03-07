@@ -927,7 +927,7 @@ interface Game {
     /**
      * System game tick counter. It is automatically incremented on every tick.
      */
-    time: number;
+    readonly time: number;
     /**
      * Get an object with the specified unique ID. It may be a game object of any type. Only objects from the rooms which are visible to you can be accessed.
      * @param id The unique identificator.

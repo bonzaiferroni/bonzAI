@@ -53,11 +53,7 @@ export class MasonMission extends Mission {
     public missionActions() {
 
         for (let mason of this.masons) {
-            if (this.defenseGuru.hostiles.length > 0) {
-                this.sandbagActions(mason);
-            } else {
-                this.masonActions(mason);
-            }
+            this.masonActions(mason);
         }
 
         for (let cart of this.carts) {
@@ -66,6 +62,7 @@ export class MasonMission extends Mission {
     }
 
     public finalizeMission() {
+
     }
 
     public invalidateMissionCache() {
