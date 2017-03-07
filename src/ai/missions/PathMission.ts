@@ -58,7 +58,7 @@ export class PathMission extends Mission {
     get distance(): number { return this.pathData.distance; }
 
     private checkPath() {
-        if (!this.pathData.pathCheck || Game.time < this.pathData.pathCheck) { return; }
+        if (this.pathData.pathCheck && Game.time < this.pathData.pathCheck) { return; }
 
         if (Game.map.getRoomLinearDistance(this.start.pos.roomName, this.end.pos.roomName) > 2) {
             console.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
