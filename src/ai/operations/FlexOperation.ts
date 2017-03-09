@@ -4,11 +4,10 @@ import {DefenseMission} from "../missions/DefenseMission";
 import {Coord} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 
-
 export class FlexOperation extends ControllerOperation {
 
     protected temporaryPlacement(level: number) {
-        if (!this.memory.temporaryPlacement) this.memory.temporaryPlacement = {};
+        if (!this.memory.temporaryPlacement) { this.memory.temporaryPlacement = {}; }
         if (!this.memory.temporaryPlacement[level]) {
 
             let actions: {actionType: string, structureType: string, coord: Coord}[] = [];
@@ -33,23 +32,22 @@ export class FlexOperation extends ControllerOperation {
                 let position = helper.coordToPosition(action.coord, this.memory.centerPosition, this.memory.rotation);
                 if (action.actionType === "place") {
                     outcome = position.createConstructionSite(action.structureType);
-                }
-                else {
+                } else {
                     let structure = position.lookForStructure(action.structureType);
                     if (structure) {
                         outcome = structure.destroy();
-                    }
-                    else {
+                    } else {
                         outcome = "noStructure";
                     }
                 }
 
                 if (outcome === OK) {
-                    console.log(`LAYOUT: ${action.actionType}d temporary ${action.structureType} (${this.name}, level: ${level})`)
-                }
-                else {
+                    console.log(`LAYOUT: ${action.actionType}d temporary ${action.structureType} (${
+                        this.name}, level: ${level})`);
+                } else {
                     console.log(`LAYOUT: problem with temp placement, please follow up in ${this.name}`);
-                    console.log(`tried to ${action.actionType} ${action.structureType} at level ${level}, outcome: ${outcome}`);
+                    console.log(`tried to ${action.actionType} ${action.structureType} at level ${level}, outcome: ${
+                        outcome}`);
                 }
             }
 
@@ -58,14 +56,13 @@ export class FlexOperation extends ControllerOperation {
     }
 
     protected initAutoLayout() {
-        if(!this.memory.layoutMap) {
+        if (!this.memory.layoutMap) {
 
             if (this.memory.flexLayoutMap) {
                 // temporary patch for variable identifier change
                 this.memory.layoutMap = this.memory.flexLayoutMap;
                 this.memory.radius = this.memory.flexRadius;
-            }
-            else {
+            } else {
                 let map = new FlexGenerator(this.memory.centerPosition, this.memory.rotation, this.staticStructures);
                 this.memory.layoutMap = map.generate();
                 this.memory.radius = map.radius + 1;
@@ -73,7 +70,7 @@ export class FlexOperation extends ControllerOperation {
         }
     }
 
-    staticStructures = {
+    protected staticStructures = {
         [STRUCTURE_STORAGE]: [{x: 0, y: -3}],
         [STRUCTURE_TERMINAL]: [{x: -2, y: -1}],
         [STRUCTURE_SPAWN]: [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: 3}],
@@ -82,6 +79,6 @@ export class FlexOperation extends ControllerOperation {
         [STRUCTURE_LAB]: [
             {x: 1, y: 0}, {x: 2, y: 1}, {x: 0, y: 1},
             {x: 1, y: 2}, {x: 2, y: 0}, {x: 0, y: 2},
-            {x: 0, y: -1}, {x: -1, y: 0}, {x: 1, y: -1}, {x: -1, y: 1},],
+            {x: 0, y: -1}, {x: -1, y: 0}, {x: 1, y: -1}, {x: -1, y: 1}],
     };
 }

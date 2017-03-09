@@ -4,7 +4,7 @@ export class TimeoutTracker {
         if (global.timeoutTracker && global.timeoutTracker.phase !== "finished") {
             let data = global.timeoutTracker;
             notifier.log(`TIMEOUT: operation: ${data.operation}, mission: ${data.mission}, phase: ${data.phase}, ` +
-                `function: ${data.func}, tick: ${data.tick}, current: ${Game.time}`);
+                `function: ${data.func}, tick: ${data.tick}, current: ${Game.time}, cpu: ${_.round(data.cpu)}`);
             delete global.timeoutTracker;
         }
 
@@ -14,6 +14,7 @@ export class TimeoutTracker {
             mission: undefined,
             func: undefined,
             tick: Game.time,
+            cpu: Game.cpu.getUsed(),
         };
     }
 
@@ -22,6 +23,7 @@ export class TimeoutTracker {
         global.timeoutTracker.mission = mission;
         global.timeoutTracker.phase = phase;
         global.timeoutTracker.func = func;
+        global.timeoutTracker.cpu = Game.cpu.getUsed();
     }
 
     public static finalize() {
@@ -30,8 +32,8 @@ export class TimeoutTracker {
 }
 
 interface TimeoutData {
-    phase: string,
-    operation?: string,
-    mission?: string,
-    func?: string,
+    phase: string;
+    operation?: string;
+    mission?: string;
+    func?: string;
 }

@@ -1,4 +1,5 @@
 import {Profiler} from "../Profiler";
+import {TimeoutTracker} from "../TimeoutTracker";
 /**
  * To start using Traveler, require it in main.js:
  * Example: var Traveler = require('Traveler.js');
@@ -124,7 +125,7 @@ export class Traveler {
         return allowedRooms;
     }
 
-    routeDistance(origin: string, destination: string): number {
+    public routeDistance(origin: string, destination: string): number {
         let linearDistance = Game.map.getRoomLinearDistance(origin, destination);
         if (linearDistance >= 20) {
             return linearDistance;
@@ -204,6 +205,13 @@ export class Traveler {
     }
 
     public travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
+        TimeoutTracker.log("missionActions", undefined, undefined, "travelTo");
+        let value = this.travelTo2(creep, destination, options);
+        TimeoutTracker.log("missionActions", undefined, undefined, "travelTo-complete");
+        return value;
+    }
+
+    public travelTo2(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
 
         /* uncomment if you would like to register hostile rooms entered
         if (creep.room.controller) {
@@ -262,7 +270,6 @@ export class Traveler {
             delete travelData.path;
         }
 
-
         // handle case where creep wasn't traveling last tick and may have moved, but destination is still the same
         if (Game.time - travelData.tick > 1 && hasMoved) {
             delete travelData.path;
@@ -280,8 +287,7 @@ export class Traveler {
                 } else {
                     delete travelData.path;
                 }
-            }
-            else {
+            } else {
                 delete travelData.path;
             }
         }
@@ -366,7 +372,7 @@ export class Traveler {
         }
 
         if (travelData.phase === 1) {
-            let nextDirection = cachedPath.path[travelData.progress]
+            let nextDirection = cachedPath.path[travelData.progress];
         }
     }
 
@@ -432,7 +438,8 @@ export class Traveler {
         for (let position of path) {
             if (position.roomName === lastPosition.roomName) {
                 if (display) {
-                    new RoomVisual(position.roomName).line(position, lastPosition, {color: 'orange', lineStyle: 'dashed'});
+                    new RoomVisual(position.roomName)
+                        .line(position, lastPosition, {color: "orange", lineStyle: "dashed"});
                 }
                 serializedPath += lastPosition.getDirectionTo(position);
             }

@@ -1,7 +1,7 @@
 export const notifier = {
     log(message: string) {
         console.log(message);
-        Memory.notifier.push({time: Game.time, message: message});
+        Memory.notifier.push({time: Game.time, earthTime: this.earthTime(-7), message: message});
     },
 
     review(limit = Number.MAX_VALUE, burnAfterReading = false) {
@@ -13,7 +13,7 @@ export const notifier = {
             let seconds = secondsElapsed % 60;
             let minutes = Math.floor(secondsElapsed / 60);
             let hours = Math.floor(secondsElapsed / 3600);
-            console.log(`\n${value.time} (roughly ${
+            console.log(`\n${value.earthTime} tick: ${value.time} (roughly ${
                 hours > 0 ? `${hours} hours, ` : ""}${
                 minutes > 0 ? `${minutes} minutes, ` : ""}${
                 seconds > 0 ? `${seconds} seconds ` : ""}ago)`);
@@ -31,7 +31,7 @@ export const notifier = {
             }
         }
 
-        return `viewing ${count} of ${messageCount} notifications`
+        return `viewing ${count} of ${messageCount} notifications`;
     },
 
     clear(term: string) {
@@ -47,12 +47,19 @@ export const notifier = {
                 Memory.notifier = newArray;
             }
 
-            return `removed ${count} messages;`
-        }
-        else {
+            return `removed ${count} messages;`;
+        } else {
             let count = Memory.notifier.length;
             Memory.notifier = [];
-            return `removed ${count} messages;`
+            return `removed ${count} messages;`;
         }
-    }
+    },
+
+    earthTime(timeZoneOffset: number): string {
+        let date = new Date();
+        let hours = date.getHours() + timeZoneOffset; // my timezone offset
+        if (hours < 0) { hours += 24; }
+        return `${hours}:${date.getMinutes() > 9 ? date.getMinutes() : "0" + date.getMinutes()}:${
+            date.getSeconds() > 9 ? date.getSeconds() : "0" + date.getSeconds() }`;
+    },
 };

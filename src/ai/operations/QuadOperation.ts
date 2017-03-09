@@ -7,23 +7,15 @@ const QUAD_RADIUS = 6;
 
 export class QuadOperation extends ControllerOperation {
 
-    /**
-     * Manages the activities of an owned room, assumes bonzaiferroni's build spec
-     * @param flag
-     * @param name
-     * @param type
-     * @param empire
-     */
-
     protected initAutoLayout() {
-        if(!this.memory.layoutMap) {
+        if (!this.memory.layoutMap) {
             this.memory.layoutMap = {};
             this.memory.radius = QUAD_RADIUS;
         }
     }
 
     protected temporaryPlacement(level: number) {
-        if (!this.memory.temporaryPlacement) this.memory.temporaryPlacement = {};
+        if (!this.memory.temporaryPlacement) { this.memory.temporaryPlacement = {}; }
         if (!this.memory.temporaryPlacement[level]) {
 
             let actions: {actionType: string, structureType: string, coord: Coord}[] = [];
@@ -48,23 +40,22 @@ export class QuadOperation extends ControllerOperation {
                 let position = helper.coordToPosition(action.coord, this.memory.centerPosition, this.memory.rotation);
                 if (action.actionType === "place") {
                     outcome = position.createConstructionSite(action.structureType);
-                }
-                else {
+                } else {
                     let structure = position.lookForStructure(action.structureType);
                     if (structure) {
                         outcome = structure.destroy();
-                    }
-                    else {
+                    } else {
                         outcome = "noStructure";
                     }
                 }
 
                 if (outcome === OK) {
-                    console.log(`LAYOUT: ${action.actionType}d temporary ${action.structureType} (${this.name}, level: ${level})`)
-                }
-                else {
+                    console.log(`LAYOUT: ${action.actionType}d temporary ${action.structureType} (${
+                        this.name}, level: ${level})`);
+                } else {
                     console.log(`LAYOUT: problem with temp placement, please follow up in ${this.name}`);
-                    console.log(`tried to ${action.actionType} ${action.structureType} at level ${level}, outcome: ${outcome}`);
+                    console.log(`tried to ${action.actionType} ${action.structureType} at level ${
+                        level}, outcome: ${outcome}`);
                 }
             }
 
@@ -72,7 +63,7 @@ export class QuadOperation extends ControllerOperation {
         }
     }
 
-    staticStructures = {
+    protected staticStructures = {
         [STRUCTURE_SPAWN]: [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}],
         [STRUCTURE_TOWER]: [
             {x: 1, y: -1}, {x: -1, y: -1}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}],
@@ -88,7 +79,7 @@ export class QuadOperation extends ControllerOperation {
             {x: 1, y: -5}, {x: 0, y: -5}, {x: -1, y: -5}, {x: -4, y: -5}, {x: -5, y: -5},
             {x: -5, y: -4}, {x: -5, y: -1}, {x: -5, y: 0}, {x: -5, y: 1}, {x: 4, y: 5},
             {x: 5, y: 4}, {x: 5, y: 5}, {x: -6, y: 2}, {x: -6, y: -2}, {x: -2, y: -6},
-            {x: 2, y: 4}, {x: 2, y: -6}, {x: 6, y: -2}, {x: 6, y: 2}, {x: 2, y: 3}, ],
+            {x: 2, y: 4}, {x: 2, y: -6}, {x: 6, y: -2}, {x: 6, y: 2}, {x: 2, y: 3}],
         [STRUCTURE_STORAGE]: [{x: 0, y: 4}],
         [STRUCTURE_TERMINAL]: [{x: -2, y: 2}],
         [STRUCTURE_NUKER]: [{x: 0, y: 6}],
@@ -148,7 +139,7 @@ export class QuadOperation extends ControllerOperation {
             // labs (n = 8)
             {x: -4, y: 5}, {x: -5, y: 4}, {x: -5, y: 3}, {x: -4, y: 4}, {x: -3, y: 5},
             {x: -4, y: 2}, {x: -3, y: 3}, {x: -2, y: 4},
-        ]
+        ],
 
     };
 }

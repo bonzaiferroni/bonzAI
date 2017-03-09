@@ -6,6 +6,7 @@ import {empire} from "../../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {notifier} from "../../notifier";
+import {TimeoutTracker} from "../../TimeoutTracker";
 
 export class Agent {
 
@@ -378,7 +379,10 @@ export class Agent {
     }
 
     public fleeHostiles(): boolean {
-        return this.fleeByPath(this.room.fleeObjects, 6, 2, false);
+        TimeoutTracker.log("missionActions", undefined, undefined, "fleeHostiles");
+        let value = this.fleeByPath(this.room.fleeObjects, 6, 2, false);
+        TimeoutTracker.log("missionActions", undefined, undefined, "fleeHostiles-complete");
+        return value;
     }
 
     public fleeByPath(fleeObjects: {pos: RoomPosition}[], fleeRange: number, fleeDelay: number,

@@ -11,7 +11,7 @@ const PATHFINDER_RANGE_ALLOWANCE = 20;
 
 export class AutoOperation extends Operation {
 
-    memory: {
+    public memory: {
         foundSeeds: boolean
         didWalkabout: boolean
         walkaboutProgress: {
@@ -36,7 +36,7 @@ export class AutoOperation extends Operation {
         this.priority = OperationPriority.OwnedRoom;
     }
 
-    initOperation() {
+    public initOperation() {
 
         this.initRemoteSpawn(4, 8);
         if (this.remoteSpawn) {
@@ -44,36 +44,33 @@ export class AutoOperation extends Operation {
         } else {
             return;
         }
-        if (!this.spawnGroup) return;
+        if (!this.spawnGroup) { return; }
         this.addMission(new ScoutMission(this));
-        if (!this.flag.room) return;
+        if (!this.flag.room) { return; }
 
         this.autoLayout();
 
-
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
 
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
-
 
     private autoLayout() {
-        if (this.memory.seedSelection) return;
+        if (this.memory.seedSelection) { return; }
 
-        if (!this.memory.seedData) this.memory.seedData = {
+        if (!this.memory.seedData) { this.memory.seedData = {
             sourceData: undefined,
             seedScan: {},
             seedSelectData: undefined,
-        };
+        }; }
 
         if (this.memory.seedData.sourceData) {
             let analysis = new SeedAnalysis(this.flag.room, this.memory.seedData);
             this.memory.seedSelection = analysis.run();
-        }
-        else {
+        } else {
             this.memory.didWalkabout = this.doWalkabout();
         }
     }
@@ -83,7 +80,7 @@ export class AutoOperation extends Operation {
             this.memory.walkaboutProgress = {
                 roomsInRange: undefined,
                 sourceData: [],
-            }
+            };
         }
 
         let progress = this.memory.walkaboutProgress;
@@ -103,23 +100,22 @@ export class AutoOperation extends Operation {
                         allSourcesReasonable = false;
                         break;
                     }
-                    sourceData.push({pos: source.pos, amount: Math.min(SOURCE_ENERGY_CAPACITY, source.energyCapacity) })
+                    sourceData.push({pos: source.pos,
+                        amount: Math.min(SOURCE_ENERGY_CAPACITY, source.energyCapacity) });
                 }
                 if (allSourcesReasonable) {
                     console.log(`found ${sourceData.length} reasonable sources in ${roomName}`);
                     progress.sourceData = progress.sourceData.concat(sourceData);
                 }
                 _.pull(progress.roomsInRange, roomName);
-            }
-            else {
+            } else {
                 let walkaboutCreep = Game.creeps[this.name + "_walkabout"];
                 if (walkaboutCreep) {
                     if (Game.time % 10 === 0) {
                         console.log(`${this.name} walkabout creep is visiting ${roomName}`);
                     }
-                    empire.traveler.travelTo(walkaboutCreep, {pos: new RoomPosition(25, 25, roomName)})
-                }
-                else {
+                    empire.traveler.travelTo(walkaboutCreep, {pos: new RoomPosition(25, 25, roomName)});
+                } else {
                     this.spawnGroup.spawn([MOVE], this.name + "_walkabout", undefined, undefined);
                 }
             }
@@ -140,15 +136,15 @@ export class AutoOperation extends Operation {
             let nextRoom = roomsToCheck.pop();
             let inRange = Game.map.getRoomLinearDistance(origin, nextRoom) <= 1;
 
-            if (!inRange) continue;
+            if (!inRange) { continue; }
             roomsInRange.push(nextRoom);
 
             let exits = Game.map.describeExits(nextRoom);
             for (let direction in exits) {
                 let roomName = exits[direction];
-                if (_.include(roomsAlreadyChecked, roomName)) continue;
+                if (_.include(roomsAlreadyChecked, roomName)) { continue; }
                 roomsAlreadyChecked.push(nextRoom);
-                if (_.include(roomsToCheck, roomName)) continue;
+                if (_.include(roomsToCheck, roomName)) { continue; }
                 roomsToCheck.push(roomName);
             }
         }
@@ -157,14 +153,14 @@ export class AutoOperation extends Operation {
     }
 
     private checkReasonablePathDistance(source: Source) {
-        let ret = PathFinder.search(source.pos, [{pos: new RoomPosition(25, 25, this.flag.room.name), range: PATHFINDER_RANGE_ALLOWANCE }], {
+        let ret = PathFinder.search(source.pos, [{pos: new RoomPosition(25, 25, this.flag.room.name),
+            range: PATHFINDER_RANGE_ALLOWANCE }], {
             maxOps: 10000,
         });
         if (ret.incomplete) {
             console.log("checkReasonablePathDistance return value incomplete");
             return false;
-        }
-        else {
+        } else {
             return ret.path.length <= MAX_SOURCE_DISTANCE - PATHFINDER_RANGE_ALLOWANCE;
         }
     }
@@ -176,24 +172,27 @@ export class AutoOperation extends Operation {
      * @returns {string}
      */
 
-    debugSeeds(seedType: string, show: boolean) {
+    public debugSeeds(seedType: string, show: boolean) {
         if (show) {
             let flag = Game.flags[`${this.name}_${seedType}_0`];
-            if (flag) return `first remove flags: ${this.name}.debugSeeds("${seedType}", false)`;
+            if (flag) { return `first remove flags: ${this.name}.debugSeeds("${seedType}", false)`; }
             if (!this.memory.seedData.seedScan || !this.memory.seedData.seedScan[seedType]) {
                 return `there is no data for ${seedType}`;
             }
 
             for (let i = 0; i < this.memory.seedData.seedScan[seedType].length; i++) {
                 let coord = this.memory.seedData.seedScan[seedType][i];
-                new RoomPosition(coord.x, coord.y, this.flag.room.name).createFlag(`${this.name}_${seedType}_${i}`, COLOR_GREY);
+                new RoomPosition(coord.x, coord.y, this.flag.room.name)
+                    .createFlag(`${this.name}_${seedType}_${i}`, COLOR_GREY);
             }
-        }
-        else {
+        } else {
             for (let i = 0; i < 2500; i++) {
                 let flag = Game.flags[`${this.name}_${seedType}_${i}`];
-                if (flag) flag.remove();
-                else break;
+                if (flag) {
+                    flag.remove();
+                } else {
+                    break;
+                }
             }
         }
     }

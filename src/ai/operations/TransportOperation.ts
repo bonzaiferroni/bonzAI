@@ -9,19 +9,19 @@ export class TransportOperation extends Operation {
         super(flag, name, type);
     }
 
-    initOperation() {
+    public initOperation() {
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.findOperationWaypoints();
 
         let max = this.memory.max !== undefined ? this.memory.max : 1;
-        this.addMission(new TransportMission(this, max, undefined, undefined, this.memory.resourceType, this.memory.offRoad));
+        this.addMission(new TransportMission(this, max, undefined, undefined, this.memory.resourceType,
+            this.memory.offRoad));
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
 
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 
 }
-

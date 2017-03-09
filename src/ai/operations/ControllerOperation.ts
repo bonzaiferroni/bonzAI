@@ -25,7 +25,7 @@ import {ClaimMission} from "../missions/ClaimMission";
 import {notifier} from "../../notifier";
 import {SurveyMission} from "../missions/SurveyMission";
 import {DefenseMission} from "../missions/DefenseMission";
-import {DefenseGuru} from "./DefenseGuru";
+import {DefenseGuru} from "../DefenseGuru";
 import {empire} from "../../helpers/loopHelper";
 
 export abstract class ControllerOperation extends Operation {
@@ -38,7 +38,7 @@ export abstract class ControllerOperation extends Operation {
         }
     }
 
-    memory: {
+    public memory: {
         powerMining: boolean
         noMason: boolean
         masonPotency: number
@@ -63,12 +63,12 @@ export abstract class ControllerOperation extends Operation {
         flexRadius: number
     };
 
-    staticStructures: {[structureType: string]: Coord[]};
+    protected staticStructures: {[structureType: string]: Coord[]};
 
     protected abstract initAutoLayout();
     protected abstract temporaryPlacement(controllerLevel: number);
 
-    initOperation() {
+    public initOperation() {
         this.autoLayout();
 
         this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
@@ -86,7 +86,7 @@ export abstract class ControllerOperation extends Operation {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
             this.addMission(new ScoutMission(this));
             this.addMission(new ClaimMission(this));
-            if (!this.hasVision || this.room.controller.level === 0) return; // vision can be assumed after this point
+            if (!this.hasVision || this.room.controller.level === 0) { return; } // vision can be assumed after this
         }
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
@@ -113,7 +113,7 @@ export abstract class ControllerOperation extends Operation {
 
         // harvest energy
         for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) continue;
+            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
             let source = this.sources[i];
             if (this.flag.room.controller.level === 8 && this.flag.room.storage) {
                 let link = source.findMemoStructure(STRUCTURE_LINK, 2, true) as StructureLink;
@@ -151,20 +151,20 @@ export abstract class ControllerOperation extends Operation {
         this.towerRepair();
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
 
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 
     public nuke(x: number, y: number, roomName: string): string {
-        let nuker = _.head(this.flag.room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_NUKER}})) as StructureNuker;
+        let nuker = _.head(this.flag.room.find(FIND_MY_STRUCTURES,
+            {filter: {structureType: STRUCTURE_NUKER}})) as StructureNuker;
         let outcome = nuker.launchNuke(new RoomPosition(x, y, roomName));
         if (outcome === OK) {
             empire.map.addNuke({tick: Game.time, roomName: roomName});
             return "NUKER: Bombs away! \\o/";
-        }
-        else {
+        } else {
             return `NUKER: error: ${outcome}`;
         }
     }
@@ -175,7 +175,7 @@ export abstract class ControllerOperation extends Operation {
         this.memory.layoutMap = undefined;
         this.showLayout(false);
 
-        return `moving layout, run command ${this.name}.showLayout(true) to display`
+        return `moving layout, run command ${this.name}.showLayout(true) to display`;
     }
 
     public showLayout(show: boolean, type = "all"): string {
@@ -191,8 +191,8 @@ export abstract class ControllerOperation extends Operation {
         }
 
         for (let structureType of Object.keys(CONSTRUCTION_COST)) {
-            if (type == "all" || type == structureType ) {
-               let coords = this.layoutCoords(structureType);
+            if (type === "all" || type === structureType ) {
+                let coords = this.layoutCoords(structureType);
                 let order = 0;
                 for (let coord of coords) {
                     let flagName = `${this.name}_layout_${structureType}_${order++}`;
@@ -207,23 +207,17 @@ export abstract class ControllerOperation extends Operation {
                     if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
                         || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
                         color = COLOR_YELLOW;
-                    }
-                    else if (structureType === STRUCTURE_TOWER) {
+                    } else if (structureType === STRUCTURE_TOWER) {
                         color = COLOR_BLUE;
-                    }
-                    else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
+                    } else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
                         color = COLOR_CYAN;
-                    }
-                    else if (structureType === STRUCTURE_POWER_SPAWN) {
+                    } else if (structureType === STRUCTURE_POWER_SPAWN) {
                         color = COLOR_RED;
-                    }
-                    else if (structureType === STRUCTURE_OBSERVER) {
+                    } else if (structureType === STRUCTURE_OBSERVER) {
                         color = COLOR_BROWN;
-                    }
-                    else if (structureType === STRUCTURE_ROAD) {
+                    } else if (structureType === STRUCTURE_ROAD) {
                         color = COLOR_GREY;
-                    }
-                    else if (structureType === STRUCTURE_RAMPART) {
+                    } else if (structureType === STRUCTURE_RAMPART) {
                         color = COLOR_GREEN;
                     }
                     position.createFlag(flagName, color);
@@ -231,20 +225,20 @@ export abstract class ControllerOperation extends Operation {
             }
         }
 
-        return `showing layout flags for: ${type}`
+        return `showing layout flags for: ${type}`;
     }
 
     private autoLayout() {
 
         this.initWithSpawn();
-        if (!this.memory.centerPosition || this.memory.rotation === undefined ) return;
+        if (!this.memory.centerPosition || this.memory.rotation === undefined ) { return; }
         this.initAutoLayout();
         this.buildLayout();
     }
 
     private buildLayout() {
 
-        if (!this.flag.room) return;
+        if (!this.flag.room) { return; }
         let structureTypes = Object.keys(CONSTRUCTION_COST);
         if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= structureTypes.length) {
             this.memory.checkLayoutIndex = 0;
@@ -261,16 +255,16 @@ export abstract class ControllerOperation extends Operation {
         if (controllerLevel === 1) {
             constructionPriority = 90;
         }
-        if (Object.keys(Game.constructionSites).length > constructionPriority) return;
-        if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) return;
-        if (!this.memory.lastChecked) this.memory.lastChecked = {};
-        if (Game.time - this.memory.lastChecked[structureType] < 1000) return;
+        if (Object.keys(Game.constructionSites).length > constructionPriority) { return; }
+        if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) { return; }
+        if (!this.memory.lastChecked) { this.memory.lastChecked = {}; }
+        if (Game.time - this.memory.lastChecked[structureType] < 1000) { return; }
 
         let coords = this.layoutCoords(structureType);
         let allowedCount = this.allowedCount(structureType, controllerLevel);
 
         for (let i = 0; i < coords.length; i++) {
-            if (i >= allowedCount) break;
+            if (i >= allowedCount) { break; }
 
             let coord = coords[i];
             let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
@@ -280,14 +274,13 @@ export abstract class ControllerOperation extends Operation {
                 continue;
             }
             let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-            if (hasConstruction) continue;
+            if (hasConstruction) { continue; }
 
             let outcome = position.createConstructionSite(structureType);
             if (outcome === OK) {
                 console.log(`LAYOUT: placing ${structureType} at ${position} (${this.name})`);
-            }
-            else {
-                // console.log(`LAYOUT: bad construction placement: ${outcome}, ${structureType}, ${position} (${this.name})`);
+            } else {
+                // console.log(`LAYOUT: error: ${outcome}, ${structureType}, ${position} (${this.name})`);
             }
 
             return;
@@ -301,13 +294,13 @@ export abstract class ControllerOperation extends Operation {
         if (!this.memory.seedData) {
             let sourceData = [];
             for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
-                sourceData.push({pos: source.pos, amount: 3000 })
+                sourceData.push({pos: source.pos, amount: 3000 });
             }
             this.memory.seedData = {
                 sourceData: sourceData,
                 seedScan: {},
-                seedSelectData: undefined
-            }
+                seedSelectData: undefined,
+            };
         }
 
         let analysis = new SeedAnalysis(this.flag.room, this.memory.seedData);
@@ -318,8 +311,7 @@ export abstract class ControllerOperation extends Operation {
                 console.log(`${this.name} found best seed of type ${results.seedType}, initiating auto-layout`);
                 this.memory.centerPosition = centerPosition;
                 this.memory.rotation = results.rotation;
-            }
-            else {
+            } else {
                 console.log(`${this.name} found best seed of another type, replacing operation`);
                 let flagName = `${results.seedType}_${this.name}`;
                 Memory.flags[flagName] = { centerPosition: centerPosition, rotation: results.rotation };
@@ -327,9 +319,9 @@ export abstract class ControllerOperation extends Operation {
                 this.flag.remove();
             }
             this.memory.seedData = undefined; // clean-up memory
-        }
-        else {
-            console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or room`);
+        } else {
+            console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or` +
+                ` room`);
         }
     }
 
@@ -339,31 +331,28 @@ export abstract class ControllerOperation extends Operation {
             return 0;
         }
 
-        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length)
+        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length);
     }
 
     protected layoutCoords(structureType: string): Coord[] {
         if (this.staticStructures[structureType]) {
-            return this.staticStructures[structureType]
-        }
-        else if (this.memory.layoutMap && this.memory.layoutMap[structureType]) {
+            return this.staticStructures[structureType];
+        } else if (this.memory.layoutMap && this.memory.layoutMap[structureType]) {
             return this.memory.layoutMap[structureType];
-        }
-        else {
+        } else {
             return [];
         }
     }
 
     private initWithSpawn() {
 
-        if (!this.flag.room) return;
+        if (!this.flag.room) { return; }
         if (!this.memory.centerPosition || this.memory.rotation === undefined) {
             let structureCount = this.flag.room.find(FIND_STRUCTURES).length;
             if (structureCount === 1) {
                 this.recalculateLayout();
-            }
-            else if (structureCount > 1) {
-                this.recalculateLayout(this.type)
+            } else if (structureCount > 1) {
+                this.recalculateLayout(this.type);
             }
             return;
         }
@@ -371,7 +360,7 @@ export abstract class ControllerOperation extends Operation {
 
     protected towerRepair() {
 
-        if (this.flag.room.hostiles.length > 0) return;
+        if (this.flag.room.hostiles.length > 0) { return; }
 
         let structureType = STRUCTURE_RAMPART;
         if (Game.time % 2 === 0) {
@@ -379,7 +368,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         let coords = this.layoutCoords(structureType);
-        if (!this.memory.repairIndices) { this.memory.repairIndices = {} }
+        if (!this.memory.repairIndices) { this.memory.repairIndices = {}; }
         if (this.memory.repairIndices[structureType] === undefined ||
             this.memory.repairIndices[structureType] >= coords.length) {
             this.memory.repairIndices[structureType] = 0;
@@ -400,10 +389,10 @@ export abstract class ControllerOperation extends Operation {
                 return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
                     && s.room.controller.level >= levelRequirement
                     && s.averageAvailability > .3
-                    && s.isAvailable
+                    && s.isAvailable;
             })
             .sortBy((s: SpawnGroup) => {
-                return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name)
+                return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name);
             })
             .head();
         return remoteSpawn;
@@ -414,8 +403,7 @@ export abstract class ControllerOperation extends Operation {
         let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
         if (structure.structureType === STRUCTURE_RAMPART) {
             if (structure.hits >= 100000) { return; }
-        }
-        else {
+        } else {
             if (repairsNeeded === 0) { return; }
         }
 
@@ -435,8 +423,8 @@ export abstract class ControllerOperation extends Operation {
     }
 
     private placeLink(source: Source) {
-        if (source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) return;
-        if (source.pos.findInRange(source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) return;
+        if (source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) { return; }
+        if (source.pos.findInRange(source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) { return; }
 
         let positions: RoomPosition[] = [];
         let ret = empire.traveler.findTravelPath(this.room.storage, source);

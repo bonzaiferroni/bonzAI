@@ -10,7 +10,7 @@ export class ZombieOperation extends Operation {
         this.priority = OperationPriority.Low;
     }
 
-    initOperation() {
+    public initOperation() {
         this.initRemoteSpawn(4, 8);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
@@ -18,16 +18,16 @@ export class ZombieOperation extends Operation {
             return;
         }
 
-        if (!this.spawnGroup) return;
+        if (!this.spawnGroup) { return; }
         let raidGuru = new RaidGuru(this);
         raidGuru.init(this.flag.pos.roomName, true);
         this.addMission(new ZombieMission(this, raidGuru));
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
 
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 
 }

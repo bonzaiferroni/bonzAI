@@ -1,7 +1,7 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
-import {DefenseGuru} from "../operations/DefenseGuru";
+import {DefenseGuru} from "../DefenseGuru";
 import {Guru} from "./Guru";
 
 const SANDBAG_THRESHOLD = 1000000;

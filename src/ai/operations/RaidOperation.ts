@@ -12,17 +12,17 @@ import {empire} from "../../helpers/loopHelper";
 import {WorldMap} from "../WorldMap";
 export class RaidOperation extends Operation {
 
-    squadTypes = {
+    private squadTypes = {
         firefly: FireflyMission,
         wreck: WreckerMission,
         brawler: BrawlerMission,
     };
 
-    squadNames = ["alfa", "bravo", "charlie"];
-    raidMissions: RaidMission[] = [];
-    raidData: RaidData;
+    private squadNames = ["alfa", "bravo", "charlie"];
+    private raidMissions: RaidMission[] = [];
+    private raidData: RaidData;
 
-    memory: {
+    public memory: {
         auto: true;
         squadCount: number;
         squadConfig: {[squadName: string]: SquadConfig };
@@ -49,17 +49,17 @@ export class RaidOperation extends Operation {
         this.priority = OperationPriority.VeryHigh;
     }
 
-    initOperation() {
+    public initOperation() {
         this.flagPlacement();
         this.checkNewPlacement();
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
-        if (!this.raidData) return;
+        if (!this.raidData) { return; }
 
         let spawnGroups = this.findSpawnGroups();
 
         let squadCount = this.memory.squadCount;
-        if (!squadCount) squadCount = 0;
+        if (!squadCount) { squadCount = 0; }
 
         for (let i = 0; i < squadCount; i++) {
             let name = this.squadNames[i];
@@ -73,16 +73,15 @@ export class RaidOperation extends Operation {
         }
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
 
-        if (!this.raidData) return;
+        if (!this.raidData) { return; }
 
         let spawnCount = 0;
         for (let mission of this.raidMissions) {
             if (mission.spawned) {
                 spawnCount++;
-            }
-            else {
+            } else {
                 if (this.memory.queue[mission.name]) {
                     this.memory.squadConfig[mission.name] = this.memory.queue[mission.name];
                     let config = this.memory.squadConfig[mission.name] as SquadConfig;
@@ -111,7 +110,7 @@ export class RaidOperation extends Operation {
         }
     }
 
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 
     private findBreachFlags(): Flag[] {
@@ -124,8 +123,7 @@ export class RaidOperation extends Operation {
             let flag = Game.flags[this.name + "_breach_" + i];
             if (flag) {
                 breachFlags.push(flag);
-            }
-            else {
+            } else {
                 break;
             }
         }
@@ -133,8 +131,8 @@ export class RaidOperation extends Operation {
     }
 
     private generateRaidData(): RaidData {
-        if (!this.memory.queue) this.memory.queue = {};
-        if (!this.memory.squadConfig) this.memory.squadConfig = {};
+        if (!this.memory.queue) { this.memory.queue = {}; }
+        if (!this.memory.squadConfig) { this.memory.squadConfig = {}; }
 
         let breachFlags = this.findBreachFlags();
         let fallback = Game.flags[this.name + "_fallback"];
@@ -146,30 +144,30 @@ export class RaidOperation extends Operation {
             }
             if (this.memory.auto) {
                 let completed = this.automateParams();
-                if (!completed) return;
-            }
-            else {
+                if (!completed) { return; }
+            } else {
                 return;
             }
         }
 
         if (this.memory.defaultBoostLevel === undefined) {
             if (Game.time % 3 === 0) {
-                console.log("RAID: please set a default boostLevel, ex: " + this.name + ".setDefaultBoostLevel(2)");
+                console.log(`RAID: please set a default boostLevel, ex: ${this.name}.setDefaultBoostLevel(2)`);
             }
             return;
         }
 
         if (this.memory.maxSquads === undefined) {
             if (Game.time % 3 === 0) {
-                console.log("RAID: please set a default number of squads, 0 to stop spawning, ex: " + this.name + ".setMaxSquads(1)");
+                console.log(`RAID: please set a default number of squads, 0 to stop spawning, ex: ${
+                    this.name}.setMaxSquads(1)`);
             }
             return;
         }
 
         if (this.memory.defaultSquad === undefined) {
             if (Game.time % 3 === 0) {
-                console.log("RAID: please set a default squad type, ex: " + this.name + ".setDefaultType(\"wreck\")");
+                console.log(`RAID: please set a default squad type, ex: ${this.name}.setDefaultType("wreck")`);
             }
             return;
         }
@@ -177,10 +175,10 @@ export class RaidOperation extends Operation {
         // init squadConfig
         for (let i = 0; i < this.memory.maxSquads; i++) {
             let name = this.squadNames[i];
-            if (!this.memory.squadConfig[name]) this.memory.squadConfig[name] = {
+            if (!this.memory.squadConfig[name]) { this.memory.squadConfig[name] = {
                 type: this.memory.defaultSquad,
-                boostLevel: this.memory.defaultBoostLevel
-            };
+                boostLevel: this.memory.defaultBoostLevel,
+            }; }
         }
 
         return {
@@ -198,18 +196,18 @@ export class RaidOperation extends Operation {
 
     private findSpawnGroups(): SpawnGroup[] {
 
-        if (!this.memory.additionalRooms) this.memory.additionalRooms = [];
+        if (!this.memory.additionalRooms) { this.memory.additionalRooms = []; }
         let spawnGroups = [this.spawnGroup];
         for (let roomName of this.memory.additionalRooms) {
             let spawnGroup = empire.getSpawnGroup(roomName);
-            if (!spawnGroup) continue;
+            if (!spawnGroup) { continue; }
             spawnGroups.push(spawnGroup);
         }
         return spawnGroups;
     }
 
     private checkNewPlacement() {
-        if (!this.memory.tickLastActive) this.memory.tickLastActive = Game.time;
+        if (!this.memory.tickLastActive) { this.memory.tickLastActive = Game.time; }
         if (!this.memory.saveValues && Game.time - this.memory.tickLastActive > 100) {
             console.log("RAID: new flag placement detected, resetting raid values");
             this.resetRaid();
@@ -219,25 +217,35 @@ export class RaidOperation extends Operation {
 
     private resetRaid() {
         for (let property in this.memory) {
-            if (!this.memory.hasOwnProperty(property)) continue;
+            if (!this.memory.hasOwnProperty(property)) { continue; }
             delete this.memory[property];
         }
     }
 
     private findAttackDirection(attackRoomCoords: RoomCoord, fallbackRoomCoords: RoomCoord): Direction {
         let directionLetter;
-        if (attackRoomCoords.x < fallbackRoomCoords.x) directionLetter = attackRoomCoords.xDir;
-        else if (attackRoomCoords.x > fallbackRoomCoords.x) directionLetter = WorldMap.negaDirection(attackRoomCoords.xDir);
-        else if (attackRoomCoords.y < fallbackRoomCoords.y) directionLetter = attackRoomCoords.yDir;
-        else if (attackRoomCoords.y > fallbackRoomCoords.y) directionLetter = WorldMap.negaDirection(attackRoomCoords.yDir);
+        if (attackRoomCoords.x < fallbackRoomCoords.x) {
+            directionLetter = attackRoomCoords.xDir;
+        } else if (attackRoomCoords.x > fallbackRoomCoords.x) {
+            directionLetter = WorldMap.negaDirection(attackRoomCoords.xDir);
+        } else if (attackRoomCoords.y < fallbackRoomCoords.y) {
+            directionLetter = attackRoomCoords.yDir;
+        } else if (attackRoomCoords.y > fallbackRoomCoords.y) {
+            directionLetter = WorldMap.negaDirection(attackRoomCoords.yDir);
+        }
 
-        if (directionLetter === "N") return Direction.North;
-        else if (directionLetter === "E") return Direction.East;
-        else if (directionLetter === "S") return Direction.South;
-        else return Direction.West;
+        if (directionLetter === "N") {
+            return Direction.North;
+        } else if (directionLetter === "E") {
+            return Direction.East;
+        } else if (directionLetter === "S") {
+            return Direction.South;
+        } else {
+            return Direction.West;
+        }
     }
 
-    resetPositions(attackPos: RoomPosition, fallbackPos: RoomPosition) {
+    private resetPositions(attackPos: RoomPosition, fallbackPos: RoomPosition) {
         let attackCoords = WorldMap.getRoomCoordinates(attackPos.roomName);
         let fallbackCoords = WorldMap.getRoomCoordinates(fallbackPos.roomName);
 
@@ -256,8 +264,7 @@ export class RaidOperation extends Operation {
         if (!alfaAttackFlag) {
             runNextTick = true;
             this.spawnGroup.pos.createFlag(this.name + "_alfaAttack", COLOR_BLUE, COLOR_RED);
-        }
-        else {
+        } else {
             alfaAttackFlag.setPosition(alfaAttackPos);
         }
 
@@ -265,8 +272,7 @@ export class RaidOperation extends Operation {
         if (!alfaHealFlag) {
             runNextTick = true;
             this.spawnGroup.pos.createFlag(this.name + "_alfaHeal", COLOR_BLUE, COLOR_GREEN);
-        }
-        else {
+        } else {
             alfaHealFlag.setPosition(alfaHealPos);
         }
 
@@ -275,8 +281,7 @@ export class RaidOperation extends Operation {
         if (!bravoAttackFlag) {
             runNextTick = true;
             this.spawnGroup.pos.createFlag(this.name + "_bravoAttack", COLOR_YELLOW, COLOR_RED);
-        }
-        else {
+        } else {
             bravoAttackFlag.setPosition(bravoAttackPos);
         }
 
@@ -284,8 +289,7 @@ export class RaidOperation extends Operation {
         if (!bravoHealFlag) {
             runNextTick = true;
             this.spawnGroup.pos.createFlag(this.name + "_bravoHeal", COLOR_YELLOW, COLOR_GREEN);
-        }
-        else {
+        } else {
             bravoHealFlag.setPosition(bravoHealPos);
         }
 
@@ -294,8 +298,7 @@ export class RaidOperation extends Operation {
         if (!charlieAttackFlag) {
             runNextTick = true;
             this.spawnGroup.pos.createFlag(this.name + "_charlieAttack", COLOR_BROWN, COLOR_RED);
-        }
-        else {
+        } else {
             charlieAttackFlag.setPosition(charlieAttackPos);
         }
 
@@ -303,8 +306,7 @@ export class RaidOperation extends Operation {
         if (!charlieHealFlag) {
             runNextTick = true;
             this.spawnGroup.pos.createFlag(this.name + "_charlieHeal", COLOR_BROWN, COLOR_GREEN);
-        }
-        else {
+        } else {
             charlieHealFlag.setPosition(charlieHealPos);
         }
 
@@ -317,7 +319,7 @@ export class RaidOperation extends Operation {
         let breachStructures: Structure[] = [];
 
         for (let flag of breachFlags) {
-            if (!flag.room) continue;
+            if (!flag.room) { continue; }
             let structure = flag.pos.lookForStructure(STRUCTURE_ROAD);
             if (!structure) {
                 structure = flag.pos.lookForStructure(STRUCTURE_RAMPART);
@@ -330,20 +332,18 @@ export class RaidOperation extends Operation {
         return breachStructures;
     }
 
-    setMaxSquads(max: number) {
+    public setMaxSquads(max: number) {
         let oldValue = this.memory.maxSquads;
         this.memory.maxSquads = max;
         return "RAID: changing number of active squads from " + oldValue + " to " + max;
     }
 
-    queueSquad(name: string, type: string, boostlLevel?: number) {
+    public queueSquad(name: string, type: string, boostlLevel?: number) {
         if (name === "a") {
             name = "alpha";
-        }
-        else if (name === "b") {
+        } else if (name === "b") {
             name = "bravo";
-        }
-        else if (name === "c") {
+        } else if (name === "c") {
             name = "charlie";
         }
 
@@ -361,25 +361,24 @@ export class RaidOperation extends Operation {
         return "the next " + name + " squad will be a " + config.type + " with boostLevel " + config.boostLevel;
     }
 
-    setDefaultType(squadType: string) {
-        if (!_.includes(Object.keys(this.squadTypes), squadType)) return "RAID: ERROR, invalid squad type";
+    public setDefaultType(squadType: string) {
+        if (!_.includes(Object.keys(this.squadTypes), squadType)) { return "RAID: ERROR, invalid squad type"; }
         let oldValue = this.memory.defaultSquad;
         this.memory.defaultSquad = squadType;
         return "RAID: changing default squad from " + oldValue + " to " + squadType;
     }
 
-    setDefaultBoostLevel(level: number) {
+    public setDefaultBoostLevel(level: number) {
         if (level >= 0 && level <= 4) {
             let oldValue = this.memory.defaultBoostLevel;
             this.memory.defaultBoostLevel = level;
             return "RAID: changed from " + oldValue + " to " + level;
-        }
-        else {
+        } else {
             return "RAID: ERROR, " + level + " is invalid as a boostLevel";
         }
     }
 
-    resetFlags() {
+    public resetFlags() {
         let breachFlag = Game.flags[this.name + "_breach_0"];
         let fallbackFlag = Game.flags[this.name + "_fallback"];
         if (breachFlag && fallbackFlag) {
@@ -387,22 +386,20 @@ export class RaidOperation extends Operation {
         }
     }
 
-    addRoomName(roomName: string) {
-        if (!this.memory.additionalRooms) this.memory.additionalRooms = [];
+    public addRoomName(roomName: string) {
+        if (!this.memory.additionalRooms) { this.memory.additionalRooms = []; }
         if (_.includes(this.memory.additionalRooms, roomName)) {
             return "RAID: that missionRoom is already being used";
-        }
-        else {
+        } else {
             this.memory.additionalRooms.push(roomName);
             return "RAID: additional rooms being used for spawning: " + this.memory.additionalRooms;
         }
     }
 
-    removeRoomName(roomName: string) {
+    public removeRoomName(roomName: string) {
         if (_.includes(this.memory.additionalRooms, roomName)) {
             return "RAID: that missionRoom is already being used";
-        }
-        else {
+        } else {
             this.memory.additionalRooms = _.pull(this.memory.additionalRooms, roomName);
             return "RAID: removing " + roomName + ", current list: " + this.memory.additionalRooms;
         }
@@ -413,14 +410,14 @@ export class RaidOperation extends Operation {
             return;
         }
 
-        if (!this.memory.manualTargetIds) this.memory.manualTargetIds = [];
+        if (!this.memory.manualTargetIds) { this.memory.manualTargetIds = []; }
         let manualTargets = [];
         for (let i = 0; i < 10; i++) {
             let flag = Game.flags[this.name + "_targets_" + i];
-            if (!flag || !flag.room) continue;
+            if (!flag || !flag.room) { continue; }
             let structure = _.filter(flag.pos.lookFor(LOOK_STRUCTURES),
                 (s: Structure) => s.structureType !== STRUCTURE_ROAD)[0] as Structure;
-            if (!structure) flag.remove();
+            if (!structure) { flag.remove(); }
             manualTargets.push(structure);
         }
         if (manualTargets.length > 0) {
@@ -428,12 +425,14 @@ export class RaidOperation extends Operation {
         }
 
         let attackOrder = _.get(this, "memory.attackOrder",
-            [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_NUKER, STRUCTURE_LAB, STRUCTURE_LINK, STRUCTURE_OBSERVER]
+            [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TERMINAL, STRUCTURE_STORAGE,
+                STRUCTURE_NUKER, STRUCTURE_LAB, STRUCTURE_LINK, STRUCTURE_OBSERVER]
         );
 
         let nonRamparted = [];
         for (let structureType of attackOrder) {
-            nonRamparted = nonRamparted.concat(_.filter(attackRoom.findStructures(structureType), (s: Structure) => s.pos.lookForStructure(STRUCTURE_RAMPART) === undefined));
+            nonRamparted = nonRamparted.concat(_.filter(attackRoom.findStructures(structureType),
+                (s: Structure) => s.pos.lookForStructure(STRUCTURE_RAMPART) === undefined));
         }
 
         if (nonRamparted.length > 0) {
@@ -451,7 +450,7 @@ export class RaidOperation extends Operation {
         this.memory.raidComplete = true;
     }
 
-    reportStatus() {
+    public reportStatus() {
         console.log("__________RAID STATUS__________");
         console.log("active squads:");
         // let activeSquads: RaidSquad[] = this.memory.squads.active;
@@ -461,7 +460,7 @@ export class RaidOperation extends Operation {
         // }
     }
 
-    waypointProgress(index?: number) {
+    public waypointProgress(index?: number) {
         for (let missionName in this.missions) {
             let mission = this.missions[missionName];
             if (mission["healer"]) {
@@ -473,15 +472,14 @@ export class RaidOperation extends Operation {
         }
     }
 
-    preset(presetName: string) {
+    public preset(presetName: string) {
         if (presetName === "danger") {
             console.log(this.queueSquad("bravo", "firefly", 2));
             console.log(this.setDefaultBoostLevel(2));
             console.log(this.setMaxSquads(3));
             console.log(this.setDefaultType("brawler"));
             return "spawning a raid that can deal with attacks from behind";
-        }
-        else if (presetName === "cosmo") {
+        } else if (presetName === "cosmo") {
             console.log(this.queueSquad("alfa", "brawler", 2));
             console.log(this.queueSquad("bravo", "firefly", 2));
             console.log(this.queueSquad("charlie", "wreck", 2));
@@ -492,23 +490,21 @@ export class RaidOperation extends Operation {
         }
     }
 
-    addRoom(roomName: string) {
+    public addRoom(roomName: string) {
         if (roomName === "clear") {
             this.memory.additionalRooms = undefined;
-        }
-        else {
-            if (!this.memory.additionalRooms) this.memory.additionalRooms = [];
+        } else {
+            if (!this.memory.additionalRooms) { this.memory.additionalRooms = []; }
             let spawnGroup = empire.getSpawnGroup(roomName);
             if (spawnGroup) {
                 return this.memory.additionalRooms.push(roomName);
-            }
-            else {
+            } else {
                 return "not an owned missionRoom";
             }
         }
     }
 
-    private automateParams():boolean {
+    private automateParams(): boolean {
         if (!this.memory.attackRoomName) {
             console.log(`RAID: ${this.name} automation incomplete, no attackRoom specified`);
             return false;
@@ -527,7 +523,7 @@ export class RaidOperation extends Operation {
         }
 
         let completed = this.placeFlags();
-        if (!completed) return false;
+        if (!completed) { return false; }
     }
 
     private placeFlags(): boolean {
@@ -550,12 +546,12 @@ export class RaidOperation extends Operation {
         let stagingPosition;
         for (let i = 0; i < ret.path.length; i++) {
             let position = ret.path[i];
-            if (position.isNearExit(0)) continue;
+            if (position.isNearExit(0)) { continue; }
             if (position.roomName === this.memory.attackRoomName) {
                 stagingPosition = position;
                 for (let j = i; j >= 0; j--) {
                     position = ret.path[j];
-                    if (position.isNearExit(1)) continue;
+                    if (position.isNearExit(1)) { continue; }
                     if (position.roomName !== this.memory.attackRoomName) {
                         this.placeRaidFlag(position, `${this.name}_fallback`, COLOR_GREY);
                         break;
@@ -566,7 +562,7 @@ export class RaidOperation extends Operation {
         }
 
         let complete = this.placeBreachFlags(stagingPosition, destination, attackRoom);
-        if (!complete) return;
+        if (!complete) { return; }
 
         this.setDefaultBoostLevel(0);
         this.setMaxSquads(1);
@@ -575,7 +571,7 @@ export class RaidOperation extends Operation {
 
     private placeBreachFlags(stagingPosition: RoomPosition, destination: Structure, attackRoom: Room): boolean {
         let callback = (roomName: string): CostMatrix => {
-            if (roomName !== attackRoom.name) return;
+            if (roomName !== attackRoom.name) { return; }
             let matrix = new PathFinder.CostMatrix();
             let walls: Structure[] = [];
             walls.concat(attackRoom.findStructures<StructureWall>(STRUCTURE_WALL));
@@ -608,7 +604,7 @@ export class RaidOperation extends Operation {
 
         if (count === 0) {
             for (let position of ret.path) {
-                if (position.isNearExit(1)) continue;
+                if (position.isNearExit(1)) { continue; }
                 console.log(`RAID: no walls found in ${this.name}, placing empty breach position`);
                 position.createFlag(`${this.name}_breach_${count}`);
                 break;
@@ -618,7 +614,7 @@ export class RaidOperation extends Operation {
         return true;
     }
 
-    placeRaidFlag(pos: RoomPosition, name: string, color = COLOR_WHITE) {
+    public placeRaidFlag(pos: RoomPosition, name: string, color = COLOR_WHITE) {
         let flag = Game.flags[name];
         if (flag) {
             console.log(`RAID: moving flag to position: ${name}`);
@@ -629,8 +625,7 @@ export class RaidOperation extends Operation {
         if (room) {
             pos.createFlag(name, color);
             return;
-        }
-        else {
+        } else {
             this.flag.pos.createFlag(name, color);
             this.memory.placeFlags[name] = pos;
         }

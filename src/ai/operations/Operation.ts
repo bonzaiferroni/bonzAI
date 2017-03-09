@@ -34,7 +34,6 @@ export abstract class Operation {
      * "operationType_operationName"
      * @param name - second part of flag.name, should be unique amont all other operation names (I use city names)
      * @param type - first part of flag.name, used to determine which operation class to instantiate
-     * @param empire - object used for empire-scoped behavior (terminal transmission, etc.)
      */
     constructor(flag: Flag, name: string, type: string) {
         this.flag = flag;
@@ -67,9 +66,9 @@ export abstract class Operation {
         for (let missionName in this.missions) {
             try {
                 TimeoutTracker.log("initMission", this.name, missionName);
-                // Profiler.start("in_m." + missionName.substr(0, 3));
+                Profiler.start("in_m." + missionName.substr(0, 3));
                 this.missions[missionName].initMission();
-                // Profiler.end("in_m." + missionName.substr(0, 3));
+                Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
@@ -86,9 +85,9 @@ export abstract class Operation {
         for (let missionName in this.missions) {
             try {
                 TimeoutTracker.log("roleCall", this.name, missionName);
-                // Profiler.start("rc_m." + missionName.substr(0, 3));
+                Profiler.start("rc_m." + missionName.substr(0, 3));
                 this.missions[missionName].roleCall();
-                // Profiler.end("rc_m." + missionName.substr(0, 3));
+                Profiler.end("rc_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in roleCall phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
@@ -104,9 +103,9 @@ export abstract class Operation {
         for (let missionName in this.missions) {
             try {
                 TimeoutTracker.log("actions", this.name, missionName);
-                // Profiler.start("ac_m." + missionName.substr(0, 3));
+                Profiler.start("ac_m." + missionName.substr(0, 3));
                 this.missions[missionName].missionActions();
-                // Profiler.end("ac_m." + missionName.substr(0, 3));
+                Profiler.end("ac_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName,
                     "in missionRoom ", this.flag.pos.roomName);
@@ -124,9 +123,9 @@ export abstract class Operation {
         for (let missionName in this.missions) {
             try {
                 TimeoutTracker.log("finalize", this.name, missionName);
-                // Profiler.start("fi_m." + missionName.substr(0, 3));
+                Profiler.start("fi_m." + missionName.substr(0, 3));
                 this.missions[missionName].finalizeMission();
-                // Profiler.end("fi_m." + missionName.substr(0, 3));
+                Profiler.end("fi_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);

@@ -12,8 +12,8 @@ import {InvaderGuru} from "../missions/InvaderGuru";
 export class MiningOperation extends Operation {
 
     /**
-     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can also
-     * mine minerals from core rooms
+     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can
+     * also mine minerals from core rooms
      * @param flag
      * @param name
      * @param type
@@ -25,7 +25,7 @@ export class MiningOperation extends Operation {
         this.priority = OperationPriority.Low;
     }
 
-    initOperation() {
+    public initOperation() {
 
         this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 4, 50);
         if (this.remoteSpawn) {
@@ -43,21 +43,19 @@ export class MiningOperation extends Operation {
         // defense
         if (this.flag.room && this.flag.room.roomType === ROOMTYPE_CORE) {
             this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
-        }
-        else {
+        } else {
             this.addMission(new BodyguardMission(this, invaderGuru));
         }
 
-        if (!this.flag.room) return;
+        if (!this.flag.room) { return; }
 
         // claimers
         if (this.flag.room.controller) {
             this.addMission(new ReserveMission(this));
         }
 
-
         for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) continue;
+            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
             this.addMission(new MiningMission(this, "miner" + i, this.sources[i]));
         }
 
@@ -70,8 +68,8 @@ export class MiningOperation extends Operation {
 
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 }

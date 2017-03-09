@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {PRIORITY_BUILD} from "../../config/constants";
-import {DefenseGuru} from "../operations/DefenseGuru";
+import {DefenseGuru} from "../DefenseGuru";
 import {Agent} from "./Agent";
 export class BuilderMission extends Mission {
 

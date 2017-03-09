@@ -11,19 +11,18 @@ import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 export class KeeperOperation extends Operation {
 
     /**
-     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can also
-     * mine minerals from core rooms
+     * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can
+     * also mine minerals from core rooms
      * @param flag
      * @param name
      * @param type
-     * @param empire
      */
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
     }
 
-    initOperation() {
+    public initOperation() {
 
         this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
         if (this.remoteSpawn) {
@@ -39,10 +38,10 @@ export class KeeperOperation extends Operation {
         this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
         this.addMission(new LairMission(this, invaderGuru));
 
-        if (!this.hasVision) return; // early
+        if (!this.hasVision) { return; } // early
 
         for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) continue;
+            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
             this.addMission(new MiningMission(this, "miner" + i, this.sources[i]));
         }
 
@@ -53,8 +52,8 @@ export class KeeperOperation extends Operation {
         }
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 }
