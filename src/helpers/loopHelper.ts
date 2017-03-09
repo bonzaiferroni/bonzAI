@@ -155,7 +155,7 @@ export var loopHelper = {
             let profile = Memory.profiler[identifier];
             Memory.stats["game.prof." + identifier + ".cpt"] = profile.costPerTick;
             Memory.stats["game.prof." + identifier + ".cpc"] = profile.costPerCall;
-            Memory.stats["game.prof." + identifier + ".max"] = profile.highest;
+            Memory.stats["game.prof." + identifier + ".max"] = profile.max;
         }
 
         Memory.stats["game.time"] = Game.time;
@@ -169,7 +169,7 @@ export var loopHelper = {
         Memory.stats["game.cpu.perCreep"] = Game.cpu.getUsed() / Object.keys(Game.creeps).length;
     },
 
-    sendResourceOrder: function(empire: Empire) {
+    sendResourceOrder: function(emp: Empire) {
         if (!Memory.resourceOrder) {
             Memory.resourceOrder = {};
         }
@@ -183,7 +183,7 @@ export var loopHelper = {
                 order.amountSent = 0;
             }
 
-            let sortedTerminals = _.sortBy(empire.network.terminals, (t: StructureTerminal) =>
+            let sortedTerminals = _.sortBy(emp.network.terminals, (t: StructureTerminal) =>
                 Game.map.getRoomLinearDistance(order.roomName, t.room.name)) as StructureTerminal[];
 
             let count = 0;

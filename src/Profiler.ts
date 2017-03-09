@@ -68,11 +68,13 @@ export class Profiler {
                 }
                 profile.costPerTick = _.round(profile.total / profile.period, 2);
                 profile.callsPerTick = _.round(profile.count / profile.period, 2);
+                profile.max = profile.highest;
 
                 if (profile.consoleReport) {
                     console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:",
                         profile.costPerCall, "calls per tick:", profile.callsPerTick);
                 }
+
                 profile.endOfPeriod = Game.time + profile.period;
                 profile.total = 0;
                 profile.count = 0;
