@@ -12,6 +12,12 @@ module.exports.loop = function () {
     Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
         activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}};
 
+    // profile memory parsing
+    let cpu = Game.cpu.getUsed();
+    if (Memory) { }
+    let result = Game.cpu.getUsed() - cpu;
+    Profiler.resultOnly("mem", result);
+
     // TimeoutTracker - Diagnoses CPU timeouts
     try { TimeoutTracker.init(); } catch (e) { console.log("error initializing TimeoutTracker:\n", e.stack); }
 
@@ -19,23 +25,23 @@ module.exports.loop = function () {
     Profiler.start("init");
     loopHelper.initEmpire();
     let operations = loopHelper.getOperations(empire);
-    for (let operation of operations) operation.init();
+    for (let operation of operations) { operation.init(); }
     Profiler.end("init");
 
     // RoleCall phase - Find creeps belonging to missions and spawn any additional needed.
     Profiler.start("roleCall");
-    for (let operation of operations) operation.roleCall();
+    for (let operation of operations) { operation.roleCall(); }
     Profiler.end("roleCall");
 
     // Actions phase - Actions that change the game state are executed in this phase.
     Profiler.start("actions");
-    for (let operation of operations) operation.actions();
+    for (let operation of operations) { operation.actions(); }
     Profiler.end("actions");
 
     // Finalize phase - Code that needs to run post-actions phase
-    for (let operation of operations) operation.invalidateCache();
+    for (let operation of operations) { operation.invalidateCache(); }
     Profiler.start("finalize");
-    for (let operation of operations) operation.finalize();
+    for (let operation of operations) { operation.finalize(); }
     Profiler.end("finalize");
 
     // post-operation actions and utilities
@@ -51,4 +57,3 @@ module.exports.loop = function () {
     try { TimeoutTracker.finalize(); } catch (e) { console.log("error finalizing TimeoutTracker:\n", e.stack); }
     try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
 };
-

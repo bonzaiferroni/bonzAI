@@ -96,6 +96,7 @@ interface Memory {
     profiler: {[identifier: string]: ProfilerData };
     notifier: {
         time: number,
+        earthTime: string,
         message: string,
     }[];
     roomAttacks: any;

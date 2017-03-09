@@ -14,6 +14,32 @@ export class Profiler {
         if (profile.highest < cpu) {
             profile.highest = cpu;
         }
+
+        if (cpu > 300) {
+            notifier.log(`${identifier}, ${cpu}`);
+            return;
+        }
+
+        if (identifier === "actions") { return; }
+
+        if (cpu > 150) {
+            notifier.log(`${identifier}, ${cpu}`);
+            return;
+        }
+
+        if (identifier === "init") { return; }
+
+        if (cpu > 100) {
+            notifier.log(`${identifier}, ${cpu}`);
+            return;
+        }
+
+        if (identifier === "roleCall") { return; }
+        if (identifier === "finalize") { return; }
+
+        if (cpu > 40) {
+            notifier.log(`${identifier}, ${cpu}`);
+        }
     }
 
     public static resultOnly(identifier: string, result: number, consoleReport = false, period = 5) {
@@ -30,16 +56,13 @@ export class Profiler {
         Memory.profiler[identifier].period = period;
         Memory.profiler[identifier].consoleReport = consoleReport;
         Memory.profiler[identifier].lastTickTracked = Game.time;
-        if (period != 5) {
-            notifier.log(`unexpected period in initProfile! ${period}`)
-        }
         return Memory.profiler[identifier];
     }
 
     public static finalize() {
         for (let identifier in Memory.profiler) {
             let profile = Memory.profiler[identifier];
-            if (Game.time > profile.endOfPeriod) {
+            if (Game.time >= profile.endOfPeriod) {
                 if (profile.count !== 0) {
                     profile.costPerCall = _.round(profile.total / profile.count, 2);
                 }
@@ -49,9 +72,6 @@ export class Profiler {
                 if (profile.consoleReport) {
                     console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:",
                         profile.costPerCall, "calls per tick:", profile.callsPerTick);
-                }
-                if (profile.period != 5) {
-                    notifier.log(`unexpected period in profiler finalize! ${profile.period}`)
                 }
                 profile.endOfPeriod = Game.time + profile.period;
                 profile.total = 0;

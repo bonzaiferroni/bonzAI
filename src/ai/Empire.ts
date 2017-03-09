@@ -36,6 +36,7 @@ export class Empire {
      */
 
     init() {
+        Profiler.start("emp.init");
         this.traveler = traveler;
         this.diplomat = new BonzaiDiplomat();
         this.map = new WorldMap(this.diplomat);
@@ -44,6 +45,7 @@ export class Empire {
         this.network.init();
         this.market = new MarketTrader(this.network);
         this.vis = new Visualizer();
+        Profiler.end("emp.init");
     }
 
     /**
@@ -51,11 +53,21 @@ export class Empire {
      */
 
     actions() {
+        Profiler.start("emp.map");
         this.map.actions();
+        Profiler.end("emp.map");
+        Profiler.start("emp.net");
         this.network.actions();
+        Profiler.end("emp.net");
+        Profiler.start("emp.mkt");
         this.market.actions();
+        Profiler.end("emp.mkt");
+        Profiler.start("emp.clr");
         this.clearErrantConstruction();
+        Profiler.end("emp.clr");
+        Profiler.start("emp.vis");
         this.vis.finalize();
+        Profiler.end("emp.vis");
     }
 
     getSpawnGroup(roomName: string) {

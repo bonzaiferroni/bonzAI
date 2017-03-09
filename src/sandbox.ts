@@ -45,8 +45,19 @@ export var sandBox = {
             console.log("cpu: " + _.round(Memory.cpu.average, 2), "perCreep: " +
                 _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2))
         }
+
+        // bucketTest();
     }
 };
+
+function bucketTest() {
+    let cpu = Game.cpu.getUsed();
+    console.log(`before ${cpu}`);
+    while (Game.cpu.bucket >= 10000) {
+        Math.sqrt(Math.PI);
+    }
+    console.log(`after ${Game.cpu.getUsed()}, elapsed: ${Game.cpu.getUsed() - cpu} bucket: ${Game.cpu.bucket}`);
+}
 
 class SandboxOperation extends Operation {
     initOperation() {
