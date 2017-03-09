@@ -4,7 +4,7 @@ declare var global: any;
 interface Game {
     cache: {
         structures: { [roomName: string]: {[structureType: string]: Structure[]} },
-        hostiles:  { [roomName: string]: Creep[] },
+        hostiles: { [roomName: string]: Creep[] },
         hostilesAndLairs: { [roomName: string]: RoomObject[] }
         lairThreats: { [roomName: string]: StructureKeeperLair[] }
         fleeObjects: { [roomName: string]: RoomObject[] }
@@ -13,7 +13,7 @@ interface Game {
         activeLabCount: number;
         placedRoad: boolean;
     };
-    operations: {[opName: string]: any }
+    operations: {[opName: string]: any };
 }
 
 interface Room {
@@ -27,7 +27,7 @@ interface Room {
     roomType: number;
     _defaultMatrix: CostMatrix;
     defaultMatrix: CostMatrix;
-    structures: {[structureType: string]: Structure[] }
+    structures: {[structureType: string]: Structure[] };
     memory: RoomMemory;
 }
 
@@ -39,7 +39,7 @@ interface RoomMemory {
     nextTrade: number;
     nextScan: number;
     nextRadar: number;
-    radarData: { x: number, y: number }
+    radarData: { x: number, y: number };
     spawnMemory: any;
     boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
     controllerBatteryId: string;
@@ -112,7 +112,7 @@ interface Memory {
 }
 
 interface HostileMemory {
-    potentials: {[partType: string]: number}
+    potentials: {[partType: string]: number};
 }
 
 interface ProfilerData {
@@ -127,6 +127,7 @@ interface ProfilerData {
     highest: number;
     endOfPeriod: number;
     lastTickTracked: number;
+    max: number;
 }
 
 interface ResourceOrder {
@@ -158,9 +159,9 @@ interface StructureObserver {
 }
 
 interface Observation {
-    purpose: string,
-    roomName: string,
-    room?: Room,
+    purpose: string;
+    roomName: string;
+    room?: Room;
 }
 
 interface StructureTerminal {
