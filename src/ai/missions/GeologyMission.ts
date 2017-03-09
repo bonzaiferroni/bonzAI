@@ -56,6 +56,8 @@ export class GeologyMission extends Mission {
             this.memory.bestBody = this.calculateBestBody();
         }
 
+        this.initPathMission();
+
         if (this.mineral.mineralAmount === 0 && this.mineral.ticksToRegeneration > 1000 &&
             this.mineral.ticksToRegeneration < MINERAL_REGEN_TIME - 1000) {
             return; // early
@@ -67,19 +69,6 @@ export class GeologyMission extends Mission {
             this.buildContainer();
         }
         this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
-
-        if (this.memory.builtExtractor) {
-            let pathMission = new PathMission(this.operation, this.name + "Path", {
-                start: this.store,
-                end: this.mineral,
-                rangeToEnd: 2,
-            });
-            pathMission.initMission();
-            this.operation.addMission(pathMission);
-            if (pathMission.distance) {
-                this.memory.distanceToStorage = pathMission.distance;
-            }
-        }
     }
 
     private geoBody = () => {
@@ -344,5 +333,20 @@ export class GeologyMission extends Mission {
     private mineralStats() {
         if (!Game.cache[this.mineral.mineralType]) { Game.cache[this.mineral.mineralType] = 0; }
         Game.cache[this.mineral.mineralType]++;
+    }
+
+    private initPathMission() {
+        if (this.memory.builtExtractor) {
+            let pathMission = new PathMission(this.operation, this.name + "Path", {
+                start: this.store,
+                end: this.mineral,
+                rangeToEnd: 2,
+            });
+            pathMission.initMission();
+            this.operation.addMission(pathMission);
+            if (pathMission.distance) {
+                this.memory.distanceToStorage = pathMission.distance;
+            }
+        }
     }
 }
