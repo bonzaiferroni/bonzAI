@@ -41,28 +41,28 @@ export var loopHelper = {
         empire.init();
     },
 
-    getOperations: function(empire: Empire): Operation[] {
+    getOperations: function(emp: Empire): Operation[] {
 
         // gather flag data, instantiate operations
         let operationList: {[operationName: string]: Operation} = {};
         for (let flagName in Game.flags) {
             for (let typeName in OPERATION_CLASSES) {
-                if (!OPERATION_CLASSES.hasOwnProperty(typeName)) continue;
+                if (!OPERATION_CLASSES.hasOwnProperty(typeName)) { continue; }
                 if (flagName.substring(0, typeName.length) === typeName) {
                     let operationClass = OPERATION_CLASSES[typeName];
                     let flag = Game.flags[flagName];
                     let name = flagName.substring(flagName.indexOf("_") + 1);
 
                     if (operationList.hasOwnProperty(name)) {
-                        console.log(`operation with name ${name} already exists (type: ${operationList[name].type}), please use a different name`);
+                        console.log(`operation with name ${name} already exists (type: ${
+                            operationList[name].type}), please use a different name`);
                         continue;
                     }
 
                     let operation;
                     try {
-                        operation = new operationClass(flag, name, typeName, empire);
-                    }
-                    catch (e) {
+                        operation = new operationClass(flag, name, typeName, emp);
+                    } catch (e) {
                         console.log("error parsing flag name and bootstrapping operation");
                         console.log(e);
                     }
@@ -97,7 +97,7 @@ export var loopHelper = {
                 history: [],
                 average: Game.cpu.getUsed(),
             },
-            hostileMemory: {}
+            hostileMemory: {},
         });
     },
 
@@ -109,7 +109,8 @@ export var loopHelper = {
                 if (resource.amount > 10) {
                     let creep = resource.pos.lookFor(LOOK_CREEPS)[0] as Creep;
                     if (creep && creep.my && creep.memory.scavanger === resource.resourceType
-                        && (!creep.carry[resource.resourceType] || creep.carry[resource.resourceType] < creep.carryCapacity)) {
+                        && (!creep.carry[resource.resourceType] ||
+                        creep.carry[resource.resourceType] < creep.carryCapacity)) {
                         let outcome = creep.pickup(resource);
                     }
                 }
@@ -119,11 +120,11 @@ export var loopHelper = {
 
     invalidateCache: Game.time % CACHE_INVALIDATION_FREQUENCY < CACHE_INVALIDATION_PERIOD,
 
-    grafanaStats: function(empire: Empire) {
+    grafanaStats: function(emp: Empire) {
 
-        if (!Memory.playerConfig.enableStats) return;
+        if (!Memory.playerConfig.enableStats) { return; }
 
-        if (!Memory.stats) Memory.stats = {};
+        if (!Memory.stats) { Memory.stats = {}; }
 
         // STATS START HERE
         _.forEach(Game.rooms, function (room) {
@@ -133,20 +134,20 @@ export var loopHelper = {
         });
 
         for (let resourceType of MINERALS_RAW) {
-            Memory.stats["empire.rawMinerals." + resourceType] = empire.network.inventory[resourceType];
+            Memory.stats["empire.rawMinerals." + resourceType] = emp.network.inventory[resourceType];
             Memory.stats["empire.mineralCount." + resourceType] = Game.cache[resourceType] || 0;
         }
 
         for (let resourceType of PRODUCT_LIST) {
-            Memory.stats["empire.compounds." + resourceType] = empire.network.inventory[resourceType];
+            Memory.stats["empire.compounds." + resourceType] = emp.network.inventory[resourceType];
             Memory.stats["empire.processCount." + resourceType] = Game.cache.labProcesses[resourceType] || 0;
         }
 
         Memory.stats["empire.activeLabCount"] = Game.cache.activeLabCount;
 
-        Memory.stats["empire.energy"] = empire.network.inventory[RESOURCE_ENERGY];
+        Memory.stats["empire.energy"] = emp.network.inventory[RESOURCE_ENERGY];
 
-        for (let storage of empire.network.storages) {
+        for (let storage of emp.network.storages) {
             Memory.stats["empire.power." + storage.room.name] = storage.store.power ? storage.store.power : 0;
         }
 
@@ -188,7 +189,7 @@ export var loopHelper = {
 
             let count = 0;
             for (let terminal of sortedTerminals) {
-                if (terminal.room.name === order.roomName) continue;
+                if (terminal.room.name === order.roomName) { continue; }
                 if (terminal.store[order.resourceType] >= RESERVE_AMOUNT) {
                     let amount = Math.min(1000, order.amount - order.amountSent);
                     if (amount <= 0) {
@@ -202,7 +203,7 @@ export var loopHelper = {
                     }
 
                     count++;
-                    if (count === order.efficiency) break;
+                    if (count === order.efficiency) { break; }
                 }
             }
 
@@ -231,5 +232,5 @@ export var loopHelper = {
         }
 
         Memory.nextGC = Game.time + helper.randomInterval(100);
-    }
+    },
 };
