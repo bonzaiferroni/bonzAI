@@ -875,53 +875,53 @@ interface Game {
     /**
      * An object containing information about your CPU usage with the following properties:
      */
-    cpu: CPU;
+    readonly cpu: CPU;
     /**
      * A hash containing all your creeps with creep names as hash keys.
      */
-    creeps: {
+    readonly creeps: {
         [creepName: string]: Creep;
     };
     /**
      * A hash containing all your flags with flag names as hash keys.
      */
-    flags: {
+    readonly flags: {
         [flagName: string]: Flag;
     };
     /**
      * Your Global Control Level, an object with the following properties :
      */
-    gcl: GlobalControlLevel;
+    readonly gcl: GlobalControlLevel;
     /**
      * A global object representing world GameMap.
      */
-    map: GameMap;
+    readonly map: GameMap;
     /**
      * A global object representing the in-game market.
      */
-    market: Market;
+    readonly market: Market;
     /**
      * A hash containing all the rooms available to you with missionRoom names as hash keys.
      */
-    rooms: {
+    readonly rooms: {
         [roomName: string]: Room;
     };
     /**
      * A hash containing all your spawns with spawn names as hash keys.
      */
-    spawns: {
+    readonly spawns: {
         [spawnName: string]: Spawn;
     };
     /**
      * A hash containing all your structures with structure id as hash keys.
      */
-    structures: {
+    readonly structures: {
         [structureId: string]: OwnedStructure;
     };
     /**
      * A hash containing all your construction sites with their id as hash keys.
      */
-    constructionSites: {
+    readonly constructionSites: {
         [constructionSiteId: string]: ConstructionSite;
     };
     /**
