@@ -90,7 +90,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
-        if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
+        if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0 && remoteSpawning) {
             this.addMission(new BodyguardMission(this));
         }
 
