@@ -36,18 +36,17 @@ export const notifier = {
 
     clear(term: string) {
         if (term) {
-            let count = 0;
+            let initialCount = Memory.notifier.length;
             term = term.toLocaleLowerCase();
             let newArray = [];
             for (let value of Memory.notifier) {
                 if (value.message.toLocaleLowerCase().indexOf(term) < 0) {
                     newArray.push(value);
-                    count++;
                 }
-                Memory.notifier = newArray;
             }
+            Memory.notifier = newArray;
 
-            return `removed ${count} messages;`;
+            return `removed ${initialCount - Memory.notifier.length} messages;`;
         } else {
             let count = Memory.notifier.length;
             Memory.notifier = [];

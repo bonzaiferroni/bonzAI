@@ -16,8 +16,7 @@ export var sandBox = {
             if (claimer.pos.inRangeTo(claimerFlag, 0)) {
                 claimer.claimController(claimer.room.controller);
                 console.log("### claimer waiting");
-            }
-            else {
+            } else {
                 empire.traveler.travelTo(claimer, claimerFlag);
             }
         }
@@ -38,61 +37,67 @@ export var sandBox = {
             let destinations = _.toArray(empire.spawnGroups);
             let selected = RoomHelper.findClosest(place1, destinations, {margin: 50});
             console.log(`selected the following: `);
-            for (let value of selected) { console.log(value.destination.pos)}
+            for (let value of selected) { console.log(value.destination.pos); }
         }
 
         if (Game.time % 10 === 0) {
             console.log("cpu: " + _.round(Memory.cpu.average, 2), "perCreep: " +
-                _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2))
+                _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2));
         }
 
         // bucketTest();
-    }
+    },
 };
 
 function bucketTest() {
     let cpu = Game.cpu.getUsed();
-    console.log(`before ${cpu}`);
-    while (Game.cpu.bucket >= 10000) {
-        Math.sqrt(Math.PI);
+    let iterations = 0;
+    let obj = {};
+    while (Game.cpu.bucket >= 10000 && cpu < 260) {
+        _.defaults(obj, {total: 0, count: 0, endOfPeriod: Game.time + 5, highest: 0});
+        let nextCpu =  Game.cpu.getUsed();
+        let delta = nextCpu - cpu;
+        if (delta > 30) {
+            notifier.log(`cpu delta: ${delta}, iterations: ${iterations}`);
+        }
+        cpu = nextCpu;
+        iterations++;
     }
-    console.log(`after ${Game.cpu.getUsed()}, elapsed: ${Game.cpu.getUsed() - cpu} bucket: ${Game.cpu.bucket}`);
 }
 
 class SandboxOperation extends Operation {
-    initOperation() {
+    public initOperation() {
         this.addMission(new SandboxMission(this, "sandbox"));
     }
 
-    finalizeOperation() {
+    public finalizeOperation() {
     }
 
-    invalidateOperationCache() {
+    public invalidateOperationCache() {
     }
 
 }
 
 class SandboxMission extends Mission {
-    initMission() {
+    public initMission() {
     }
 
-    roleCall() {
+    public roleCall() {
     }
 
-    missionActions() {
+    public missionActions() {
         // this.squadTravelTest();
         // this.fleeByPathTest();
         this.fatigueTest();
     }
 
-    finalizeMission() {
+    public finalizeMission() {
     }
 
-    invalidateMissionCache() {
+    public invalidateMissionCache() {
     }
 
-
-    squadTravelTest() {
+    public squadTravelTest() {
         let leaderCreep = Game.creeps["leader"];
         let leader;
         if (leaderCreep) {
@@ -135,7 +140,8 @@ class SandboxMission extends Mission {
     private fatigueTest() {
         let fattyCreep = Game.creeps["fatty"];
         if (!fattyCreep) {
-            empire.spawnFromClosest(this.flag.pos, [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE], "fatty");
+            empire.spawnFromClosest(this.flag.pos, [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE],
+                "fatty");
             return;
         }
         let fatty = new Agent(fattyCreep, this);

@@ -5,7 +5,6 @@ import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
 import {PathMission} from "./PathMission";
-import {TimeoutTracker} from "../../TimeoutTracker";
 
 export class MiningMission extends Mission {
 
@@ -94,14 +93,12 @@ export class MiningMission extends Mission {
 
     public missionActions() {
 
-        TimeoutTracker.log("missionActions", this.operation.name, this.name, "minerActions");
         let order = 0;
         for (let miner of this.miners) {
             this.minerActions(miner, order);
             order++;
         }
 
-        TimeoutTracker.log("missionActions", this.operation.name, this.name, "cartActions");
         for (let cart of this.minerCarts) {
             this.cartActions(cart);
         }

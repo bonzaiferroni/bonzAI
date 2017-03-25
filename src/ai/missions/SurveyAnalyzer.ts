@@ -14,7 +14,7 @@ interface SurveyData {
     sourceCount?: number;
     averageDistance?: number;
     owner?: string;
-    lastCheckedOwner?: number;
+    nextOwnerCheck?: number;
     hasWalls?: boolean;
 }
 
@@ -49,7 +49,7 @@ export class SurveyAnalyzer {
                 if (Object.keys(this.memory.surveyRooms).length === 0) {
                     notifier.log(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
                 } else {
-                    this.memory.nextAnalysis = Game.time + 1000;
+                    this.memory.nextAnalysis = Game.time + helper.randomInterval(1000);
                 }
             }
             return this.memory.chosenRoom;
@@ -71,7 +71,7 @@ export class SurveyAnalyzer {
         if (chosenRoom) {
             this.memory.chosenRoom = chosenRoom;
         } else if (this.memory.nextAnalysis < Game.time) {
-            this.memory.nextAnalysis = Game.time + 1000;
+            this.memory.nextAnalysis = Game.time + helper.randomInterval(1000);
         }
 
     }
@@ -163,7 +163,7 @@ export class SurveyAnalyzer {
 
         // owner
         data.owner = this.checkOwnership(room);
-        data.lastCheckedOwner = Game.time;
+        data.nextOwnerCheck = Game.time + helper.randomInterval(10000);
         if (data.owner === USERNAME) {
             delete this.memory.surveyRooms[room.name];
             return;
@@ -235,14 +235,14 @@ export class SurveyAnalyzer {
         for (let roomName in this.memory.surveyRooms) {
             let data = this.memory.surveyRooms[roomName];
             // owner
-            if (Game.time > data.lastCheckedOwner + 10000) {
+            if (Game.time > data.nextOwnerCheck) {
                 let room = Game.rooms[roomName];
                 if (room) {
                     data.owner = this.checkOwnership(room);
                     if (data.owner === USERNAME) {
                         delete this.memory.surveyRooms[room.name];
                     } else {
-                        data.lastCheckedOwner = Game.time;
+                        data.nextOwnerCheck = Game.time + helper.randomInterval(10000);
                     }
                 } else {
                     return roomName;
@@ -255,7 +255,7 @@ export class SurveyAnalyzer {
 
         if (!empire.underCPULimit()) {
             notifier.log(`SURVEY: avoiding placement, cpu is over limit`);
-            this.memory.nextAnalysis = Game.time + 10000;
+            this.memory.nextAnalysis = Game.time + helper.randomInterval(10000);
             return;
         }
 

@@ -1,6 +1,7 @@
 import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
 import {SpawnGroup} from "./SpawnGroup";
+import {helper} from "../helpers/helper";
 export class WorldMap {
 
     public controlledRooms: {[roomName: string]: Room } = {};
@@ -22,12 +23,12 @@ export class WorldMap {
 
         if (!Memory.empire) { Memory.empire = {}; }
         _.defaults(Memory.empire, {
-            activeNukes: {}
+            activeNukes: {},
         });
         this.activeNukes = Memory.empire.activeNukes;
     }
 
-    init(): {[roomName: string]: SpawnGroup } {
+    public init(): {[roomName: string]: SpawnGroup } {
 
         let spawnGroups = {};
 
@@ -63,7 +64,7 @@ export class WorldMap {
         return spawnGroups;
     }
 
-    actions() {
+    public actions() {
         this.reportNukes();
     }
 
@@ -72,13 +73,12 @@ export class WorldMap {
     }
 
     public reportNukes() {
-        if (Game.time % TICK_FULL_REPORT !== 0) return;
+        if (Game.time % TICK_FULL_REPORT !== 0) { return; }
 
         for (let activeNuke of this.activeNukes) {
             console.log(`EMPIRE: ${Game.time - activeNuke.tick} till our nuke lands in ${activeNuke.roomName}`);
         }
     }
-
 
     private updateMemory(room: Room) {
         if (room.controller) {
@@ -88,8 +88,7 @@ export class WorldMap {
             }
             if (room.controller.owner && !room.controller.my) {
                 room.memory.occupied = true;
-            }
-            else if (room.memory.occupied) {
+            } else if (room.memory.occupied) {
                 delete room.memory.occupied;
             }
         }
@@ -105,7 +104,7 @@ export class WorldMap {
             .head();
         if (!observer) {
             console.log(`NETWORK: please add an observer in ${scanningRoom.name} to participate in network`);
-            scanningRoom.memory.nextRadar = Game.time + 1000;
+            scanningRoom.memory.nextRadar = Game.time + helper.randomInterval(1000);
             return;
         }
 
@@ -124,9 +123,8 @@ export class WorldMap {
                 scannedRoom.memory.nextScan = Game.time + RADAR_INTERVAL;
                 this.evaluateTrade(scannedRoom);
                 // TODO: room selection code
-            }
-            else {
-                if (!Memory.rooms[roomName]) Memory.rooms[roomName] = {} as RoomMemory;
+            } else {
+                if (!Memory.rooms[roomName]) { Memory.rooms[roomName] = {} as RoomMemory; }
                 let roomMemory = Memory.rooms[roomName];
                 if (!roomMemory.nextScan || Game.time >= roomMemory.nextScan) {
                     observer.observeRoom(roomName);
@@ -136,7 +134,7 @@ export class WorldMap {
 
             scanComplete = this.incrementScan(radarData);
             if (scanComplete) {
-                scanningRoom.memory.nextRadar = Game.time + RADAR_INTERVAL;
+                scanningRoom.memory.nextRadar = Game.time + helper.randomInterval(RADAR_INTERVAL);
                 console.log(`RADAR: Scan complete at ${scanningRoom.name}`);
                 delete scanningRoom.memory.radarData;
             }
@@ -188,8 +186,7 @@ export class WorldMap {
             if (originCoords.xDir === "W") {
                 xDelta = -xDelta;
             }
-        }
-        else {
+        } else {
             xDelta = otherCoords.x + originCoords.x + 1;
             if (originCoords.xDir === "E") {
                 xDelta = -xDelta;
@@ -200,11 +197,10 @@ export class WorldMap {
             if (originCoords.yDir === "S") {
                 yDelta = -yDelta;
             }
-        }
-        else {
+        } else {
             yDelta = otherCoords.y + originCoords.y + 1;
             if (originCoords.yDir === "N") {
-                yDelta = -yDelta
+                yDelta = -yDelta;
             }
         }
         return {x: xDelta, y: yDelta};
@@ -216,38 +212,30 @@ export class WorldMap {
             if (coordDeltas.x > 0) {
                 if (coordDeltas.y > 0) {
                     return 2;
-                }
-                else {
+                } else {
                     return 4;
                 }
-            }
-            else if (coordDeltas.x < 0) {
+            } else if (coordDeltas.x < 0) {
                 if (coordDeltas.y > 0) {
                     return 8;
-                }
-                else {
+                } else {
                     return 6;
                 }
-            }
-            else {
+            } else {
                 // must be the same missionRoom, no direction
                 return 0;
             }
-        }
-        else {
+        } else {
             if (Math.abs(coordDeltas.x) > Math.abs(coordDeltas.y)) {
                 if (coordDeltas.x > 0) {
                     return 3;
-                }
-                else {
+                } else {
                     return 7;
                 }
-            }
-            else {
+            } else {
                 if (coordDeltas.y > 0) {
                     return 1;
-                }
-                else {
+                } else {
                     return 5;
                 }
             }
@@ -264,6 +252,8 @@ export class WorldMap {
                 return "S";
             case "S":
                 return "N";
+            default:
+                return "error";
         }
     }
 
@@ -277,7 +267,7 @@ export class WorldMap {
 
         let coordinateRegex = /(E|W)(\d+)(N|S)(\d+)/g;
         let match = coordinateRegex.exec(roomName);
-        if (!match) return;
+        if (!match) { return; }
 
         let xDir = match[1];
         let x = match[2];
@@ -296,14 +286,11 @@ export class WorldMap {
         let coords = this.getRoomCoordinates(roomName);
         if (coords.x % 10 === 0 || coords.y % 10 === 0) {
             return ROOMTYPE_ALLEY;
-        }
-        else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
+        } else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
             return ROOMTYPE_CORE;
-        }
-        else if (coords.x % 10 === 6 || coords.x % 10 === 4 || coords.y % 10 === 6 || coords.y % 10 === 4) {
+        } else if (coords.x % 10 === 6 || coords.x % 10 === 4 || coords.y % 10 === 6 || coords.y % 10 === 4) {
             return ROOMTYPE_SOURCEKEEPER;
-        }
-        else {
+        } else {
             return ROOMTYPE_CONTROLLER;
         }
     }

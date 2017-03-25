@@ -2,11 +2,9 @@ import {Empire} from "../Empire";
 import {Mission} from "../missions/Mission";
 import {SpawnGroup} from "../SpawnGroup";
 import {OperationPriority} from "../../config/constants";
-import {Profiler} from "../../Profiler";
 import {empire} from "../../helpers/loopHelper";
 import {RoomHelper} from "../RoomHelper";
 import {helper} from "../../helpers/helper";
-import {TimeoutTracker} from "../../TimeoutTracker";
 
 export abstract class Operation {
 
@@ -56,7 +54,6 @@ export abstract class Operation {
      */
     public init() {
         try {
-            TimeoutTracker.log("initOperation", this.name);
             this.initOperation();
         } catch (e) {
             console.log("error caught in initOperation phase, operation:", this.name);
@@ -65,10 +62,7 @@ export abstract class Operation {
 
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("initMission", this.name, missionName);
-                Profiler.start("in_m." + missionName.substr(0, 3));
                 this.missions[missionName].initMission();
-                Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
@@ -84,10 +78,7 @@ export abstract class Operation {
         // mission roleCall
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("roleCall", this.name, missionName);
-                Profiler.start("rc_m." + missionName.substr(0, 3));
                 this.missions[missionName].roleCall();
-                Profiler.end("rc_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in roleCall phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
@@ -102,10 +93,7 @@ export abstract class Operation {
         // mission actions
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("actions", this.name, missionName);
-                Profiler.start("ac_m." + missionName.substr(0, 3));
                 this.missions[missionName].missionActions();
-                Profiler.end("ac_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName,
                     "in missionRoom ", this.flag.pos.roomName);
@@ -122,10 +110,7 @@ export abstract class Operation {
         // mission actions
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("finalize", this.name, missionName);
-                Profiler.start("fi_m." + missionName.substr(0, 3));
                 this.missions[missionName].finalizeMission();
-                Profiler.end("fi_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
@@ -133,9 +118,7 @@ export abstract class Operation {
         }
 
         try {
-            TimeoutTracker.log("finalizeOperation", this.name);
             this.finalizeOperation();
-            TimeoutTracker.log("post-operation");
         } catch (e) {
             console.log("error caught in finalizeOperation phase, operation:", this.name);
             console.log(e.stack);

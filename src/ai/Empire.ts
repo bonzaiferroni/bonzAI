@@ -6,13 +6,12 @@ import {WorldMap} from "./WorldMap";
 import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
 import {BonzaiNetwork} from "./BonzaiNetwork";
-import {TimeoutTracker} from "../TimeoutTracker";
 import {Visualizer} from "./Visualizer";
 
 export class Empire {
 
-    spawnGroups: {[roomName: string]: SpawnGroup};
-    memory: {
+    private spawnGroups: {[roomName: string]: SpawnGroup};
+    private memory: {
         errantConstructionRooms: {};
     };
 
@@ -24,7 +23,7 @@ export class Empire {
     public vis: Visualizer;
 
     constructor() {
-        if (!Memory.empire) Memory.empire = {};
+        if (!Memory.empire) { Memory.empire = {}; }
         _.defaults(Memory.empire, {
             errantConstructionRooms: {},
         });
@@ -35,7 +34,7 @@ export class Empire {
      * Occurs before operation phases
      */
 
-    init() {
+    public init() {
         Profiler.start("emp.init");
         this.traveler = traveler;
         this.diplomat = new BonzaiDiplomat();
@@ -52,7 +51,7 @@ export class Empire {
      * Occurs after operation phases
      */
 
-    actions() {
+    public actions() {
         Profiler.start("emp.map");
         this.map.actions();
         Profiler.end("emp.map");
@@ -70,11 +69,10 @@ export class Empire {
         Profiler.end("emp.vis");
     }
 
-    getSpawnGroup(roomName: string) {
+    public getSpawnGroup(roomName: string) {
         if (this.spawnGroups[roomName]) {
             return this.spawnGroups[roomName];
-        }
-        else {
+        } else {
             let room = Game.rooms[roomName];
             if (room && room.find(FIND_MY_SPAWNS).length > 0 && room.controller.level > 0) {
                 this.spawnGroups[roomName] = new SpawnGroup(room);
@@ -83,7 +81,7 @@ export class Empire {
         }
     }
 
-    underCPULimit() {
+    public underCPULimit() {
         return Profiler.proportionUsed() < .9;
     }
 
@@ -96,13 +94,11 @@ export class Empire {
             let site = Game.constructionSites[siteName];
             if (site.room) {
                 delete this.memory.errantConstructionRooms[site.pos.roomName];
-            }
-            else {
+            } else {
                 if (this.memory.errantConstructionRooms[site.pos.roomName]) {
                     site.remove();
-                    removeErrantStatus[site.pos.roomName];
-                }
-                else {
+                    removeErrantStatus[site.pos.roomName] = true;
+                } else {
                     addErrantStatus[site.pos.roomName] = true;
                 }
             }
@@ -118,7 +114,7 @@ export class Empire {
         }
     }
 
-    spawnFromClosest(pos: RoomPosition, body: string[], name: string) {
+    public spawnFromClosest(pos: RoomPosition, body: string[], name: string) {
         let closest: SpawnGroup;
         let bestDistance = Number.MAX_VALUE;
         for (let roomName in this.spawnGroups) {
@@ -131,4 +127,3 @@ export class Empire {
         return closest.spawn(body, name);
     }
 }
-

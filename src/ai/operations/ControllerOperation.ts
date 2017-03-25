@@ -55,7 +55,7 @@ export abstract class ControllerOperation extends Operation {
         layoutMap: {[structureType: string]: Coord[]}
         radius: number
         seedData: SeedData
-        lastChecked: {[structureType: string]: number }
+        nextCheck: {[structureType: string]: number }
         spawnRooms: string[]
 
         // deprecated values
@@ -258,8 +258,8 @@ export abstract class ControllerOperation extends Operation {
         }
         if (Object.keys(Game.constructionSites).length > constructionPriority) { return; }
         if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) { return; }
-        if (!this.memory.lastChecked) { this.memory.lastChecked = {}; }
-        if (Game.time - this.memory.lastChecked[structureType] < 1000) { return; }
+        if (!this.memory.nextCheck) { this.memory.nextCheck = {}; }
+        if (Game.time > this.memory.nextCheck[structureType]) { return; }
 
         let coords = this.layoutCoords(structureType);
         let allowedCount = this.allowedCount(structureType, controllerLevel);
@@ -287,7 +287,7 @@ export abstract class ControllerOperation extends Operation {
             return;
         }
 
-        this.memory.lastChecked[structureType] = Game.time;
+        this.memory.nextCheck[structureType] = Game.time + helper.randomInterval(1000);
     }
 
     private recalculateLayout(layoutType?: string) {

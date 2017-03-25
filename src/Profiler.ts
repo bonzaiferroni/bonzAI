@@ -14,32 +14,6 @@ export class Profiler {
         if (profile.highest < cpu) {
             profile.highest = cpu;
         }
-
-        if (cpu > 300) {
-            notifier.log(`${identifier}, ${cpu}`);
-            return;
-        }
-
-        if (identifier === "actions") { return; }
-
-        if (cpu > 150) {
-            notifier.log(`${identifier}, ${cpu}`);
-            return;
-        }
-
-        if (identifier === "init") { return; }
-
-        if (cpu > 100) {
-            notifier.log(`${identifier}, ${cpu}`);
-            return;
-        }
-
-        if (identifier === "roleCall") { return; }
-        if (identifier === "finalize") { return; }
-
-        if (cpu > 40) {
-            notifier.log(`${identifier}, ${cpu}`);
-        }
     }
 
     public static resultOnly(identifier: string, result: number, consoleReport = false, period = 5) {

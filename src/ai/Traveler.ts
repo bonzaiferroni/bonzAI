@@ -1,5 +1,3 @@
-import {Profiler} from "../Profiler";
-import {TimeoutTracker} from "../TimeoutTracker";
 /**
  * To start using Traveler, require it in main.js:
  * Example: var Traveler = require('Traveler.js');
@@ -205,13 +203,6 @@ export class Traveler {
     }
 
     public travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
-        TimeoutTracker.log("missionActions", undefined, undefined, "travelTo");
-        let value = this.travelTo2(creep, destination, options);
-        TimeoutTracker.log("missionActions", undefined, undefined, "travelTo-complete");
-        return value;
-    }
-
-    public travelTo2(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
 
         /* uncomment if you would like to register hostile rooms entered
         if (creep.room.controller) {

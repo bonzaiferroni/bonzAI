@@ -417,9 +417,8 @@ export class IgorMission extends Mission {
         }
 
         // avoid checking for new process every tick
-        if (!this.memory.checkProcessTick) { this.memory.checkProcessTick = Game.time - 100; }
-        if (Game.time < this.memory.checkProcessTick + 100) { return; } // early
-
+        if (this.memory.checkProcessTick && Game.time < this.memory.checkProcessTick) { return; }
+        this.memory.checkProcessTick = Game.time + helper.randomInterval(100);
         this.memory.labProcess = this.findNewProcess();
     }
 
