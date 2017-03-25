@@ -232,7 +232,11 @@ export class DefenseMission extends Mission {
             }
 
             // the rest attack
-            tower.attack(target);
+            if (Math.random() > .5) {
+                tower.attack(target);
+            } else {
+                tower.heal(target);
+            }
         }
     }
 
