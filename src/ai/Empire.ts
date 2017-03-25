@@ -10,7 +10,7 @@ import {Visualizer} from "./Visualizer";
 
 export class Empire {
 
-    private spawnGroups: {[roomName: string]: SpawnGroup};
+    public spawnGroups: {[roomName: string]: SpawnGroup};
     private memory: {
         errantConstructionRooms: {};
     };
