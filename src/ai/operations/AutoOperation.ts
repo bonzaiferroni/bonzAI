@@ -38,7 +38,7 @@ export class AutoOperation extends Operation {
 
     public initOperation() {
 
-        this.initRemoteSpawn(4, 8);
+        this.initRemoteSpawn(12, 8);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         } else {
