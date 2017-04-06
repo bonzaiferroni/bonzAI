@@ -37,7 +37,6 @@ export class ClaimMission extends Mission {
 
     private claimerActions(claimer: Agent) {
 
-        console.log(`ey`);
         if (!this.controller) {
             claimer.idleOffRoad();
             return; // early
