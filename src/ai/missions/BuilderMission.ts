@@ -71,7 +71,7 @@ export class BuilderMission extends Mission {
     };
 
     private maxCarts = () => {
-        if (this.sites.length === 0 || this.defenseGuru.hostiles.length === 0) {
+        if (this.sites.length === 0 || this.defenseGuru.hostiles.length > 0) {
             return 0;
         }
         return this.analysis.cartsNeeded;
