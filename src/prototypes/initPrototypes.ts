@@ -81,14 +81,13 @@ export function initPrototypes() {
             return this.upgraderPositions;
         }
         else {
-            if (this.room.memory.upgraderPositions) {
+            if (this.room.memory.upgraderPositions && Math.random() > .001) {
                 this.upgraderPositions = [];
                 for (let position of this.room.memory.upgraderPositions) {
                     this.upgraderPositions.push(helper.deserializeRoomPosition(position));
                 }
                 return this.upgraderPositions;
-            }
-            else {
+            } else {
                 let controller = this;
                 let battery = this.getBattery();
                 if (!battery) { return; }
