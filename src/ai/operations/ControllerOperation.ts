@@ -90,9 +90,12 @@ export abstract class ControllerOperation extends Operation {
         }
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
-        if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0
-            && this.flag.pos.roomName !== this.spawnGroup.room.name) {
-            this.addMission(new BodyguardMission(this));
+        if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
+            if (this.remoteSpawn.spawnGroup && this.remoteSpawn.spawnGroup.room.controller.level === 8) {
+                let bodyguard = new BodyguardMission(this);
+                bodyguard.spawnGroup = this.remoteSpawn.spawnGroup;
+                this.addMission(bodyguard);
+            }
         }
 
         if (this.flag.room.findStructures(STRUCTURE_SPAWN).length > 0) {
