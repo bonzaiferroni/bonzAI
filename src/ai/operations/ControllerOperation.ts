@@ -69,7 +69,11 @@ export abstract class ControllerOperation extends Operation {
     protected abstract temporaryPlacement(controllerLevel: number);
 
     public initOperation() {
-        this.autoLayout();
+        let layoutSuccessful = this.autoLayout();
+        if (!layoutSuccessful) { 
+            console.log(`${this.name} is unable to operate, layout parameters have not been set`);
+            return;
+        }
 
         this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
         this.initRemoteSpawn(8, 8);
@@ -232,12 +236,13 @@ export abstract class ControllerOperation extends Operation {
         return `showing layout flags for: ${type}`;
     }
 
-    private autoLayout() {
+    private autoLayout(): boolean {
 
         this.initWithSpawn();
-        if (!this.memory.centerPosition || this.memory.rotation === undefined ) { return; }
+        if (!this.memory.centerPosition || this.memory.rotation === undefined ) { return false; }
         this.initAutoLayout();
         this.buildLayout();
+        return true;
     }
 
     private buildLayout() {
