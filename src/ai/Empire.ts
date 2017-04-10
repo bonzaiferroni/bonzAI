@@ -67,6 +67,10 @@ export class Empire {
         Profiler.start("emp.vis");
         this.vis.finalize();
         Profiler.end("emp.vis");
+        
+        for (let roomName in this.spawnGroups) {
+            this.spawnGroups[roomName].finalize();
+        }
     }
 
     public getSpawnGroup(roomName: string) {

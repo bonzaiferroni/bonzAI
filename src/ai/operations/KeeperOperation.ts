@@ -7,7 +7,7 @@ import {GeologyMission} from "../missions/GeologyMission";
 import {LairMission} from "../missions/LairMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
-import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
+import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH, OperationPriority} from "../../config/constants";
 export class KeeperOperation extends Operation {
 
     /**
@@ -20,6 +20,7 @@ export class KeeperOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
+        this.priority = OperationPriority.High;
     }
 
     public initOperation() {

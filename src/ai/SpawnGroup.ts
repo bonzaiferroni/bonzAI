@@ -1,4 +1,5 @@
 import {SpawnReservation} from "../interfaces";
+import {helper} from "../helpers/helper";
 export class SpawnGroup {
 
     public spawns: Spawn[];
@@ -6,19 +7,20 @@ export class SpawnGroup {
     public room: Room;
     public pos: RoomPosition;
 
-    public availableSpawnCount: number;
+    public idleSpawnCount: number;
     public isAvailable: boolean;
     public currentSpawnEnergy: number;
     public maxSpawnEnergy: number;
 
     public memory: {
+        nextCheck: number;
         log: {
             availability: number
             history: number[]
             longHistory: number[]
         },
     };
-
+    
     constructor(room: Room) {
         this.room = room;
         this.spawns = _.filter(this.room.find<StructureSpawn>(FIND_MY_SPAWNS),
@@ -27,8 +29,8 @@ export class SpawnGroup {
         this.memory = this.room.memory.spawnMemory;
         this.extensions = room.findStructures(STRUCTURE_EXTENSION) as StructureExtension[];
         this.manageSpawnLog();
-        this.availableSpawnCount = this.getSpawnAvailability();
-        this.isAvailable = this.availableSpawnCount > 0;
+        this.idleSpawnCount = this.getIdleSpawnCount();
+        this.isAvailable = this.availabilityCheck();
         this.currentSpawnEnergy = this.room.energyAvailable;
         this.maxSpawnEnergy = this.room.energyCapacityAvailable;
         this.pos = _.head(this.spawns).pos;
@@ -38,7 +40,7 @@ export class SpawnGroup {
         let outcome;
         this.isAvailable = false;
         if (reservation) {
-            if (this.availableSpawnCount < reservation.spawns) { return ERR_BUSY; }
+            if (this.idleSpawnCount < reservation.spawns) { return ERR_BUSY; }
             if (this.currentSpawnEnergy < reservation.currentEnergy) { return ERR_NOT_ENOUGH_RESOURCES; }
         }
         for (let spawn of this.spawns) {
@@ -67,7 +69,7 @@ export class SpawnGroup {
         return outcome;
     }
 
-    private getSpawnAvailability(): number {
+    private getIdleSpawnCount(): number {
         let count = 0;
         for (let spawn of this.spawns) {
             if (spawn.spawning === null) {
@@ -156,5 +158,18 @@ export class SpawnGroup {
             return .1;
         }
         return _.last(this.memory.log.history) as number;
+    }
+
+    finalize() {
+        if (this.isAvailable) {
+            this.memory.nextCheck = Game.time + helper.randomInterval(10);
+        }
+    }
+
+    private availabilityCheck() {
+        if (Game.time < this.memory.nextCheck) {
+            return false;
+        }
+        return this.idleSpawnCount > 0;
     }
 }

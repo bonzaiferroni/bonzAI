@@ -33,7 +33,7 @@ export class AutoOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
-        this.priority = OperationPriority.OwnedRoom;
+        this.priority = OperationPriority.Low;
     }
 
     public initOperation() {

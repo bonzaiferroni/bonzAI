@@ -54,7 +54,6 @@ export abstract class ControllerOperation extends Operation {
         checkLayoutIndex: number
         layoutMap: {[structureType: string]: Coord[]}
         radius: number
-        seedData: SeedData
         nextCheck: {[structureType: string]: number }
         spawnRooms: string[]
 
@@ -300,19 +299,17 @@ export abstract class ControllerOperation extends Operation {
 
     private recalculateLayout(layoutType?: string) {
 
-        if (!this.memory.seedData) {
-            let sourceData = [];
-            for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
-                sourceData.push({pos: source.pos, amount: 3000 });
-            }
-            this.memory.seedData = {
-                sourceData: sourceData,
-                seedScan: {},
-                seedSelectData: undefined,
-            };
+        let sourceData = [];
+        for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
+            sourceData.push({pos: source.pos, amount: 3000 });
         }
+        let seedData = {
+            sourceData: sourceData,
+            seedScan: {},
+            seedSelectData: undefined,
+        };
 
-        let analysis = new SeedAnalysis(this.flag.room, this.memory.seedData);
+        let analysis = new SeedAnalysis(this.flag.room, seedData);
         let results = analysis.run(this.staticStructures, layoutType);
         if (results) {
             let centerPosition = new RoomPosition(results.origin.x, results.origin.y, this.flag.room.name);
@@ -327,7 +324,6 @@ export abstract class ControllerOperation extends Operation {
                 this.flag.pos.createFlag(flagName, COLOR_GREY);
                 this.flag.remove();
             }
-            this.memory.seedData = undefined; // clean-up memory
         } else {
             console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or` +
                 ` room`);

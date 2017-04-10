@@ -7,9 +7,11 @@ import {TimeoutTracker} from "./TimeoutTracker";
 loopHelper.initMemory();
 initPrototypes();
 
+console.log(`Global Refresh CPU: ${Game.cpu.getUsed()}`);
+
 module.exports.loop = function () {
     Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
-        activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}};
+        activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0};
 
     // profile memory parsing
     let cpu = Game.cpu.getUsed();
@@ -46,6 +48,10 @@ module.exports.loop = function () {
     Profiler.start("finalize");
     for (let operation of operations) { operation.finalize(); }
     Profiler.end("finalize");
+    
+    if (Game.cache.bypassCount > 0) {
+        console.log(`BYPASS: ${Game.cache.bypassCount}`);
+    }
 
     // post-operation actions and utilities
     TimeoutTracker.log("postfinalize");

@@ -12,6 +12,7 @@ interface Game {
         labProcesses: { [resourceType: string]: number }
         activeLabCount: number;
         placedRoad: boolean;
+        bypassCount: number;
     };
     operations: {[opName: string]: any };
 }

@@ -1,5 +1,4 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
 import {EmergencyMinerMission} from "../missions/EmergencyMission";
 import {RefillMission} from "../missions/RefillMission";
 import {DefenseMission} from "../missions/DefenseMission";

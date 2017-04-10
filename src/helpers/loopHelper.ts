@@ -158,6 +158,8 @@ export var loopHelper = {
             Memory.stats["game.prof." + identifier + ".cpc"] = profile.costPerCall;
             Memory.stats["game.prof." + identifier + ".max"] = profile.max;
         }
+        
+        Memory.stats["game.cpu.bypassCount"] = Game.cache.bypassCount;
 
         Memory.stats["game.time"] = Game.time;
         Memory.stats["game.gcl.level"] = Game.gcl.level;
