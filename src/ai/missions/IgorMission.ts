@@ -583,7 +583,7 @@ export class IgorMission extends Mission {
             let positions = [this.terminal.pos.getPositionAtDirection(this.terminal.pos.getDirectionTo(this.storage))];
             for (let i = 1; i <= 8; i++) {
                 // add other positions around storage
-                positions.push(this.storage.pos.getPositionAtDirection(i));
+                positions.push(this.terminal.pos.getPositionAtDirection(i));
             }
             for (let position of positions) {
                 // check each position for valid conditions
