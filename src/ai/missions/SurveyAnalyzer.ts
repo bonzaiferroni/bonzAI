@@ -254,7 +254,7 @@ export class SurveyAnalyzer {
     private checkReady(): {[roomName: string]: SurveyData} {
 
         if (!empire.underCPULimit()) {
-            notifier.log(`SURVEY: avoiding placement, cpu is over limit`);
+            console.log(`SURVEY: avoiding placement, cpu is over limit`);
             this.memory.nextAnalysis = Game.time + helper.randomInterval(10000);
             return;
         }

@@ -22,16 +22,15 @@ export function initPrototypes() {
             let structure = Game.getObjectById(this.room.memory[structureType][this.id]);
             if (structure) {
                 return structure as T;
-            }
-            else {
+            } else {
                 this.room.memory[structureType][this.id] = undefined;
                 return this.findMemoStructure(structureType, range, immediate);
             }
-        }
-        else if (Game.time % 10 === 7 || immediate) {
+        } else if (Game.time % 10 === 7 || immediate) {
             let structures = this.pos.findInRange(this.room.findStructures(structureType), range);
             if (structures.length > 0) {
                this.room.memory[structureType][this.id] = structures[0].id;
+               return structures[0];
             }
         }
     };
@@ -45,25 +44,21 @@ export function initPrototypes() {
             let batt = Game.getObjectById(this.room.memory.controllerBatteryId) as StructureLink | StructureStorage | StructureContainer;
             if (batt) {
                 return batt;
-            }
-            else {
+            } else {
                 this.room.memory.controllerBatteryId = undefined;
                 this.room.memory.upgraderPositions = undefined;
             }
-        }
-        else {
+        } else {
             let battery = _(this.pos.findInRange(FIND_STRUCTURES, 3))
                 .filter((structure: Structure) => {
                 if (structureType) {
                     return structure.structureType === structureType;
-                }
-                else {
+                } else {
                     if (structure.structureType === STRUCTURE_CONTAINER || structure.structureType === STRUCTURE_LINK) {
                         let sourcesInRange = structure.pos.findInRange(FIND_SOURCES, 2);
                         return sourcesInRange.length === 0;
                     }
-                }
-                })
+                }})
                 .head() as Terminal | Link | Container;
             if (battery) {
                 this.room.memory.controllerBatteryId = battery.id;
@@ -108,7 +103,6 @@ export function initPrototypes() {
     StructureObserver.prototype._observeRoom = StructureObserver.prototype.observeRoom;
 
     StructureObserver.prototype.observeRoom = function(roomName: string, purpose = "unknown", override = false): number {
-
         let makeObservation = (observation: Observation): number => {
             this.observation; // load the current observation before overwriting
             this.room.memory.observation = observation;
