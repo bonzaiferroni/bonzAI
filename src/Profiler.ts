@@ -14,6 +14,11 @@ export class Profiler {
         if (profile.highest < cpu) {
             profile.highest = cpu;
         }
+        
+        if (cpu > 50 && cpu > profile.costPerCall * 10) {
+            notifier.log(`PROFILER: high cpu alert: ${identifier}, cpu: ${cpu
+            }, typical: ${profile.costPerCall}`)
+        }
     }
 
     public static resultOnly(identifier: string, result: number, consoleReport = false, period = 5) {
