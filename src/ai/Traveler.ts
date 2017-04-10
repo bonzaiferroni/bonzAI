@@ -397,8 +397,9 @@ export class Traveler {
             }
         }
 
-        for (let site of room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES)) {
-            if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD) { continue; }
+        for (let site of room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES)) {
+            if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD 
+                || site.structureType === STRUCTURE_RAMPART) { continue; }
             matrix.set(site.pos.x, site.pos.y, 0xff);
         }
 
