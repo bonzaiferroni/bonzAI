@@ -1,6 +1,7 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
+import {notifier} from "../../notifier";
 export class DefenseMission extends Mission {
 
     private refillCarts: Agent[];
@@ -32,6 +33,7 @@ export class DefenseMission extends Mission {
         closestWallId: string;
         preSpawn: boolean
         lastCheckedTowers: number;
+        loggedAttack: boolean;
     };
 
     constructor(operation: Operation) {
@@ -296,6 +298,15 @@ export class DefenseMission extends Mission {
         }) as Creep[];
 
         this.playerThreat = playerCreeps.length > 1 || this.memory.preSpawn;
+
+        // notifier reporting
+        if (this.playerThreat && !this.memory.loggedAttack) {
+            notifier.log(`DEFENSE: Attacked: ${this.room.name}, Time:${Game.time}, Player: ${
+                playerCreeps[0].owner.username}`);
+            this.memory.loggedAttack = true;
+        } else if (!this.playerThreat && this.memory.loggedAttack) {
+            this.memory.loggedAttack = false;
+        }
 
         if (this.playerThreat) {
             if (!Memory.roomAttacks) { Memory.roomAttacks = {}; }
