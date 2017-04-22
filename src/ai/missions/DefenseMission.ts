@@ -20,7 +20,7 @@ export class DefenseMission extends Mission {
     private healers: Creep[] = [];
     private attackers: Creep[] = [];
 
-    private wallRamparts: Structure[];
+    private openRamparts: Structure[];
     private jonRamparts: Structure[];
 
     private enemySquads = [];
@@ -265,7 +265,7 @@ export class DefenseMission extends Mission {
             }
 
             // set rampart costs to same as road
-            for (let rampart of this.wallRamparts) {
+            for (let rampart of this.openRamparts) {
                 matrix.set(rampart.pos.x, rampart.pos.y, 1);
             }
             return matrix;
@@ -292,21 +292,12 @@ export class DefenseMission extends Mission {
             this.closestHostile = this.towers[0].pos.findClosestByRange(this.room.hostiles);
         }
 
-        let playerCreeps = _.filter(this.room.hostiles, (c: Creep) => {
-            return c.owner.username !== "Invader" && c.body.length >= 40 &&
-                _.filter(c.body, part => part.boost).length > 0;
-        }) as Creep[];
+        let playerCreeps = this.findPlayerCreeps();
 
         this.playerThreat = playerCreeps.length > 1 || this.memory.preSpawn;
 
         // notifier reporting
-        if (this.playerThreat && !this.memory.loggedAttack) {
-            notifier.log(`DEFENSE: Attacked: ${this.room.name}, Time:${Game.time}, Player: ${
-                playerCreeps[0].owner.username}`);
-            this.memory.loggedAttack = true;
-        } else if (!this.playerThreat && this.memory.loggedAttack) {
-            this.memory.loggedAttack = false;
-        }
+        this.updateAttackLog(playerCreeps);
 
         if (this.playerThreat) {
             if (!Memory.roomAttacks) { Memory.roomAttacks = {}; }
@@ -326,26 +317,51 @@ export class DefenseMission extends Mission {
             }
 
             this.likelyTowerDrainAttempt = this.attackers.length === 0;
-            this.wallRamparts = _.filter(this.room.findStructures(STRUCTURE_RAMPART), (r: Structure) => {
-                return _.filter(r.pos.lookFor(LOOK_STRUCTURES), (s: Structure) => {
-                        return s.structureType !== STRUCTURE_ROAD;
-                    }).length === 1;
-            }) as Structure[];
-            this.jonRamparts = this.wallRamparts.slice(0);
+            this.openRamparts = this.findOpenRamparts();
+            this.jonRamparts = this.openRamparts.slice(0);
 
             // find squads
-            let attackers = _.sortBy(this.attackers, (c: Creep) => { this.towers[0].pos.getRangeTo(c); });
-            while (attackers.length > 0) {
-                let squad = attackers[0].pos.findInRange(attackers, 5);
-                let nearbyRamparts = attackers[0].pos.findInRange(this.wallRamparts, 10);
-                if (this.enemySquads.length === 0 || nearbyRamparts.length > 0) {
-                    this.enemySquads.push(squad);
-                }
-                attackers = _.difference(attackers, squad);
-            }
+            this.updateEnemySquads();
 
             this.enhancedBoost = this.room.terminal &&
                 this.room.terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE] > 1000;
         }
+    }
+
+    private findOpenRamparts() {
+        return _.filter(this.room.findStructures(STRUCTURE_RAMPART), (r: Structure) => {
+            return _.filter(r.pos.lookFor(LOOK_STRUCTURES), (s: Structure) => {
+                return s.structureType !== STRUCTURE_ROAD;
+            }).length === 1;
+        }) as Structure[];
+    }
+
+    private updateEnemySquads() {
+        let attackers = _.sortBy(this.attackers, (c: Creep) => { this.towers[0].pos.getRangeTo(c); });
+        while (attackers.length > 0) {
+            let squad = attackers[0].pos.findInRange(attackers, 5);
+            let nearbyRamparts = attackers[0].pos.findInRange(this.openRamparts, 10);
+            if (this.enemySquads.length === 0 || nearbyRamparts.length > 0) {
+                this.enemySquads.push(squad);
+            }
+            attackers = _.difference(attackers, squad);
+        }
+    }
+
+    private updateAttackLog(playerCreeps: Creep[]) {
+        if (this.playerThreat && !this.memory.loggedAttack) {
+            notifier.log(`DEFENSE: Attacked: ${this.room.name}, Time:${Game.time}, Player: ${
+                playerCreeps[0].owner.username}`);
+            this.memory.loggedAttack = true;
+        } else if (!this.playerThreat && this.memory.loggedAttack) {
+            this.memory.loggedAttack = false;
+        }
+    }
+
+    private findPlayerCreeps(): Creep[] {
+        return _.filter(this.room.hostiles, (c: Creep) => {
+            return c.owner.username !== "Invader" && c.body.length >= 40 &&
+                _.filter(c.body, part => part.boost).length > 0;
+        }) as Creep[];
     }
 }
