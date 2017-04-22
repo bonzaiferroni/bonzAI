@@ -17,7 +17,7 @@ export class Profiler {
 
         if (cpu > 50 && cpu > profile.costPerCall * 10) {
             notifier.log(`PROFILER: high cpu alert: ${identifier}, cpu: ${cpu
-            }, typical: ${profile.costPerCall}`)
+            }, typical: ${profile.costPerCall}`);
         }
     }
 
