@@ -104,28 +104,24 @@ export abstract class RaidMission extends Mission {
         if (!waypointsTraveled) { return; }
 
         /* --------FALLBACK-------- */
-        if (this.raidData.fallback) {
+        if (this.raidData.fallback || this.raidData.targetFlags.length === 0) {
             Agent.squadTravel(this.healer, this.attacker, this.raidData.fallbackFlag);
             return;
         }
 
         /* -------ENTRY PHASE------ */
         if (this.healer.room !== this.raidData.attackRoom || this.healer.pos.isNearExit(0)) {
-            Agent.squadTravel(this.healer, this.attacker, this.raidData.breachFlags[0]);
+            Agent.squadTravel(this.healer, this.attacker, this.raidData.targetFlags[0]);
             return;
         }
         if (this.attacker.room !== this.raidData.attackRoom || this.attacker.pos.isNearExit(0)) {
             // Agent.squadTravel(this.attacker, this.healer, this.raidData.breachFlags[0]);
-            this.attacker.travelTo(this.raidData.breachFlags[0], {ignoreCreeps: false});
+            this.attacker.travelTo(this.raidData.targetFlags[0], {ignoreCreeps: false});
             return;
         }
 
         /* ------CLEAR PHASE------ */
         if (this.raidData.targetStructures && this.raidData.targetStructures.length > 0) {
-            if (!this.healer.memory.breachPhase && this.raidData.breachStructures.length === 0) {
-                this.healer.memory.breachPhase = true;
-                console.log(`RAID: breach cleared! (${this.operation.name} ${this.name})`);
-            }
             this.clearActions(attackingCreep);
             return;
         }
@@ -146,8 +142,6 @@ export abstract class RaidMission extends Mission {
         if (Game.time % 10 === 0  && !this.spawned && this.allowSpawn) {
             console.log(`RAID: ${this.operation.name} ${this.name} squad ready (reservation)`);
         }
-
-        this.updateFlagReachedStatus();
     }
 
     public invalidateMissionCache() {
@@ -156,9 +150,7 @@ export abstract class RaidMission extends Mission {
     protected standardClearActions(attackingCreep) {
 
         let target;
-        if (this.raidData.breachStructures.length > 0) {
-            target = this.findMissionTarget(this.raidData.breachStructures);
-        } else if (this.raidData.targetStructures.length > 0) {
+        if (this.raidData.targetStructures.length > 0) {
             target = this.findMissionTarget(this.raidData.targetStructures);
         } else {
             target = this.findMissionTarget(this.room.hostiles);
@@ -362,7 +354,7 @@ export abstract class RaidMission extends Mission {
             return;
         }
 
-        if (this.healer.room.name === this.raidData.breachFlags[0].pos.roomName) {
+        if (this.healer.room === this.raidData.attackRoom) {
             this.healer.heal(this.attacker);
         }
     }
@@ -498,13 +490,14 @@ export abstract class RaidMission extends Mission {
                     this.attacker.memory.structureTargetId = target.id;
                     return target;
                 }
+                if (Game.cpu.getUsed() > 450) { return; }
             }
         }
     }
 
     private hasValidPath(origin: {pos: RoomPosition}, destination: {pos: RoomPosition}): boolean {
         let obstacles = _.filter(this.raidData.obstacles, (c: Agent) => c !== this.attacker);
-        let ret = empire.traveler.findTravelPath(origin, destination, {obstacles: obstacles});
+        let ret = empire.traveler.findTravelPath(origin, destination, {obstacles: obstacles, maxOps: 2000 });
         return !ret.incomplete;
     }
 
@@ -518,16 +511,6 @@ export abstract class RaidMission extends Mission {
             this.memory.spawned = false;
         }
         return this.memory.spawned;
-    }
-
-    private updateFlagReachedStatus() {
-        if (this.attacker && this.attacker.room.name !== this.raidData.breachFlags[0].pos.roomName) {
-            this.attacker.memory.flagReached = false;
-        }
-
-        if (this.healer && this.healer.room.name !== this.raidData.breachFlags[0].pos.roomName) {
-            this.healer.memory.flagReached = false;
-        }
     }
 
     private updateBoosts() {

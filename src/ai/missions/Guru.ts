@@ -21,6 +21,7 @@ export abstract class Guru {
     protected observeRoom(roomName: string): Room {
         let room = Game.rooms[roomName];
         if (room) { return room; }
+        if (Game.map.getRoomLinearDistance(this.spawnGroup.room.name, roomName) > 10) { return; }
         let observer = this.spawnGroup.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
         if (!observer) { return; }
         observer.observeRoom(this.flag.pos.roomName);

@@ -144,7 +144,7 @@ export class MasonMission extends Mission {
 
     get needMason() {
         if (!this.memory.needMason) {
-            if (this.room.controller.level < 8) {
+            if (this.room.controller.level < 7) {
                 this.memory.needMason = false;
             } else {
                 const MIN_RAMPART_HITS = 50000000;

@@ -3,10 +3,11 @@ import {Empire} from "./ai/Empire";
 import {Agent} from "./ai/missions/Agent";
 import {SpawnGroup} from "./ai/SpawnGroup";
 
+// noinspection TsLint
 export interface bonzAI {
     cache: {
         structures: { [roomName: string]: {[structureType: string]: Structure[]} },
-        hostiles:  { [roomName: string]: Creep[] },
+        hostiles: { [roomName: string]: Creep[] },
         hostilesAndLairs: { [roomName: string]: RoomObject[] }
         lairThreats: { [roomName: string]: StructureKeeperLair[] }
         fleeObjects: { [roomName: string]: RoomObject[] }
@@ -82,13 +83,13 @@ export interface BoostRequests {
 export interface RaidData {
     raidAgents: Agent[];
     injuredCreeps: {[creepName: string]: number};
-    breachFlags: Flag[];
-    breachStructures: Structure[];
+    fallback: boolean;
+    attackFlag: Flag;
     attackRoom: Room;
     fallbackFlag: Flag;
-    targetStructures: Structure[];
-    fallback: boolean;
     obstacles: {pos: RoomPosition}[];
+    targetFlags: Flag[];
+    targetStructures: Structure[];
 }
 
 export interface RaidCache {

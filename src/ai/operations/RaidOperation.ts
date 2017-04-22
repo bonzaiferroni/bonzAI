@@ -40,8 +40,8 @@ export class RaidOperation extends Operation {
         saveValues: boolean;
         attackRoomName: string;
         fallbackRoomName: string;
-        manualTargetIds: string[];
         placeFlags: {[flagName: string]: RoomPosition}
+        attackRoomIndex: number;
     };
 
     constructor(flag: Flag, name: string, type: string) {
@@ -98,7 +98,7 @@ export class RaidOperation extends Operation {
 
         this.memory.allowSpawn = (!this.memory.spawnSync || !this.memory.waveComplete) && !this.memory.raidComplete;
 
-        let attackRoom = this.raidData.breachFlags[0].room;
+        let attackRoom = this.raidData.attackRoom;
         if (attackRoom && attackRoom.controller && attackRoom.controller.safeMode) {
             this.memory.raidComplete = true;
             this.memory.fallback = true;
@@ -108,34 +108,36 @@ export class RaidOperation extends Operation {
     public invalidateOperationCache() {
     }
 
-    private findBreachFlags(): Flag[] {
-        if (this.raidData && this.raidData.breachFlags) {
-            return this.raidData.breachFlags;
-        }
-
-        let breachFlags = [];
+    /**
+     * Look for flags that follow the pattern "opName_flagType_index"
+     * examples: myRaid_attack_0, myRaid_attack_1 to bootstrap two attack rooms
+     * @param flagType
+     * @returns {Array}
+     */
+    private findRaidFlags(flagType: string): Flag[] {
+        let flags = [];
         for (let i = 0; i < 20; i++) {
-            let flag = Game.flags[this.name + "_breach_" + i];
+            let flag = Game.flags[`${this.name}_${flagType}_${i}`];
             if (flag) {
-                breachFlags.push(flag);
+                flags.push(flag);
             } else {
                 break;
             }
         }
-        return breachFlags;
+        return flags;
     }
 
     private generateRaidData(): RaidData {
         if (!this.memory.queue) { this.memory.queue = {}; }
         if (!this.memory.squadConfig) { this.memory.squadConfig = {}; }
 
-        let breachFlags = this.findBreachFlags();
-        let fallback = Game.flags[this.name + "_fallback"];
+        let attackFlags = this.findRaidFlags("attack");
+        let fallbackFlags = this.findRaidFlags("fallback");
 
-        if (breachFlags.length === 0 || !fallback) {
+        if (attackFlags.length === 0 || fallbackFlags.length === 0) {
             if (Game.time % 3 === 0) {
-                console.log("RAID: please set breach flags (ex: " + this.name + "_breach_0, etc.) and fallback (ex: "
-                    + this.name + "_fallback)");
+                console.log("RAID: please set attack flags (ex: " + this.name + "_attack_0, etc.) and fallback (ex: "
+                    + this.name + "_fallback_0)");
             }
             if (this.memory.auto) {
                 let completed = this.automateParams();
@@ -176,17 +178,27 @@ export class RaidOperation extends Operation {
             }; }
         }
 
-        return {
+        if (this.memory.attackRoomIndex === undefined) {
+            this.memory.attackRoomIndex = 0;
+        }
+        let attackFlag = attackFlags[this.memory.attackRoomIndex];
+        let fallbackFlag = fallbackFlags[this.memory.attackRoomIndex];
+        let targetFlags = this.findRaidFlags(`targets_${this.memory.attackRoomIndex}`);
+        let targetStructures = this.findTargetStructures(targetFlags);
+
+        let raidData: RaidData = {
             raidAgents: [],
             obstacles: [],
             injuredCreeps: undefined,
-            breachFlags: breachFlags,
-            attackRoom: breachFlags[0].room,
-            breachStructures: this.findBreachStructure(breachFlags),
-            targetStructures: this.findTargetStructures(breachFlags[0].room),
+            attackFlag: attackFlag,
+            attackRoom: attackFlag.room,
+            fallbackFlag: fallbackFlag,
+            targetFlags: targetFlags,
+            targetStructures: targetStructures,
             fallback: this.memory.fallback,
-            fallbackFlag: fallback,
         };
+
+        return raidData;
     }
 
     private findSpawnGroups(): SpawnGroup[] {
@@ -397,21 +409,21 @@ export class RaidOperation extends Operation {
         }
     }
 
-    private findTargetStructures(attackRoom: Room): Structure[] {
-        if (!attackRoom) {
+    private findTargetStructures(flags: Flag[]): Structure[] {
+        if (flags.length === 0 || !flags[0].room) {
             return;
         }
 
-        if (!this.memory.manualTargetIds) { this.memory.manualTargetIds = []; }
+        let attackRoom = flags[0].room;
+
         let manualTargets = [];
-        for (let i = 0; i < 10; i++) {
-            let flag = Game.flags[this.name + "_targets_" + i];
-            if (!flag || !flag.room) { continue; }
+        for (let flag of flags) {
             let structure = _.filter(flag.pos.lookFor(LOOK_STRUCTURES),
                 (s: Structure) => s.structureType !== STRUCTURE_ROAD)[0] as Structure;
             if (!structure) { flag.remove(); }
             manualTargets.push(structure);
         }
+
         if (manualTargets.length > 0) {
             return manualTargets;
         }
