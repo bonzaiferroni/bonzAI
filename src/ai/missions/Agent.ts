@@ -86,7 +86,7 @@ export class Agent {
             return this.creep.withdraw(target, resourceType, amount);
         }
     }
-    public partCount(partType: string) { return this.partCount(partType); }
+    public partCount(partType: string) { return this.creep.partCount(partType); }
 
     public travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
