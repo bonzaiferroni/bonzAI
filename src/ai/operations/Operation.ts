@@ -27,7 +27,7 @@ export abstract class Operation {
         nextSpawnCheck: number;
     };
     public memory: any;
-    private bypass = false;
+    private lastPhaseCompleted: number;
 
     /**
      *
@@ -58,7 +58,6 @@ export abstract class Operation {
     public init() {
         if (Game.cpu.getUsed() > 300 - this.priority * 10) {
             Game.cache.bypassCount++;
-            this.bypass = true;
             return;
         }
         try {
@@ -71,15 +70,16 @@ export abstract class Operation {
 
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("initMission", this.name, missionName);
-                Profiler.start("in_m." + missionName.substr(0, 3));
+                // TimeoutTracker.log("initMission", this.name, missionName);
+                // Profiler.start("in_m." + missionName.substr(0, 3));
                 this.missions[missionName].initMission();
-                Profiler.end("in_m." + missionName.substr(0, 3));
+                // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
             }
         }
+        this.lastPhaseCompleted = OperationPhase.Init;
     }
     public abstract initOperation();
 
@@ -87,47 +87,47 @@ export abstract class Operation {
      * RoleCall Phase - Iterate through missions and call mission.roleCall()
      */
     public roleCall() {
-        if (Game.cpu.getUsed() > 350 - this.priority * 10 || this.bypass) {
+        if (Game.cpu.getUsed() > 350 - this.priority * 10 || this.lastPhaseCompleted !== OperationPhase.Init ) {
             Game.cache.bypassCount++;
-            this.bypass = true;
             return;
         }
         // mission roleCall
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("roleCall", this.name, missionName);
-                Profiler.start("rc_m." + missionName.substr(0, 3));
+                // TimeoutTracker.log("roleCall", this.name, missionName);
+                // Profiler.start("rc_m." + missionName.substr(0, 3));
                 this.missions[missionName].roleCall();
-                Profiler.end("rc_m." + missionName.substr(0, 3));
+                // Profiler.end("rc_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in roleCall phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
             }
         }
+        this.lastPhaseCompleted = OperationPhase.RoleCall;
     }
 
     /**
      * Action Phase - Iterate through missions and call mission.missionActions()
      */
     public actions() {
-        if (Game.cpu.getUsed() > 480 - this.priority * 10 || this.bypass) {
+        if (Game.cpu.getUsed() > 480 - this.priority * 20 || this.lastPhaseCompleted !== OperationPhase.RoleCall) {
             Game.cache.bypassCount++;
-            this.bypass = true;
             return;
         }
         // mission actions
         for (let missionName in this.missions) {
             try {
-                TimeoutTracker.log("actions", this.name, missionName);
-                Profiler.start("ac_m." + missionName.substr(0, 3));
+                // TimeoutTracker.log("actions", this.name, missionName);
+                // Profiler.start("ac_m." + missionName.substr(0, 3));
                 this.missions[missionName].missionActions();
-                Profiler.end("ac_m." + missionName.substr(0, 3));
+                // Profiler.end("ac_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName,
                     "in missionRoom ", this.flag.pos.roomName);
                 console.log(e.stack);
             }
         }
+        this.lastPhaseCompleted = OperationPhase.Actions;
     }
 
     /**
@@ -135,22 +135,28 @@ export abstract class Operation {
      * operation.finalizeOperation()
      */
     public finalize() {
-        if (Game.cpu.getUsed() > 480 - this.priority * 30 || this.bypass) {
+        if (Game.cpu.getUsed() > 480 - this.priority * 30 || this.lastPhaseCompleted !== OperationPhase.Actions) {
             Game.cache.bypassCount++;
             return;
         }
-        
+
         // mission actions
         for (let missionName in this.missions) {
+            TimeoutTracker.log("finalize", this.name, missionName);
+            // Profiler.start("fi_m." + missionName.substr(0, 3));
+            this.missions[missionName].finalizeMission();
+            // Profiler.end("fi_m." + missionName.substr(0, 3));
+            /*
             try {
-                TimeoutTracker.log("finalize", this.name, missionName);
-                Profiler.start("fi_m." + missionName.substr(0, 3));
+                // TimeoutTracker.log("finalize", this.name, missionName);
+                // Profiler.start("fi_m." + missionName.substr(0, 3));
                 this.missions[missionName].finalizeMission();
-                Profiler.end("fi_m." + missionName.substr(0, 3));
+                // Profiler.end("fi_m." + missionName.substr(0, 3));
             } catch (e) {
                 console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
             }
+            */
         }
 
         try {
@@ -161,6 +167,8 @@ export abstract class Operation {
             console.log("error caught in finalizeOperation phase, operation:", this.name);
             console.log(e.stack);
         }
+
+        this.lastPhaseCompleted = OperationPhase.Finalize;
     }
     public abstract finalizeOperation();
 
@@ -278,3 +286,5 @@ export abstract class Operation {
         return "SPAWN: " + missionName + " boost value changed from " + oldValue + " to " + activateBoost;
     }
 }
+
+enum OperationPhase { Init, RoleCall, Actions, Finalize }

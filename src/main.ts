@@ -1,3 +1,4 @@
+// console.log("beginning of global");
 import {loopHelper, empire} from "./helpers/loopHelper";
 import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
@@ -10,6 +11,7 @@ initPrototypes();
 console.log(`Global Refresh CPU: ${Game.cpu.getUsed()}`);
 
 module.exports.loop = function () {
+    // console.log("beginning of loop");
     Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
         activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0};
 
@@ -48,13 +50,13 @@ module.exports.loop = function () {
     Profiler.start("finalize");
     for (let operation of operations) { operation.finalize(); }
     Profiler.end("finalize");
-    
+
     if (Game.cache.bypassCount > 0) {
         console.log(`BYPASS: ${Game.cache.bypassCount}`);
     }
 
     // post-operation actions and utilities
-    TimeoutTracker.log("postfinalize");
+
     Profiler.start("postOperations");
     try { empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
     try { loopHelper.scavangeResources(); } catch (e) { console.log("error scavanging:\n", e.stack); }
@@ -64,6 +66,23 @@ module.exports.loop = function () {
     Profiler.end("postOperations");
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
     try { Profiler.finalize(); } catch (e) { console.log("error checking Profiler:\n", e.stack); }
-    try { TimeoutTracker.finalize(); } catch (e) { console.log("error finalizing TimeoutTracker:\n", e.stack); }
     try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
+    try { TimeoutTracker.finalize(); } catch (e) { console.log("error finalizing TimeoutTracker:\n", e.stack); }
+
+    if (!Memory.temp.timeout) {
+        Memory.temp.timeout = Game.time + 1;
+        console.log("scheduling timeout");
+    }
+
+    if (Memory.temp.timeout === Game.time) {
+        console.log("building array");
+        let array = [];
+        for (let i = 0; i < 100000; i++) {
+            array.push(Memory);
+        }
+        console.log("stringify it!");
+        JSON.stringify(array);
+    }
+
+    // console.log(`end of loop, time: ${Game.time}, cpu ${Game.cpu.getUsed()}`);
 };

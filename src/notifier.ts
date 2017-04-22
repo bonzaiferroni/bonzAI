@@ -10,9 +10,11 @@ export const notifier = {
         let count = 0;
         for (let value of Memory.notifier) {
             let secondsElapsed = (Game.time - value.time) * 3;
-            let seconds = secondsElapsed % 60;
-            let minutes = Math.floor(secondsElapsed / 60);
             let hours = Math.floor(secondsElapsed / 3600);
+            secondsElapsed -= hours * 3600;
+            let minutes = Math.floor(secondsElapsed / 60);
+            secondsElapsed -= minutes * 60;
+            let seconds = secondsElapsed;
             console.log(`\n${value.earthTime} tick: ${value.time} (roughly ${
                 hours > 0 ? `${hours} hours, ` : ""}${
                 minutes > 0 ? `${minutes} minutes, ` : ""}${

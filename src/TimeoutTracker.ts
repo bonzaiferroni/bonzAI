@@ -30,10 +30,3 @@ export class TimeoutTracker {
         global.timeoutTracker.phase = "finished";
     }
 }
-
-interface TimeoutData {
-    phase: string;
-    operation?: string;
-    mission?: string;
-    func?: string;
-}

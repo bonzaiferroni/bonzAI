@@ -69,7 +69,7 @@ export abstract class ControllerOperation extends Operation {
 
     public initOperation() {
         let layoutSuccessful = this.autoLayout();
-        if (!layoutSuccessful) { 
+        if (!layoutSuccessful) {
             console.log(`${this.name} is unable to operate, layout parameters have not been set`);
             return;
         }
@@ -266,7 +266,7 @@ export abstract class ControllerOperation extends Operation {
         if (Object.keys(Game.constructionSites).length > constructionPriority) { return; }
         if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) { return; }
         if (!this.memory.nextCheck) { this.memory.nextCheck = {}; }
-        if (Game.time > this.memory.nextCheck[structureType]) { return; }
+        if (Game.time < this.memory.nextCheck[structureType]) { return; }
 
         let coords = this.layoutCoords(structureType);
         let allowedCount = this.allowedCount(structureType, controllerLevel);

@@ -18,17 +18,17 @@ import {CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD} from "../config
 import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 
 const OPERATION_CLASSES = {
-    conquest: ConquestOperation,
-    fort: FortOperation,
+    // conquest: ConquestOperation,
+    // fort: FortOperation,
     mining: MiningOperation,
-    tran: TransportOperation,
+    // tran: TransportOperation,
     keeper: KeeperOperation,
-    demolish: DemolishOperation,
-    raid: RaidOperation,
+    // demolish: DemolishOperation,
+    // raid: RaidOperation,
     quad: QuadOperation,
-    auto: AutoOperation,
+    // auto: AutoOperation,
     flex: FlexOperation,
-    zombie: ZombieOperation,
+    // zombie: ZombieOperation,
 };
 
 export var empire: Empire;
@@ -158,7 +158,7 @@ export var loopHelper = {
             Memory.stats["game.prof." + identifier + ".cpc"] = profile.costPerCall;
             Memory.stats["game.prof." + identifier + ".max"] = profile.max;
         }
-        
+
         Memory.stats["game.cpu.bypassCount"] = Game.cache.bypassCount;
 
         Memory.stats["game.time"] = Game.time;
