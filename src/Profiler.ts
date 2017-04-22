@@ -15,10 +15,10 @@ export class Profiler {
             profile.highest = cpu;
         }
 
-        if (cpu > 50 && cpu > profile.costPerCall * 10) {
-            notifier.log(`PROFILER: high cpu alert: ${identifier}, cpu: ${cpu
-            }, typical: ${profile.costPerCall}`);
-        }
+        // if (cpu > 50 && cpu > profile.costPerCall * 100) {
+        //     notifier.log(`PROFILER: high cpu alert: ${identifier}, cpu: ${cpu
+        //     }, typical: ${profile.costPerCall}`);
+        // }
     }
 
     public static resultOnly(identifier: string, result: number, consoleReport = false, period = 5) {
@@ -39,6 +39,11 @@ export class Profiler {
     }
 
     public static finalize() {
+        this.updateProfiles();
+        this.gargabeCollect();
+    }
+
+    private static updateProfiles() {
         for (let identifier in Memory.profiler) {
             let profile = Memory.profiler[identifier];
             if (Game.time >= profile.endOfPeriod) {
@@ -63,7 +68,9 @@ export class Profiler {
                 delete Memory.profiler[identifier];
             }
         }
+    }
 
+    private static gargabeCollect() {
         if (Game.time % 10 === 0) {
             // Memory serialization will cause additional CPU use, better to err on the conservative side
             Memory.cpu.history.push(Game.cpu.getUsed() + Game.gcl.level / 5);
@@ -98,4 +105,5 @@ export class Profiler {
             this.recursiveMemoryAnalysis(item.node, item.path);
         }
     }
+
 }
