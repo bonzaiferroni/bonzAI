@@ -315,12 +315,9 @@ export class RaidOperation extends Operation {
 
         for (let flag of breachFlags) {
             if (!flag.room) { continue; }
-            let structure = flag.pos.lookForStructure(STRUCTURE_ROAD);
-            if (!structure) {
-                structure = flag.pos.lookForStructure(STRUCTURE_RAMPART);
-            }
-            if (structure) {
-                breachStructures.push(structure);
+            let structures = flag.pos.lookFor<Structure>(LOOK_STRUCTURES);
+            if (structures.length > 0) {
+                breachStructures.push(structures[0]);
             }
         }
 

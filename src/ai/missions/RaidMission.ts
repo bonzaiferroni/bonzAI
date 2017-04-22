@@ -49,17 +49,8 @@ export abstract class RaidMission extends Mission {
     }
 
     public initMission() {
-        this.raidWaypoints = this.getFlagSet("_waypoints_", 15);
-        this.raidWaypoints.push(this.raidData.fallbackFlag);
-        if (this.boostLevel === BoostLevel.Training || this.boostLevel === BoostLevel.Unboosted) {
-            this.healerBoosts = [];
-            this.attackerBoosts = [];
-        } else {
-            this.healerBoosts = [
-                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
-                RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
-                RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
-        }
+        this.raidWaypoints = this.findRaidWaypoints();
+        this.updateBoosts();
     }
 
     public roleCall() {
@@ -186,7 +177,7 @@ export abstract class RaidMission extends Mission {
                 this.healer.travelTo(this.attacker);
             }
         } else {
-            Agent.squadTravel(this.attacker, this.healer, target, this.attackRange);
+            Agent.squadTravel(this.attacker, this.healer, target, {range: this.attackRange});
         }
     }
 
@@ -230,6 +221,13 @@ export abstract class RaidMission extends Mission {
         Agent.squadTravel(leader, follower, waypoint);
     }
 
+    /**
+     * To travel by portal, make sure there is a waypoint flag on a portal tile
+     * @param healer
+     * @param attacker
+     * @param waypoint
+     * @returns {boolean}
+     */
     private squadPortalTravel(healer: Agent, attacker: Agent, waypoint: Flag): boolean {
         if (!waypoint.room || !waypoint.pos.lookForStructure(STRUCTURE_PORTAL)) { return false; }
         let healerCrossed = this.portalTravel(healer, waypoint);
@@ -248,15 +246,15 @@ export abstract class RaidMission extends Mission {
             if (agent.pos.lookForStructure(STRUCTURE_PORTAL)) {
                 let positions = agent.pos.openAdjacentSpots(false);
                 if (positions.length > 0) {
-                    console.log(agent.name + " stepping off portal");
+                    // console.log(agent.name + " stepping off portal");
                     agent.travelTo(positions[0]);
-                    return false;
+                    return true;
                 }
             }
-            console.log(agent.name + " waiting on other side");
+            // console.log(agent.name + " waiting on other side");
             return true;
         } else {
-            console.log(agent.name + " traveling to waypoint");
+            // console.log(agent.name + " traveling to waypoint");
             agent.travelTo(waypoint);
         }
     }
@@ -478,7 +476,7 @@ export abstract class RaidMission extends Mission {
                 return target;
             } else {
                 delete this.attacker.memory.attackTargetId;
-                return this.findMissionTarget(possibleTargets);
+                return target;
             }
         } else {
             let closest = this.attacker.pos.findClosestByRange<{pos: RoomPosition, id: string}>(possibleTargets);
@@ -528,4 +526,21 @@ export abstract class RaidMission extends Mission {
         }
     }
 
+    private updateBoosts() {
+        if (this.boostLevel === BoostLevel.Training || this.boostLevel === BoostLevel.Unboosted) {
+            this.healerBoosts = [];
+            this.attackerBoosts = [];
+        } else {
+            this.healerBoosts = [
+                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+                RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+                RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
+        }
+    }
+
+    private findRaidWaypoints(): Flag[] {
+        let waypoints = this.getFlagSet("_waypoints_", 15);
+        waypoints.push(this.raidData.fallbackFlag);
+        return waypoints;
+    }
 }
