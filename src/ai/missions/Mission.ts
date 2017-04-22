@@ -141,6 +141,11 @@ export abstract class Mission {
         return agentArray;
     }
 
+    protected roleCount(roleName: string): number {
+        if (!this.memory.hc || !this.memory.hc[roleName]) { return 0; }
+        return this.memory.hc[roleName].length;
+    }
+
     protected spawnSharedAgent(roleName: string, getBody: () => string[]): Agent {
         let spawnMemory = this.spawnGroup.spawns[0].memory;
         if (!spawnMemory.communityRoles) { spawnMemory.communityRoles = {}; }

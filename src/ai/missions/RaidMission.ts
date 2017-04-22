@@ -31,7 +31,7 @@ export abstract class RaidMission extends Mission {
     public memory: {
         healerLead: boolean;
         spawned: boolean;
-        spawn: {[roleName: string]: string}
+        hc: {[roleName: string]: string}
         chessMode: boolean;
         killCreeps: boolean;
         targetId: string;
@@ -147,27 +147,14 @@ export abstract class RaidMission extends Mission {
     }
 
     public finalizeMission() {
-        if (!this.memory.spawned && this.memory.spawn[this.name + "Attacker"].length > 0
-            && this.memory.spawn[this.name + "Healer"].length > 0) {
-            this.memory.spawned = true;
-        }
-        if (this.memory.spawned && this.memory.spawn[this.name + "Attacker"].length === 0
-            && this.memory.spawn[this.name + "Healer"].length === 0) {
-            this.memory.spawned = false;
-        }
-        this.spawned = this.memory.spawned;
+        this.spawned = this.findSpawnedStatus();
 
+        // console report
         if (Game.time % 10 === 0  && !this.spawned && this.allowSpawn) {
             console.log(`RAID: ${this.operation.name} ${this.name} squad ready (reservation)`);
         }
 
-        if (this.attacker && this.attacker.room.name !== this.raidData.breachFlags[0].pos.roomName) {
-            this.attacker.memory.flagReached = false;
-        }
-
-        if (this.healer && this.healer.room.name !== this.raidData.breachFlags[0].pos.roomName) {
-            this.healer.memory.flagReached = false;
-        }
+        this.updateFlagReachedStatus();
     }
 
     public invalidateMissionCache() {
@@ -486,5 +473,27 @@ export abstract class RaidMission extends Mission {
         let obstacles = _.filter(this.raidData.obstacles, (c: Agent) => c !== this.attacker);
         let ret = empire.traveler.findTravelPath(origin, destination, {obstacles: obstacles});
         return !ret.incomplete;
+    }
+
+    private findSpawnedStatus() {
+        if (!this.memory.spawned && this.roleCount(this.name + "Attacker") > 0
+            && this.roleCount(this.name + "Healer") > 0) {
+            this.memory.spawned = true;
+        }
+        if (this.memory.spawned && this.roleCount(this.name + "Attacker") === 0
+            && this.roleCount(this.name + "Healer") === 0) {
+            this.memory.spawned = false;
+        }
+        return this.memory.spawned;
+    }
+
+    private updateFlagReachedStatus() {
+        if (this.attacker && this.attacker.room.name !== this.raidData.breachFlags[0].pos.roomName) {
+            this.attacker.memory.flagReached = false;
+        }
+
+        if (this.healer && this.healer.room.name !== this.raidData.breachFlags[0].pos.roomName) {
+            this.healer.memory.flagReached = false;
+        }
     }
 }

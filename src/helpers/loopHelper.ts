@@ -25,7 +25,7 @@ const OPERATION_CLASSES = {
     // tran: TransportOperation,
     keeper: KeeperOperation,
     // demolish: DemolishOperation,
-    // raid: RaidOperation,
+    raid: RaidOperation,
     quad: QuadOperation,
     // auto: AutoOperation,
     flex: FlexOperation,
