@@ -229,10 +229,14 @@ export abstract class RaidMission extends Mission {
      * @returns {boolean}
      */
     private squadPortalTravel(healer: Agent, attacker: Agent, waypoint: Flag): boolean {
-        if (!waypoint.room || !waypoint.pos.lookForStructure(STRUCTURE_PORTAL)) { return false; }
+        if (!healer.memory.portalCrossing && (!waypoint.room || !waypoint.pos.lookForStructure(STRUCTURE_PORTAL))) {
+            return false;
+        }
+        healer.memory.portalCrossing = true;
         let healerCrossed = this.portalTravel(healer, waypoint);
         let attackerCrossed = this.portalTravel(attacker, waypoint);
         if (healerCrossed && attackerCrossed) {
+            healer.memory.portalCrossing = false;
             healer.memory.waypointIndex++;
             return false;
         } else {
