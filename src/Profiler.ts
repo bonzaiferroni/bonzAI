@@ -77,4 +77,25 @@ export class Profiler {
     public static proportionUsed() {
         return Memory.cpu.average / (Game.gcl.level * 10 + 20);
     }
+
+    public static memoryProfile(memory: any) {
+        this.recursiveMemoryAnalysis(memory, "Memory");
+    }
+
+    private static recursiveMemoryAnalysis(node: any, path: string) {
+        let subNodes = [];
+        for (let key in node) {
+            let subNode = node[key];
+            if (typeof(subNode) !== "object") { continue; }
+            let length = JSON.stringify(subNode).length;
+            if (length < 1000) { continue; }
+            let subPath = `${path}.${key}`;
+            console.log(`path: ${subPath}, length: ${length}`);
+            subNodes.push({path: subPath, node: subNode});
+        }
+
+        for (let item of subNodes) {
+            this.recursiveMemoryAnalysis(item.node, item.path);
+        }
+    }
 }

@@ -16,6 +16,7 @@ import {helper} from "./helper";
 import {ZombieOperation} from "../ai/operations/ZombieOperation";
 import {CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD} from "../config/constants";
 import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
+import {Profiler} from "../Profiler";
 
 const OPERATION_CLASSES = {
     // conquest: ConquestOperation,
@@ -222,6 +223,7 @@ export var loopHelper = {
         global.cc = consoleCommands;
         global.note = notifier;
         global.helper = helper;
+        global.profiler = Profiler;
     },
 
     garbageCollection: function() {
