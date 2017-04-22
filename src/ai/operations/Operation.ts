@@ -135,20 +135,16 @@ export abstract class Operation {
      * operation.finalizeOperation()
      */
     public finalize() {
-        if (Game.cpu.getUsed() > 480 - this.priority * 30 || this.lastPhaseCompleted !== OperationPhase.Actions) {
+        if (this.priority > OperationPriority.VeryHigh &&
+            (Game.cpu.getUsed() > 480 - this.priority * 30 || this.lastPhaseCompleted !== OperationPhase.Actions)) {
             Game.cache.bypassCount++;
             return;
         }
 
         // mission actions
         for (let missionName in this.missions) {
-            TimeoutTracker.log("finalize", this.name, missionName);
-            // Profiler.start("fi_m." + missionName.substr(0, 3));
-            this.missions[missionName].finalizeMission();
-            // Profiler.end("fi_m." + missionName.substr(0, 3));
-            /*
             try {
-                // TimeoutTracker.log("finalize", this.name, missionName);
+                TimeoutTracker.log("finalize", this.name, missionName);
                 // Profiler.start("fi_m." + missionName.substr(0, 3));
                 this.missions[missionName].finalizeMission();
                 // Profiler.end("fi_m." + missionName.substr(0, 3));
@@ -156,7 +152,6 @@ export abstract class Operation {
                 console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);
                 console.log(e.stack);
             }
-            */
         }
 
         try {
