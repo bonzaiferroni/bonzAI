@@ -122,8 +122,8 @@ export abstract class RaidMission extends Mission {
 
         /* ------CLEAR PHASE------ */
         if (this.raidData.targetStructures && this.raidData.targetStructures.length > 0) {
-            if (!this.healer.memory.clearPhase) {
-                this.healer.memory.clearPhase = true;
+            if (!this.healer.memory.breachPhase && this.raidData.breachStructures.length === 0) {
+                this.healer.memory.breachPhase = true;
                 console.log(`RAID: breach cleared! (${this.operation.name} ${this.name})`);
             }
             this.clearActions(attackingCreep);
