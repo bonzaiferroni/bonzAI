@@ -94,12 +94,7 @@ export class RaidOperation extends Operation {
 
         this.memory.squadCount = Math.max(this.memory.maxSquads, spawnCount);
 
-        if (!this.memory.waveComplete && spawnCount >= this.memory.maxSquads) {
-            this.memory.waveComplete = true;
-        }
-        if (this.memory.waveComplete && spawnCount === 0) {
-            this.memory.waveComplete = false;
-        }
+        this.updateWaveCompleteStatus(spawnCount);
 
         this.memory.allowSpawn = (!this.memory.spawnSync || !this.memory.waveComplete) && !this.memory.raidComplete;
 
@@ -641,6 +636,15 @@ export class RaidOperation extends Operation {
             let flag = Game.flags[flagName];
             flag.setPosition(position);
             delete this.memory.placeFlags[flagName];
+        }
+    }
+
+    private updateWaveCompleteStatus(spawnCount: number) {
+        if (!this.memory.waveComplete && spawnCount >= this.memory.maxSquads) {
+            this.memory.waveComplete = true;
+        }
+        if (this.memory.waveComplete && spawnCount === 0) {
+            this.memory.waveComplete = false;
         }
     }
 }

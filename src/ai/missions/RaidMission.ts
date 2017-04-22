@@ -4,6 +4,7 @@ import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
 import {empire} from "../../helpers/loopHelper";
 import {Agent} from "./Agent";
+import {ROOMTYPE_CORE, WorldMap} from "../WorldMap";
 export abstract class RaidMission extends Mission {
 
     protected attacker: Agent;
@@ -123,7 +124,8 @@ export abstract class RaidMission extends Mission {
             return;
         }
         if (this.attacker.room !== this.raidData.attackRoom || this.attacker.pos.isNearExit(0)) {
-            Agent.squadTravel(this.attacker, this.healer, this.raidData.breachFlags[0]);
+            // Agent.squadTravel(this.attacker, this.healer, this.raidData.breachFlags[0]);
+            this.attacker.travelTo(this.raidData.breachFlags[0], {ignoreCreeps: false});
             return;
         }
 
@@ -215,19 +217,48 @@ export abstract class RaidMission extends Mission {
         }
 
         let waypoint = waypoints[healer.memory.waypointIndex];
+        if (WorldMap.roomTypeFromName(waypoint.pos.roomName) === ROOMTYPE_CORE) {
+            let squadCrossing = this.squadPortalTravel(healer, attacker, waypoint);
+            if (squadCrossing) { return false; }
+        }
+
         if (waypoint.room && leader.pos.inRangeTo(waypoint, 1)) {
             console.log(`RAID: waypoint ${healer.memory.waypointIndex} reached (${this.operation.name} ${this.name})`);
             healer.memory.waypointIndex++;
         }
 
-        // travel through portal with follower
-        if (leader.pos.lookForStructure(STRUCTURE_PORTAL)) {
-            leader.travelTo(waypoint);
-            follower.travelTo(waypoints[healer.memory.waypointIndex - 1]);
-            return false;
-        }
-
         Agent.squadTravel(leader, follower, waypoint);
+    }
+
+    private squadPortalTravel(healer: Agent, attacker: Agent, waypoint: Flag): boolean {
+        if (!waypoint.room || !waypoint.pos.lookForStructure(STRUCTURE_PORTAL)) { return false; }
+        let healerCrossed = this.portalTravel(healer, waypoint);
+        let attackerCrossed = this.portalTravel(attacker, waypoint);
+        if (healerCrossed && attackerCrossed) {
+            healer.memory.waypointIndex++;
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private portalTravel(agent: Agent, waypoint: Flag): boolean {
+        if (Game.map.getRoomLinearDistance(agent.pos.roomName, waypoint.pos.roomName) > 5) {
+            // other side
+            if (agent.pos.lookForStructure(STRUCTURE_PORTAL)) {
+                let positions = agent.pos.openAdjacentSpots(false);
+                if (positions.length > 0) {
+                    console.log(agent.name + " stepping off portal");
+                    agent.travelTo(positions[0]);
+                    return false;
+                }
+            }
+            console.log(agent.name + " waiting on other side");
+            return true;
+        } else {
+            console.log(agent.name + " traveling to waypoint");
+            agent.travelTo(waypoint);
+        }
     }
 
     protected squadFlee(roomObject: RoomObject) {
@@ -496,4 +527,5 @@ export abstract class RaidMission extends Mission {
             this.healer.memory.flagReached = false;
         }
     }
+
 }
