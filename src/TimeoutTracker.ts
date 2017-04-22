@@ -16,6 +16,11 @@ export class TimeoutTracker {
             tick: Game.time,
             cpu: Game.cpu.getUsed(),
         };
+
+        if (Game.time > Memory.gameTimeLastTick + 4) {
+            notifier.log(`HARD_RESET: tick: ${Memory.gameTimeLastTick}`);
+        }
+        Memory.gameTimeLastTick = Game.time;
     }
 
     public static log(phase: string, operation?: string, mission?: string, func?: string) {
