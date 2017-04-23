@@ -5,6 +5,7 @@ import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
 import {empire} from "../../helpers/loopHelper";
 import {PathMission} from "./PathMission";
+import {LinkMiningMission} from "./LinkMiningMission";
 
 export class MiningMission extends Mission {
 
@@ -42,9 +43,23 @@ export class MiningMission extends Mission {
         this.remoteSpawning = remoteSpawning;
     }
 
+    public static Add(operation: Operation) {
+        if (!operation.hasVision) { return; }
+        if (operation.room.controller.level === 8 && operation.room.storage) {
+            LinkMiningMission.Add(operation);
+            return;
+        }
+
+        for (let i = 0; i < operation.sources.length; i++) {
+            // disable harvesting sources manually by putting a flag over it
+            if (operation.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
+            let source = operation.sources[i];
+            operation.addMission(new MiningMission(operation, "miner" + i, source));
+        }
+    }
+
     // return-early
     public initMission() {
-        if (!this.hasVision) { return; }
         this.container = this.findContainer();
         this.storage = this.findMinerStorage();
         this.initPathMission();

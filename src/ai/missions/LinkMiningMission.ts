@@ -1,6 +1,8 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
+import {empire} from "../../helpers/loopHelper";
+import {notifier} from "../../notifier";
 export class LinkMiningMission extends Mission {
 
     private linkMiners: Agent[];
@@ -15,13 +17,25 @@ export class LinkMiningMission extends Mission {
      * @param link
      */
 
-    constructor(operation: Operation, name: string, source: Source, link: StructureLink) {
+    constructor(operation: Operation, name: string, source: Source) {
         super(operation, name);
         this.source = source;
-        this.link = link;
+    }
+
+    public static Add(operation: Operation) {
+        for (let i = 0; i < operation.sources.length; i++) {
+            // disable harvesting sources manually by putting a flag over it
+            if (operation.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
+            let source = operation.sources[i];
+            operation.addMission(new LinkMiningMission(operation, "miner" + i, source));
+        }
     }
 
     public initMission() {
+        this.link = this.findLink();
+        if (!this.link) {
+            this.placeLink();
+        }
     }
 
     public roleCall() {
@@ -85,5 +99,35 @@ export class LinkMiningMission extends Mission {
         } else {
             miner.moveItOrLoseIt(roadPos, "miner");
         }
+    }
+
+    public placeLink() {
+        if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) { return; }
+        if (this.source.pos.findInRange(this.source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) { 
+            return; 
+        }
+
+        let positions: RoomPosition[] = [];
+        let ret = empire.traveler.findTravelPath(this.room.storage, this.source);
+        if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.room.name}`); }
+        let minerPos = _.last(ret.path);
+        for (let position of minerPos.openAdjacentSpots(true)) {
+            if (!position.isPassible(true)) { continue; }
+            if (position.findInRange([this.room.controller], 3).length > 0) { continue; }
+            if (position.findInRange(FIND_SOURCES, 2).length > 1) { continue; }
+            if (position.findInRange(ret.path, 0).length > 0) {continue; }
+            positions.push(position);
+        }
+        if (positions.length === 0) {
+            console.log(`LINKMINER: no suitable position for link ${this.room.name}`);
+        }
+
+        positions = _.sortBy(positions, (p: RoomPosition) => p.getRangeTo(this.room.storage));
+        positions[0].createConstructionSite(STRUCTURE_LINK);
+        notifier.log(`placed link ${this.room.name}`);
+    }
+
+    private findLink() {
+        return this.source.findMemoStructure(STRUCTURE_LINK, 2, true) as StructureLink;
     }
 }

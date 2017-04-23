@@ -119,20 +119,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // harvest energy
-        for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
-            let source = this.sources[i];
-            if (this.flag.room.controller.level === 8 && this.flag.room.storage) {
-                let link = source.findMemoStructure(STRUCTURE_LINK, 2, true) as StructureLink;
-                if (link) {
-                    this.addMission(new LinkMiningMission(this, "miner" + i, source, link));
-                    continue;
-                } else {
-                    this.placeLink(source);
-                }
-            }
-            this.addMission(new MiningMission(this, "miner" + i, source));
-        }
+        MiningMission.Add(this);
 
         // build construction
         let buildMission = new BuilderMission(this, defenseGuru);
@@ -425,30 +412,5 @@ export abstract class ControllerOperation extends Operation {
         if (repairsNeeded > 0 && towers.length > 0) {
             structure.pos.findClosestByRange<StructureTower>(towers).repair(structure);
         }
-    }
-
-    private placeLink(source: Source) {
-        if (source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) { return; }
-        if (source.pos.findInRange(source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) { return; }
-
-        let positions: RoomPosition[] = [];
-        let ret = empire.traveler.findTravelPath(this.room.storage, source);
-        if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.flag.pos.roomName}`); }
-        let minerPos = _.last(ret.path);
-        for (let position of minerPos.openAdjacentSpots(true)) {
-            if (!position.isPassible(true)) { continue; }
-            if (position.findInRange([this.room.controller], 3).length > 0) { continue; }
-            if (position.findInRange(FIND_SOURCES, 2).length > 1) { continue; }
-            if (position.findInRange(ret.path, 0).length > 0) {continue; }
-            positions.push(position);
-        }
-        if (positions.length === 0) {
-            console.log(`LINKMINER: no suitable position for link ${this.flag.pos.roomName}`);
-        }
-
-        positions = _.sortBy(positions, (p: RoomPosition) => p.getRangeTo(this.flag.room.storage));
-        positions[0].createConstructionSite(STRUCTURE_LINK);
-        notifier.log(`placed link ${this.flag.room.name}`);
-
     }
 }
