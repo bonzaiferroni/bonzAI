@@ -3,10 +3,10 @@ import {helper} from "../../helpers/helper";
 import {SpawnGroup} from "../SpawnGroup";
 import {notifier} from "../../notifier";
 import {Mission} from "./Mission";
-import {empire} from "../../helpers/loopHelper";
 import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER} from "../WorldMap";
 import {Traveler} from "../Traveler";
 import {USERNAME} from "../../config/constants";
+import {empire} from "../Empire";
 
 interface SurveyData {
     danger: boolean;

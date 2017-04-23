@@ -3,9 +3,9 @@ import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
-import {empire} from "../../helpers/loopHelper";
 import {PathMission} from "./PathMission";
 import {LinkMiningMission} from "./LinkMiningMission";
+import {empire} from "../Empire";
 
 export class MiningMission extends Mission {
 

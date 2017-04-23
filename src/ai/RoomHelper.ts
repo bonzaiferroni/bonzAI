@@ -1,5 +1,4 @@
-import {empire} from "../helpers/loopHelper";
-
+import {empire} from "./Empire";
 export interface FindClosestOptions {
     linearDistanceLimit?: number,
     opsLimit?: number,

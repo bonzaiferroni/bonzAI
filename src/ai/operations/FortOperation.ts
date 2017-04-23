@@ -14,8 +14,8 @@ import {GeologyMission} from "../missions/GeologyMission";
 import {PaverMission} from "../missions/PaverMission";
 import {DefenseGuru} from "../DefenseGuru";
 import {OperationPriority} from "../../config/constants";
-import {empire} from "../../helpers/loopHelper";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "../TradeNetwork";
+import {empire} from "../Empire";
 
 export class FortOperation extends Operation {
 

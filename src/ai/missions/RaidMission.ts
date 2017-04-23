@@ -2,9 +2,9 @@ import {Mission} from "./Mission";
 import {RaidData, BoostLevel} from "../../interfaces";
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
-import {empire} from "../../helpers/loopHelper";
 import {Agent} from "./Agent";
 import {ROOMTYPE_CORE, WorldMap} from "../WorldMap";
+import {empire} from "../Empire";
 export abstract class RaidMission extends Mission {
 
     protected attacker: Agent;

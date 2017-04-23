@@ -2,10 +2,10 @@ import {Mission} from "./Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {TravelToOptions, Traveler, TravelData} from "../Traveler";
-import {empire} from "../../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {notifier} from "../../notifier";
+import {empire} from "../Empire";
 
 export class Agent {
 

@@ -9,9 +9,9 @@ import {ScoutMission} from "../missions/ScoutMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {ClaimMission} from "../missions/ClaimMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
-import {empire} from "../../helpers/loopHelper";
 import {TransportMission} from "../missions/TransportMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
+import {empire} from "../Empire";
 
 const CONQUEST_MASON_POTENCY = 4;
 const CONQUEST_LOCAL_MIN_SPAWN_ENERGY = 1300;

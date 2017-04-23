@@ -3,10 +3,10 @@ import {RaidCache} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
-import {empire} from "../../helpers/loopHelper";
 import {Traveler} from "../Traveler";
 import {WorldMap} from "../WorldMap";
 import {Operation} from "../operations/Operation";
+import {empire} from "../Empire";
 export class RaidGuru extends Guru {
 
     public raidRoom: Room;

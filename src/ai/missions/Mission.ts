@@ -4,10 +4,10 @@ import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
-import {empire} from "../../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {Traveler} from "../Traveler";
 import {RoomHelper} from "../RoomHelper";
+import {empire} from "../Empire";
 export abstract class Mission {
 
     public flag: Flag;

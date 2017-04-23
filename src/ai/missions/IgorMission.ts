@@ -24,6 +24,7 @@ export class IgorMission extends Mission {
         lastCommandTick: number;
         checkProcessTick: number;
         labProcess: LabProcess;
+        nextProgressCheck: number;
     };
 
     constructor(operation: Operation) {
@@ -435,8 +436,9 @@ export class IgorMission extends Mission {
         return false;
     }
 
-    private checkProgress(process: LabProcess) {
-        if (Game.time % 1000 !== 2) { return true; }
+    private checkProgress(process: LabProcess): boolean {
+        if (Game.time < this.memory.nextProgressCheck) { return true; }
+        this.memory.nextProgressCheck = Game.time + helper.randomInterval(1000);
         let loadStatus = 0;
         for (let resourcetype in process.reagentLoads) {
             loadStatus += process.reagentLoads[resourcetype];

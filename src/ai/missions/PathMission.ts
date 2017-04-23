@@ -4,7 +4,7 @@ import {Traveler} from "../Traveler";
 import {WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
-import {empire} from "../../helpers/loopHelper";
+import {empire} from "../Empire";
 export class PathMission extends Mission {
     private start: {pos: RoomPosition };
     private end: {pos: RoomPosition };

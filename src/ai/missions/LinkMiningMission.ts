@@ -1,8 +1,8 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
-import {empire} from "../../helpers/loopHelper";
 import {notifier} from "../../notifier";
+import {empire} from "../Empire";
 export class LinkMiningMission extends Mission {
 
     private linkMiners: Agent[];

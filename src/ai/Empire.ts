@@ -8,6 +8,8 @@ import {BonzaiDiplomat} from "./BonzaiDiplomat";
 import {BonzaiNetwork} from "./BonzaiNetwork";
 import {Visualizer} from "./Visualizer";
 
+export let empire: Empire;
+
 export class Empire {
 
     public spawnGroups: {[roomName: string]: SpawnGroup};
@@ -28,6 +30,7 @@ export class Empire {
             errantConstructionRooms: {},
         });
         this.memory = Memory.empire;
+        empire = this;
     }
 
     /**

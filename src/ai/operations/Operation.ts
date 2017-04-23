@@ -1,12 +1,10 @@
-import {Empire} from "../Empire";
 import {Mission} from "../missions/Mission";
 import {SpawnGroup} from "../SpawnGroup";
 import {OperationPriority} from "../../config/constants";
-import {empire} from "../../helpers/loopHelper";
 import {RoomHelper} from "../RoomHelper";
 import {helper} from "../../helpers/helper";
 import {TimeoutTracker} from "../../TimeoutTracker";
-import {Profiler} from "../../Profiler";
+import {empire} from "../Empire";
 
 export abstract class Operation {
 

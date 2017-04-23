@@ -32,12 +32,11 @@ const OPERATION_CLASSES = {
     // zombie: ZombieOperation,
 };
 
-export var empire: Empire;
-
 export var loopHelper = {
 
     initEmpire: function() {
-        empire = new Empire();
+        let empire = new Empire();
+        // allows console access
         global.emp = empire;
         empire.init();
     },

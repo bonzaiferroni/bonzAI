@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {MINERALS_RAW, RESERVE_AMOUNT} from "../TradeNetwork";
 import {MINERAL_STORAGE_TARGET} from "../../config/constants";
-import {empire} from "../../helpers/loopHelper";
+import {empire} from "../Empire";
 export class TerminalNetworkMission extends Mission {
 
     private terminal: StructureTerminal;

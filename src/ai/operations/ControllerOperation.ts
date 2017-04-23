@@ -14,19 +14,16 @@ import {Coord, SeedData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {SeedAnalysis} from "../SeedAnalysis";
 import {SpawnGroup} from "../SpawnGroup";
-import {Empire} from "../Empire";
+import {Empire, empire} from "../Empire";
 import {MasonMission} from "../missions/MasonMission";
 import {OperationPriority} from "../../config/constants";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
-import {Profiler} from "../../Profiler";
 import {ScoutMission} from "../missions/ScoutMission";
 import {ClaimMission} from "../missions/ClaimMission";
-import {notifier} from "../../notifier";
 import {SurveyMission} from "../missions/SurveyMission";
 import {DefenseMission} from "../missions/DefenseMission";
 import {DefenseGuru} from "../DefenseGuru";
-import {empire} from "../../helpers/loopHelper";
 
 export abstract class ControllerOperation extends Operation {
 

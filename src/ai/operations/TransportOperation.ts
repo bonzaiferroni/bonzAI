@@ -1,8 +1,8 @@
 
 import {Operation} from "./Operation";
 import {TransportMission} from "../missions/TransportMission";
-import {empire} from "../../helpers/loopHelper";
 import {OperationPriority} from "../../config/constants";
+import {empire} from "../Empire";
 
 export class TransportOperation extends Operation {
 

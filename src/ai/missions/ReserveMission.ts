@@ -2,9 +2,9 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
-import {empire} from "../../helpers/loopHelper";
 import {ARTROOMS} from "../WorldMap";
 import {Agent} from "./Agent";
+import {empire} from "../Empire";
 export class ReserveMission extends Mission {
 
     private reservers: Agent[];

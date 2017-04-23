@@ -4,8 +4,8 @@ import {Mission} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
-import {empire} from "../../helpers/loopHelper";
 import {PathMission} from "./PathMission";
+import {empire} from "../Empire";
 export class GeologyMission extends Mission {
 
     private geologists: Agent[];

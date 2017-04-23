@@ -1,7 +1,6 @@
-import {helper} from "../helpers/helper";
-import {empire} from "../helpers/loopHelper";
 import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY, WorldMap} from "../ai/WorldMap";
 import {Agent} from "../ai/missions/Agent";
+import {empire} from "../ai/Empire";
 
 export function initRoomPrototype() {
     Object.defineProperty(Room.prototype, "hostiles", {

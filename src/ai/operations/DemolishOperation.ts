@@ -1,7 +1,7 @@
 import {Operation} from "./Operation";
 import {DemolishMission} from "../missions/DemolishMission";
-import {empire} from "../../helpers/loopHelper";
 import {OperationPriority} from "../../config/constants";
+import {empire} from "../Empire";
 export class DemolishOperation extends Operation {
 
     /**

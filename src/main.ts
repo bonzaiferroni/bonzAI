@@ -1,9 +1,9 @@
-// console.log("beginning of global");
-import {loopHelper, empire} from "./helpers/loopHelper";
+import {loopHelper} from "./helpers/loopHelper";
 import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
 import {Profiler} from "./Profiler";
 import {TimeoutTracker} from "./TimeoutTracker";
+import {empire} from "./ai/Empire";
 
 loopHelper.initMemory();
 initPrototypes();

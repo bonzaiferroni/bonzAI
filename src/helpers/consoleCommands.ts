@@ -1,8 +1,7 @@
-import {Empire} from "../ai/Empire";
+import {Empire, empire} from "../ai/Empire";
 import {Operation} from "../ai/operations/Operation";
 import {helper} from "./helper";
 import {MINERALS_RAW, PRODUCT_LIST} from "../ai/TradeNetwork";
-import {empire} from "./loopHelper";
 import {WorldMap} from "../ai/WorldMap";
 
 declare var emp: Empire;

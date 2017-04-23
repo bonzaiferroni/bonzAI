@@ -1,11 +1,10 @@
 
 import {Operation} from "./Operation";
 import {SeedSelection, SeedData} from "../../interfaces";
-import {Empire} from "../Empire";
+import {Empire, empire} from "../Empire";
 import {SeedAnalysis} from "../SeedAnalysis";
 import {OperationPriority} from "../../config/constants";
 import {ScoutMission} from "../missions/ScoutMission";
-import {empire} from "../../helpers/loopHelper";
 const MAX_SOURCE_DISTANCE = 100;
 const PATHFINDER_RANGE_ALLOWANCE = 20;
 

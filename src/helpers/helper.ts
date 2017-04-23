@@ -1,6 +1,4 @@
 import {PowerFlagScan, Coord} from "../interfaces";
-import {empire} from "./loopHelper";
-import {ROOMTYPE_ALLEY, ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CONTROLLER} from "../ai/WorldMap";
 export var helper = {
     getStoredAmount(target: any, resourceType: string) {
         if (target instanceof Creep) {

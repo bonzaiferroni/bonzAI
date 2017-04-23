@@ -3,13 +3,12 @@ import {FireflyMission} from "../missions/FireflyMission";
 import {WreckerMission} from "../missions/WreckerMission";
 import {BrawlerMission} from "../missions/BrawlerMission";
 import {RaidMission} from "../missions/RaidMission";
-import {RaidData, SquadConfig, Coord} from "../../interfaces";
-import {Empire} from "../Empire";
+import {RaidData, SquadConfig} from "../../interfaces";
 import {OperationPriority, Direction} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
-import {empire} from "../../helpers/loopHelper";
 import {WorldMap} from "../WorldMap";
+import {empire} from "../Empire";
 export class RaidOperation extends Operation {
 
     private squadTypes = {

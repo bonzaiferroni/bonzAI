@@ -3,9 +3,9 @@ import {Operation} from "../operations/Operation";
 import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
-import {empire} from "../../helpers/loopHelper";
 import {WorldMap} from "../WorldMap";
 import {Agent} from "./Agent";
+import {empire} from "../Empire";
 
 export class PowerMission extends Mission {
 

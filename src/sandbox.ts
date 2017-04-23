@@ -1,9 +1,9 @@
-import {empire} from "./helpers/loopHelper";
 import {Operation} from "./ai/operations/Operation";
 import {Mission} from "./ai/missions/Mission";
 import {Agent} from "./ai/missions/Agent";
 import {RoomHelper} from "./ai/RoomHelper";
 import {notifier} from "./notifier";
+import {empire} from "./ai/Empire";
 
 export var sandBox = {
     run: function() {
