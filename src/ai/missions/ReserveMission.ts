@@ -20,6 +20,11 @@ export class ReserveMission extends Mission {
         super(operation, "claimer");
     }
 
+    public static Add(operation: Operation) {
+        if (!operation.room || !operation.room.controller) { return; }
+        operation.addMission(new ReserveMission(operation));
+    }
+
     public initMission() {
         if (!this.hasVision) { return; }
         this.controller = this.room.controller;

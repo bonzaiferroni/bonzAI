@@ -49,15 +49,8 @@ export class MiningOperation extends Operation {
 
         if (!this.flag.room) { return; }
 
-        // claimers
-        if (this.flag.room.controller) {
-            this.addMission(new ReserveMission(this));
-        }
-
-        for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
-            this.addMission(new MiningMission(this, "miner" + i, this.sources[i]));
-        }
+        ReserveMission.Add(this);
+        MiningMission.Add(this, false);
 
         this.addMission(new RemoteBuildMission(this, true));
 

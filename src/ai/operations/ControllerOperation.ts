@@ -119,7 +119,7 @@ export abstract class ControllerOperation extends Operation {
         }
 
         // harvest energy
-        MiningMission.Add(this);
+        MiningMission.Add(this, true);
 
         // build construction
         let buildMission = new BuilderMission(this, defenseGuru);

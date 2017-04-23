@@ -41,10 +41,7 @@ export class KeeperOperation extends Operation {
 
         if (!this.hasVision) { return; } // early
 
-        for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
-            this.addMission(new MiningMission(this, "miner" + i, this.sources[i]));
-        }
+        MiningMission.Add(this, false);
 
         this.addMission(new RemoteBuildMission(this, true));
 

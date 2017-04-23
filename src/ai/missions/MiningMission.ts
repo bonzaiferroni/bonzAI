@@ -43,9 +43,9 @@ export class MiningMission extends Mission {
         this.remoteSpawning = remoteSpawning;
     }
 
-    public static Add(operation: Operation) {
+    public static Add(operation: Operation, preferLinkMiner: boolean) {
         if (!operation.hasVision) { return; }
-        if (operation.room.controller.level === 8 && operation.room.storage) {
+        if (preferLinkMiner && operation.room.controller.level === 8 && operation.room.storage) {
             LinkMiningMission.Add(operation);
             return;
         }

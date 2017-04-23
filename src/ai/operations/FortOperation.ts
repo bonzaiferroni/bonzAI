@@ -57,18 +57,7 @@ export class FortOperation extends Operation {
             }
 
             // harvest energy
-            for (let i = 0; i < this.sources.length; i++) {
-                if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
-                let source = this.sources[i];
-                if (this.flag.room.controller.level === 8 && this.flag.room.storage) {
-                    let link = source.findMemoStructure(STRUCTURE_LINK, 2) as StructureLink;
-                    if (link) {
-                        this.addMission(new LinkMiningMission(this, "linkMiner" + i, source, link));
-                        continue;
-                    }
-                }
-                this.addMission(new MiningMission(this, "miner" + i, source));
-            }
+            MiningMission.Add(this, true);
 
             // build construction
             let defenseGuru = new DefenseGuru(this);

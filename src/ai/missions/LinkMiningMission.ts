@@ -22,6 +22,11 @@ export class LinkMiningMission extends Mission {
         this.source = source;
     }
 
+    /**
+     * Assumes room has vision, storage and is rcl8
+     * @param operation
+     * @constructor
+     */
     public static Add(operation: Operation) {
         for (let i = 0; i < operation.sources.length; i++) {
             // disable harvesting sources manually by putting a flag over it

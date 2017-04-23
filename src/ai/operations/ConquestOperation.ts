@@ -95,10 +95,7 @@ export class ConquestOperation extends Operation {
             this.addMission(new RefillMission(this));
         }
 
-        for (let i = 0; i < this.sources.length; i++) {
-            if (this.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
-            this.addMission(new MiningMission(this, "miner" + i, this.sources[i]));
-        }
+        MiningMission.Add(this, false);
 
         // use link array near storage to fire energy at controller link (pre-rcl8)
         this.addMission(new LinkNetworkMission(this));
