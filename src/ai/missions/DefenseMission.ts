@@ -2,6 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
+import {Scheduler} from "../../Scheduler";
 export class DefenseMission extends Mission {
 
     private refillCarts: Agent[];
@@ -46,12 +47,7 @@ export class DefenseMission extends Mission {
         this.analyzePlayerThreat();
 
         // nuke detection
-        if (Game.time % 1000 === 1) {
-            let nukes = this.room.find(FIND_NUKES) as Nuke[];
-            for (let nuke of nukes) {
-                console.log(`DEFENSE: nuke landing at ${this.operation.name} in ${nuke.timeToLand}`);
-            }
-        }
+        this.detectNuke();
 
         // only gets triggered if a wall is breached
         this.triggerSafeMode();
@@ -363,5 +359,13 @@ export class DefenseMission extends Mission {
             return c.owner.username !== "Invader" && c.body.length >= 40 &&
                 _.filter(c.body, part => part.boost).length > 0;
         }) as Creep[];
+    }
+
+    private detectNuke() {
+        if (Scheduler.delay(this, "detectNuke", 100)) { return; }
+        let nukes = this.room.find(FIND_NUKES) as Nuke[];
+        for (let nuke of nukes) {
+            console.log(`DEFENSE: nuke landing at ${this.operation.name} in ${nuke.timeToLand}`);
+        }
     }
 }

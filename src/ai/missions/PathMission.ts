@@ -5,6 +5,8 @@ import {WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {helper} from "../../helpers/helper";
 import {Agent} from "./Agent";
 import {empire} from "../Empire";
+import {Scheduler} from "../../Scheduler";
+import {notifier} from "../../notifier";
 export class PathMission extends Mission {
     private start: {pos: RoomPosition };
     private end: {pos: RoomPosition };
@@ -58,30 +60,28 @@ export class PathMission extends Mission {
     get distance(): number { return this.pathData.distance; }
 
     private checkPath() {
-        if (this.pathData.pathCheck && Game.time < this.pathData.pathCheck) { return; }
+        if (Scheduler.delay(this, "pathCheck", 1000)) { return; }
 
         if (Game.map.getRoomLinearDistance(this.start.pos.roomName, this.end.pos.roomName) > 2) {
-            console.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
+            notifier.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
             return;
         }
         let path = this.findPavedPath(this.start.pos, this.end.pos, this.rangeToEnd);
-
         if (!path) {
-            console.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${this.start.pos}, ` +
-                `finish: ${this.end.pos}, mission: ${this.name}`);
+            notifier.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${
+                this.start.pos}, finish: ${this.end.pos}, mission: ${this.name}`);
             return;
         }
 
         let newConstructionPos = this.examinePavedPath(path);
-
         if (newConstructionPos && (this.ignoreConstructionLimit || Object.keys(Game.constructionSites).length < 60)) {
+            Scheduler.nextTick(this, "pathCheck");
             if (!Game.cache.placedRoad) {
                 Game.cache.placedRoad = true;
                 console.log(`PAVER: placed road ${newConstructionPos} in ${this.operation.name}`);
                 newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
             }
         }  else {
-            this.pathData.pathCheck = Game.time + helper.randomInterval(1000);
             if (_.last(path).inRangeTo(this.end.pos, this.rangeToEnd)) {
                 this.pathData.distance = path.length;
             }

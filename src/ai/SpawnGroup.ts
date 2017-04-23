@@ -1,5 +1,6 @@
 import {SpawnReservation} from "../interfaces";
 import {helper} from "../helpers/helper";
+import {Scheduler} from "../Scheduler";
 export class SpawnGroup {
 
     public spawns: Spawn[];
@@ -20,7 +21,7 @@ export class SpawnGroup {
             longHistory: number[]
         },
     };
-    
+
     constructor(room: Room) {
         this.room = room;
         this.spawns = _.filter(this.room.find<StructureSpawn>(FIND_MY_SPAWNS),
@@ -127,20 +128,14 @@ export class SpawnGroup {
     private manageSpawnLog() {
         if (!this.memory.log) { this.memory.log = {availability: 0, history: [], longHistory: []}; }
 
-        if (Game.time % 100 !== 0) { return; } // early
+        if (Game.time % 100 !== 0) { return; }
         let log = this.memory.log;
         let average = log.availability / 100;
         log.availability = 0;
-        /*
-        if (average > 1) console.log("SPAWNING:", this.missionRoom, "not very busy (avg", average, "idle out of",
-            this.spawns.length, "), perhaps add more harvesting");
-        if (average < .1) console.log("SPAWNING:", this.missionRoom, "very busy (avg", average, "idle out of",
-            this.spawns.length, "), might want to reduce harvesting");
-            */
         log.history.push(average);
         while (log.history.length > 5) { log.history.shift(); }
 
-        if (Game.time % 500 !== 0) { return; } // early
+        if (Game.time % 500 !== 0) { return; }
         let longAverage = _.sum(log.history) / 5;
         log.longHistory.push(longAverage);
         while (log.longHistory.length > 5) { log.longHistory.shift(); }
@@ -160,9 +155,9 @@ export class SpawnGroup {
         return _.last(this.memory.log.history) as number;
     }
 
-    finalize() {
+    public finalize() {
         if (this.isAvailable) {
-            this.memory.nextCheck = Game.time + helper.randomInterval(10);
+            this.memory.nextCheck = Game.time + Scheduler.randomInterval(10);
         }
     }
 

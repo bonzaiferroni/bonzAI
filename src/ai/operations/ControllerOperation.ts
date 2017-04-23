@@ -24,6 +24,7 @@ import {ClaimMission} from "../missions/ClaimMission";
 import {SurveyMission} from "../missions/SurveyMission";
 import {DefenseMission} from "../missions/DefenseMission";
 import {DefenseGuru} from "../DefenseGuru";
+import {Scheduler} from "../../Scheduler";
 
 export abstract class ControllerOperation extends Operation {
 
@@ -272,7 +273,7 @@ export abstract class ControllerOperation extends Operation {
             if (outcome === OK) {
                 console.log(`LAYOUT: placing ${structureType} at ${position} (${this.name})`);
             } else {
-                // console.log(`LAYOUT: error: ${outcome}, ${structureType}, ${position} (${this.name})`);
+                console.log(`LAYOUT: error: ${outcome}, ${structureType}, ${position} (${this.name})`);
             }
 
             return;

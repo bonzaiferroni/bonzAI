@@ -5,11 +5,11 @@ import {InvaderGuru} from "./InvaderGuru";
 import {helper} from "../../helpers/helper";
 import {traveler} from "../Traveler";
 import {HostileAgent} from "./HostileAgent";
+import {Scheduler} from "../../Scheduler";
 export class LairMission extends Mission {
 
     public memory: {
         bestLairOrder: string[];
-        nextLairCheck: number;
     };
 
     private trappers: Agent[];
@@ -243,9 +243,8 @@ export class LairMission extends Mission {
     }
 
     private findLairs(): StructureKeeperLair[] {
-        if (!this.memory.bestLairOrder || Game.time >= this.memory.nextLairCheck) {
+        if (!Scheduler.delay(this, "nextLairCheck", 10000) || !this.memory.bestLairOrder) {
             this.memory.bestLairOrder = this.bestLairOrder();
-            this.memory.nextLairCheck = Game.time + helper.randomInterval(10000);
         }
 
         return _.map(this.memory.bestLairOrder, id => Game.getObjectById<StructureKeeperLair>(id));

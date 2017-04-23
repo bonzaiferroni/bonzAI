@@ -12,10 +12,11 @@ export class MarketTrader {
         this.sellCompounds();
     }
 
-    buyShortages() {
-        if (Game.market.credits < Memory.playerConfig.creditReserveAmount) return; // early
+    public buyShortages() {
+        if (Game.market.credits < Memory.playerConfig.creditReserveAmount) { return; } // early
 
-        if (Game.time % 100 !== 2) return;
+        // OK - can only happen once per tick
+        if (Game.time % 100 !== 2) { return; }
 
         // you could use a different constant here if you wanted to limit buying
         for (let mineralType of MINERALS_RAW) {
@@ -24,8 +25,9 @@ export class MarketTrader {
             if (!abundance) {
                 console.log("EMPIRE: theres not enough", mineralType + ", attempting to purchase more");
                 let terminal = this.findBestTerminal(mineralType);
-                if (terminal)
+                if (terminal) {
                     this.buyMineral(terminal.room, mineralType);
+                }
             }
         }
     }
@@ -42,7 +44,7 @@ export class MarketTrader {
         let bestOrder: Order;
         let lowestExpense = Number.MAX_VALUE;
         for (let order of orders) {
-            if (order.remainingAmount < 100) continue;
+            if (order.remainingAmount < 100) { continue; }
             let expense = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
             expense += transferCost * RESOURCE_VALUE[RESOURCE_ENERGY];
@@ -59,15 +61,15 @@ export class MarketTrader {
             if (lowestExpense <= RESOURCE_VALUE[resourceType]) {
                 let outcome = Game.market.deal(bestOrder.id, amount, room.name);
                 console.log("bought", amount, resourceType, "from", bestOrder.roomName, "outcome:", outcome);
-            }
-            else {
+            } else {
 
             }
 
             let noBuyOrders = this.orderCount(ORDER_BUY, resourceType) === 0;
             if (noBuyOrders) {
                 Game.market.createOrder(ORDER_BUY, resourceType, bestOrder.price, RESERVE_AMOUNT * 2, room.name);
-                console.log("placed ORDER_BUY for", resourceType, "at", bestOrder.price, "Cr, to be sent to", room.name);
+                console.log("placed ORDER_BUY for", resourceType, "at", bestOrder.price, "Cr, to be sent to",
+                    room.name);
             }
 
             /*
@@ -86,16 +88,18 @@ export class MarketTrader {
         }
     }
 
-    sellCompounds() {
-        if (Game.time % 100 !== 2) return;
+    public sellCompounds() {
+        // OK - can only happen once per tick
+        if (Game.time % 100 !== 2) { return; }
 
         for (let compound of PRODUCT_LIST) {
-            if (this.orderCount(ORDER_SELL, compound, PRODUCT_PRICE[compound]) > 0) continue;
+            if (this.orderCount(ORDER_SELL, compound, PRODUCT_PRICE[compound]) > 0) { continue; }
 
             let stockedTerminals = _.filter(this.network.terminals, t => t.store[compound] >= RESERVE_AMOUNT);
-            if (stockedTerminals.length === 0) continue;
+            if (stockedTerminals.length === 0) { continue; }
             console.log("MARKET: no orders for", compound, "found, creating one");
-            let competitionRooms = _.map(Game.market.getAllOrders({type: ORDER_SELL, resourceType: compound}), (order: Order) => {
+            let competitionRooms = _.map(Game.market.getAllOrders({type: ORDER_SELL, resourceType: compound}),
+                (order: Order) => {
                 return order.roomName;
             });
 
@@ -110,15 +114,17 @@ export class MarketTrader {
                 if (nearestCompetition > distanceToNearest) {
                     distanceToNearest = nearestCompetition;
                     bestTerminal = terminal;
-                    console.log("I could sell from", terminal.room.name + ", nearest competition is", nearestCompetition, "rooms away");
+                    console.log("I could sell from", terminal.room.name + ", nearest competition is",
+                        nearestCompetition, "rooms away");
                 }
             }
 
-            Game.market.createOrder(ORDER_SELL, compound, PRODUCT_PRICE[compound], RESERVE_AMOUNT, bestTerminal.room.name);
+            Game.market.createOrder(ORDER_SELL, compound, PRODUCT_PRICE[compound], RESERVE_AMOUNT,
+                bestTerminal.room.name);
         }
     }
 
-    sellExcess(room: Room, resourceType: string, dealAmount: number) {
+    public sellExcess(room: Room, resourceType: string, dealAmount: number) {
         let orders = Game.market.getAllOrders({type: ORDER_BUY, resourceType: resourceType});
 
         this.removeOrders(ORDER_BUY, resourceType);
@@ -126,7 +132,7 @@ export class MarketTrader {
         let bestOrder: Order;
         let highestGain = 0;
         for (let order of orders) {
-            if (order.remainingAmount < 100) continue;
+            if (order.remainingAmount < 100) { continue; }
             let gain = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
             gain -= transferCost * RESOURCE_VALUE[RESOURCE_ENERGY];
@@ -144,17 +150,16 @@ export class MarketTrader {
             let notYetSelling = this.orderCount(ORDER_SELL, resourceType, bestOrder.price) === 0;
             if (notYetSelling) {
                 Game.market.createOrder(ORDER_SELL, resourceType, bestOrder.price, dealAmount * 2, room.name);
-                console.log("placed ORDER_SELL for", resourceType, "at", bestOrder.price, "Cr, to be sent from", room.name);
+                console.log("placed ORDER_SELL for", resourceType, "at", bestOrder.price, "Cr, to be sent from",
+                    room.name);
             }
 
             if (outcome === OK) {
                 console.log("sold", amount, resourceType, "to", bestOrder.roomName, "outcome:", outcome);
 
-            }
-            else if (outcome === ERR_INVALID_ARGS) {
+            } else if (outcome === ERR_INVALID_ARGS) {
                 console.log("invalid deal args:", bestOrder.id, amount, room.name);
-            }
-            else {
+            } else {
                 console.log("there was a problem trying to deal:", outcome);
             }
         }
@@ -175,11 +180,11 @@ export class MarketTrader {
             let order = Game.market.orders[orderId];
             if (order.remainingAmount < 10) {
                 Game.market.cancelOrder(orderId);
-            }
-            else if (order.type === type && order.resourceType === resourceType) {
+            } else if (order.type === type && order.resourceType === resourceType) {
                 count++;
                 if (adjustPrice && adjustPrice < order.price) {
-                    console.log("MARKET: lowering price for", resourceType, type, "from", order.price, "to", adjustPrice);
+                    console.log("MARKET: lowering price for", resourceType, type, "from", order.price, "to",
+                        adjustPrice);
                     Game.market.changeOrderPrice(order.id, adjustPrice);
                 }
             }
@@ -199,8 +204,7 @@ export class MarketTrader {
                 }
             }
             return lowestTerminal;
-        }
-        else {
+        } else {
             let highest = 0;
             let highestTerminal: StructureTerminal;
             for (let terminal of this.network.terminals) {

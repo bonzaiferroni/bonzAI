@@ -18,7 +18,7 @@ export class Diplomat {
         this.partners = Memory.empire.partners;
     }
 
-    checkEnemy(username: string, roomName: string) {
+    public checkEnemy(username: string, roomName: string) {
         if ( this.allies[username] ) {
             return false;
         }
@@ -38,7 +38,7 @@ export class Diplomat {
             let report = { tickSeen: Game.time, roomName: roomName };
             console.log("STRANGER DANGER: one of", username, "\'s creeps seen in", roomName);
             Memory.strangerDanger[username].push(report);
-            while (Memory.strangerDanger[username].length > 10) Memory.strangerDanger[username].shift();
+            while (Memory.strangerDanger[username].length > 10) { Memory.strangerDanger[username].shift(); }
         }
     }
 

@@ -3,10 +3,16 @@ import {Operation} from "../operations/Operation";
 import {MINERALS_RAW, RESERVE_AMOUNT} from "../TradeNetwork";
 import {MINERAL_STORAGE_TARGET} from "../../config/constants";
 import {empire} from "../Empire";
+import {helper} from "../../helpers/helper";
+import {Scheduler} from "../../Scheduler";
 export class TerminalNetworkMission extends Mission {
 
     private terminal: StructureTerminal;
     private storage: StructureStorage;
+    public memory: {
+        nextOverstockCheck: number;
+        nextSellOverstock: number;
+    };
 
     constructor(operation: Operation) {
         super(operation, "network");
@@ -32,8 +38,7 @@ export class TerminalNetworkMission extends Mission {
     }
 
     private sellOverstock() {
-
-        if (Game.time % 100 !== 1) { return; }
+        if (Scheduler.delay(this, "sellOverstock", 100)) { return; }
 
         for (let mineralType of MINERALS_RAW) {
             if (this.storage.store[mineralType] >= MINERAL_STORAGE_TARGET[mineralType]
@@ -51,7 +56,8 @@ export class TerminalNetworkMission extends Mission {
     }
 
     private checkOverstock() {
-        if (Game.time % 100 !== 0 || _.sum(this.terminal.store) < 250000) { return; }
+        if (_.sum(this.terminal.store) < 250000) { return; }
+        if (Scheduler.delay(this, "checkOverstock", 1000)) { return; }
 
         let mostStockedAmount = 0;
         let mostStockedResource: string;

@@ -7,13 +7,14 @@ import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
 import {BonzaiNetwork} from "./BonzaiNetwork";
 import {Visualizer} from "./Visualizer";
+import {Scheduler} from "../Scheduler";
 
 export let empire: Empire;
 
 export class Empire {
 
     public spawnGroups: {[roomName: string]: SpawnGroup};
-    private memory: {
+    public memory: {
         errantConstructionRooms: {};
     };
 
@@ -70,7 +71,7 @@ export class Empire {
         Profiler.start("emp.vis");
         this.vis.finalize();
         Profiler.end("emp.vis");
-        
+
         for (let roomName in this.spawnGroups) {
             this.spawnGroups[roomName].finalize();
         }
@@ -93,7 +94,7 @@ export class Empire {
     }
 
     private clearErrantConstruction() {
-        if (Game.time % 1000 !== 0) { return; }
+        if (Scheduler.delay(this, "clearErrantConstruction", 1000)) { return; }
 
         let removeErrantStatus = {};
         let addErrantStatus = {};

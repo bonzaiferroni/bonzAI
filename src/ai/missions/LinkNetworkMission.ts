@@ -1,5 +1,6 @@
 import {Mission} from "./Mission";
 import {Agent} from "./Agent";
+import {Scheduler} from "../../Scheduler";
 export class LinkNetworkMission extends Mission {
 
     private conduits: Agent[];
@@ -7,6 +8,11 @@ export class LinkNetworkMission extends Mission {
     private storageLinks: StructureLink[] = [];
     private sourceLinks: StructureLink[] = [];
     private controllerLink: StructureLink;
+
+    public memory: {
+        storageLinkIds: string[];
+        linkFiringIndex: number;
+    };
 
     /**
      * Manages linknetwork in room to efficiently send energy between the storage, controller, and sources
@@ -65,8 +71,7 @@ export class LinkNetworkMission extends Mission {
                 this.storageLinks.push(storageLink);
             }
         } else {
-            if (!this.memory.storageLinkIds || Game.time % 100 === 7) {
-                // I had this as a lodash function but it looked ugly
+            if (!Scheduler.delay(this, "findStorageLinks", 100) || !this.memory.storageLinkIds) {
                 let linkIds = [];
                 let links = this.room.findStructures(STRUCTURE_LINK) as StructureLink[];
                 for (let link of links) {

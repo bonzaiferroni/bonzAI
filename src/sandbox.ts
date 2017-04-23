@@ -44,26 +44,8 @@ export var sandBox = {
             console.log("cpu: " + _.round(Memory.cpu.average, 2), "perCreep: " +
                 _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2));
         }
-
-        // bucketTest();
     },
 };
-
-function bucketTest() {
-    let cpu = Game.cpu.getUsed();
-    let iterations = 0;
-    let obj = {};
-    while (Game.cpu.bucket >= 10000 && cpu < 260) {
-        _.defaults(obj, {total: 0, count: 0, endOfPeriod: Game.time + 5, highest: 0});
-        let nextCpu =  Game.cpu.getUsed();
-        let delta = nextCpu - cpu;
-        if (delta > 30) {
-            notifier.log(`cpu delta: ${delta}, iterations: ${iterations}`);
-        }
-        cpu = nextCpu;
-        iterations++;
-    }
-}
 
 class SandboxOperation extends Operation {
     public initOperation() {

@@ -8,6 +8,7 @@ import {ROOMTYPE_SOURCEKEEPER, WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {Traveler} from "../Traveler";
 import {RoomHelper} from "../RoomHelper";
 import {empire} from "../Empire";
+import {Scheduler} from "../../Scheduler";
 export abstract class Mission {
 
     public flag: Flag;
@@ -317,6 +318,7 @@ export abstract class Mission {
 
     // deprecated, use similar function on TransportGuru
     protected getStorage(pos: RoomPosition): StructureStorage {
+
         if (this.memory.tempStorageId) {
             let storage = Game.getObjectById<StructureStorage>(this.memory.tempStorageId);
             if (storage) {
@@ -328,7 +330,7 @@ export abstract class Mission {
         }
 
         // invalidated periodically
-        if (!this.memory.nextStorageCheck || Game.time >= this.memory.nextStorageCheck) {
+        if (!Scheduler.delay(this, "nextStorageCheck", 10000)) {
             let bestStorages = RoomHelper.findClosest({pos: pos}, empire.network.storages,
                 {linearDistanceLimit: MAX_HARVEST_DISTANCE });
 
@@ -339,8 +341,8 @@ export abstract class Mission {
                 let result = bestStorages[0].destination;
                 resultPosition = result.pos;
                 this.memory.storageId = result.id;
-                this.memory.nextStorageCheck = Game.time + helper.randomInterval(10000); // Around 10 hours
             } else {
+                // override scheduler
                 this.memory.nextStorageCheck = Game.time + 100; // Around 6 minutes
             }
             console.log(`MISSION: finding storage for ${this.operation.name}, result: ${resultPosition}`);
@@ -352,8 +354,8 @@ export abstract class Mission {
                 return storage;
             } else {
                 this.memory.storageId = undefined;
+                // override scheduler
                 this.memory.nextStorageCheck = Game.time;
-                return this.getStorage(pos);
             }
         }
     }

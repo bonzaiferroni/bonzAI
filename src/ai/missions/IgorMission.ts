@@ -5,6 +5,7 @@ import {IgorCommand, LabProcess, Shortage, BoostRequests} from "../../interfaces
 import {helper} from "../../helpers/helper";
 import {POWER_PROCESS_THRESHOLD, RESERVE_AMOUNT, PRODUCT_LIST, MINERALS_RAW} from "../TradeNetwork";
 import {Agent} from "./Agent";
+import {Scheduler} from "../../Scheduler";
 export class IgorMission extends Mission {
 
     private igors: Agent[];
@@ -24,7 +25,6 @@ export class IgorMission extends Mission {
         lastCommandTick: number;
         checkProcessTick: number;
         labProcess: LabProcess;
-        nextProgressCheck: number;
     };
 
     constructor(operation: Operation) {
@@ -328,7 +328,7 @@ export class IgorMission extends Mission {
             }
         }
 
-        if (Game.time % 1000 !== 2) { return; } // early
+        if (Scheduler.delay(this, "findReagentLabs", 1000)) { return; }
 
         let labs = this.room.findStructures(STRUCTURE_LAB) as StructureLab[];
         if (labs.length < 3) { return; } // early
@@ -418,8 +418,7 @@ export class IgorMission extends Mission {
         }
 
         // avoid checking for new process every tick
-        if (this.memory.checkProcessTick && Game.time < this.memory.checkProcessTick) { return; }
-        this.memory.checkProcessTick = Game.time + helper.randomInterval(100);
+        if (Scheduler.delay(this, "checkProcessTick", 100)) { return; }
         this.memory.labProcess = this.findNewProcess();
     }
 
@@ -437,8 +436,8 @@ export class IgorMission extends Mission {
     }
 
     private checkProgress(process: LabProcess): boolean {
-        if (Game.time < this.memory.nextProgressCheck) { return true; }
-        this.memory.nextProgressCheck = Game.time + helper.randomInterval(1000);
+        if (Scheduler.delay(this, "checkProgress", 1000)) { return; }
+
         let loadStatus = 0;
         for (let resourcetype in process.reagentLoads) {
             loadStatus += process.reagentLoads[resourcetype];
@@ -580,25 +579,46 @@ export class IgorMission extends Mission {
     }
 
     private findIgorIdlePosition() {
-        if (!this.memory.idlePosition && Game.time % 1000 === 0) {
-            // start with the position that would be available following the default spec
-            let positions = [this.terminal.pos.getPositionAtDirection(this.terminal.pos.getDirectionTo(this.storage))];
-            for (let i = 1; i <= 8; i++) {
-                // add other positions around storage
-                positions.push(this.terminal.pos.getPositionAtDirection(i));
-            }
-            for (let position of positions) {
-                // check each position for valid conditions
-                if (position.lookFor(LOOK_STRUCTURES).length === 0 && position.isPassible(true) &&
-                    position.isNearTo(this.storage)) {
-                    console.log(`IGOR: found a good idle position in ${this.operation.name}: ${position}`);
-                    this.memory.idlePosition = position;
-                    break;
-                }
+        if (!Scheduler.delay(this, "igorPos", 1000)) {
+            this.memory.idlePosition = this.optimalIgorPos();
+            if (!this.memory.idlePosition) {
+                this.memory.idlePosition = this.fuzzyIgorPos();
             }
 
             if (!this.memory.idlePosition) {
                 console.log(`IGOR: terminal placement unoptimal (${this.operation.name})`);
+            }
+        }
+    }
+
+    private optimalIgorPos(): RoomPosition {
+        let rangeToStorage = this.terminal.pos.getRangeTo(this.storage);
+        if (rangeToStorage !== 2) { return; }
+
+        let directionToStorage = this.terminal.pos.getDirectionTo(this.storage);
+        let isDiagonal = directionToStorage % 2 === 0;
+        if (!isDiagonal) { return; }
+
+        let bestPosition = this.terminal.pos.getPositionAtDirection(directionToStorage);
+        let passable = bestPosition.isPassible(true);
+        if (!passable) { return; }
+
+        console.log(`IGOR: found a good idle position in ${this.operation.name}: ${bestPosition}`);
+        return bestPosition;
+    }
+
+    private fuzzyIgorPos() {
+        let positions = [];
+        // look at diagonal positions
+        for (let i = 2; i <= 8; i += 2) {
+            positions.push(this.terminal.pos.getPositionAtDirection(i));
+        }
+        for (let position of positions) {
+            // check each position for valid conditions
+            if (position.lookFor(LOOK_STRUCTURES).length === 0 && position.isPassible(true) &&
+                position.isNearTo(this.storage)) {
+                console.log(`IGOR: found a good idle position in ${this.operation.name}: ${position}`);
+                return position;
             }
         }
     }
