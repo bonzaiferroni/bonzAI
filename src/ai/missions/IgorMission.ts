@@ -436,7 +436,7 @@ export class IgorMission extends Mission {
     }
 
     private checkProgress(process: LabProcess): boolean {
-        if (Scheduler.delay(this, "checkProgress", 1000)) { return; }
+        if (Scheduler.delay(this, "checkProgress", 1000)) { return true; }
 
         let loadStatus = 0;
         for (let resourcetype in process.reagentLoads) {
@@ -579,7 +579,7 @@ export class IgorMission extends Mission {
     }
 
     private findIgorIdlePosition() {
-        if (!Scheduler.delay(this, "igorPos", 1000)) {
+        if (!this.memory.idlePosition && !Scheduler.delay(this, "igorPos", 1000)) {
             this.memory.idlePosition = this.optimalIgorPos();
             if (!this.memory.idlePosition) {
                 this.memory.idlePosition = this.fuzzyIgorPos();
