@@ -5,6 +5,7 @@ import {RoomHelper} from "../RoomHelper";
 import {helper} from "../../helpers/helper";
 import {TimeoutTracker} from "../../TimeoutTracker";
 import {empire} from "../Empire";
+import {Scheduler} from "../../Scheduler";
 
 export abstract class Operation {
 
@@ -133,8 +134,7 @@ export abstract class Operation {
      * operation.finalizeOperation()
      */
     public finalize() {
-        if (this.priority > OperationPriority.VeryHigh &&
-            (Game.cpu.getUsed() > 480 - this.priority * 30 || this.lastPhaseCompleted !== OperationPhase.Actions)) {
+        if (this.lastPhaseCompleted !== OperationPhase.Actions) {
             Game.cache.bypassCount++;
             return;
         }
@@ -204,8 +204,18 @@ export abstract class Operation {
 
     public initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0) {
 
+        let flag = Game.flags[`${this.name}_spawn`];
+        if (flag) {
+            let estimatedDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, flag.pos.roomName) * 50;
+            let spawnGroup = empire.getSpawnGroup(flag.pos.roomName);
+            if (spawnGroup) {
+                this.remoteSpawn = { distance: estimatedDistance, spawnGroup: spawnGroup};
+                return;
+            }
+        }
+
         // invalidated periodically
-        if (!this.spawnData.nextSpawnCheck || Game.time >= this.spawnData.nextSpawnCheck) {
+        if (!Scheduler.delay(this.spawnData, "nextSpawnCheck", 10000)) {
             let spawnGroups = _.filter(_.toArray(empire.spawnGroups),
                 spawnGroup => spawnGroup.room.controller.level >= levelRequirement
                 && spawnGroup.room.name !== this.flag.pos.roomName);
@@ -217,7 +227,6 @@ export abstract class Operation {
                 this.spawnData.spawnRooms = _.map(bestGroups, value => {
                     return {distance: value.distance, roomName: value.destination.room.name};
                 });
-                this.spawnData.nextSpawnCheck = Game.time + helper.randomInterval(10000); // Around 10 hours
             } else {
                 this.spawnData.nextSpawnCheck = Game.time + 100; // Around 6 min
             }
@@ -234,7 +243,7 @@ export abstract class Operation {
                     bestSpawn = data;
                     break;
                 }
-                if (spawnGroup.averageAvailability > bestAvailability) {
+                if (spawnGroup.averageAvailability >= bestAvailability) {
                     bestAvailability = spawnGroup.averageAvailability;
                     bestSpawn = data;
                 }

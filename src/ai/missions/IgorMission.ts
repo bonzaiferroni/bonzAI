@@ -328,7 +328,7 @@ export class IgorMission extends Mission {
             }
         }
 
-        if (Scheduler.delay(this, "findReagentLabs", 1000)) { return; }
+        if (Scheduler.delay(this.memory, "findReagentLabs", 1000)) { return; }
 
         let labs = this.room.findStructures(STRUCTURE_LAB) as StructureLab[];
         if (labs.length < 3) { return; } // early
@@ -418,7 +418,7 @@ export class IgorMission extends Mission {
         }
 
         // avoid checking for new process every tick
-        if (Scheduler.delay(this, "checkProcessTick", 100)) { return; }
+        if (Scheduler.delay(this.memory, "checkProcessTick", 100)) { return; }
         this.memory.labProcess = this.findNewProcess();
     }
 
@@ -436,7 +436,7 @@ export class IgorMission extends Mission {
     }
 
     private checkProgress(process: LabProcess): boolean {
-        if (Scheduler.delay(this, "checkProgress", 1000)) { return true; }
+        if (Scheduler.delay(this.memory, "checkProgress", 1000)) { return true; }
 
         let loadStatus = 0;
         for (let resourcetype in process.reagentLoads) {
@@ -579,7 +579,7 @@ export class IgorMission extends Mission {
     }
 
     private findIgorIdlePosition() {
-        if (!this.memory.idlePosition && !Scheduler.delay(this, "igorPos", 1000)) {
+        if (!this.memory.idlePosition && !Scheduler.delay(this.memory, "igorPos", 1000)) {
             this.memory.idlePosition = this.optimalIgorPos();
             if (!this.memory.idlePosition) {
                 this.memory.idlePosition = this.fuzzyIgorPos();

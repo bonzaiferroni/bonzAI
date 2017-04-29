@@ -243,7 +243,7 @@ export class LairMission extends Mission {
     }
 
     private findLairs(): StructureKeeperLair[] {
-        if (!Scheduler.delay(this, "nextLairCheck", 10000) || !this.memory.bestLairOrder) {
+        if (!Scheduler.delay(this.memory, "nextLairCheck", 10000) || !this.memory.bestLairOrder) {
             this.memory.bestLairOrder = this.bestLairOrder();
         }
 

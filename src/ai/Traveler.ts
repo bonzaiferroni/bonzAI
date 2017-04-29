@@ -202,7 +202,12 @@ export class Traveler {
         } );
     }
 
-    public travelTo(creep: Creep, destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
+    public travelTo(creep: Creep, destination: {pos: RoomPosition} | RoomPosition,
+                    options: TravelToOptions = {}): number {
+
+        if (destination instanceof RoomPosition) {
+            destination = {pos: destination};
+        }
 
         /* uncomment if you would like to register hostile rooms entered
         if (creep.room.controller) {

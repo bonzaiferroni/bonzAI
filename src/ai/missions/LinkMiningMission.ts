@@ -44,7 +44,7 @@ export class LinkMiningMission extends Mission {
     }
 
     public roleCall() {
-        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), () => 1);
+        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), () => this.link ? 1 : 0);
     }
 
     public missionActions() {
@@ -106,25 +106,39 @@ export class LinkMiningMission extends Mission {
         }
     }
 
+    /**
+     * Will look for a suitable position for a link and place it
+     */
     public placeLink() {
         if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) { return; }
-        if (this.source.pos.findInRange(this.source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) { 
-            return; 
+        if (this.source.pos.findInRange(this.source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) {
+            return;
+        }
+        let container = this.source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
+        if (container) {
+            container.destroy();
+            return;
         }
 
         let positions: RoomPosition[] = [];
         let ret = empire.traveler.findTravelPath(this.room.storage, this.source);
         if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.room.name}`); }
         let minerPos = _.last(ret.path);
+        console.log(minerPos);
         for (let position of minerPos.openAdjacentSpots(true)) {
+            // not a wall/structure
             if (!position.isPassible(true)) { continue; }
+            // not close to controller
             if (position.findInRange([this.room.controller], 3).length > 0) { continue; }
+            // not close to any source
             if (position.findInRange(FIND_SOURCES, 2).length > 1) { continue; }
+            // not along the path that the miner would take to get there
             if (position.findInRange(ret.path, 0).length > 0) {continue; }
             positions.push(position);
         }
         if (positions.length === 0) {
             console.log(`LINKMINER: no suitable position for link ${this.room.name}`);
+            return;
         }
 
         positions = _.sortBy(positions, (p: RoomPosition) => p.getRangeTo(this.room.storage));

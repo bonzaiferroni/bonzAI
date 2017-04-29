@@ -8,10 +8,10 @@ export class Scheduler {
      * @returns {boolean}
      */
 
-    public static delay(memoryHost: {memory: any}, taskName: string, interval: number): boolean {
+    public static delay(memory: any, taskName: string, interval: number): boolean {
         if (Game.cpu.getUsed() > 250) { return true; }
-        if (Game.time < memoryHost.memory[taskName]) { return true; }
-        memoryHost.memory[taskName] = Game.time + Scheduler.randomInterval(interval);
+        if (Game.time < memory[taskName]) { return true; }
+        memory[taskName] = Game.time + Scheduler.randomInterval(interval);
         return false;
     }
 

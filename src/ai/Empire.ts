@@ -94,7 +94,7 @@ export class Empire {
     }
 
     private clearErrantConstruction() {
-        if (Scheduler.delay(this, "clearErrantConstruction", 1000)) { return; }
+        if (Scheduler.delay(this.memory, "clearErrantConstruction", 1000)) { return; }
 
         let removeErrantStatus = {};
         let addErrantStatus = {};

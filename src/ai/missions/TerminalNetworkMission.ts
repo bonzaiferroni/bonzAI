@@ -38,7 +38,7 @@ export class TerminalNetworkMission extends Mission {
     }
 
     private sellOverstock() {
-        if (Scheduler.delay(this, "sellOverstock", 100)) { return; }
+        if (Scheduler.delay(this.memory, "sellOverstock", 100)) { return; }
 
         for (let mineralType of MINERALS_RAW) {
             if (this.storage.store[mineralType] >= MINERAL_STORAGE_TARGET[mineralType]
@@ -57,7 +57,7 @@ export class TerminalNetworkMission extends Mission {
 
     private checkOverstock() {
         if (_.sum(this.terminal.store) < 250000) { return; }
-        if (Scheduler.delay(this, "checkOverstock", 1000)) { return; }
+        if (Scheduler.delay(this.memory, "checkOverstock", 1000)) { return; }
 
         let mostStockedAmount = 0;
         let mostStockedResource: string;

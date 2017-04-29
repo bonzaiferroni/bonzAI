@@ -71,7 +71,7 @@ export class LinkNetworkMission extends Mission {
                 this.storageLinks.push(storageLink);
             }
         } else {
-            if (!Scheduler.delay(this, "findStorageLinks", 100) || !this.memory.storageLinkIds) {
+            if (!Scheduler.delay(this.memory, "findStorageLinks", 100) || !this.memory.storageLinkIds) {
                 let linkIds = [];
                 let links = this.room.findStructures(STRUCTURE_LINK) as StructureLink[];
                 for (let link of links) {

@@ -60,7 +60,7 @@ export class PathMission extends Mission {
     get distance(): number { return this.pathData.distance; }
 
     private checkPath() {
-        if (Scheduler.delay(this, "pathCheck", 1000)) { return; }
+        if (Scheduler.delay(this.memory, "pathCheck", 1000)) { return; }
 
         if (Game.map.getRoomLinearDistance(this.start.pos.roomName, this.end.pos.roomName) > 2) {
             notifier.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);

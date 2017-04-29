@@ -330,7 +330,7 @@ export abstract class Mission {
         }
 
         // invalidated periodically
-        if (!Scheduler.delay(this, "nextStorageCheck", 10000)) {
+        if (!Scheduler.delay(this.memory, "nextStorageCheck", 10000)) {
             let bestStorages = RoomHelper.findClosest({pos: pos}, empire.network.storages,
                 {linearDistanceLimit: MAX_HARVEST_DISTANCE });
 

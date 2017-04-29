@@ -15,7 +15,7 @@ export const notifier = {
             let minutes = Math.floor(secondsElapsed / 60);
             secondsElapsed -= minutes * 60;
             let seconds = secondsElapsed;
-            console.log(`\n${value.earthTime} tick: ${value.time} (roughly ${
+            console.log(`${value.earthTime} tick: ${value.time} (roughly ${
                 hours > 0 ? `${hours} hours, ` : ""}${
                 minutes > 0 ? `${minutes} minutes, ` : ""}${
                 seconds > 0 ? `${seconds} seconds ` : ""}ago)`);
@@ -42,8 +42,12 @@ export const notifier = {
             term = term.toLocaleLowerCase();
             let newArray = [];
             for (let value of Memory.notifier) {
-                if (value.message.toLocaleLowerCase().indexOf(term) < 0) {
-                    newArray.push(value);
+                try {
+                    if (value.message.toLocaleLowerCase().indexOf(term) < 0) {
+                        newArray.push(value);
+                    }
+                } catch (e) {
+
                 }
             }
             Memory.notifier = newArray;

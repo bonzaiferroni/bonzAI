@@ -412,7 +412,7 @@ export class MiningMission extends Mission {
                 this.pathMission = new PathMission(this.operation, this.name + "Path", {
                     start: startingPosition,
                     end: this.container,
-                    rangeToEnd: 2,
+                    rangeToEnd: 1,
                 });
                 this.pathMission.initMission();
                 this.operation.addMission(this.pathMission);

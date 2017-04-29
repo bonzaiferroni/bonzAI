@@ -362,7 +362,7 @@ export class DefenseMission extends Mission {
     }
 
     private detectNuke() {
-        if (Scheduler.delay(this, "detectNuke", 100)) { return; }
+        if (Scheduler.delay(this.memory, "detectNuke", 100)) { return; }
         let nukes = this.room.find(FIND_NUKES) as Nuke[];
         for (let nuke of nukes) {
             console.log(`DEFENSE: nuke landing at ${this.operation.name} in ${nuke.timeToLand}`);
