@@ -20,9 +20,10 @@ export class RaidOperation extends Operation {
     private squadNames = ["alfa", "bravo", "charlie"];
     private raidMissions: RaidMission[] = [];
     private raidData: RaidData;
+    private attackRoomCount: number;
 
     public memory: {
-        auto: true;
+        manual: true;
         squadCount: number;
         squadConfig: {[squadName: string]: SquadConfig };
         queue: {[squadName: string]: SquadConfig };
@@ -37,10 +38,12 @@ export class RaidOperation extends Operation {
         additionalRooms: string[];
         tickLastActive: number;
         saveValues: boolean;
-        attackRoomName: string;
         fallbackRoomName: string;
         placeFlags: {[flagName: string]: RoomPosition}
         attackRoomIndex: number;
+        pretending: boolean;
+        waveDelay: number;
+        nextWave: number;
     };
 
     constructor(flag: Flag, name: string, type: string) {
@@ -65,6 +68,7 @@ export class RaidOperation extends Operation {
             let config = this.memory.squadConfig[name] as SquadConfig;
             let spawnGroup = spawnGroups[i % spawnGroups.length];
             let allowSpawn = i < this.memory.maxSquads && this.memory.allowSpawn;
+
             let missionClass = this.squadTypes[config.type];
             let mission = new missionClass(this, name, this.raidData, spawnGroup, config.boostLevel, allowSpawn);
             this.raidMissions.push(mission);
@@ -94,6 +98,7 @@ export class RaidOperation extends Operation {
         this.memory.squadCount = Math.max(this.memory.maxSquads, spawnCount);
 
         this.updateWaveCompleteStatus(spawnCount);
+        this.updateBugout();
 
         this.memory.allowSpawn = (!this.memory.spawnSync || !this.memory.waveComplete) && !this.memory.raidComplete;
 
@@ -133,40 +138,22 @@ export class RaidOperation extends Operation {
         let attackFlags = this.findRaidFlags("attack");
         let fallbackFlags = this.findRaidFlags("fallback");
 
-        if (attackFlags.length === 0 || fallbackFlags.length === 0) {
-            if (Game.time % 3 === 0) {
-                console.log("RAID: please set attack flags (ex: " + this.name + "_attack_0, etc.) and fallback (ex: "
-                    + this.name + "_fallback_0)");
-            }
-            if (this.memory.auto) {
-                let completed = this.automateParams();
-                if (!completed) { return; }
-            } else {
+        if (attackFlags.length === 0) {
+            if (this.memory.manual) {
+                if (Game.time % 3 === 0) {
+                    console.log(`RAID: please set attack flags (ex: ${this.name}_attack_0, etc.) and fallback (ex: ${
+                        this.name}_fallback_0)`);
+                }
                 return;
             }
-        }
 
-        if (this.memory.defaultBoostLevel === undefined) {
-            if (Game.time % 3 === 0) {
-                console.log(`RAID: please set a default boostLevel, ex: ${this.name}.setDefaultBoostLevel(2)`);
-            }
+            console.log(`RAID: please set attack flags (ex: ${
+                this.name}_attack_0, etc.) in the rooms you wish to attack`);
             return;
         }
 
-        if (this.memory.maxSquads === undefined) {
-            if (Game.time % 3 === 0) {
-                console.log(`RAID: please set a default number of squads, 0 to stop spawning, ex: ${
-                    this.name}.setMaxSquads(1)`);
-            }
-            return;
-        }
-
-        if (this.memory.defaultSquad === undefined) {
-            if (Game.time % 3 === 0) {
-                console.log(`RAID: please set a default squad type, ex: ${this.name}.setDefaultType("wreck")`);
-            }
-            return;
-        }
+        let globalConfigComplete = this.initGlobalConfig();
+        if (!globalConfigComplete) { return; }
 
         // init squadConfig
         for (let i = 0; i < this.memory.maxSquads; i++) {
@@ -177,13 +164,24 @@ export class RaidOperation extends Operation {
             }; }
         }
 
-        if (this.memory.attackRoomIndex === undefined) {
+        for (let index = 0; index < attackFlags.length; index++) {
+            let flag = attackFlags[index];
+            let completed = this.automateParams(flag.pos.roomName, index);
+            if (!completed) {
+                if (Game.time % 3 !== 0) { return; }
+                console.log(`RAID: please wait while flags are being placed`);
+                return;
+            }
+        }
+
+        if (this.memory.attackRoomIndex === undefined || this.memory.attackRoomIndex >= attackFlags.length) {
             this.memory.attackRoomIndex = 0;
         }
         let attackFlag = attackFlags[this.memory.attackRoomIndex];
         let fallbackFlag = fallbackFlags[this.memory.attackRoomIndex];
         let targetFlags = this.findRaidFlags(`targets_${this.memory.attackRoomIndex}`);
-        let targetStructures = this.findTargetStructures(targetFlags);
+        let targetStructures = this.findTargetStructures(attackFlag.room, targetFlags);
+        this.attackRoomCount = attackFlags.length;
 
         let raidData: RaidData = {
             raidAgents: [],
@@ -315,10 +313,6 @@ export class RaidOperation extends Operation {
         } else {
             charlieHealFlag.setPosition(charlieHealPos);
         }
-
-        if (runNextTick) {
-            this.memory.attackRoomName = undefined;
-        }
     }
 
     private findBreachStructure(breachFlags: Flag[]): Structure[] {
@@ -408,12 +402,10 @@ export class RaidOperation extends Operation {
         }
     }
 
-    private findTargetStructures(flags: Flag[]): Structure[] {
-        if (flags.length === 0 || !flags[0].room) {
+    private findTargetStructures(attackRoom: Room, flags: Flag[]): Structure[] {
+        if (!attackRoom) {
             return;
         }
-
-        let attackRoom = flags[0].room;
 
         let manualTargets = [];
         for (let flag of flags) {
@@ -425,6 +417,11 @@ export class RaidOperation extends Operation {
 
         if (manualTargets.length > 0) {
             return manualTargets;
+        }
+
+        if (this.memory.pretending) {
+            this.memory.raidComplete = true;
+            return;
         }
 
         let attackOrder = _.get(this, "memory.attackOrder",
@@ -507,11 +504,9 @@ export class RaidOperation extends Operation {
         }
     }
 
-    private automateParams(): boolean {
-        if (!this.memory.attackRoomName) {
-            console.log(`RAID: ${this.name} automation incomplete, no attackRoom specified`);
-            return false;
-        }
+    private automateParams(attackRoomName: string, index: number): boolean {
+        // if fallback flag is present, process has been completed
+        if (Game.flags[`${this.name}_fallback_${index}`]) { return true; }
 
         let observer = this.flag.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
         if (!observer) {
@@ -519,18 +514,18 @@ export class RaidOperation extends Operation {
             return false;
         }
 
-        observer.observeRoom(this.memory.attackRoomName, "raid", true);
-        if (!observer.observation || observer.observation.room.name !== this.memory.attackRoomName) {
+        observer.observeRoom(attackRoomName, "raid", true);
+        let attackRoom = Game.rooms[attackRoomName];
+        if (!attackRoom) {
             console.log(`RAID: ${this.name} automation incomplete, observation not loaded`);
             return false;
         }
 
-        let completed = this.placeFlags();
-        if (!completed) { return false; }
+        this.placeFlags(attackRoom, index);
     }
 
-    private placeFlags(): boolean {
-        let attackRoom = Game.rooms[this.memory.attackRoomName];
+    private placeFlags(attackRoom: Room, index: number) {
+
         let destination: Structure = attackRoom.storage;
         if (!destination) {
             destination = attackRoom.find<StructureSpawn>(FIND_HOSTILE_SPAWNS)[0];
@@ -550,13 +545,13 @@ export class RaidOperation extends Operation {
         for (let i = 0; i < ret.path.length; i++) {
             let position = ret.path[i];
             if (position.isNearExit(0)) { continue; }
-            if (position.roomName === this.memory.attackRoomName) {
+            if (position.roomName === attackRoom.name) {
                 stagingPosition = position;
                 for (let j = i; j >= 0; j--) {
                     position = ret.path[j];
                     if (position.isNearExit(1)) { continue; }
-                    if (position.roomName !== this.memory.attackRoomName) {
-                        this.placeRaidFlag(position, `${this.name}_fallback`, COLOR_GREY);
+                    if (position.roomName !== attackRoom.name) {
+                        this.placeRaidFlag(position, `${this.name}_fallback_${index}`, COLOR_GREY);
                         break;
                     }
                 }
@@ -564,7 +559,12 @@ export class RaidOperation extends Operation {
             }
         }
 
-        let complete = this.placeBreachFlags(stagingPosition, destination, attackRoom);
+        if (!stagingPosition) {
+            console.log(`RAID: unable to find a staging position to generate raid data`);
+            return;
+        }
+
+        let complete = this.placeBreachFlags(stagingPosition, destination, attackRoom, index);
         if (!complete) { return; }
 
         this.setDefaultBoostLevel(0);
@@ -572,7 +572,8 @@ export class RaidOperation extends Operation {
         this.setDefaultType("brawler");
     }
 
-    private placeBreachFlags(stagingPosition: RoomPosition, destination: Structure, attackRoom: Room): boolean {
+    private placeBreachFlags(stagingPosition: RoomPosition, destination: Structure, attackRoom: Room,
+                             index: number): boolean {
         let callback = (roomName: string): CostMatrix => {
             if (roomName !== attackRoom.name) { return; }
             let matrix = new PathFinder.CostMatrix();
@@ -600,18 +601,13 @@ export class RaidOperation extends Operation {
         let count = 0;
         for (let position of ret.path) {
             if (position.lookForStructure(STRUCTURE_WALL) || position.lookForStructure(STRUCTURE_RAMPART)) {
-                this.placeRaidFlag(position, `${this.name}_breach_${count}`, COLOR_GREY);
+                this.placeRaidFlag(position, `${this.name}_targets_${index}_${count}`, COLOR_GREY);
                 count++;
             }
         }
 
         if (count === 0) {
-            for (let position of ret.path) {
-                if (position.isNearExit(1)) { continue; }
-                console.log(`RAID: no walls found in ${this.name}, placing empty breach position`);
-                position.createFlag(`${this.name}_breach_${count}`);
-                break;
-            }
+            console.log(`RAID: no walls found in ${this.name}, no target flags placed`);
         }
 
         return true;
@@ -652,7 +648,87 @@ export class RaidOperation extends Operation {
             this.memory.waveComplete = true;
         }
         if (this.memory.waveComplete && spawnCount === 0) {
+
+            // handle wave delay
+            if (this.memory.waveDelay) {
+                if (!this.memory.nextWave) {
+                    this.memory.nextWave = Game.time + this.memory.waveDelay;
+                }
+                if (Game.time < this.memory.nextWave) {
+                    return;
+                }
+                delete this.memory.nextWave;
+            }
+
+            // reset wave
+            this.memory.attackRoomIndex = 0;
             this.memory.waveComplete = false;
+        }
+    }
+
+    private initGlobalConfig(): boolean {
+        if (this.memory.defaultBoostLevel === undefined) {
+            if (this.memory.manual) {
+                if (Game.time % 3 === 0) {
+                    console.log(`RAID: please set a default boostLevel, ex: ${this.name}.setDefaultBoostLevel(2)`);
+                }
+                return;
+            }
+
+            this.memory.defaultBoostLevel = 2;
+        }
+
+        if (this.memory.maxSquads === undefined) {
+            if (this.memory.manual) {
+                if (Game.time % 3 === 0) {
+                    console.log(`RAID: please set a default number of squads, 0 to stop spawning, ex: ${
+                        this.name}.setMaxSquads(1)`);
+                }
+                return;
+            }
+
+            this.memory.maxSquads = 1;
+        }
+
+        if (this.memory.defaultSquad === undefined) {
+            if (this.memory.manual) {
+                if (Game.time % 3 === 0) {
+                    console.log(`RAID: please set a default squad type, ex: ${this.name}.setDefaultType("wreck")`);
+                }
+                return;
+            }
+            this.memory.defaultSquad = "brawler";
+        }
+
+        return true;
+    }
+
+    private updateBugout() {
+        let buggingOut = this.detectBugoutConditions();
+        if (buggingOut) {
+            for (let agent of this.raidData.raidAgents) {
+                if (agent.room !== this.raidData.attackRoom) { continue; }
+                if (!agent.memory.waypointIndex) { continue; }
+                console.log(`decrementing index`);
+                agent.memory.waypointIndex--;
+                agent.memory.waypointsCovered = false;
+            }
+        }
+    }
+
+    private detectBugoutConditions() {
+        if (!this.raidData.attackRoom) { return; }
+        if (this.attackRoomCount < 2) { return; }
+        let threats = _.filter(this.raidData.attackRoom.hostiles,
+            c => (c.getActiveBodyparts(ATTACK) > 10 || c.getActiveBodyparts(RANGED_ATTACK) > 10)
+            && _.find(c.body, p => p.boost));
+        for (let threat of threats) {
+            console.log(`found a threat`);
+            if (threat.pos.findInRange(this.raidData.raidAgents, 10).length > 0 ) {
+                console.log(`bugging out!`);
+                this.memory.attackRoomIndex++;
+                return true;
+            }
         }
     }
 }
