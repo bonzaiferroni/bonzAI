@@ -9,6 +9,11 @@ import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {WorldMap} from "../WorldMap";
 import {empire} from "../Empire";
+
+/**
+ * Primary tool for raiding. See wiki for details: https://github.com/bonzaiferroni/bonzAI/wiki/Using-RaidOperation
+ */
+
 export class RaidOperation extends Operation {
 
     private squadTypes = {
@@ -23,7 +28,7 @@ export class RaidOperation extends Operation {
     private attackRoomCount: number;
 
     public memory: {
-        manual: true;
+        manual: boolean;
         squadCount: number;
         squadConfig: {[squadName: string]: SquadConfig };
         queue: {[squadName: string]: SquadConfig };
