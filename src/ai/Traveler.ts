@@ -57,9 +57,9 @@ interface CachedTravelData {
     tempDest: RoomPosition;
 }
 
-const REPORT_CPU_THRESHOLD = 2000;
+const REPORT_CPU_THRESHOLD = 500;
 const DEFAULT_MAXOPS = 20000;
-const DEFAULT_STUCK_VALUE = 5;
+const DEFAULT_STUCK_VALUE = 2;
 
 export class Traveler {
 
@@ -148,9 +148,9 @@ export class Traveler {
             options.range = 0;
         }
 
+        let roomDistance = Game.map.getRoomLinearDistance(origin.pos.roomName, destination.pos.roomName);
         let allowedRooms;
-        if (options.useFindRoute || (options.useFindRoute === undefined &&
-            Game.map.getRoomLinearDistance(origin.pos.roomName, destination.pos.roomName) > 2)) {
+        if (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2)) {
             allowedRooms = this.findRoute(origin.pos.roomName, destination.pos.roomName, options);
         }
 
@@ -160,7 +160,8 @@ export class Traveler {
                 if (!allowedRooms[roomName]) {
                     return false;
                 }
-            } else if (!options.allowHostile && Traveler.checkOccupied(roomName)) {
+            } else if (!options.allowHostile && Traveler.checkOccupied(roomName)
+                && roomName !== destination.pos.roomName && roomName !== origin.pos.roomName) {
                 return false;
             }
 
@@ -194,12 +195,21 @@ export class Traveler {
             return matrix;
         };
 
-        return PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
+        let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
             maxOps: options.maxOps,
             plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
         } );
+
+        if (ret.incomplete && roomDistance === 2 && !options.useFindRoute) {
+            console.log(`TRAVELER: path failed without findroute, trying with options.useFindRoute = true`);
+            console.log(`from: ${origin.pos}, destination: ${destination.pos}`);
+            options.useFindRoute = true;
+            return this.findTravelPath(origin, destination, options);
+        }
+
+        return ret;
     }
 
     public travelTo(creep: Creep, destination: {pos: RoomPosition} | RoomPosition,
