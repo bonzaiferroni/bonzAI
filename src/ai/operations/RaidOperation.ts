@@ -320,20 +320,6 @@ export class RaidOperation extends Operation {
         }
     }
 
-    private findBreachStructure(breachFlags: Flag[]): Structure[] {
-        let breachStructures: Structure[] = [];
-
-        for (let flag of breachFlags) {
-            if (!flag.room) { continue; }
-            let structures = flag.pos.lookFor<Structure>(LOOK_STRUCTURES);
-            if (structures.length > 0) {
-                breachStructures.push(structures[0]);
-            }
-        }
-
-        return breachStructures;
-    }
-
     public setMaxSquads(max: number) {
         let oldValue = this.memory.maxSquads;
         this.memory.maxSquads = max;
@@ -437,7 +423,9 @@ export class RaidOperation extends Operation {
         let nonRamparted = [];
         for (let structureType of attackOrder) {
             nonRamparted = nonRamparted.concat(_.filter(attackRoom.findStructures(structureType),
-                (s: Structure) => s.pos.lookForStructure(STRUCTURE_RAMPART) === undefined));
+                (s: Structure) => {
+                    return !s.pos.lookForStructure(STRUCTURE_RAMPART) && s.pos.lookFor(LOOK_FLAGS).length === 0;
+                }));
         }
 
         if (nonRamparted.length > 0) {
@@ -445,7 +433,8 @@ export class RaidOperation extends Operation {
         }
 
         for (let structureType of attackOrder) {
-            let structures = attackRoom.findStructures(structureType) as Structure[];
+            let structures = _.filter(attackRoom.findStructures<Structure>(structureType),
+                s => s.pos.lookFor(LOOK_FLAGS).length === 0);
             if (structures.length > 0) {
                 return structures;
             }

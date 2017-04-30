@@ -174,7 +174,7 @@ export abstract class RaidMission extends Mission {
         }
 
         if (!target) {
-            console.log(`couldn't find target!`);
+            console.log(`couldn't find target! ${this.raidData.attackRoom}`);
             return;
         }
 
@@ -518,6 +518,8 @@ export abstract class RaidMission extends Mission {
                 if (this.hasValidPath(this.attacker, target)) {
                     this.attacker.memory.structureTargetId = target.id;
                     return target;
+                } else {
+                    target.pos.createFlag(`exclude_${target.id}`);
                 }
                 if (Game.cpu.getUsed() > 450) { return; }
             }
