@@ -6,6 +6,7 @@ import {helper} from "../../helpers/helper";
 import {POWER_PROCESS_THRESHOLD, RESERVE_AMOUNT, PRODUCT_LIST, MINERALS_RAW} from "../TradeNetwork";
 import {Agent} from "./Agent";
 import {Scheduler} from "../../Scheduler";
+import {notifier} from "../../notifier";
 export class IgorMission extends Mission {
 
     private igors: Agent[];
@@ -604,6 +605,11 @@ export class IgorMission extends Mission {
         if (!passable) { return; }
 
         console.log(`IGOR: found a good idle position in ${this.operation.name}: ${bestPosition}`);
+        let road = bestPosition.lookForStructure(STRUCTURE_ROAD);
+        if (road) {
+            notifier.log(`IGOR: destroying road: ${this.room.name}, tick: ${Game.time}`);
+            road.destroy();
+        }
         return bestPosition;
     }
 
