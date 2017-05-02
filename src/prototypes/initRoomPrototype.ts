@@ -182,4 +182,21 @@ export function initRoomPrototype() {
             return Game.cache.lairThreats[this.name];
         }
     });
+
+    Room.prototype.serializePosition = function(position: {x: number, y: number, roomName: string}): number {
+        return position.x * 100 + position.y;
+    };
+
+    Room.prototype.deserializePosition = function(serializedPos: number): RoomPosition {
+        return new RoomPosition(Math.floor(serializedPos / 100), serializedPos % 100, this.name);
+    };
+
+    Room.prototype.serializePositionTest = function(position: {x: number, y: number, roomName: string}): string {
+        return String.fromCharCode(position.x * 100 + position.y);
+    };
+
+    Room.prototype.deserializePositionTest = function(serializedPos: string): RoomPosition {
+        let n = serializedPos.charCodeAt(0);
+        return new RoomPosition(Math.floor(n / 100), n % 100, this.name);
+    };
 }
