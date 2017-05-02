@@ -46,6 +46,10 @@ export class PowerMission extends Mission {
         if (this.memory.currentBank && !this.memory.currentBank.finishing && !this.memory.currentBank.assisting) {
             max = 1;
             distance = this.memory.currentBank.distance;
+            if (this.spawnGroup.averageAvailability > .5 && this.memory.currentBank.wavesLeft
+                && ! this.memory.currentBank.waveIncomplete) {
+                max = Math.min(this.memory.currentBank.wavesLeft, this.memory.currentBank.posCount);
+            }
         }
 
         this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25}), () => max, {
@@ -55,6 +59,16 @@ export class PowerMission extends Mission {
 
         this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}),
             () => this.bonnies.length);
+
+        if (this.spawnedThisTick("bonnie")) {
+            this.memory.currentBank.waveIncomplete = true;
+        }
+
+        if (this.spawnedThisTick("clyde")) {
+            this.memory.currentBank.waveIncomplete = false;
+            console.log("spawned another power team");
+            this.memory.currentBank.wavesLeft--;
+        }
 
         let unitsPerCart = 1;
         let maxCarts = 0;
@@ -360,18 +374,21 @@ export class PowerMission extends Mission {
         let room = Game.rooms[currentBank.pos.roomName];
         if (room) {
             let bank = room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
-            if (bank) {
-                currentBank.hits = bank.hits;
-                if (!currentBank.finishing && bank.hits < 500000) {
-                    let clyde = bank.pos.findInRange<Creep>(
-                        _.filter(room.find<Creep>(FIND_MY_CREEPS), (c: Creep) => c.partCount(ATTACK) === 20), 1)[0];
-                    if (clyde && bank.hits < clyde.ticksToLive * 600) {
-                        console.log(`POWER: last wave needed for bank has arrived, ${this.operation.name}`);
-                        currentBank.finishing = true;
-                    }
-                }
-            } else {
+            if (!bank) {
                 this.memory.currentBank = undefined;
+                return;
+            }
+
+            if (!currentBank.finishing && Math.random() < .2) {
+                let creeps = bank.pos.findInRange<Creep>(FIND_CREEPS, 1);
+                let expectedDamage = 0;
+                for (let creep of creeps) {
+                    expectedDamage += creep.ticksToLive * creep.getActiveBodyparts(ATTACK) * 30;
+                }
+                if (expectedDamage > bank.hits) {
+                    console.log(`POWER: last wave needed for bank has arrived, ${this.operation.name}`);
+                    currentBank.finishing = true;
+                }
             }
         }
         if (Game.time > currentBank.timeout) {
@@ -395,6 +412,8 @@ export class PowerMission extends Mission {
                     power: bank.power,
                     distance: Memory.powerObservers[this.room.name][room.name],
                     timeout: Game.time + bank.ticksToDecay,
+                    posCount: bank.pos.openAdjacentSpots(true).length,
+                    wavesLeft: 3,
                 };
                 return;
             }
