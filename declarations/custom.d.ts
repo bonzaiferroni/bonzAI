@@ -15,6 +15,7 @@ interface Game {
         bypassCount: number;
     };
     operations: {[opName: string]: any };
+    temp: any;
 }
 
 interface Room {
@@ -30,6 +31,10 @@ interface Room {
     defaultMatrix: CostMatrix;
     structures: {[structureType: string]: Structure[] };
     memory: RoomMemory;
+    serializePosition(position: {x: number, y: number, roomName: string}): number;
+    deserializePosition(serializedPosition: number): RoomPosition;
+    serializePositionTest(position: {x: number, y: number, roomName: string}): string;
+    deserializePositionTest(serializedPosition: string): RoomPosition;
 }
 
 interface RoomMemory {
