@@ -223,6 +223,8 @@ export class TradeNetwork {
     }
 
     private acceptableDistance(resourceType: string, surplus: StructureTerminal): number {
+        return Number.MAX_VALUE; // trade distance temporarily disabled
+        /*
         if (IGNORE_TRADE_DISTANCE[resourceType]) {
             return Number.MAX_VALUE;
         } else if (resourceType === RESOURCE_ENERGY) {
@@ -238,6 +240,7 @@ export class TradeNetwork {
                 return TRADE_DISTANCE;
             }
         }
+        */
     }
 
     private sendResource(localTerminal: StructureTerminal, resourceType: string, amount: number,
@@ -255,13 +258,15 @@ export class TradeNetwork {
     }
 
     public static canTrade(room: Room) {
+        // partner trading temporarily disabled for screeps warfare championships
         return room.controller && room.controller.level >= 6 && room.storage && room.terminal
-            && (!room.controller.sign || room.controller.sign.text !== "noTrade");
+            && (!room.controller.sign || room.controller.sign.text !== "noTrade") && room.controller.my;
     }
 
     public reportTransactions() {
 
-        if (Game.time % 10 !== 0) { return; }
+        const delay = 10;
+        if (Game.time % delay !== 0) { return; }
 
         let kFormatter = (num: number) => {
             return num > 999 ? (num / 1000).toFixed(1) + "k" : num;
@@ -280,7 +285,7 @@ export class TradeNetwork {
 
         for (let item of Game.market.incomingTransactions) {
             if (!item.sender) { continue; }
-            if (item.time >= Game.time - 10) {
+            if (item.time >= Game.time - delay) {
                 let username = item.sender.username;
                 if (!username) { username = "npc"; }
                 if (!Memory.traders[username]) { Memory.traders[username] = {}; }
@@ -297,7 +302,7 @@ export class TradeNetwork {
 
         for (let item of Game.market.outgoingTransactions) {
             if (!item.recipient) { continue; }
-            if (item.time >= Game.time - 10) {
+            if (item.time >= Game.time - delay) {
                 let username = item.recipient.username;
                 if (!username) { username = "npc"; }
                 if (!Memory.traders[username]) { Memory.traders[username] = {}; }
