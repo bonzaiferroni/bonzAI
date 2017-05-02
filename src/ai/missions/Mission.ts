@@ -24,6 +24,8 @@ export abstract class Mission {
     public partnerPairing: {[role: string]: Agent[]} = {};
     public distanceToSpawn: number;
 
+    private _spawnedThisTick: string[] = [];
+
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.name = name;
         this.flag = operation.flag;
@@ -136,10 +138,17 @@ export abstract class Mission {
         if (allowSpawn && count < getMax()) {
             let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
             let outcome = spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
-            if (_.isString(outcome)) { creepNames.push(creepName); }
+            if (_.isString(outcome)) {
+                this._spawnedThisTick.push(roleName);
+                creepNames.push(creepName);
+            }
         }
 
         return agentArray;
+    }
+
+    protected spawnedThisTick(roleName: string) {
+        return _.includes(this._spawnedThisTick, roleName);
     }
 
     protected roleCount(roleName: string): number {
@@ -224,7 +233,7 @@ export abstract class Mission {
      * @param limit - set a limit to the number of units (useful if you know the exact limit, like with miners)
      * @returns {string[]}
      */
-    protected bodyRatio(workRatio: number, carryRatio: number, moveRatio: number, spawnFraction: number,
+    protected bodyRatio(workRatio: number, carryRatio: number, moveRatio: number, spawnFraction = 1,
                         limit?: number): string[] {
         let sum = workRatio * 100 + carryRatio * 50 + moveRatio * 50;
         let partsPerUnit = workRatio + carryRatio + moveRatio;
