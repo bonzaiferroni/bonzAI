@@ -298,8 +298,7 @@ declare var NUKE_LAND_TIME: number;
 declare var NUKE_RANGE: number;
 declare var NUKE_DAMAGE: {
     0: number;
-    1: number;
-    4: number;
+    2: number;
 };
 declare var REACTIONS: {
     H: {
