@@ -214,6 +214,16 @@ export var helper = {
             (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE))
     },
 
+    towerDamageAtPosition(position: RoomPosition, towers: Tower[]): number {
+        if (towers.length === 0) { return 0; }
+        let expectedDamage = 0;
+        for (let tower of towers) {
+            let range = position.getRangeTo(tower);
+            expectedDamage += helper.towerDamageAtRange(range);
+        }
+        return expectedDamage;
+    },
+
     permutator(inputArr): number[][] {
         let result = [];
 
