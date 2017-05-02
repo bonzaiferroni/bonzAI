@@ -25,6 +25,7 @@ export class DefenseMission extends Mission {
     private jonRamparts: Structure[];
 
     private enemySquads = [];
+    private vulnerableCreep: Creep;
 
     public memory: {
         idlePosition: RoomPosition;
@@ -35,6 +36,12 @@ export class DefenseMission extends Mission {
         preSpawn: boolean
         lastCheckedTowers: number;
         loggedAttack: boolean;
+        vulnerableIndex: number;
+        targetIds: string[];
+        targetHits: number;
+        hitCount: number;
+        healerTargetIndex: number;
+        towerDrainDelay: number;
     };
 
     constructor(operation: Operation) {
@@ -85,7 +92,6 @@ export class DefenseMission extends Mission {
     }
 
     public missionActions() {
-
         let order = 0;
         for (let defender of this.defenders) {
             this.defenderActions(defender, order);
@@ -152,13 +158,7 @@ export class DefenseMission extends Mission {
     }
 
     private defenderActions(defender: Agent, order: number) {
-        if (this.enemySquads.length === 0) {
-            defender.idleOffRoad();
-            defender.say("none :(");
-            return; // early
-        }
 
-        // movement
         let dangerZone = false;
         if (this.memory.unleash) {
             let closest = defender.pos.findClosestByRange(this.room.hostiles);
@@ -169,39 +169,45 @@ export class DefenseMission extends Mission {
             } else {
                 let outcome = defender.travelTo(closest);
             }
+        }
+
+        if (this.enemySquads.length === 0) {
+            defender.idleOffRoad();
+            defender.say("none :(");
+            return; // early
+        }
+
+        // movement
+        let target = defender.pos.findClosestByRange(this.enemySquads[order % this.enemySquads.length]) as Creep;
+        if (!target) {
+            console.log("no target");
+            return;
+        }
+
+        let closestRampart = target.pos.findClosestByRange(this.jonRamparts) as Structure;
+        if (closestRampart) {
+            let currentRampart = defender.pos.lookForStructure(STRUCTURE_RAMPART) as Structure;
+            if (currentRampart && currentRampart.pos.getRangeTo(target) <= closestRampart.pos.getRangeTo(target)) {
+                closestRampart = currentRampart;
+            }
+            _.pull(this.jonRamparts, closestRampart);
+            defender.travelTo(closestRampart, { roomCallback: this.preferRamparts });
         } else {
+            defender.idleOffRoad(this.flag);
+        }
 
-            let target = defender.pos.findClosestByRange(this.enemySquads[order % this.enemySquads.length]) as Creep;
-            if (!target) {
-                console.log("no target");
-                return;
-            }
-
-            let closestRampart = target.pos.findClosestByRange(this.jonRamparts) as Structure;
-            if (closestRampart) {
-                let currentRampart = defender.pos.lookForStructure(STRUCTURE_RAMPART) as Structure;
-                if (currentRampart && currentRampart.pos.getRangeTo(target) <= closestRampart.pos.getRangeTo(target)) {
-                    closestRampart = currentRampart;
+        // attack
+        if (defender.pos.isNearTo(target)) {
+            if (defender.attack(target) === OK) {
+                if (!this.attackedCreep || target.hits < this.attackedCreep.hits) {
+                    this.attackedCreep = this.closestHostile;
                 }
-                _.pull(this.jonRamparts, closestRampart);
-                defender.travelTo(closestRampart, { roomCallback: this.preferRamparts });
-            } else {
-                defender.idleOffRoad(this.flag);
             }
-
-            // attack
-            if (defender.pos.isNearTo(target)) {
-                 if (defender.attack(target) === OK) {
-                     if (!this.attackedCreep || target.hits < this.attackedCreep.hits) {
-                         this.attackedCreep = this.closestHostile;
-                     }
-                 }
-            } else {
-                let closeCreep = defender.pos.findInRange(this.room.hostiles, 1)[0] as Creep;
-                if (closeCreep) {
-                    if (defender.attack(closeCreep) === OK) {
-                        this.attackedCreep = closeCreep;
-                    }
+        } else {
+            let closeCreep = defender.pos.findInRange(this.room.hostiles, 1)[0] as Creep;
+            if (closeCreep) {
+                if (defender.attack(closeCreep) === OK) {
+                    this.attackedCreep = closeCreep;
                 }
             }
         }
@@ -214,15 +220,31 @@ export class DefenseMission extends Mission {
 
     private towerTargeting(towers: StructureTower[]) {
         if (!towers || towers.length === 0) { return; }
+        if (this.likelyTowerDrainAttempt) { return; }
 
-        for (let tower of this.towers) {
+        // reini targeting works most of the time
+        let targets = this.reiniTargeting();
+        if (!targets || targets.length === 0) { return; }
+        for (let i = 0; i < towers.length; i++) {
+            let target = targets[i % targets.length];
+            let tower = towers[i];
 
-            let target = this.closestHostile;
-
-            // kill jon snows target
-            if (this.attackedCreep) {
-                target = this.attackedCreep;
+            // kill npcs or just very damn close creeps
+            if (!this.playerThreat) {
+                target = this.closestHostile;
             }
+
+            // kill vulnerable creeps (have no healer) if not too far away
+            if (this.vulnerableCreep) {
+                target = this.vulnerableCreep;
+            }
+
+            /*
+             // kill jon snows target
+             if (this.attackedCreep) {
+             target = this.attackedCreep;
+             }
+             */
 
             // healing as needed
             if (this.healedDefender) {
@@ -233,6 +255,30 @@ export class DefenseMission extends Mission {
             tower.attack(target);
         }
     }
+
+    /*
+     private towerTargeting(towers: StructureTower[]) {
+     if (!towers || towers.length === 0) { return; }
+
+     for (let tower of this.towers) {
+
+     let target = this.closestHostile;
+
+     // kill jon snows target
+     if (this.attackedCreep) {
+     target = this.attackedCreep;
+     }
+
+     // healing as needed
+     if (this.healedDefender) {
+     tower.heal(this.healedDefender.creep);
+     }
+
+     // the rest attack
+     tower.attack(target);
+     }
+     }
+     */
 
     private triggerSafeMode() {
         if (this.playerThreat && !this.memory.disableSafeMode) {
@@ -290,7 +336,7 @@ export class DefenseMission extends Mission {
 
         let playerCreeps = this.findPlayerCreeps();
 
-        this.playerThreat = playerCreeps.length > 1 || this.memory.preSpawn;
+        this.playerThreat = playerCreeps.length > 0 || this.memory.preSpawn;
 
         // notifier reporting
         this.updateAttackLog(playerCreeps);
@@ -299,6 +345,7 @@ export class DefenseMission extends Mission {
             if (!Memory.roomAttacks) { Memory.roomAttacks = {}; }
             Memory.roomAttacks[playerCreeps[0].owner.username] = Game.time;
 
+            // console report
             if (Game.time % 10 === 5) {
                 console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " +
                     this.flag.pos.roomName);
@@ -312,12 +359,13 @@ export class DefenseMission extends Mission {
                 }
             }
 
-            this.likelyTowerDrainAttempt = this.attackers.length === 0;
+            this.likelyTowerDrainAttempt = this.isTowerDrain();
             this.openRamparts = this.findOpenRamparts();
             this.jonRamparts = this.openRamparts.slice(0);
 
             // find squads
             this.updateEnemySquads();
+            this.updateVulnerableCreep();
 
             this.enhancedBoost = this.room.terminal &&
                 this.room.terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE] > 1000;
@@ -327,8 +375,8 @@ export class DefenseMission extends Mission {
     private findOpenRamparts() {
         return _.filter(this.room.findStructures(STRUCTURE_RAMPART), (r: Structure) => {
             return _.filter(r.pos.lookFor(LOOK_STRUCTURES), (s: Structure) => {
-                return s.structureType !== STRUCTURE_ROAD;
-            }).length === 1;
+                    return s.structureType !== STRUCTURE_ROAD;
+                }).length === 1;
         }) as Structure[];
     }
 
@@ -356,7 +404,7 @@ export class DefenseMission extends Mission {
 
     private findPlayerCreeps(): Creep[] {
         return _.filter(this.room.hostiles, (c: Creep) => {
-            return c.owner.username !== "Invader" && c.body.length >= 40 &&
+            return c.owner.username !== "Invader" && c.body.length >= 30 &&
                 _.filter(c.body, part => part.boost).length > 0;
         }) as Creep[];
     }
@@ -366,6 +414,106 @@ export class DefenseMission extends Mission {
         let nukes = this.room.find(FIND_NUKES) as Nuke[];
         for (let nuke of nukes) {
             console.log(`DEFENSE: nuke landing at ${this.operation.name} in ${nuke.timeToLand}`);
+        }
+    }
+
+    private updateVulnerableCreep() {
+        let attackersInRange = this.towers[0].pos.findInRange(this.attackers, 20);
+        if (attackersInRange.length === 0) { return; }
+
+        if (this.memory.vulnerableIndex === undefined || this.memory.vulnerableIndex >= attackersInRange.length ) {
+            this.memory.vulnerableIndex = 0;
+        }
+
+        let analyzedCreep = attackersInRange[this.memory.vulnerableIndex];
+
+        let rangeToHealer = 0;
+        let closestHealer = analyzedCreep.pos.findClosestByRange(this.healers) as Creep;
+        if (closestHealer) {
+            rangeToHealer = analyzedCreep.pos.getRangeTo(closestHealer);
+        }
+
+        if (rangeToHealer > 2) {
+            // focus on this creep while conditions are met
+            this.vulnerableCreep = analyzedCreep;
+        } else {
+            // look for another creep next tick
+            this.memory.vulnerableIndex++;
+        }
+    }
+
+    private reiniTargeting() {
+        if (this.memory.targetIds) {
+            let targets = [];
+            for (let id of this.memory.targetIds) {
+                let target = Game.getObjectById(id) as Creep;
+                if (target && target.room === this.room) {
+                    targets.push(target);
+                }
+            }
+            if (targets.length === 0) {
+                this.memory.targetIds = undefined;
+                this.memory.targetHits = undefined;
+                this.memory.hitCount = undefined;
+                return this.reiniTargeting();
+            }
+            if (targets.length === 1) {
+                let target = targets[0];
+                if (target.hits >= this.memory.targetHits && this.memory.hitCount === 0) {
+                    this.memory.targetIds = undefined;
+                    this.memory.targetHits = undefined;
+                    this.memory.hitCount = undefined;
+                    return this.reiniTargeting();
+                }
+                if (!this.memory.hitCount) { this.memory.hitCount = 3; }
+                this.memory.hitCount--;
+                this.memory.targetHits = target.hits;
+            } else {
+                this.memory.targetIds = _(this.memory.targetIds)
+                    .shuffle()
+                    .take(Math.ceil(this.memory.targetIds.length / 2))
+                    .value();
+            }
+            return targets;
+        } else {
+            if (this.room.hostiles.length > 0) {
+
+                let targets = this.healerTargeting();
+                if (!targets) {
+                    targets = this.room.hostiles;
+                }
+
+                this.memory.targetIds = _(targets)
+                    .sortBy((c: Creep) => this.towers[0].pos.getRangeTo(c))
+                    .take(this.towers.length)
+                    .map((c: Creep) => c.id)
+                    .value();
+                return this.reiniTargeting();
+            }
+        }
+    }
+
+    private healerTargeting(): Creep[] {
+        try {
+            let nearbyHealers = this.towers[0].pos.findInRange(this.healers, 10);
+            if (nearbyHealers.length === 0) { return; }
+            if (this.memory.healerTargetIndex >= nearbyHealers.length) {
+                this.memory.healerTargetIndex = 0;
+            }
+
+            return nearbyHealers[this.memory.healerTargetIndex++].pos.findInRange(this.room.hostiles, 3);
+        } catch (e) {
+            console.log(`error in healerTargeting`);
+        }
+    }
+
+    private isTowerDrain() {
+        if (this.attackers.length > 0) { return false; }
+        if (Game.time < this.memory.towerDrainDelay) { return true; }
+        for (let creep of this.healers) {
+            if (this.towers[0].pos.getRangeTo(creep) > 20) { continue; }
+            this.memory.towerDrainDelay = Game.time + 20;
+            return true;
         }
     }
 }
