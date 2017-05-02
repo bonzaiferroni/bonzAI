@@ -25,6 +25,7 @@ export class Agent {
     public fatigue: number;
     public spawning: boolean;
     public memory: any;
+    private cache: any;
 
     constructor(creep: Creep, mission: Mission) {
         this.creep = creep;
@@ -42,6 +43,7 @@ export class Agent {
         this.id = creep.id;
         this.fatigue = creep.fatigue;
         this.spawning = creep.spawning;
+        this.cache = {};
     }
 
     public attack(target: Creep|Structure): number { return this.creep.attack(target); }
@@ -833,7 +835,7 @@ export class Agent {
 
         if (leader.room !== follower.room) {
             if (leader.pos.isNearExit(0)) {
-                leader.travelTo(target);
+                leader.travelTo(target, options);
             }
             follower.travelTo(leader);
             return;
@@ -910,27 +912,6 @@ export class Agent {
         }
     }
 
-    public moveOffExit(): number {
-        let swampDirection;
-        for (let direction = 1; direction < 8; direction++) {
-            let position = this.pos.getPositionAtDirection(direction);
-            if (position.isNearExit(0)) { continue; }
-            if (!position.isPassible()) { continue; }
-            let terrain = position.lookFor(LOOK_TERRAIN)[0];
-            if (terrain === "swamp") {
-                swampDirection = direction;
-                continue;
-            }
-            return this.move(direction);
-        }
-
-        if (swampDirection) {
-            return this.move(swampDirection);
-        }
-
-        return ERR_NO_PATH;
-    }
-
     private arrivedAtPosition(position: RoomPosition) {
         if (this.pos.getRangeTo(position) === 0) {
             return true;
@@ -962,5 +943,73 @@ export class Agent {
         } else {
             this.travelTo(destination, options);
         }
+    }
+
+    public get shield(): number {
+        if (this.cache.shield !== undefined) { return this.cache.shield; }
+
+        let shield = 0;
+        for (let part of this.creep.body) {
+            if (part.type !== TOUGH) { continue; }
+            if (part.boost) {
+                shield += part.hits / BOOSTS[TOUGH][part.boost].damage;
+            } else {
+                shield += part.hits;
+            }
+        }
+
+        this.cache.shield = shield;
+        return shield;
+    }
+
+    public get rangeToEdge(): number {
+        if (this.cache.rangeToEdge !== undefined) { return this.cache.rangeToEdge; }
+
+        let range = Math.min(this.pos.x, this.pos.y, 49 - this.pos.x, 49 - this.pos.y);
+
+        this.cache.rangeToEdge = range;
+        return range;
+    }
+
+    /**
+     * Assumes creep is near exit tile. Moves on to that tile, prefering a perpendicular direction
+     */
+
+    public moveOnExit() {
+        if (this.rangeToEdge === 0) { return; }
+        if (this.fatigue > 0) { return; }
+        let directions = [1, 3, 5, 7, 2, 4, 6, 8];
+        for (let direction of directions) {
+            let position = this.pos.getPositionAtDirection(direction);
+            // TODO: needs to handle wall
+            if (position.isNearExit(0)) {
+                return this.move(direction);
+            }
+        }
+        console.log(`AGENT: moveOnExit() assumes nearby exit tile, position: ${this.pos}`);
+        return ERR_NO_PATH;
+    }
+
+    public moveOffExit(avoidSwamp = true): number {
+        let swampDirection;
+
+        let directions = [1, 3, 5, 7, 2, 4, 6, 8];
+        for (let direction of directions) {
+            let position = this.pos.getPositionAtDirection(direction);
+            if (position.isNearExit(0)) { continue; }
+            if (!position.isPassible()) { continue; }
+            let terrain = position.lookFor(LOOK_TERRAIN)[0];
+            if (avoidSwamp && terrain === "swamp") {
+                swampDirection = direction;
+                continue;
+            }
+            return this.move(direction);
+        }
+
+        if (swampDirection) {
+            return this.move(swampDirection);
+        }
+
+        return ERR_NO_PATH;
     }
 }
