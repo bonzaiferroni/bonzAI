@@ -11,7 +11,6 @@ export interface TravelData {
     dest: RoomPosition;
     prev: RoomPosition;
     path: string;
-    tick: number;
     cpu: number;
     count: number;
 }
@@ -57,7 +56,7 @@ interface CachedTravelData {
     tempDest: RoomPosition;
 }
 
-const REPORT_CPU_THRESHOLD = 500;
+const REPORT_CPU_THRESHOLD = 1000;
 const DEFAULT_MAXOPS = 20000;
 const DEFAULT_STUCK_VALUE = 2;
 
@@ -231,12 +230,11 @@ export class Traveler {
 
         // initialize data object
         if (!creep.memory._travel) {
-            creep.memory._travel = {stuck: 0, tick: Game.time, cpu: 0, count: 0} as TravelData;
+            creep.memory._travel = {stuck: 0, cpu: 0, count: 0} as TravelData;
         }
         let travelData: TravelData = creep.memory._travel;
 
         if (creep.fatigue > 0) {
-            travelData.tick = Game.time;
             return ERR_BUSY;
         }
 
@@ -257,11 +255,9 @@ export class Traveler {
         }
 
         // check if creep is stuck
-        let hasMoved = true;
         if (travelData.prev) {
             travelData.prev = Traveler.initPosition(travelData.prev);
             if (creep.pos.inRangeTo(travelData.prev, 0)) {
-                hasMoved = false;
                 travelData.stuck++;
             } else {
                 travelData.stuck = 0;
@@ -276,11 +272,7 @@ export class Traveler {
             delete travelData.path;
         }
 
-        // handle case where creep wasn't traveling last tick and may have moved, but destination is still the same
-        if (Game.time - travelData.tick > 1 && hasMoved) {
-            delete travelData.path;
-        }
-        travelData.tick = Game.time;
+        // TODO:handle case where creep wasn't traveling last tick and may have moved, but destination is still the same
 
         // delete path cache if destination is different
         if (!travelData.dest || travelData.dest.x !== destination.pos.x || travelData.dest.y !== destination.pos.y ||
