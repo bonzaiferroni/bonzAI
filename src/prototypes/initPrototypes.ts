@@ -17,7 +17,7 @@ export function initPrototypes() {
      * @returns Structure[]
      */
     RoomObject.prototype.findMemoStructure = function<T>(structureType: string, range: number, immediate = false): T {
-        if (!this.room.memory[structureType]) this.room.memory[structureType] = {};
+        if (!this.room.memory[structureType]) { this.room.memory[structureType] = {}; }
         if (this.room.memory[structureType][this.id]) {
             let structure = Game.getObjectById(this.room.memory[structureType][this.id]);
             if (structure) {
@@ -39,9 +39,11 @@ export function initPrototypes() {
      * Looks for structure to be used as an energy holder for upgraders
      * @returns { StructureLink | StructureStorage | StructureContainer }
      */
-    StructureController.prototype.getBattery = function (structureType?: string): StructureLink | StructureStorage | StructureContainer {
+    StructureController.prototype.getBattery = function (
+        structureType?: string): StructureLink | StructureStorage | StructureContainer {
         if (this.room.memory.controllerBatteryId) {
-            let batt = Game.getObjectById(this.room.memory.controllerBatteryId) as StructureLink | StructureStorage | StructureContainer;
+            let batt = Game.getObjectById(this.room.memory.controllerBatteryId) as
+                StructureLink | StructureStorage | StructureContainer;
             if (batt) {
                 return batt;
             } else {
@@ -74,8 +76,7 @@ export function initPrototypes() {
     StructureController.prototype.getUpgraderPositions = function(): RoomPosition[] {
         if (this.upgraderPositions) {
             return this.upgraderPositions;
-        }
-        else {
+        } else {
             if (this.room.memory.upgraderPositions && Math.random() > .001) {
                 this.upgraderPositions = [];
                 for (let position of this.room.memory.upgraderPositions) {
@@ -91,7 +92,7 @@ export function initPrototypes() {
                 for (let i = 1; i <= 8; i++) {
                     let position = battery.pos.getPositionAtDirection(i);
                     if (!position.isPassible(true) || !position.inRangeTo(controller, 3)
-                        || position.lookFor(LOOK_STRUCTURES).length > 0) continue;
+                        || position.lookFor(LOOK_STRUCTURES).length > 0) { continue; }
                     positions.push(position);
                 }
                 this.room.memory.upgraderPositions = positions;
@@ -102,9 +103,10 @@ export function initPrototypes() {
 
     StructureObserver.prototype._observeRoom = StructureObserver.prototype.observeRoom;
 
-    StructureObserver.prototype.observeRoom = function(roomName: string, purpose = "unknown", override = false): number {
+    StructureObserver.prototype.observeRoom = function(roomName: string, purpose = "unknown",
+                                                       override = false): number {
         let makeObservation = (observation: Observation): number => {
-            this.observation; // load the current observation before overwriting
+            if (this.observation) { } // load the current observation before overwriting
             this.room.memory.observation = observation;
             this.alreadyObserved = true;
             return this._observeRoom(observation.roomName);
@@ -112,17 +114,15 @@ export function initPrototypes() {
 
         if (override) {
             return makeObservation({roomName: roomName, purpose: purpose});
-        }
-        else {
-            if (!this.room.memory.obsQueue) this.room.memory.obsQueue = [];
+        } else {
+            if (!this.room.memory.obsQueue) { this.room.memory.obsQueue = []; };
             let queue = this.room.memory.obsQueue as Observation[];
             if (!_.find(queue, (item) => item.purpose === purpose)) {
                 queue.push({purpose: purpose, roomName: roomName});
             }
             if (!this.alreadyObserved) {
                 return makeObservation(queue.shift());
-            }
-            else {
+            } else {
                 return OK;
             }
         }
@@ -137,23 +137,22 @@ export function initPrototypes() {
                     if (room) {
                         observation.room = room;
                         this._observation = observation;
-                    }
-                    else {
+                    } else {
                         // console.log("bad observation:", JSON.stringify(observation));
                     }
                 }
             }
             return this._observation;
-        }
+        },
     });
 
     StructureTerminal.prototype._send = StructureTerminal.prototype.send;
 
-    StructureTerminal.prototype.send = function(resourceType: string, amount: number, roomName: string, description?: string) {
+    StructureTerminal.prototype.send = function(resourceType: string, amount: number, roomName: string,
+                                                description?: string) {
         if (this.alreadySent) {
             return ERR_BUSY;
-        }
-        else {
+        } else {
             this.alreadySent = true;
             return this._send(resourceType, amount, roomName, description);
         }
@@ -164,8 +163,7 @@ export function initPrototypes() {
         if (!this.alreadyFired) {
             this.alreadyFired = true;
             return this._repair(target);
-        }
-        else {
+        } else {
             return ERR_BUSY;
         }
     };
@@ -181,14 +179,15 @@ export function initPrototypes() {
     };
 
     /**
-     * General-purpose cpu-efficient movement function that uses ignoreCreeps: true, a high reusePath value and stuck-detection
+     * General-purpose cpu-efficient movement function that uses ignoreCreeps: true, a high reusePath value and
+     * stuck-detection
      * @param destination
      * @param ops - pathfinding ops, ignoreCreeps and reusePath will be overwritten
      * @param dareDevil
      * @returns {number} - Error code
      */
-    Creep.prototype.blindMoveTo = function(destination: RoomPosition | {pos: RoomPosition}, ops?: any, dareDevil = false): number {
-
+    Creep.prototype.blindMoveTo = function(destination: RoomPosition | {pos: RoomPosition}, ops?: any,
+                                           dareDevil = false): number {
         if (this.spawning) {
             return 0;
         }
@@ -207,7 +206,7 @@ export function initPrototypes() {
 
         // check if trying to move last tick
         let movingLastTick = true;
-        if (!this.memory.lastTickMoving) this.memory.lastTickMoving = 0;
+        if (!this.memory.lastTickMoving) { this.memory.lastTickMoving = 0; }
         if (Game.time - this.memory.lastTickMoving > 1) {
             movingLastTick = false;
         }
@@ -217,12 +216,11 @@ export function initPrototypes() {
         let stuck = this.pos.inRangeTo(this.memory.position.x, this.memory.position.y, 0);
         this.memory.position = this.pos;
         if (stuck && movingLastTick) {
-            if (!this.memory.stuckCount) this.memory.stuckCount = 0;
+            if (!this.memory.stuckCount) { this.memory.stuckCount = 0; }
             this.memory.stuckCount++;
             if (dareDevil && this.memory.stuckCount > 0) {
                 this.memory.detourTicks = 5;
-            }
-            else if (this.memory.stuckCount >= 2) {
+            } else if (this.memory.stuckCount >= 2) {
                 this.memory.detourTicks = 5;
                 // this.say("excuse me", true);
             }
@@ -230,8 +228,7 @@ export function initPrototypes() {
                 console.log(this.name, "is stuck at", this.pos, "stuckCount:", this.memory.stuckCount);
                 this.memory.stuckNoted = true;
             }
-        }
-        else {
+        } else {
             this.memory.stuckCount = 0;
         }
 
@@ -239,13 +236,11 @@ export function initPrototypes() {
             this.memory.detourTicks--;
             if (dareDevil) {
                 ops.reusePath = 0;
-            }
-            else {
+            } else {
                 ops.reusePath = 5;
             }
             return this.moveTo(destination, ops);
-        }
-        else {
+        } else {
             ops.reusePath = 50;
             ops.ignoreCreeps = true;
             return this.moveTo(destination, ops);

@@ -130,7 +130,7 @@ export class EnhancedBodyguardMission extends Mission {
             if (attacker.room.name !== this.spawnGroup.pos.roomName || attacker.pos.isNearExit(0)) {
                 attacker.travelTo(this.spawnGroup);
             } else {
-                attacker.idleOffRoad(this.spawnGroup);
+                attacker.idleOffRoad(this.flag.room.controller);
             }
             return;
         }

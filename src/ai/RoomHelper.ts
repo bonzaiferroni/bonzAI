@@ -1,14 +1,15 @@
 import {empire} from "./Empire";
 export interface FindClosestOptions {
-    linearDistanceLimit?: number,
-    opsLimit?: number,
-    margin?: number,
-    byRoute?: boolean,
+    linearDistanceLimit?: number;
+    opsLimit?: number;
+    margin?: number;
+    byRoute?: boolean;
 }
 
 export class RoomHelper {
-    public static findClosest<T extends {pos: RoomPosition}>(origin: {pos: RoomPosition}, destinations: T[],
-                              options: FindClosestOptions = {}): {destination: T, distance: number}[] {
+    public static findClosest<T extends {pos: RoomPosition}>(
+        origin: {pos: RoomPosition}, destinations: T[],
+        options: FindClosestOptions = {}): {destination: T, distance: number}[] {
 
         if (options.linearDistanceLimit === undefined) {
             options.linearDistanceLimit = 16; // pathfinder room search limit
@@ -21,8 +22,10 @@ export class RoomHelper {
         let totalCPU = Game.cpu.getUsed();
 
         let filtered = _(destinations)
-            .filter( dest => Game.map.getRoomLinearDistance(origin.pos.roomName, dest.pos.roomName) <= options.linearDistanceLimit)
-            .sortBy( dest => Game.map.getRoomLinearDistance(origin.pos.roomName, dest.pos.roomName))
+            .filter( dest => Game.map.getRoomLinearDistance(origin.pos.roomName,
+                dest.pos.roomName) <= options.linearDistanceLimit)
+            .sortBy( dest => Game.map.getRoomLinearDistance(origin.pos.roomName,
+                dest.pos.roomName))
             .value();
 
         let bestDestinations: {destination: T, distance: number}[] = [];
@@ -35,15 +38,10 @@ export class RoomHelper {
             }
 
             let distance;
-            if (options.byRoute) {
-                let route = empire.traveler.findRoute(origin.pos.roomName, dest.pos.roomName);
-                if (!route) { continue; }
-                distance = Object.keys(route).length;
-            } else {
-                let ret = empire.traveler.findTravelPath(origin, dest, {maxOps: options.opsLimit});
-                if (ret.incomplete) { continue; }
-                distance = ret.path.length;
-            }
+            let ret = empire.traveler.findTravelPath(origin, dest,
+                {maxOps: options.opsLimit, useFindRoute: options.byRoute});
+            if (ret.incomplete) { continue; }
+            distance = ret.path.length;
 
             if (distance < bestDistance) {
                 bestLinearDistance = linearDistance;

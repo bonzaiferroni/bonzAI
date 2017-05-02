@@ -12,6 +12,7 @@ export class HostileAgent {
     public memory: HostileMemory;
 
     public potentials: {[partType: string]: number};
+    private cache: any;
 
     constructor(creep: Creep) {
         this.creep = creep;
@@ -23,21 +24,25 @@ export class HostileAgent {
         this.name = creep.name;
         this.id = creep.id;
         this.fatigue = creep.fatigue;
+        this.cache = {};
 
         if (!Memory.hostileMemory[creep.id]) { Memory.hostileMemory[creep.id] = {} as HostileMemory; }
         this.memory = Memory.hostileMemory[creep.id];
 
-        if (!this.memory.potentials) { this.memory.potentials = this.findPotentials(); }
-        this.potentials = this.memory.potentials;
+        this.potentials = this.findPotentials();
     }
     public getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }
     public expectedDamage(place: {pos: RoomPosition}): number {
-        let damage = 0;
         let range = this.pos.getRangeTo(place);
+        return this.expectedDamageAtRange(range);
+    }
+
+    public expectedDamageAtRange(range: number) {
+        let damage = 0;
         if (range <= 3) {
             damage += this.potentials[RANGED_ATTACK];
         }
-        if (range === 1) {
+        if (range <= 1) {
             damage += this.potentials[ATTACK];
         }
         return damage;

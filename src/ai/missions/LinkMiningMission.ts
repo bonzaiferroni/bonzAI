@@ -79,6 +79,11 @@ export class LinkMiningMission extends Mission {
     private moveToPosition(miner: Agent) {
         let roadPos: RoomPosition;
 
+        if (!this.link) {
+            miner.idleOffRoad(this.source);
+            return;
+        }
+
         for (let i = 1; i <= 8; i++) {
             let position = this.source.pos.getPositionAtDirection(i);
             if (!position.isPassible(true)) { continue; }
@@ -120,11 +125,34 @@ export class LinkMiningMission extends Mission {
             return;
         }
 
-        let positions: RoomPosition[] = [];
         let ret = empire.traveler.findTravelPath(this.room.storage, this.source);
         if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.room.name}`); }
         let minerPos = _.last(ret.path);
-        console.log(minerPos);
+        let position = this.findValidLinkPos(minerPos, ret.path);
+        if (!position) {
+            // sometimes the default position will be invalid, like in a case where two sources are adjacent
+            // look through other positions
+            for (let altPosition of this.source.pos.openAdjacentSpots(true)) {
+                position = this.findValidLinkPos(altPosition, ret.path);
+                if (position) { break; }
+            }
+        }
+
+        if (!position) {
+            console.log(`LINKMINER: no suitable position for link ${this.room.name}`);
+            return;
+        }
+
+        position.createConstructionSite(STRUCTURE_LINK);
+        console.log(`placed link ${this.room.name}`);
+    }
+
+    private findLink() {
+        return this.source.findMemoStructure(STRUCTURE_LINK, 2, true) as StructureLink;
+    }
+
+    private findValidLinkPos(minerPos: RoomPosition, path: RoomPosition[]): RoomPosition {
+        let validPositions = [];
         for (let position of minerPos.openAdjacentSpots(true)) {
             // not a wall/structure
             if (!position.isPassible(true)) { continue; }
@@ -133,20 +161,13 @@ export class LinkMiningMission extends Mission {
             // not close to any source
             if (position.findInRange(FIND_SOURCES, 2).length > 1) { continue; }
             // not along the path that the miner would take to get there
-            if (position.findInRange(ret.path, 0).length > 0) {continue; }
-            positions.push(position);
+            if (position.findInRange(path, 0).length > 0) {continue; }
+            validPositions.push(position);
         }
-        if (positions.length === 0) {
-            console.log(`LINKMINER: no suitable position for link ${this.room.name}`);
+        if (validPositions.length === 0) {
             return;
         }
-
-        positions = _.sortBy(positions, (p: RoomPosition) => p.getRangeTo(this.room.storage));
-        positions[0].createConstructionSite(STRUCTURE_LINK);
-        notifier.log(`placed link ${this.room.name}`);
-    }
-
-    private findLink() {
-        return this.source.findMemoStructure(STRUCTURE_LINK, 2, true) as StructureLink;
+        validPositions = _.sortBy(validPositions, (p: RoomPosition) => p.getRangeTo(this.room.storage));
+        return _.head(validPositions);
     }
 }

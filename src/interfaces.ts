@@ -2,6 +2,7 @@ import {Operation} from "./ai/operations/Operation";
 import {Empire} from "./ai/Empire";
 import {Agent} from "./ai/missions/Agent";
 import {SpawnGroup} from "./ai/SpawnGroup";
+import {HostileAgent} from "./ai/missions/HostileAgent";
 
 // noinspection TsLint
 export interface bonzAI {
@@ -90,6 +91,19 @@ export interface RaidData {
     obstacles: {pos: RoomPosition}[];
     targetFlags: Flag[];
     targetStructures: Structure[];
+    getHostileAgents: (roomName: string) => HostileAgent[];
+}
+
+export interface RaidAction {
+    type: RaidActionType;
+    endAtTick?: number;
+    position?: {x: number, y: number, roomName: string};
+}
+
+export enum RaidActionType {
+    Retreat,
+    Wallflower,
+    LurkOutside,
 }
 
 export interface RaidCache {
@@ -144,6 +158,9 @@ export interface BankData {
     finishing?: boolean;
     distance: number;
     timeout: number;
+    posCount: number;
+    wavesLeft: number;
+    waveIncomplete?: boolean;
 }
 
 export interface FleeData {

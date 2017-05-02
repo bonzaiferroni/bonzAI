@@ -143,7 +143,10 @@ export class WorldMap {
 
     private evaluateTrade(room: Room) {
         if (!room.controller || room.controller.my || !TradeNetwork.canTrade(room)
-            || !this.diplomat.partners[room.controller.owner.username]) { return; }
+            || !this.diplomat.partners[room.controller.owner.username]) {
+            room.memory.nextTrade = undefined;
+            return;
+        }
         if (!room.memory.nextTrade) { room.memory.nextTrade = Game.time; }
     }
 

@@ -168,9 +168,7 @@ export class GeologyMission extends Mission {
         if (fleeing) { return; } // early
 
         if (!this.container) {
-            if (!geologist.pos.isNearTo(this.flag)) {
-                geologist.travelTo(this.flag);
-            }
+            geologist.idleOffRoad(this.mineral);
             return; // early
         }
 
