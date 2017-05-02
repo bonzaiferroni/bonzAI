@@ -3,9 +3,10 @@ import {Operation} from "../operations/Operation";
 import {RaidData, BoostLevel} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {Agent} from "./Agent";
+import {RaidOperation} from "../operations/RaidOperation";
 export class FireflyMission extends RaidMission {
 
-    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+    constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
                 allowSpawn: boolean) {
         super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
         this.specialistPart = RANGED_ATTACK;

@@ -9,6 +9,7 @@ import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {WorldMap} from "../WorldMap";
 import {empire} from "../Empire";
+import {HostileAgent} from "../missions/HostileAgent";
 
 /**
  * Primary tool for raiding. See wiki for details: https://github.com/bonzaiferroni/bonzAI/wiki/Using-RaidOperation
@@ -26,6 +27,7 @@ export class RaidOperation extends Operation {
     private raidMissions: RaidMission[] = [];
     private raidData: RaidData;
     private attackRoomCount: number;
+    private cache: any;
 
     public memory: {
         manual: boolean;
@@ -49,11 +51,15 @@ export class RaidOperation extends Operation {
         pretending: boolean;
         waveDelay: number;
         nextWave: number;
+        standGround: boolean;
+        killCreeps: boolean;
+        signText: string;
     };
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.VeryHigh;
+        this.cache = {};
     }
 
     public initOperation() {
@@ -182,11 +188,11 @@ export class RaidOperation extends Operation {
         if (this.memory.attackRoomIndex === undefined || this.memory.attackRoomIndex >= attackFlags.length) {
             this.memory.attackRoomIndex = 0;
         }
+        this.attackRoomCount = attackFlags.length;
         let attackFlag = attackFlags[this.memory.attackRoomIndex];
         let fallbackFlag = fallbackFlags[this.memory.attackRoomIndex];
         let targetFlags = this.findRaidFlags(`targets_${this.memory.attackRoomIndex}`);
         let targetStructures = this.findTargetStructures(attackFlag.room, targetFlags);
-        this.attackRoomCount = attackFlags.length;
 
         let raidData: RaidData = {
             raidAgents: [],
@@ -198,6 +204,7 @@ export class RaidOperation extends Operation {
             targetFlags: targetFlags,
             targetStructures: targetStructures,
             fallback: this.memory.fallback,
+            getHostileAgents: this.getHostileAgents,
         };
 
         return raidData;
@@ -441,7 +448,12 @@ export class RaidOperation extends Operation {
         }
 
         // if we made it this far, all structures have been eliminated
-        this.memory.raidComplete = true;
+        console.log(this.attackRoomCount);
+        if (this.memory.attackRoomIndex < this.attackRoomCount) {
+            this.memory.attackRoomIndex++;
+        } else {
+            this.memory.raidComplete = true;
+        }
     }
 
     public reportStatus() {
@@ -601,7 +613,7 @@ export class RaidOperation extends Operation {
         }
 
         if (count === 0) {
-            console.log(`RAID: no walls found in ${this.name}, no target flags placed`);
+            console.log(`RAID: no walls found in ${attackRoom.name}, no target flags placed`);
         }
 
         return true;
@@ -655,7 +667,7 @@ export class RaidOperation extends Operation {
             }
 
             // reset wave
-            this.memory.attackRoomIndex = 0;
+            // this.memory.attackRoomIndex = 0;
             this.memory.waveComplete = false;
         }
     }
@@ -711,18 +723,45 @@ export class RaidOperation extends Operation {
     }
 
     private detectBugoutConditions() {
+        if (this.memory.standGround) { return; }
         if (!this.raidData.attackRoom) { return; }
         if (this.attackRoomCount < 2) { return; }
         let threats = _.filter(this.raidData.attackRoom.hostiles,
             c => (c.getActiveBodyparts(ATTACK) > 10 || c.getActiveBodyparts(RANGED_ATTACK) > 10)
             && _.find(c.body, p => p.boost));
         for (let threat of threats) {
-            console.log(`found a threat`);
-            if (threat.pos.findInRange(this.raidData.raidAgents, 10).length > 0 ) {
+            if (threat.pos.findInRange(this.raidData.raidAgents, 4).length > 0 ) {
                 console.log(`bugging out!`);
                 this.memory.attackRoomIndex++;
                 return true;
             }
         }
+    }
+
+    public getHostileAgents = (roomName: string): HostileAgent[] => {
+        if (this.cache.hostileAgents) { return this.cache.hostileAgents[roomName] || []; }
+        if (!this.raidData || this.raidData.raidAgents.length === 0) { return; }
+
+        let hostileAgents: {[roomName: string]: HostileAgent[] } = {};
+        for (let agent of this.raidData.raidAgents) {
+            if (hostileAgents[agent.room.name]) { continue; }
+            hostileAgents[agent.room.name] = this.findHostileAgents(agent.room);
+        }
+
+        this.cache.hostileAgents = hostileAgents;
+        return hostileAgents[roomName];
+    };
+
+    private findHostileAgents(room: Room): HostileAgent[] {
+        let hostileAgents: HostileAgent[] = [];
+        for (let hostile of room.hostiles) {
+            if (hostile.owner.username === "Invader") { continue; }
+            if (empire.diplomat.allies[hostile.owner.username]) { continue; }
+            if (!_.find(hostile.body,
+                    p => p.type === RANGED_ATTACK || p.type === ATTACK || p.type === HEAL)) { continue; }
+            let hostileAgent = new HostileAgent(hostile);
+            hostileAgents.push(hostileAgent);
+        }
+        return hostileAgents;
     }
 }

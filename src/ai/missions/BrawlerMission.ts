@@ -1,10 +1,10 @@
 import {RaidMission} from "./RaidMission";
-import {Operation} from "../operations/Operation";
 import {RaidData} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
+import {RaidOperation} from "../operations/RaidOperation";
 export class BrawlerMission extends RaidMission {
 
-    constructor(operation: Operation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+    constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
                 allowSpawn: boolean) {
         super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
         this.specialistPart = ATTACK;
