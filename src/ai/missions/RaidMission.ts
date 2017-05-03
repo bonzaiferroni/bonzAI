@@ -181,21 +181,35 @@ export abstract class RaidMission extends Mission {
 
     public setSpecialAction(action: RaidAction) {
         if (!this.healer) { return; }
-        console.log(`setting special action: ${action? action.type : "undefined"}`);
         this.healer.memory.action = action;
     }
 
-    private entryActions() {
+    private entryActions(): boolean {
+        let destination = this.raidData.targetFlags[0];
+        if (!destination) {
+            destination = this.raidData.attackFlag;
+        }
         if (this.healer.room !== this.raidData.attackRoom) {
-            let destination = this.raidData.targetFlags[0];
-            if (!destination) {
-                destination = this.raidData.attackFlag;
-            }
             Agent.squadTravel(this.healer, this.attacker, destination, {ignoreCreeps: false});
             return true;
         }
         if (this.healer.pos.isNearExit(0)) {
-            this.healer.moveOffExit();
+            if (this.healer.moveOffExit() === ERR_NO_PATH) {
+                let directions = [1, 3, 5, 7];
+                let positions: RoomPosition[] = [];
+                for (let direction of directions) {
+                    let position = this.healer.pos.getPositionAtDirection(direction);
+                    if (position.x === 0 || position.x === 49 || position.y === 0 || position.y === 49) {
+                        if (position.lookFor(LOOK_TERRAIN)[0] === "wall") { continue; }
+                        positions.push(position);
+                    }
+                }
+                let best = destination.pos.findClosestByRange(positions);
+                if (best) {
+                    this.healer.move(this.healer.pos.getDirectionTo(best));
+                    console.log("edge scoot!");
+                }
+            }
             return true;
         }
         if (this.attacker.room !== this.raidData.attackRoom) {
@@ -693,12 +707,21 @@ export abstract class RaidMission extends Mission {
             case RaidActionType.Retreat:
                 this.retreating();
                 break;
+            case RaidActionType.EdgeScoot:
+                this.edgeScooting();
+                break;
+            case RaidActionType.Headhunter:
+                this.headhunting();
+                break;
             default:
                 break;
         }
     }
 
     private detectDanger() {
+        let currentAction = this.getSpecialAction();
+        if (currentAction && currentAction.type === RaidActionType.Retreat) { return; }
+
         if (this.attacker.shield === 0 || this.healer.shield === 0) {
             console.log(`start retreat!`);
             this.setSpecialAction({
@@ -707,13 +730,25 @@ export abstract class RaidMission extends Mission {
             return;
         }
 
-        let agents: Agent[] = _.filter([this.attacker, this.healer], c => c.room === this.raidData.attackRoom);
+        // only considering agents within the room
+        let agentsInRoom: Agent[] = _.filter([this.attacker, this.healer], c => c.room === this.raidData.attackRoom);
         let areTogether = this.attacker.pos.isNearTo(this.attacker);
         let noFatigue = this.attacker.fatigue === 0 && this.healer.fatigue === 0;
-        for (let agent of agents) {
+        let bothOnExit = _.filter(agentsInRoom, a => a.rangeToEdge === 0).length === 2;
+        let bothNearExit = _.filter(agentsInRoom, a => a.rangeToEdge === 1).length === 2;
+        for (let agent of agentsInRoom) {
             if (!this.isInDanger(agent)) { continue; }
 
-            let bothOnExit = _.filter(agents, a => a.rangeToEdge === 0).length === 2;
+            /*
+            if (this.hostileMeleeNearby(agent) && areTogether && bothOnExit && noFatigue) {
+                console.log(`start edge scoot!`);
+                this.setSpecialAction({
+                    type: RaidActionType.EdgeScoot,
+                });
+                return;
+            }
+            */
+
             if (areTogether && bothOnExit && noFatigue) {
                 console.log(`start lurking!`);
                 this.setSpecialAction({
@@ -723,24 +758,35 @@ export abstract class RaidMission extends Mission {
                 return;
             }
 
-            let bothNearExit = _.filter(agents, a => a.rangeToEdge === 1).length === 2;
             if (areTogether && bothNearExit && noFatigue) {
                 console.log(`start wallflowering!`);
                 this.setSpecialAction({
                     type: RaidActionType.Wallflower,
                 });
                 return;
-            } else {
-                console.log(`start retreat!`);
-                this.setSpecialAction({
-                    type: RaidActionType.Retreat,
-                });
-                return;
             }
+
+            console.log(`start retreat!`);
+            this.setSpecialAction({
+                type: RaidActionType.Retreat,
+            });
+            return;
+
         }
-        if (this.getSpecialAction() && agents.length === 2) {
+        if (this.getSpecialAction() && agentsInRoom.length === 2) {
             console.log("RAID: danger seems to be gone, returning to default actions");
             this.setSpecialAction(undefined);
+        }
+
+        if (!this.getSpecialAction() && agentsInRoom.length === 0 && areTogether) {
+            let hostileAgents = _.filter(this.raidData.getHostileAgents(this.attacker.room.name),
+                h => !h.pos.isNearExit(1));
+            if (hostileAgents.length > 0) {
+                let action = this.getHeadhunterAction(hostileAgents);
+                if (action) {
+                    this.setSpecialAction(action);
+                }
+            }
         }
     }
 
@@ -749,7 +795,7 @@ export abstract class RaidMission extends Mission {
         let hostileDamage = 0;
         for (let hostileAgent of hostileAgents) {
             // it is possible that both creeps can move toward each other
-            let rangeNextTick = agent.pos.getRangeTo(hostileAgent) - 3;
+            let rangeNextTick = agent.pos.getRangeTo(hostileAgent) - 2;
             hostileDamage += hostileAgent.expectedDamageAtRange(rangeNextTick);
         }
         let towerDamage = helper.towerDamageAtPosition(agent.pos,
@@ -768,7 +814,7 @@ export abstract class RaidMission extends Mission {
             && this.attacker.shield > 0 && this.healer.shield > 0;
 
         if (!validConditions) {
-            notifier.log(`RAID: switching from wallflower to retreat: ${this.raidData.attackFlag.pos.roomName}`);
+            console.log(`RAID: switching from wallflower to retreat: ${this.raidData.attackFlag.pos.roomName}`);
             this.setSpecialAction({ type: RaidActionType.Retreat });
             this.processAction(this.getSpecialAction()); // change action
         }
@@ -791,7 +837,7 @@ export abstract class RaidMission extends Mission {
             && this.attacker.room !== this.raidData.attackRoom;
 
         if (!validConditions) {
-            notifier.log(`RAID: switching from lurking to retreat: ${this.raidData.attackFlag.pos.roomName}`);
+            console.log(`RAID: switching from lurking to retreat: ${this.raidData.attackFlag.pos.roomName}`);
             this.setSpecialAction({ type: RaidActionType.Retreat });
             this.processAction(this.getSpecialAction()); // change action
         }
@@ -810,8 +856,37 @@ export abstract class RaidMission extends Mission {
 
     private retreating() {
         if (this.healer.pos.inRangeTo(this.raidData.fallbackFlag, 0) && this.healer.hits === this.healer.hitsMax) {
-            console.log(`RAID: retreat completed, clearing action`);
-            this.setSpecialAction(undefined);
+
+            let hostileAgents = _.filter(this.raidData.getHostileAgents(this.attacker.room.name),
+                h => !h.pos.isNearExit(1));
+            if (hostileAgents.length > 0) {
+                let action = this.getHeadhunterAction(hostileAgents);
+                if (action) {
+                    this.setSpecialAction(action);
+                    this.processAction(action);
+                    return;
+                }
+            }
+
+            let rangeToClosest = 0;
+            if (this.raidData.targetFlags.length > 0 && this.raidData.attackRoom) {
+                let destination = this.raidData.targetFlags[0].pos;
+                let hostiles = this.hostileMeleeNearby(destination, 25);
+                rangeToClosest = destination.getRangeToClosest(hostiles) || 100;
+                if (rangeToClosest > 10) {
+                    console.log(`RAID: retreat completed (safe near destination)`);
+                    this.setSpecialAction(undefined);
+                }
+            }
+
+            if (rangeToClosest > 2 && Game.time > this.healer.memory.endRetreat) {
+                this.healer.memory.endRetreat = undefined;
+                console.log(`RAID: retreat completed, (timer expired)`);
+                this.setSpecialAction(undefined);
+            } else if (this.healer.memory.endRetreat === undefined) {
+                this.healer.memory.endRetreat = Game.time + 10;
+            }
+
             return;
         }
 
@@ -833,6 +908,67 @@ export abstract class RaidMission extends Mission {
 
         if (this.attacker.room === this.raidData.attackRoom && this.attacker.pos.isNearExit(1)) {
             this.attacker.moveOnExit();
+        }
+    }
+
+    private hostileMeleeNearby(pos: RoomPosition, range: number): HostileAgent[] {
+        let hostileMelees = _.filter(this.raidData.getHostileAgents(pos.roomName), h => h.potentials[ATTACK] > 1000);
+        return pos.findInRange(hostileMelees, range);
+    }
+
+    private edgeScooting() {
+
+    }
+
+    protected getHeadhunterAction(hostiles: HostileAgent[]): RaidAction {
+        return;
+    }
+
+    private headhunting() {
+        let target: HostileAgent;
+        if (this.attacker.memory.hTargetId) {
+            let creep = Game.getObjectById<Creep>(this.attacker.memory.hTargetId);
+            if (creep) {
+                this.attacker.memory.hPos = creep.pos;
+                this.attacker.memory.hTimeout = Game.time + 10;
+                target = new HostileAgent(creep);
+            } else {
+                if (Game.time > this.attacker.memory.hTimeout) {
+                    delete this.attacker.memory.hTargetId;
+                    delete this.attacker.memory.hPos;
+                    delete this.attacker.memory.hTimeout;
+                }
+                if (this.attacker.memory.hPos) {
+                    let position = helper.deserializeRoomPosition(this.attacker.memory.hPos);
+                    if (position.isNearExit(1) && this.attacker.pos.getRangeTo(position) < 10) {
+                        if (this.attacker.pos.getRangeTo(position) === 0) {
+                            this.attacker.moveOnExit();
+                            this.healer.travelTo(this.attacker);
+                        } else {
+                            Agent.squadTravel(this.attacker, this.healer, {pos: position});
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        let hostileAgents = _.filter(this.raidData.getHostileAgents(this.attacker.room.name),
+            h => !h.pos.isNearExit(1));
+        let nearest = this.attacker.pos.findClosestByRange(hostileAgents);
+        if (nearest) {
+            if (!target || this.attacker.pos.getRangeTo(nearest) < this.attacker.pos.getRangeTo(target)) {
+                this.attacker.memory.hTargetId = nearest.id;
+                this.attacker.memory.hPos = nearest.pos;
+                this.attacker.memory.hTimeout = Game.time + 10;
+                target = nearest;
+            }
+        }
+
+        if (target) {
+            Agent.squadTravel(this.attacker, this.healer, target);
+        } else {
+            this.setSpecialAction(undefined);
+            console.log("RAID: no hostiles, end headhunter");
         }
     }
 }

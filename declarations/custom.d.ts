@@ -67,6 +67,7 @@ interface RoomPosition {
     isPassible(ignoreCreeps?: boolean): boolean;
     lookForStructure(structureType: string): Structure;
     isNearExit(range: number): boolean;
+    getRangeToClosest(entities: {pos: RoomPosition}[]): number;
 }
 
 interface RoomObject {

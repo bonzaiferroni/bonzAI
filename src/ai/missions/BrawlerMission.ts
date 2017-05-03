@@ -1,7 +1,8 @@
 import {RaidMission} from "./RaidMission";
-import {RaidData} from "../../interfaces";
+import {RaidAction, RaidActionType, RaidData} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {RaidOperation} from "../operations/RaidOperation";
+import {HostileAgent} from "./HostileAgent";
 export class BrawlerMission extends RaidMission {
 
     constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
@@ -23,5 +24,11 @@ export class BrawlerMission extends RaidMission {
 
     public clearActions(attackingCreep: boolean) {
         this.standardClearActions(attackingCreep);
+    }
+
+    protected getHeadhunterAction(hostileAgents: HostileAgent[]): RaidAction {
+        return {
+            type: RaidActionType.Headhunter,
+        };
     }
 }

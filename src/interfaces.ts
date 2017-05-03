@@ -101,9 +101,11 @@ export interface RaidAction {
 }
 
 export enum RaidActionType {
+    EdgeScoot,
     Retreat,
     Wallflower,
     LurkOutside,
+    Headhunter,
 }
 
 export interface RaidCache {

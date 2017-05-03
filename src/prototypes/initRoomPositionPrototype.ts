@@ -178,12 +178,24 @@ export function initRoomPositionPrototype() {
     };
 
     /**
+     * Returns a structure of the specified type if it exists, otherwise returns null
+     *
      * @param structureType
-     * @returns {Structure} structure of type structureType that resides at position (null if no structure of that
-     * type is present)
+     * @returns {Structure}
      */
     RoomPosition.prototype.lookForStructure = function(structureType: string): Structure {
         let structures = this.lookFor(LOOK_STRUCTURES);
         return _.find(structures, {structureType: structureType}) as Structure;
+    };
+
+    /**
+     * Finds range to closest of an array of entities, returns null if range cannot be calculated
+     *
+     * @returns {Structure}
+     * @param entities
+     */
+    RoomPosition.prototype.getRangeToClosest = function(entities: {pos: RoomPosition}[]): number {
+        let closest = this.findClosestByRange(entities);
+        return this.getRangeTo(closest);
     };
 }

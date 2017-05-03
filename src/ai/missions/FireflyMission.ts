@@ -1,9 +1,10 @@
 import {RaidMission} from "./RaidMission";
 import {Operation} from "../operations/Operation";
-import {RaidData, BoostLevel} from "../../interfaces";
+import {RaidData, BoostLevel, RaidActionType, RaidAction} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {Agent} from "./Agent";
 import {RaidOperation} from "../operations/RaidOperation";
+import {HostileAgent} from "./HostileAgent";
 export class FireflyMission extends RaidMission {
 
     constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
@@ -55,5 +56,11 @@ export class FireflyMission extends RaidMission {
         } else {
             return false;
         }
+    }
+
+    protected getHeadhunterAction(hostileAgents: HostileAgent[]): RaidAction {
+        return {
+            type: RaidActionType.Headhunter,
+        };
     }
 }

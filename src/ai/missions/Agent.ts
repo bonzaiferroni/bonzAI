@@ -843,7 +843,11 @@ export class Agent {
 
         let range = leader.pos.getRangeTo(follower);
         if (range > 1) {
-            follower.travelTo(leader);
+            if (follower.pos.isNearExit(0)) {
+                follower.moveOffExitToward(leader);
+            } else {
+                follower.travelTo(leader);
+            }
             // attacker stands still
         } else if (follower.fatigue === 0) {
             leader.travelTo(target, options);
@@ -1011,5 +1015,14 @@ export class Agent {
         }
 
         return ERR_NO_PATH;
+    }
+
+    public moveOffExitToward(leader: Agent) {
+        let positions = this.pos.openAdjacentSpots(true);
+        if (positions.length === 0) {
+            this.travelTo(leader);
+        } else {
+            this.travelTo(leader.pos.findClosestByRange(positions));
+        }
     }
 }

@@ -667,7 +667,7 @@ export class RaidOperation extends Operation {
             }
 
             // reset wave
-            // this.memory.attackRoomIndex = 0;
+            this.memory.attackRoomIndex = 0;
             this.memory.waveComplete = false;
         }
     }
@@ -718,6 +718,7 @@ export class RaidOperation extends Operation {
                 console.log(`decrementing index`);
                 agent.memory.waypointIndex--;
                 agent.memory.waypointsCovered = false;
+                agent.memory.action = undefined;
             }
         }
     }

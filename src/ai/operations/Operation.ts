@@ -55,10 +55,6 @@ export abstract class Operation {
      * Init Phase - initialize operation variables and instantiate missions
      */
     public init() {
-        if (Game.cpu.getUsed() > 300 - this.priority * 10) {
-            Game.cache.bypassCount++;
-            return;
-        }
         try {
             TimeoutTracker.log("initOperation", this.name);
             this.initOperation();
@@ -86,7 +82,7 @@ export abstract class Operation {
      * RoleCall Phase - Iterate through missions and call mission.roleCall()
      */
     public roleCall() {
-        if (Game.cpu.getUsed() > 350 - this.priority * 10 || this.lastPhaseCompleted !== OperationPhase.Init ) {
+        if (this.lastPhaseCompleted !== OperationPhase.Init ) {
             Game.cache.bypassCount++;
             return;
         }
@@ -109,7 +105,7 @@ export abstract class Operation {
      * Action Phase - Iterate through missions and call mission.missionActions()
      */
     public actions() {
-        if (Game.cpu.getUsed() > 480 - this.priority * 20 || this.lastPhaseCompleted !== OperationPhase.RoleCall) {
+        if (this.priority > OperationPriority.High && Game.cpu.getUsed() > 320) {
             Game.cache.bypassCount++;
             return;
         }
