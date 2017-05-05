@@ -5,7 +5,7 @@ import {SpawnGroup} from "./ai/SpawnGroup";
 import {HostileAgent} from "./ai/missions/HostileAgent";
 
 // noinspection TsLint
-export interface bonzAI {
+export interface BonzAI {
     cache: {
         structures: { [roomName: string]: {[structureType: string]: Structure[]} },
         hostiles: { [roomName: string]: Creep[] },
@@ -17,7 +17,7 @@ export interface bonzAI {
         activeLabCount: number;
         placedRoad: boolean;
     };
-    operations: {[opName: string]: Operation }
+    operations: {[opName: string]: Operation };
     empire: Empire;
 }
 
