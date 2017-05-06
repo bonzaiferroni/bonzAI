@@ -7,7 +7,7 @@ export class FlexGenerator {
     private topMost = 0;
     private bottomMost = 0;
 
-    private radius = 0;
+    public radius = 0;
     private centerPosition: RoomPosition;
     private rotation: number;
 
@@ -42,7 +42,7 @@ export class FlexGenerator {
         this.coreStructureCoordinates = staticStructures;
     }
 
-    private generate(): {[structureType: string]: Coord[]} {
+    public generate(): {[structureType: string]: Coord[]} {
 
         this.addFixedStructuresToMap();
         this.addUsingExpandingRadius();
