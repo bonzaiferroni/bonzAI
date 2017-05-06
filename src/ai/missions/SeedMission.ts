@@ -1,6 +1,11 @@
 import {Mission} from "./Mission";
 import {Coord} from "../../interfaces";
-interface SeedSelection {seedType: string, origin: Coord, rotation: number, energyPerDistance: number}
+interface SeedSelection {
+    seedType: string;
+    origin: Coord;
+    rotation: number;
+    energyPerDistance: number;
+};
 
 export class SeedMission extends Mission {
 

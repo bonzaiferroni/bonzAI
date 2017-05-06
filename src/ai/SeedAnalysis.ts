@@ -2,21 +2,20 @@ import {SeedData, SeedSelection, Coord} from "../interfaces";
 import {helper} from "../helpers/helper";
 export class SeedAnalysis {
 
-    data: SeedData;
-    room: Room;
+    private data: SeedData;
+    private room: Room;
 
-    constructor(room: Room, seedData: SeedData) {
+    public constructor(room: Room, seedData: SeedData) {
         this.data = seedData;
         this.room = room;
     }
 
-    run(staticStructures?: {[structureType: string]: Coord[]}, layoutType?: string): SeedSelection {
+    public run(staticStructures?: {[structureType: string]: Coord[]}, layoutType?: string): SeedSelection {
 
         let layoutTypes;
         if (layoutType) {
             layoutTypes = [layoutType];
-        }
-        else {
+        } else {
             layoutTypes = ["quad", "flex"];
         }
 
@@ -28,15 +27,14 @@ export class SeedAnalysis {
             if (this.data.seedScan[type].length > 0) {
                 if (staticStructures) {
                     let result = this.findByStructures(type, staticStructures);
-                    if (result) return result;
-                }
-                else {
+                    if (result) { return result; }
+                } else {
                     return this.selectSeed(type, this.data.seedScan[type]);
                 }
             }
         }
 
-        console.log(`No viable seeds in ${this.room.name}`)
+        console.log(`No viable seeds in ${this.room.name}`);
     }
 
     private findSeeds(seedType: string) {
@@ -48,8 +46,7 @@ export class SeedAnalysis {
             radius = 6;
             wallMargin = 0;
             taper = 1;
-        }
-        else if (seedType === "flex") {
+        } else if (seedType === "flex") {
             radius = 4;
             wallMargin = 1;
             taper = 4;
@@ -87,10 +84,10 @@ export class SeedAnalysis {
         }
     }
 
-    checkArea(xOrigin: number, yOrigin: number, radius: number, taper: number, area: LookAtResultMatrix) {
+    private checkArea(xOrigin: number, yOrigin: number, radius: number, taper: number, area: LookAtResultMatrix) {
         for (let xDelta = -radius; xDelta <= radius; xDelta++) {
             for (let yDelta = -radius; yDelta <= radius; yDelta++) {
-                if (Math.abs(xDelta) + Math.abs(yDelta) > radius * 2 - taper) continue;
+                if (Math.abs(xDelta) + Math.abs(yDelta) > radius * 2 - taper) { continue; }
                 if (area[yOrigin + yDelta][xOrigin + xDelta][0] === "wall") {
                     console.log(`x: ${xOrigin} y: ${yOrigin} disqualified due to wall at ${xOrigin + xDelta}, ${yOrigin + yDelta}`);
                     return false;
@@ -112,12 +109,10 @@ export class SeedAnalysis {
     private selectSeed(seedType: string, seeds: Coord[]): SeedSelection {
         let storageDelta;
         if (seedType === "quad") {
-            storageDelta = {x: 0, y: 4}
-        }
-        else if (seedType === "flex") {
-            storageDelta = {x: 0, y: -3}
-        }
-        else {
+            storageDelta = {x: 0, y: 4};
+        } else if (seedType === "flex") {
+            storageDelta = {x: 0, y: -3};
+        } else {
             console.log("unrecognized seed type");
             return;
         }
@@ -126,8 +121,8 @@ export class SeedAnalysis {
             this.data.seedSelectData = {
                 index: 0,
                 rotation: 0,
-                best: { seedType: seedType, origin: undefined, rotation: undefined, energyPerDistance: 0 }
-            }
+                best: { seedType: seedType, origin: undefined, rotation: undefined, energyPerDistance: 0 },
+            };
         }
 
         let data = this.data.seedSelectData;
@@ -141,8 +136,7 @@ export class SeedAnalysis {
                 console.log(`${this.room.name} determined best seed, ${data.best.seedType} at ${data.best.origin.x},${data.best.origin.y} with rotation ${data.rotation}`);
                 this.data.seedSelectData = undefined;
                 return data.best;
-            }
-            else {
+            } else {
                 console.log(`unable to find suitable seed selection in ${this.room.name}`);
             }
         }
@@ -168,19 +162,18 @@ export class SeedAnalysis {
         if (energyPerDistance > data.best.energyPerDistance) {
             console.log(`${this.room.name} found better seed, energyPerDistance: ${energyPerDistance}`);
             data.best = { seedType: seedType, origin: seeds[data.index], rotation: data.rotation,
-                energyPerDistance: energyPerDistance}
+                energyPerDistance: energyPerDistance};
         }
 
         // update rotation for next tick
-        data.rotation++
+        data.rotation++;
     }
 
     private findBySpawn(seedType: string, spawn: StructureSpawn): SeedSelection {
         let spawnCoords: Coord[];
         if (seedType === "quad") {
             spawnCoords = [{x: 2, y: 0}, {x: 0, y: -2}, {x: -2, y: 0}];
-        }
-        else { // seedType === "flex"
+        } else { // seedType === "flex"
             spawnCoords = [{x: -2, y: 1}, {x: -1, y: 2}, {x: 0, y: 3}];
         }
 
@@ -193,7 +186,7 @@ export class SeedAnalysis {
                     if (spawn.pos.inRangeTo(testPosition, 0)) {
                         console.log(`seed: ${JSON.stringify(seed)}, centerPos: ${centerPosition}, rotation: ${rotation},` +
                             `\ncoord: ${JSON.stringify(coord)} testPos: ${testPosition}, spawnPos: ${spawn.pos}`);
-                        return { seedType: seedType, origin: seed, rotation: rotation, energyPerDistance: undefined }
+                        return { seedType: seedType, origin: seed, rotation: rotation, energyPerDistance: undefined };
                     }
                 }
             }
@@ -232,7 +225,7 @@ export class SeedAnalysis {
         }
 
         if (mostHits > 0) {
-            return { seedType: seedType, origin: bestSeed, rotation: bestRotation, energyPerDistance: undefined }
+            return { seedType: seedType, origin: bestSeed, rotation: bestRotation, energyPerDistance: undefined };
         }
     }
 }

@@ -12,14 +12,14 @@ export const PRIORITY_BUILD: string[] = [
     STRUCTURE_ROAD,
     STRUCTURE_CONTAINER,
     STRUCTURE_LINK,
-    STRUCTURE_STORAGE
+    STRUCTURE_STORAGE,
 ];
 export const LOADAMOUNT_MINERAL = Math.ceil(33 / 6);
 
 export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 
-export enum OperationPriority { Emergency, OwnedRoom, VeryHigh, High, Medium, Low, VeryLow }
-export enum Direction { North = 1, NorthEast = 2, East = 3, SouthEast = 4, South = 5, SouthWest = 6, West = 7, NorthWest = 8 }
+export enum OperationPriority { Emergency, OwnedRoom, VeryHigh, High, Medium, Low, VeryLow, }
+export enum Direction { North = 1, NorthEast = 2, East = 3, SouthEast = 4, South = 5, SouthWest = 6, West = 7, NorthWest = 8, }
 export const IGOR_CAPACITY = 1000;
 // terminals with more than this will try to trade a mineral in the network
 export const PRODUCTION_AMOUNT = Math.ceil((RESERVE_AMOUNT * 2) / IGOR_CAPACITY) * IGOR_CAPACITY;
@@ -65,7 +65,7 @@ export const REAGENT_LIST = {
     XLH2O: ["X", "LH2O"],
     XZHO2: ["ZHO2", "X"],
     XZH2O: ["ZH2O", "X"],
-    XKHO2: ["KHO2", "X"]
+    XKHO2: ["KHO2", "X"],
 };
 
 export const OPERATION_NAMES = [
@@ -73,5 +73,5 @@ export const OPERATION_NAMES = [
     "moon", "oslo", "pita", "gaol", "snek", "kiev", "bonn", "dili", "cali", "nuuk",
     "suva", "lome", "bern", "mija", "mano", "casa", "flor", "baja", "jefe", "flux",
     "jeux", "cozy", "lupe", "hazy", "jugs", "quip", "jibs", "quay", "zany", "mojo",
-    "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "chic"
+    "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "chic",
 ];

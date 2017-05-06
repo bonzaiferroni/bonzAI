@@ -47,7 +47,6 @@ export class BodyguardMission extends Mission {
         let maxDefenders = 0;
         if (this.invaderGuru && this.invaderGuru.invaderProbable) {
             maxDefenders = 1;
-            
         }
         if (this.hasVision) {
             if (this.hostiles.length > 0) {

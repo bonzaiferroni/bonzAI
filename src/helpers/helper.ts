@@ -3,11 +3,9 @@ export var helper = {
     getStoredAmount(target: any, resourceType: string) {
         if (target instanceof Creep) {
             return target.carry[resourceType];
-        }
-        else if (target.hasOwnProperty("store")) {
+        } else if (target.hasOwnProperty("store")) {
             return target.store[resourceType];
-        }
-        else if (resourceType === RESOURCE_ENERGY && target.hasOwnProperty("energy")) {
+        } else if (resourceType === RESOURCE_ENERGY && target.hasOwnProperty("energy")) {
             return target.energy;
         }
     },
@@ -15,11 +13,9 @@ export var helper = {
     getCapacity(target: any) {
         if (target instanceof Creep) {
             return target.carryCapacity;
-        }
-        else if (target.hasOwnProperty("store")) {
+        } else if (target.hasOwnProperty("store")) {
             return target.storeCapacity;
-        }
-        else if (target.hasOwnProperty("energyCapacity")) {
+        } else if (target.hasOwnProperty("energyCapacity")) {
             return target.energyCapacity;
         }
     },
@@ -27,18 +23,16 @@ export var helper = {
     isFull(target: any, resourceType: string) {
         if (target instanceof Creep) {
             return target.carry[resourceType] === target.carryCapacity;
-        }
-        else if (target.hasOwnProperty("store")) {
+        } else if (target.hasOwnProperty("store")) {
             return target.store[resourceType] === target.storeCapacity;
-        }
-        else if (resourceType === RESOURCE_ENERGY && target.hasOwnProperty("energy")) {
+        } else if (resourceType === RESOURCE_ENERGY && target.hasOwnProperty("energy")) {
             return target.energy === target.energyCapacity;
         }
     },
 
     clampDirection(direction: number): number {
-        while (direction < 1) direction += 8;
-        while (direction > 8) direction -= 8;
+        while (direction < 1) { direction += 8; }
+        while (direction > 8) { direction -= 8; }
         return direction;
     },
 
@@ -49,7 +43,7 @@ export var helper = {
     blockOffPosition(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
             for (let yDelta = -range; yDelta <= range; yDelta++) {
-                if (Game.map.getTerrainAt(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, roomObject.room.name) === "wall") continue;
+                if (Game.map.getTerrainAt(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, roomObject.room.name) === "wall") { continue; }
                 costs.set(roomObject.pos.x + xDelta, roomObject.pos.y + yDelta, cost);
             }
         }
@@ -61,11 +55,9 @@ export var helper = {
                 let terrain = Game.map.getTerrainAt(x, y, roomName);
                 if (terrain === "wall") {
                     matrix.set(x, y, 0xff);
-                }
-                else if (terrain === "swamp") {
+                } else if (terrain === "swamp") {
                     matrix.set(x, y, 5);
-                }
-                else {
+                } else {
                     matrix.set(x, y, 1);
                 }
             }
@@ -79,8 +71,7 @@ export var helper = {
                 if (roomName) {
                     let terrain = Game.map.getTerrainAt(x, y, roomName);
                     if (terrain !== "wall") { matrix.set(x, y, cost); }
-                }
-                else { matrix.set(x, y, 0xff); }
+                } else { matrix.set(x, y, 0xff); }
             }
         }
         for (let x = 0; x < 50; x++) {
@@ -88,8 +79,7 @@ export var helper = {
                 if (roomName) {
                     let terrain = Game.map.getTerrainAt(x, y, roomName);
                     if (terrain !== "wall") { matrix.set(x, y, cost); }
-                }
-                else { matrix.set(x, y, 0xff); }
+                } else { matrix.set(x, y, 0xff); }
             }
         }
         return matrix;
@@ -101,8 +91,7 @@ export var helper = {
             let line = "";
             for (let x = 0; x < 50; x++) {
                 let value = matrix.get(x, y);
-                if (value === 0xff) line += "f";
-                else line += value % 10;
+                if (value === 0xff) { line += "f"; } else { line += value % 10; }
             }
             console.log(line);
         }
@@ -117,12 +106,10 @@ export var helper = {
         if (rotation === 1) {
             xCoord = -coord.y;
             yCoord = coord.x;
-        }
-        else if (rotation === 2) {
+        } else if (rotation === 2) {
             xCoord = -coord.x;
             yCoord = -coord.y;
-        }
-        else if (rotation === 3) {
+        } else if (rotation === 3) {
             xCoord = coord.y;
             yCoord = -coord.x;
         }
@@ -134,14 +121,11 @@ export var helper = {
         let yCoord = pos.y - centerPoint.y;
         if (rotation === 0) {
             return {x: xCoord, y: yCoord };
-        }
-        else if (rotation === 1) {
+        } else if (rotation === 1) {
             return {x: yCoord, y: -xCoord };
-        }
-        else if (rotation === 2) {
+        } else if (rotation === 2) {
             return {x: -xCoord, y: -yCoord };
-        }
-        else if (rotation === 3) {
+        } else if (rotation === 3) {
             return {x: -yCoord, y: xCoord};
         }
     },
@@ -186,8 +170,7 @@ export var helper = {
                 let flag = Game.flags[name];
                 if (flag) {
                     flag.setPosition(position);
-                }
-                else {
+                } else {
                     position.createFlag(name, COLOR_ORANGE);
                 }
             }
@@ -198,8 +181,7 @@ export var helper = {
             let flag = Game.flags[name];
             if (flag) {
                 flag.remove();
-            }
-            else {
+            } else {
                 break;
             }
         }
@@ -211,7 +193,7 @@ export var helper = {
         if (range <= TOWER_OPTIMAL_RANGE) { return TOWER_POWER_ATTACK; }
         if (range >= TOWER_FALLOFF_RANGE) { range = TOWER_FALLOFF_RANGE; }
         return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
-            (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE))
+            (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE));
     },
 
     towerDamageAtPosition(position: RoomPosition, towers: Tower[]): number {
@@ -229,12 +211,12 @@ export var helper = {
 
         const permute = (arr, m = []) => {
             if (arr.length === 0) {
-                result.push(m)
+                result.push(m);
             } else {
                 for (let i = 0; i < arr.length; i++) {
                     let curr = arr.slice();
                     let next = curr.splice(i, 1);
-                    permute(curr.slice(), m.concat(next))
+                    permute(curr.slice(), m.concat(next));
                 }
             }
         };
@@ -246,5 +228,5 @@ export var helper = {
 
     randomInterval(interval: number): number {
         return interval + Math.floor((Math.random() - .5) * interval * .2);
-    }
+    },
 };
