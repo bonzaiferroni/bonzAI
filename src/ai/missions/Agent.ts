@@ -169,6 +169,7 @@ export class Agent {
     }
 
     public stealNearby(stealSource: string): number {
+        if (this.carry.energy > this.carryCapacity * .8) { return OK; }
         if (stealSource === "creep") {
             let creep = _(this.pos.findInRange<Creep>(FIND_MY_CREEPS, 1))
                 .filter((c: Creep) => c.getActiveBodyparts(WORK) === 0 && c.carry.energy > 0)
@@ -379,8 +380,8 @@ export class Agent {
         this.memory.prep = false;
     }
 
-    public fleeHostiles(): boolean {
-        let value = this.fleeByPath(this.room.fleeObjects, 6, 2, false);
+    public fleeHostiles(fleeRange = 6): boolean {
+        let value = this.fleeByPath(this.room.fleeObjects, fleeRange, 2, false);
         return value;
     }
 
@@ -985,9 +986,12 @@ export class Agent {
         let directions = [1, 3, 5, 7, 2, 4, 6, 8];
         for (let direction of directions) {
             let position = this.pos.getPositionAtDirection(direction);
-            // TODO: needs to handle wall
+            let terrain = position.lookFor(LOOK_TERRAIN)[0];
+            if (terrain === "wall") { continue; }
             if (position.isNearExit(0)) {
-                return this.move(direction);
+                let outcome = this.move(direction);
+                console.log(outcome);
+                return outcome;
             }
         }
         console.log(`AGENT: moveOnExit() assumes nearby exit tile, position: ${this.pos}`);

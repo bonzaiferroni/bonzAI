@@ -199,6 +199,7 @@ export class UpgradeMission extends Mission {
         }
 
         if (!battery) {
+            if (this.room.hostiles.length > 0) { return; }
             let spawn = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
             if (!spawn) { return; }
             if (!this.memory.batteryPosition) {

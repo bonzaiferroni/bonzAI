@@ -4,6 +4,7 @@ import {Agent} from "./ai/missions/Agent";
 import {RoomHelper} from "./ai/RoomHelper";
 import {notifier} from "./notifier";
 import {empire} from "./ai/Empire";
+import {helper} from "./helpers/helper";
 
 export var sandBox = {
     run: function() {
@@ -50,8 +51,31 @@ export var sandBox = {
             testFunction();
             Memory.temp.test = undefined;
         }
+
+        nukePos();
     },
 };
+
+function nukePos() {
+    if (!Memory.temp.nukePos) { return; }
+    if (Game.time < Memory.temp.nextNuke) { return; }
+    let position = helper.deserializeRoomPosition(Memory.temp.nukePos);
+    for (let roomName in empire.spawnGroups) {
+        if (Game.map.getRoomLinearDistance(position.roomName, roomName) > 10) { continue; }
+        let room = Game.rooms[roomName];
+        let nuker = room.findStructures<StructureNuker>(STRUCTURE_NUKER)[0];
+        if (!nuker) { continue; }
+        let outcome = nuker.launchNuke(position);
+        console.log(`${roomName} is nuking ${position}, outcome: ${outcome}`);
+        if (outcome === OK) {
+            Memory.temp.nextNuke = Game.time + 300;
+            return;
+        }
+    }
+
+    console.log("all nukes in range have been launched");
+    Memory.temp.nukePos =  undefined;
+}
 
 function testFunction() {
     let cpu = Game.cpu.getUsed();

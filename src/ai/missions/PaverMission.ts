@@ -5,8 +5,9 @@ export class PaverMission extends Mission {
     private pavers: Agent[];
     private potency: number;
 
-    constructor(operation) {
+    constructor(operation, allowSpawn: boolean) {
         super(operation, "paver");
+        this.allowSpawn = allowSpawn;
     }
 
     public initMission() {
@@ -50,7 +51,7 @@ export class PaverMission extends Mission {
 
     private deprecatedPaverActions(paver: Agent) {
 
-        let fleeing = paver.fleeHostiles();
+        let fleeing = paver.fleeHostiles(4);
         if (fleeing) { return; } // early
 
         let withinRoom = paver.pos.roomName === this.flag.pos.roomName;

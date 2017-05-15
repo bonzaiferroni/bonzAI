@@ -57,7 +57,7 @@ export class TerminalNetworkMission extends Mission {
 
     private checkOverstock() {
         if (_.sum(this.terminal.store) < 250000) { return; }
-        if (Scheduler.delay(this.memory, "checkOverstock", 1000)) { return; }
+        if (Scheduler.delay(this.memory, "checkOverstock", 20)) { return; }
 
         let mostStockedAmount = 0;
         let mostStockedResource: string;

@@ -251,7 +251,7 @@ export class TradeNetwork {
         }
 
         let outcome = localTerminal.send(resourceType, amount, otherTerminal.room.name);
-        if (outcome !== OK) {
+        if (outcome !== OK && outcome !== ERR_TIRED) {
             console.log(`NETWORK: error sending resource in ${localTerminal.room.name}, outcome: ${outcome}`);
             console.log(`arguments used: ${resourceType}, ${amount}, ${otherTerminal.room.name}`);
         }

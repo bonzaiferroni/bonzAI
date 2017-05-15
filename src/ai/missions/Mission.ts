@@ -393,6 +393,15 @@ export abstract class Mission {
             if (options.disableNotify) {
                 this.disableNotify(agent);
             }
+
+            // accomodate legacy code
+            if (options.allowUnboosted !== undefined) {
+                agent.memory.allowUnboosted = options.allowUnboosted;
+            }
+            if (options.boosts !== undefined) {
+                agent.memory.boosts = options.boosts;
+            }
+
             let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
             if (!boosted) { return false; }
             if (agent.creep.spawning) { return false; }

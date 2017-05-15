@@ -43,8 +43,13 @@ export class LinkMiningMission extends Mission {
         }
     }
 
+    public getMaxMiners = () => {
+        if (this.room.hostiles.length === 0) { return 0; }
+        return this.link ? 1 : 0;
+    };
+
     public roleCall() {
-        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), () => this.link ? 1 : 0);
+        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), this.getMaxMiners );
     }
 
     public missionActions() {
@@ -115,6 +120,7 @@ export class LinkMiningMission extends Mission {
      * Will look for a suitable position for a link and place it
      */
     public placeLink() {
+        if (this.room.hostiles.length > 0) { return; }
         if (this.source.pos.findInRange(FIND_CONSTRUCTION_SITES, 2).length > 0) { return; }
         if (this.source.pos.findInRange(this.source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) {
             return;

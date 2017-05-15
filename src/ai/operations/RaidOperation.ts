@@ -448,7 +448,6 @@ export class RaidOperation extends Operation {
         }
 
         // if we made it this far, all structures have been eliminated
-        console.log(this.attackRoomCount);
         if (this.memory.attackRoomIndex < this.attackRoomCount) {
             this.memory.attackRoomIndex++;
         } else {

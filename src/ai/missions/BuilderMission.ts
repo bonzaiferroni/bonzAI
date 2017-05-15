@@ -10,7 +10,7 @@ export class BuilderMission extends Mission {
     private builders: Agent[];
     private supplyCarts: Agent[];
     private sites: ConstructionSite[];
-    private prioritySites: ConstructionSite[];
+    private prioritySite: ConstructionSite;
     private walls: Structure[];
     private remoteSpawn: boolean;
     private activateBoost: boolean;
@@ -46,7 +46,9 @@ export class BuilderMission extends Mission {
         }
 
         this.sites = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
-        this.prioritySites = _.filter(this.sites, s => PRIORITY_BUILD.indexOf(s.structureType) > -1);
+        this.prioritySite = _(this.sites)
+            .sortBy(s => (PRIORITY_BUILD.indexOf(s.structureType) || 100) * 100 + s.pos.getRangeTo(this.flag))
+            .head();
 
         if (Game.time % 10 === 5) {
             for (let site of this.sites) {
@@ -61,7 +63,7 @@ export class BuilderMission extends Mission {
     }
 
     private maxBuilders = () => {
-        if (this.sites.length === 0 || this.defenseGuru.hostiles.length > 0) {
+        if (this.sites.length === 0) {
             return 0;
         }
 
@@ -163,27 +165,26 @@ export class BuilderMission extends Mission {
         }
 
         // has energy
-        let closest;
-        if (this.prioritySites.length > 0) {
-            closest = builder.pos.findClosestByRange(this.prioritySites);
-        } else {
-            closest = builder.pos.findClosestByRange(this.sites);
+        let target = this.prioritySite;
+        if (!target) {
+            target = builder.pos.findClosestByRange(this.sites);
         }
 
-        if (!closest) {
-            this.buildWalls(builder);
+        if (!target) {
+            // this.buildWalls(builder);
+            builder.idleOffRoad(this.flag);
             return;
         }
 
         // has target
-        let range = builder.pos.getRangeTo(closest);
+        let range = builder.pos.getRangeTo(target);
         if (range <= 3) {
-            let outcome = builder.build(closest);
+            let outcome = builder.build(target);
             if (outcome === OK) {
-                builder.yieldRoad(closest);
+                builder.yieldRoad(target);
             }
-            if (outcome === OK && closest.structureType === STRUCTURE_RAMPART) {
-                this.memory.rampartPos = closest.pos;
+            if (outcome === OK && target.structureType === STRUCTURE_RAMPART) {
+                this.memory.rampartPos = target.pos;
             }
 
             // standing on top of target
@@ -191,7 +192,7 @@ export class BuilderMission extends Mission {
                 builder.travelTo(this.flag);
             }
         } else {
-            builder.travelTo(closest);
+            builder.travelTo(target);
         }
     }
 

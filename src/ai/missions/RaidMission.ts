@@ -795,7 +795,7 @@ export abstract class RaidMission extends Mission {
         let hostileDamage = 0;
         for (let hostileAgent of hostileAgents) {
             // it is possible that both creeps can move toward each other
-            let rangeNextTick = agent.pos.getRangeTo(hostileAgent) - 2;
+            let rangeNextTick = agent.pos.getRangeTo(hostileAgent) - 1;
             hostileDamage += hostileAgent.expectedDamageAtRange(rangeNextTick);
         }
         let towerDamage = helper.towerDamageAtPosition(agent.pos,

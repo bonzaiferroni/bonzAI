@@ -81,7 +81,7 @@ export class FortOperation extends Operation {
             this.addMission(new UpgradeMission(this, boostUpgraders));
 
             // pave all roads in the missionRoom
-            this.addMission(new PaverMission(this));
+            this.addMission(new PaverMission(this, true));
         }
     }
 

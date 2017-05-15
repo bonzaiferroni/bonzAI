@@ -25,6 +25,7 @@ import {SurveyMission} from "../missions/SurveyMission";
 import {DefenseMission} from "../missions/DefenseMission";
 import {DefenseGuru} from "../DefenseGuru";
 import {Scheduler} from "../../Scheduler";
+import {PaverMission} from "../missions/PaverMission";
 
 export abstract class ControllerOperation extends Operation {
 
@@ -141,6 +142,8 @@ export abstract class ControllerOperation extends Operation {
 
         // upkeep roads and walls
         this.towerRepair();
+
+        this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
     public finalizeOperation() {
@@ -316,6 +319,19 @@ export abstract class ControllerOperation extends Operation {
     }
 
     protected allowedCount(structureType: string, level: number): number {
+        if (this.name === "bonn0" && (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_ROAD
+            || structureType === STRUCTURE_OBSERVER)) {
+            // hack due to war, will break normal behavior
+            return 0;
+        }
+
+        if (structureType === STRUCTURE_EXTENSION &&
+            (this.room.hostiles.length > 0 || this.room.find<Nuke>(FIND_NUKES).length > 0)) {
+            // don't build extensions while hostiles are in the room
+            // sometimes extensions need to be destroyed to make room for hazmat
+            return 0;
+        }
+
         if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL
             || structureType === STRUCTURE_ROAD)) {
             return 0;
