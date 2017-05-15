@@ -5,14 +5,16 @@ import {DefenseGuru} from "../DefenseGuru";
 import {Guru} from "./Guru";
 import {Scheduler} from "../../Scheduler";
 import {notifier} from "../../notifier";
+import {helper} from "../../helpers/helper";
 
 const SANDBAG_THRESHOLD = 1000000;
 
 export class MasonMission extends Mission {
 
-    public masons: Agent[];
-    public hazmats: Agent[];
-    public carts: Agent[];
+    private masons: Agent[] = [];
+    private hazmats: Agent[] = [];
+    private carts: Agent[] = [];
+    private hazmatCarts: Agent[] = [];
     public defenseGuru: DefenseGuru;
 
     private _sandbags: RoomPosition[];
@@ -20,11 +22,12 @@ export class MasonMission extends Mission {
     private nukeRamparts: Rampart[] = [];
     private claimedRamparts: Rampart[] = [];
     private neededRepairRate: number;
-    private scheduledDeliveries: Agent[] = [];
+    private scheduledDeliveries: Creep[] = [];
 
     public memory: {
         needMason: boolean;
         sandbags: string;
+        hazmatsLastTick: number;
         nukeData: {
             hazmatPositions: {[serializedPos: number]: number }
         }
@@ -40,19 +43,25 @@ export class MasonMission extends Mission {
     }
 
     public maxMasons = () => {
+        if (this.defenseGuru.hostiles.length > 0) {
+            return 1;
+        }
         return this.needMason ? Math.ceil(this.room.storage.store.energy / 500000) : 0;
     };
 
     public getMasonBody = () => {
+        if (this.defenseGuru.hostiles.length) {
+            return this.workerBody(24, 14, 12);
+        }
         return this.workerBody(16, 8, 12);
     };
 
     public maxCarts = () => {
-        if (this.nukeRamparts.length > 0) { return Math.ceil(this.getMaxHazmat() / 3); }
         if (this.needMason && this.defenseGuru.hostiles.length > 0) {
             return 1;
-        } else {
-            return 0;
+        }
+        if (this.operation.name === "bonn0") {
+            return 1;
         }
     };
 
@@ -64,10 +73,15 @@ export class MasonMission extends Mission {
         }
     };
 
+    public getHazmatCartBody = () => {
+        return this.bodyRatio(0, 4, 2);
+    };
+
     public getMaxHazmat = () => {
+        if (this.room.hostiles.length > 0) { return 0; }
         if (this.nukeRamparts.length > 0) {
-            const max = 10;
-            let needed = Math.ceil(this.neededRepairRate / 1800);
+            const max = 9;
+            let needed = Math.ceil(this.neededRepairRate / 3000);
             if (needed > max) {
                 console.log(`being overwhelmed by nukes in ${this.room.name}`);
             }
@@ -76,26 +90,47 @@ export class MasonMission extends Mission {
         return 0;
     };
 
+    public maxHazmatCarts = () => {
+        return Math.ceil(this.memory.hazmatsLastTick / 3);
+    };
+
+    public masonBoost(): string[] {
+        if (this.room.hostiles.length > 0) {
+            return [RESOURCE_CATALYZED_LEMERGIUM_ACID];
+        }
+    }
+
     public getHazmatBody = () => {
-        return this.bodyRatio(4, 2, 3); // typical size: 20, 10, 15, should repair > 2,000,000 hits in a lifetime
+        return this.workerBody(24, 12, 12); // typical size: 20, 10, 15, should repair > 2,000,000 hits in a lifetime
     };
 
     public roleCall() {
         this.masons = this.headCount("mason", this.getMasonBody, this.maxMasons, {
             prespawn: 1,
+            memory: { boosts: this.masonBoost() },
         });
         this.carts = this.headCount("masonCart", this.getCartBody, this.maxCarts);
-        this.hazmats = this.headCount("hazmat", this.getHazmatBody, this.getMaxHazmat, {
-            boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
-            allowUnboosted: true,
+        this.hazmatCarts = this.headCount("hazmatCart", this.getHazmatCartBody, this.maxHazmatCarts, {
             prespawn: 1,
         });
+        this.hazmats = this.headCount("hazmat", this.getHazmatBody, this.getMaxHazmat, {
+            memory: {
+                boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
+                allowUnboosted: true,
+            },
+            prespawn: 1,
+        });
+        this.memory.hazmatsLastTick = this.roleCount("hazmat");
     }
 
     public missionActions() {
 
         for (let mason of this.masons) {
-            this.masonActions(mason);
+            if (this.defenseGuru.hostiles.length > 0 || this.operation.name === "bonn0") {
+                this.warMasonActions(mason);
+            } else {
+                this.masonActions(mason);
+            }
         }
 
         for (let hazmat of this.hazmats) {
@@ -103,7 +138,18 @@ export class MasonMission extends Mission {
         }
 
         for (let cart of this.carts) {
-            this.masonCartActions(cart);
+            this.masonCartActions(cart, this.masons);
+        }
+
+        for (let cart of this.hazmatCarts) {
+            this.masonCartActions(cart, this.hazmats.concat(this.masons));
+        }
+
+        if (this.nukeRamparts.length > 0 && this.defenseGuru.hostiles.length === 0) {
+            let lowestRampart = _(this.nukeRamparts).sortBy(x => x.hits).head();
+            for (let tower of this.room.findStructures<StructureTower>(STRUCTURE_TOWER)) {
+                this.towerActions(tower, lowestRampart);
+            }
         }
     }
 
@@ -114,6 +160,60 @@ export class MasonMission extends Mission {
         this.memory.needMason = undefined;
     }
 
+    private warMasonActions(mason: Agent) {
+        let roomCallback = (roomName: string, matrix: CostMatrix) => {
+            if (roomName !== this.room.name) { return; }
+            let rangedAttackers = _(this.room.hostiles).filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0).value();
+            for (let attacker of rangedAttackers) {
+                helper.blockOffPosition(matrix, attacker, 3);
+            }
+
+            let attackers = _(this.room.hostiles).filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0).value();
+            for (let attacker of attackers) {
+                helper.blockOffPosition(matrix, attacker, 1, 0xff);
+            }
+
+            for (let rampart of this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)) {
+                if (!rampart.pos.isPassible()) { continue; }
+                matrix.set(rampart.pos.x, rampart.pos.y, 1);
+            }
+
+            return matrix;
+        };
+
+        let rampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART))
+            .filter(x => _(x.pos.lookFor<Structure>(LOOK_STRUCTURES))
+                .filter(y => y.structureType !== STRUCTURE_RAMPART && y.structureType !== STRUCTURE_ROAD)
+                .value().length === 0)
+            .sortBy(x => x.hits)
+            .head();
+        let flag = Game.flags[`${this.operation.name}_rampart`];
+        if (flag) {
+            let override = flag.pos.lookForStructure(STRUCTURE_RAMPART) as StructureRampart;
+            if (override) {
+                rampart = override;
+            }
+        }
+        if (!rampart) {
+            mason.idleOffRoad(this.spawnGroup.spawns[0]);
+            return;
+        }
+
+        if (mason.pos.inRangeTo(rampart, 0)) {
+            mason.memory.inPosition = true;
+        } else {
+            mason.travelTo(rampart, {roomCallback: roomCallback });
+        }
+        mason.repair(rampart);
+
+        if (mason.hits < mason.hitsMax) {
+            let tower = _(this.room.findStructures<StructureTower>(STRUCTURE_TOWER)).last();
+            if (tower) {
+                tower.heal(mason.creep);
+            }
+        }
+    }
+
     private masonActions(agent: Agent) {
 
         let rampart = this.getRampart(agent);
@@ -122,6 +222,7 @@ export class MasonMission extends Mission {
             return;
         }
 
+        agent.memory.inPosition = true;
         agent.creep.repair(rampart);
 
         let stolen = false;
@@ -139,6 +240,7 @@ export class MasonMission extends Mission {
                 agent.travelTo(rampart);
             }
         }
+
     }
 
     private hazmatActions(hazmat: Agent) {
@@ -146,8 +248,13 @@ export class MasonMission extends Mission {
         if (!rampart) { this.masonActions(hazmat); }
         let position = this.getHazmatPosition(rampart);
         if (!position) { this.masonActions(hazmat); }
-        hazmat.travelTo(position);
-        hazmat.repair(rampart);
+        if (hazmat.pos.inRangeTo(position, 0)) {
+            hazmat.memory.inPosition = true;
+            hazmat.stealNearby("creep");
+            hazmat.repair(rampart);
+        } else {
+            hazmat.travelTo(position);
+        }
     }
 
     private sandbagActions(agent: Agent) {
@@ -175,37 +282,98 @@ export class MasonMission extends Mission {
         }
     }
 
-    private masonCartActions(agent: Agent) {
+    private masonCartActions(agent: Agent, refillTargets: Agent[]) {
 
-        let lowestMason = this.findLowest(this.hazmats);
-        if (!lowestMason) {
-            lowestMason = this.findLowest(this.masons);
+        let roomCallback = (roomName: string, matrix: CostMatrix) => {
+            if (roomName !== this.room.name) { return false; }
+            if (this.defenseGuru.hostiles.length === 0) { return; }
+            let rangedAttackers = _(this.room.hostiles).filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0).value();
+            for (let attacker of rangedAttackers) {
+                helper.blockOffPosition(matrix, attacker, 3, 30, true);
+            }
+
+            let attackers = _(this.room.hostiles).filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0).value();
+            for (let attacker of attackers) {
+                helper.blockOffPosition(matrix, attacker, 1, 0xff);
+            }
+
+            for (let rampart of this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)) {
+                if (rampart.pos.isPassible()) {
+                    matrix.set(rampart.pos.x, rampart.pos.y, 1);
+                }
+            }
+
+            // helper.showMatrix(matrix);
+
+            return matrix;
+        };
+
+        if (agent.hits < agent.hitsMax) {
+            let tower = _(this.room.findStructures<StructureTower>(STRUCTURE_TOWER)).last();
+            if (tower) {
+                tower.heal(agent.creep);
+            }
         }
+
+        let lowestMason = this.findLowest(agent, refillTargets);
         if (!lowestMason || !this.room.storage) {
-            agent.idleOffRoad();
+            if (!agent.pos.lookForStructure(STRUCTURE_RAMPART)) {
+                agent.fleeHostiles(4);
+            }
+            // agent.idleOffRoad();
             return;
         }
 
-        if (agent.isFull()) {
-            let outcome = agent.deliver(lowestMason.creep, RESOURCE_ENERGY);
-            if (outcome === OK) {
-                agent.travelTo(this.room.storage);
+        let hasLoad = agent.hasLoad();
+        // if (hasLoad && agent.carry.energy < agent.carryCapacity / 4) {}
+        if (!hasLoad) {
+            if (agent.pos.isNearTo(this.room.storage)) {
+                agent.withdraw(this.room.storage, RESOURCE_ENERGY);
+                agent.travelTo(lowestMason, {roomCallback: roomCallback });
+            } else {
+                agent.travelTo(this.room.storage, {roomCallback: roomCallback });
             }
-        } else {
-            let outcome = agent.retrieve(this.room.storage, RESOURCE_ENERGY);
-            if (outcome === OK) {
-                agent.travelTo(lowestMason);
+            return;
+        }
+
+        let outcome = agent.deliver(lowestMason, RESOURCE_ENERGY, {roomCallback: roomCallback });
+        if (outcome === OK) {
+            if (agent.carry.energy <= lowestMason.carryCapacity - lowestMason.carry.energy) {
+                agent.travelTo(this.room.storage, {roomCallback: roomCallback });
+            } else {
+                agent.memory.masonId = undefined;
+                lowestMason = this.findLowest(agent, refillTargets);
+                if (lowestMason) {
+                    agent.travelTo(lowestMason, {roomCallback: roomCallback });
+                }
             }
         }
     }
 
-    private findLowest(agents: Agent[]): Agent {
-        let agent = _(agents)
-            .filter(a => !_.includes(this.scheduledDeliveries, a))
-            .sortBy((a: Agent) => a.creep.carry.energy)
-            .head();
-        this.scheduledDeliveries.push(agent);
-        return agent;
+    private findLowest(cart: Agent, agents: Agent[]): Creep {
+        if (cart.memory.masonId) {
+            let mason = Game.getObjectById<Creep>(cart.memory.masonId);
+            if (mason && mason.carry.energy < mason.carryCapacity / 2) {
+                this.scheduledDeliveries.push(mason);
+                return mason;
+            } else {
+                cart.memory.masonId = undefined;
+                return this.findLowest(cart, agents);
+            }
+        } else {
+            let agent = _(agents)
+                .filter(a => !_.includes(this.scheduledDeliveries, a.creep) && a.memory.inPosition
+                && a.carry.energy < a.carryCapacity / 2)
+                .sortBy((a: Agent) => a.pos.getRangeTo(cart))
+                .head();
+            if (agent) {
+                this.scheduledDeliveries.push(agent.creep);
+                cart.memory.masonId = agent.id;
+                return agent.creep;
+            } else {
+                cart.memory.hasLoad = false;
+            }
+        }
     }
 
     get needMason() {
@@ -323,9 +491,10 @@ export class MasonMission extends Mission {
         let totalIncomingDamage = 0;
         for (let rampart of this.room.findStructures<Rampart>(STRUCTURE_RAMPART)) {
             // find ramparts in danger
+            if (rampart.pos.lookForStructure(STRUCTURE_ROAD)) { continue; }
             let incomingDamage = this.incomingNukeDamage(rampart.pos, this.nukes);
             const margin = 10000000;
-            incomingDamage = rampart.hits - incomingDamage + margin;
+            incomingDamage = incomingDamage + margin - rampart.hits;
             if (incomingDamage > 0) {
                 totalIncomingDamage += incomingDamage;
                 this.nukeRamparts.push(rampart);
@@ -340,7 +509,9 @@ export class MasonMission extends Mission {
             }
         }
         this.neededRepairRate = totalIncomingDamage / soonestLanding;
-        console.log(`needed repair rate: ${this.neededRepairRate}`);
+        if (Game.time % 10 === 0) {
+            console.log(`needed repair rate: ${this.neededRepairRate}`);
+        }
 
         // deal with nuke memory
         if (totalIncomingDamage > 0) {
@@ -356,10 +527,15 @@ export class MasonMission extends Mission {
 
         // put ramparts on important structures
         if (Math.random() > .1) { return; }
-        const types = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB];
+        const types = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_NUKER];
+        let labCount = 0;
         for (let type of types) {
             let structures = this.room.findStructures<Structure>(type);
             for (let structure of structures) {
+                if (type === STRUCTURE_LAB) {
+                    if (labCount >= 8) { continue; }
+                    labCount++;
+                }
                 if (structure.pos.lookForStructure(STRUCTURE_RAMPART)) { continue; }
                 if (structure.pos.lookFor(LOOK_CONSTRUCTION_SITES).length > 0
                     && structure.pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0].my) { continue; }
@@ -451,5 +627,10 @@ export class MasonMission extends Mission {
         let serializedPos = this.room.serializePosition(position);
         if (this.memory.nukeData.hazmatPositions[serializedPos]) { return false; }
         return true;
+    }
+
+    private towerActions(tower: StructureTower, lowestRampart: StructureRampart) {
+        if (!lowestRampart) { return; }
+        tower.repair(lowestRampart);
     }
 }
