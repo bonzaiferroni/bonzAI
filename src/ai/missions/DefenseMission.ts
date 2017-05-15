@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 import {notifier} from "../../notifier";
 import {Scheduler} from "../../Scheduler";
+import {helper} from "../../helpers/helper";
 export class DefenseMission extends Mission {
 
     private refillCarts: Agent[];
@@ -20,12 +21,15 @@ export class DefenseMission extends Mission {
 
     private healers: Creep[] = [];
     private attackers: Creep[] = [];
+    private squadHealers: Agent[];
+    private squadAttackers: Agent[];
 
     private openRamparts: Structure[];
     private jonRamparts: Structure[];
 
     private enemySquads = [];
     private vulnerableCreep: Creep;
+    private assistTarget: Creep;
 
     public memory: {
         idlePosition: RoomPosition;
@@ -60,8 +64,22 @@ export class DefenseMission extends Mission {
         this.triggerSafeMode();
     }
 
-    private getMaxDefenders = () => this.playerThreat ? Math.max(this.enemySquads.length, 1) : 0;
-    private getMaxRefillers = () => this.playerThreat ? 1 : 0;
+    private getMaxDefenders = () => {
+        // deprecated, will only spawn if unable to spawn the squad
+        if (this.spawnGroup.maxSpawnEnergy > 8000) { return 0; }
+        return this.playerThreat ? Math.max(this.enemySquads.length, 1) : 0;
+    };
+    private getMaxRefillers = () => this.playerThreat || this.room.find(FIND_NUKES).length > 0 ? 1 : 0;
+    private getMaxSquadAttackers = () => this.playerThreat ? 1 : 0;
+    private getMaxSquadHealers = () => this.playerThreat ? 1 : 0;
+
+    private squadAttackerBody = () => {
+        return this.configBody({[TOUGH]: 12, [MOVE]: 10, [ATTACK]: 27, [RANGED_ATTACK]: 1});
+    };
+
+    private squadHealerBody = () => {
+        return this.configBody({[TOUGH]: 12, [MOVE]: 10, [HEAL]: 28});
+    };
 
     private defenderBody = () => {
         if (this.enhancedBoost) {
@@ -78,7 +96,9 @@ export class DefenseMission extends Mission {
 
     public roleCall() {
 
-        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers);
+        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers, {
+            prespawn: 1,
+        });
 
         let memory = { boosts: [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
             RESOURCE_CATALYZED_UTRIUM_ACID], allowUnboosted: !this.enhancedBoost };
@@ -86,6 +106,32 @@ export class DefenseMission extends Mission {
         if (this.enhancedBoost) {
             memory.boosts.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
         }
+
+        if (this.spawnGroup.maxSpawnEnergy < 8000 && this.operation.remoteSpawn && this.operation.remoteSpawn.spawnGroup
+            && this.operation.remoteSpawn.spawnGroup.maxSpawnEnergy > 10000) {
+            this.spawnGroup = this.operation.remoteSpawn.spawnGroup;
+        }
+
+        this.squadHealers = this.headCount("healer", this.squadHealerBody, this.getMaxSquadHealers, {
+            allowUnboosted: false,
+            skipMoveToRoom: true,
+            memory: { boosts: [
+                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+                RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+                RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
+            ] },
+        });
+
+        this.squadAttackers = this.headCount("attacker", this.squadAttackerBody, this.getMaxSquadAttackers, {
+            allowUnboosted: false,
+            skipMoveToRoom: true,
+            memory: { boosts: [
+                RESOURCE_CATALYZED_UTRIUM_ACID,
+                RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+                RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+            ] },
+        });
 
         this.defenders = this.headCount("defender", this.defenderBody, this.getMaxDefenders,
             {prespawn: 1, memory: memory});
@@ -96,6 +142,14 @@ export class DefenseMission extends Mission {
         for (let defender of this.defenders) {
             this.defenderActions(defender, order);
             order++;
+        }
+
+        for (let healer of this.squadHealers) {
+            this.healerActions(healer);
+        }
+
+        for (let attacker of this.squadAttackers) {
+            this.attackerActions(attacker);
         }
 
         this.towerTargeting(this.towers);
@@ -109,6 +163,103 @@ export class DefenseMission extends Mission {
     }
 
     public invalidateMissionCache() {
+    }
+
+    private healerActions(healer: Agent) {
+        let attacker = this.squadAttackers[0];
+        if (this.squadAttackers.length === 0 || !attacker) {
+            if (healer.hits < healer.hitsMax) {
+                healer.heal(healer);
+            }
+            let fleeing = healer.fleeHostiles();
+            if (!fleeing) {
+                healer.idleOffRoad(this.flag);
+            }
+            return;
+        }
+
+        if (attacker.hits < attacker.hitsMax) {
+            healer.heal(attacker);
+        } else {
+            healer.heal(healer);
+        }
+
+        if (healer.hits < healer.hitsMax) {
+            this.healedDefender = healer;
+        }
+    }
+
+    private attackerActions(attacker: Agent) {
+        let roomCallback = (roomName: string, matrix: CostMatrix) => {
+            if (roomName !== this.room.name) {
+                if (attacker.room === this.room) {
+                    return false;
+                } else {
+                    return;
+                }
+            }
+            for (let hostile of this.room.hostiles) {
+                let range = attacker.pos.getRangeTo(hostile);
+                if (hostile.getActiveBodyparts(ATTACK) > 0) {
+                    helper.blockOffPosition(matrix, hostile, 1, 90);
+                } else if (hostile.getActiveBodyparts(RANGED_ATTACK) > 0) {
+                    helper.blockOffPosition(matrix, hostile, 3, 20, true);
+                }
+            }
+
+            for (let rampart of this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART)) {
+                if (!rampart.pos.isPassible()) { continue; }
+                matrix.set(rampart.pos.x, rampart.pos.y, 1);
+            }
+
+            return matrix;
+        };
+
+        // attacking
+        let target = this.findAttackerTarget(attacker);
+        if (target) {
+            let range = attacker.pos.getRangeTo(target);
+            if (range <= 3) {
+                attacker.rangedMassAttack();
+                this.assistTarget = target;
+            }
+            if (range === 1) {
+                attacker.attack(target);
+                this.assistTarget = target;
+            } else {
+                let nearby = attacker.pos.findClosestByRange(this.room.hostiles);
+                if (attacker.pos.isNearTo(nearby)) {
+                    attacker.attack(nearby);
+                    this.assistTarget = nearby;
+                }
+            }
+        }
+
+        let healer = this.squadHealers[0];
+        if (this.squadHealers.length === 0 || !healer) {
+            if (attacker.hits < attacker.hitsMax) {
+                this.healedDefender = attacker;
+            }
+            attacker.idleOffRoad(this.flag);
+            return;
+        }
+
+        if (!target) {
+            attacker.idleOffRoad(this.flag);
+            healer.idleOffRoad(this.flag);
+            return;
+        }
+
+        let flag = Game.flags[`${this.operation.name}_attack`];
+        if (flag) {
+            Agent.squadTravel(attacker, healer, flag, {roomCallback: roomCallback});
+        } else if (!target.pos.isNearExit(0)) {
+            Agent.squadTravel(attacker, healer, target, {roomCallback: roomCallback});
+        }
+
+        if (attacker.room !== this.room && attacker.room !== healer.room) {
+            attacker.travelTo(healer);
+        }
     }
 
     private towerCartActions(cart: Agent) {
@@ -169,6 +320,7 @@ export class DefenseMission extends Mission {
             } else {
                 let outcome = defender.travelTo(closest);
             }
+            return;
         }
 
         if (this.enemySquads.length === 0) {
@@ -220,11 +372,18 @@ export class DefenseMission extends Mission {
 
     private towerTargeting(towers: StructureTower[]) {
         if (!towers || towers.length === 0) { return; }
-        if (this.likelyTowerDrainAttempt) { return; }
+        // if (this.likelyTowerDrainAttempt) { return; }
 
         // reini targeting works most of the time
         let targets = this.reiniTargeting();
+        let healedAmount = 0;
         if (!targets || targets.length === 0) { return; }
+        let lowestRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART))
+            .sortBy(x => x.hits).head();
+        let lowestFriendly = _(this.room.find<Creep>(FIND_MY_CREEPS))
+            .filter(x => x.hits < x.hitsMax)
+            .sortBy(x => x.hits)
+            .head();
         for (let i = 0; i < towers.length; i++) {
             let target = targets[i % targets.length];
             let tower = towers[i];
@@ -239,20 +398,26 @@ export class DefenseMission extends Mission {
                 target = this.vulnerableCreep;
             }
 
-            /*
-             // kill jon snows target
-             if (this.attackedCreep) {
-             target = this.attackedCreep;
-             }
-             */
-
             // healing as needed
-            if (this.healedDefender) {
+            if (this.healedDefender && tower.energy >= 10 &&
+                this.healedDefender.hits < this.healedDefender.hitsMax - healedAmount) {
+                healedAmount += 300;
                 tower.heal(this.healedDefender.creep);
+                continue;
             }
 
             // the rest attack
-            tower.attack(target);
+            if (!this.playerThreat || this.assistTarget || this.vulnerableCreep) {
+                tower.attack(target);
+            } else {
+                if (lowestFriendly && lowestFriendly.hits < lowestFriendly.hitsMax - healedAmount) {
+                    healedAmount += 300;
+                    tower.heal(lowestFriendly);
+                } else {
+                    tower.repair(lowestRampart);
+                }
+                this.memory.targetIds = undefined;
+            }
         }
     }
 
@@ -459,13 +624,17 @@ export class DefenseMission extends Mission {
             }
             if (targets.length === 1) {
                 let target = targets[0];
+                if (this.assistTarget) {
+                    targets = [this.assistTarget];
+                    target = this.assistTarget;
+                }
                 if (target.hits >= this.memory.targetHits && this.memory.hitCount === 0) {
                     this.memory.targetIds = undefined;
                     this.memory.targetHits = undefined;
                     this.memory.hitCount = undefined;
                     return this.reiniTargeting();
                 }
-                if (!this.memory.hitCount) { this.memory.hitCount = 3; }
+                if (!this.memory.hitCount) { this.memory.hitCount = 2; }
                 this.memory.hitCount--;
                 this.memory.targetHits = target.hits;
             } else {
@@ -478,13 +647,19 @@ export class DefenseMission extends Mission {
         } else {
             if (this.room.hostiles.length > 0) {
 
-                let targets = this.healerTargeting();
+                let targets = this.assistTargeting();
+
+                if (!targets) {
+                    targets = this.healerTargeting();
+                }
                 if (!targets) {
                     targets = this.room.hostiles;
                 }
 
+                let orientation = this.squadAttackers[0] || this.towers[0];
+
                 this.memory.targetIds = _(targets)
-                    .sortBy((c: Creep) => this.towers[0].pos.getRangeTo(c))
+                    .sortBy((c: Creep) => orientation.pos.getRangeTo(c))
                     .take(this.towers.length)
                     .map((c: Creep) => c.id)
                     .value();
@@ -515,5 +690,63 @@ export class DefenseMission extends Mission {
             this.memory.towerDrainDelay = Game.time + 20;
             return true;
         }
+    }
+
+    private assistTargeting() {
+        if (this.assistTarget) {
+            return this.assistTarget.pos.findInRange(this.room.hostiles, 3);
+        }
+    }
+
+    private findAttackerTarget(attacker: Agent) {
+        if (attacker.memory.targetId) {
+            let target = Game.getObjectById<Creep>(attacker.memory.targetId);
+            if (target && target.room === this.room && Game.time < attacker.memory.targetCheck) {
+                return target;
+            } else {
+                attacker.memory.targetId = undefined;
+                return this.findAttackerTarget(attacker);
+            }
+        } else {
+            let target = this.findSafest(attacker);
+            if (target) {
+                attacker.memory.targetId = target.id;
+                attacker.memory.targetCheck = Game.time + 50;
+                return target;
+            }
+        }
+    }
+
+    private findLeastHealed(orientation: {pos: RoomPosition}): Creep {
+        if (!orientation) { return; }
+
+        let leastHealed: Creep;
+        let lowestHealerCount = Number.MAX_VALUE;
+        for (let hostile of this.room.hostiles) {
+            let healerCount = _.filter(hostile.pos.findInRange(this.room.hostiles, 3),
+                x => x.getActiveBodyparts(HEAL) > 0).length;
+            if (healerCount > lowestHealerCount) { continue; }
+            if (healerCount > lowestHealerCount) { continue; }
+            lowestHealerCount = healerCount;
+            leastHealed = hostile;
+        }
+
+        return leastHealed;
+    }
+
+    private findSafest(orientation: {pos: RoomPosition}): Creep {
+        if (!orientation) { return; }
+
+        let safest: Creep;
+        let lowestrangedAttackerCount = Number.MAX_VALUE;
+        for (let hostile of _(this.room.hostiles).sortBy(x => x.pos.getRangeTo(orientation)).value()) {
+            let rangedAttackerCount = _.filter(hostile.pos.findInRange(this.room.hostiles, 3),
+                x => x.getActiveBodyparts(RANGED_ATTACK) > 0).length;
+            if (rangedAttackerCount >= lowestrangedAttackerCount) { continue; }
+            lowestrangedAttackerCount = rangedAttackerCount;
+            safest = hostile;
+        }
+
+        return safest;
     }
 }
