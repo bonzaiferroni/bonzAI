@@ -24,6 +24,31 @@ export class FireflyMission extends RaidMission {
     }
 
     protected clearActions(attackingCreep: boolean) {
+        let meleeThreats = _(this.raidData.getHostileAgents(this.raidData.attackRoom.name))
+            .filter(x => x.pos.inRangeTo(this.attacker, 3) || x.pos.inRangeTo(this.healer, 3))
+            .filter(x => x.potentials[ATTACK] > 0)
+            .sortBy(x => x.pos.getRangeTo(this.healer))
+            .value();
+
+        if (meleeThreats.length > 0) {
+            if (this.attacker.fatigue > 0 || !this.attacker.pos.isNearTo(this.healer)) {
+                this.attacker.travelTo(this.healer);
+                return;
+            }
+
+            if (this.attacker.pos.getRangeToClosest(meleeThreats) > 2
+                && this.healer.pos.getRangeToClosest(meleeThreats) > 3) {
+                return;
+            }
+
+            let ret = PathFinder.search(this.healer.pos, {pos: meleeThreats[0].pos, range: 10 }, {flee: true });
+            if (ret.path.length > 0) {
+                this.healer.travelTo(ret.path[0]);
+                this.attacker.travelTo(this.healer);
+                return;
+            }
+        }
+
         this.standardClearActions(attackingCreep);
     }
 
