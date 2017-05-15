@@ -1,8 +1,10 @@
-/*
+
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "./Agent";
 import {empire} from "../Empire";
+import {helper} from "../../helpers/helper";
+import {Traveler} from "../Traveler";
 export class GuardMission extends Mission {
 
     private guards: Agent[];
@@ -21,6 +23,8 @@ export class GuardMission extends Mission {
         activateBoost: boolean;
         melee: boolean;
         minPotency: number;
+        targetId: string;
+        ticksToLive: {[key: string]: number}
     };
 
     constructor(operation: Operation) {
@@ -77,29 +81,27 @@ export class GuardMission extends Mission {
         for (let guard of this.guards) {
             if (guard.partCount(RANGED_ATTACK) > 0) {
                 this.rangerActions(guard);
-            }
-            else {
+            } else {
                 this.meleeActions(guard);
             }
         }
     }
 
     public finalizeMission() {
-        if (!this.memory.ticksToLive) this.memory.ticksToLive = {};
+        if (!this.memory.ticksToLive) { this.memory.ticksToLive = {}; }
         for (let guard of this.guards) {
             this.memory.ticksToLive[guard.id] = guard.ticksToLive;
         }
 
         for (let id in this.memory.ticksToLive) {
             let creep = Game.getObjectById(id);
-            if (creep) continue;
+            if (creep) { continue; }
             let ticksToLive = this.memory.ticksToLive[id];
             if (ticksToLive > 10) {
-                console.log("GUARD:", this.opName, "was killed, increasing potency:",
+                console.log("GUARD:", this.operation.name, "was killed, increasing potency:",
                     this.memory.potency, "->", ++this.memory.potency);
-            }
-            else if (this.memory.potency > 1) {
-                console.log("GUARD:", this.opName, "guard died of old age, decreasing potency:",
+            } else if (this.memory.potency > 1) {
+                console.log("GUARD:", this.operation.name, "guard died of old age, decreasing potency:",
                     this.memory.potency, "->", --this.memory.potency);
             }
             delete this.memory.ticksToLive[id];
@@ -129,11 +131,10 @@ export class GuardMission extends Mission {
             if (flag.pos.roomName === guard.pos.roomName) {
                 let structure = flag.pos.lookFor(LOOK_STRUCTURES)[0] as Structure;
                 if (structure) {
-                    if (guard.pos.inRangeTo(structure, 3) && !guard.isNearExit(0)) {
+                    if (guard.pos.inRangeTo(structure, 3) && !guard.pos.isNearExit(0)) {
                         guard.rangedAttack(structure);
-                    }
-                    else {
-                        guard.blindMoveTo(structure);
+                    } else {
+                        guard.travelTo(structure);
                     }
                     return;
                 }
@@ -150,7 +151,7 @@ export class GuardMission extends Mission {
         }
 
         if (guard.pos.roomName !== guardedFlag.pos.roomName) {
-            guard.blindMoveTo(guardedFlag);
+            guard.travelTo(guardedFlag);
             return;
         }
 
@@ -162,9 +163,8 @@ export class GuardMission extends Mission {
             }
             if (structureTarget) {
                 if (!guard.pos.inRangeTo(structureTarget, 3)) {
-                    guard.blindMoveTo(structureTarget);
-                }
-                else {
+                    guard.travelTo(structureTarget);
+                } else {
                     guard.rangedAttack(structureTarget);
                 }
                 return;
@@ -175,7 +175,7 @@ export class GuardMission extends Mission {
                     return s.pos.lookFor(LOOK_STRUCTURES).length === 0 && s.progress > 0;
                 }) as ConstructionSite[];
             if (hostileConstruction.length > 0) {
-                guard.blindMoveTo(guard.pos.findClosestByRange(hostileConstruction));
+                guard.travelTo(guard.pos.findClosestByRange(hostileConstruction));
                 return;
             }
         }
@@ -186,13 +186,12 @@ export class GuardMission extends Mission {
                 guard.memory.reversed = !guard.memory.reversed;
                 guard.memory.flagIndex = 0;
             }
-        }
-        else {
-            guard.blindMoveTo(guardedFlag);
+        } else {
+            guard.travelTo(guardedFlag);
         }
     }
 
-    private guardAttack(guard: Creep, hostiles: Creep[]) {
+    private guardAttack(guard: Agent, hostiles: Creep[]) {
         let myRangedPartCount = guard.partCount(RANGED_ATTACK);
         for (let hostile of hostiles) {
             if (hostile.partCount(RANGED_ATTACK) > myRangedPartCount * (this.memory.activateBoost ? 4 : 1)) {
@@ -227,29 +226,26 @@ export class GuardMission extends Mission {
         if (nearestScaryDude && guard.pos.inRangeTo(nearestScaryDude, 6)) {
             this.archerFlee(guard, nearest);
             guard.rangedAttack(nearestScaryDude);
-        }
-        else if (guard.memory.exitHopperPos) {
+        } else if (guard.memory.exitHopperPos) {
             let pos = helper.deserializeRoomPosition(guard.memory.exitHopperPos);
             if (!guard.pos.inRangeTo(pos, 3)) {
-                guard.blindMoveTo(pos);
+                guard.travelTo(pos);
             }
             delete guard.memory.exitHopperPos;
-        }
-        else if (nearest) {
-            if (nearest.isNearExit(0)) {
+        } else if (nearest) {
+            if (nearest.pos.isNearExit(0)) {
                 guard.memory.exitHopperPos = nearest.pos;
             }
             let range = guard.pos.getRangeTo(nearest);
             if (range < 3) {
                 this.archerFlee(guard, nearest);
-            }
-            else if (range > 3) {
-                guard.blindMoveTo(nearest);
+            } else if (range > 3) {
+                guard.travelTo(nearest);
             }
         }
     }
 
-    private archerFlee(guard: Creep, roomObject: RoomObject) {
+    private archerFlee(guard: Agent, roomObject: RoomObject) {
         let avoidPositions = _.map(guard.pos.findInRange(guard.room.hostiles, 4),
             (c: Creep) => { return {pos: c.pos, range: 20 }; });
 
@@ -259,24 +255,24 @@ export class GuardMission extends Mission {
             plainCost: this.swampRat ? 2 : 1,
             maxRooms: 1,
             roomCallback: (roomName: string) : CostMatrix => {
-                if (roomName !== guard.room.name) return;
+                if (roomName !== guard.room.name) { return; }
                 let costs = new PathFinder.CostMatrix();
 
-                helper.blockOffMatrix(costs, roomObject, 2);
+                helper.blockOffPosition(costs, roomObject, 2);
 
                 for (let dude of this.scaryDudes) {
                     if (!dude.pos.inRangeTo(guard, 4)) {
-                        helper.blockOffMatrix(costs, dude, 5);
+                        helper.blockOffPosition(costs, dude, 5);
                     }
                 }
 
                 for (let creep of guard.room.hostiles) {
                     if (creep.pos.lookForStructure(STRUCTURE_RAMPART)) {
-                        helper.blockOffMatrix(costs, creep, 1);
+                        helper.blockOffPosition(costs, creep, 1);
                     }
                 }
 
-                helper.addStructuresToMatrix(costs, guard.room);
+                Traveler.addStructuresToMatrix(this.room, costs, 2);
 
                 return costs;
             }});
@@ -286,7 +282,7 @@ export class GuardMission extends Mission {
         guard.move(guard.pos.getDirectionTo(pos));
     }
 
-    private meleeActions(guard: Creep) {
+    private meleeActions(guard: Agent) {
 
         let retreating = guard.hits < guard.hitsMax * .5;
 
@@ -303,10 +299,9 @@ export class GuardMission extends Mission {
 
             if (!retreating) {
                 if (range > 1) {
-                    guard.blindMoveTo(closest);
+                    guard.travelTo(closest);
                 }
             }
         }
     }
 }
-*/
