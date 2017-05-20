@@ -13,7 +13,6 @@ export class UpgradeMission extends Mission {
     private linkUpgraders: Agent[];
     private batterySupplyCarts: Agent[];
     private influxCarts: Agent[];
-    private paver: Agent;
 
     private battery: ControllerBattery;
     private boost: boolean;
@@ -58,6 +57,7 @@ export class UpgradeMission extends Mission {
             this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
         }
         this.battery = this.findControllerBattery();
+        this.upgraderPositions = this.findUpgraderPositions();
 
         // instantiate path-paver
         if (this.battery) {
@@ -172,7 +172,7 @@ export class UpgradeMission extends Mission {
         } else {
             upgrader.upgradeController(this.room.controller);
         }
-        let myPosition = this.getUpgraderPositions()[index];
+        let myPosition = this.findUpgraderPositions()[index];
         if (myPosition) {
             let range = upgrader.pos.getRangeTo(myPosition);
             if (range > 0) {
@@ -315,8 +315,8 @@ export class UpgradeMission extends Mission {
         }
 
         let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
-        if (this.getUpgraderPositions()) {
-            max = Math.min(this.getUpgraderPositions().length, max);
+        if (this.findUpgraderPositions()) {
+            max = Math.min(this.findUpgraderPositions().length, max);
         }
 
         return max;
@@ -381,7 +381,7 @@ export class UpgradeMission extends Mission {
      * Positions on which it is viable for an upgrader to stand relative to battery/controller
      * @returns {Array}
      */
-    private getUpgraderPositions(): RoomPosition[] {
+    private findUpgraderPositions(): RoomPosition[] {
         if (!this.battery) { return; }
 
         if (this.upgraderPositions) {
@@ -390,6 +390,7 @@ export class UpgradeMission extends Mission {
 
         // invalidates randomly
         if (this.memory.upgPositions && Math.random() > .01) {
+            let cpu = Game.cpu.getUsed();
             this.upgraderPositions = RoomHelper.deserializeIntPositions(this.memory.upgPositions, this.room.name);
             return this.upgraderPositions;
         }
@@ -399,7 +400,7 @@ export class UpgradeMission extends Mission {
             let position = this.battery.pos.getPositionAtDirection(i);
             if (!position.isPassible(true) || !position.inRangeTo(this.room.controller, 3)
                 || position.lookFor(LOOK_STRUCTURES).length > 0
-                || position.lookFor(LOOK_CONSTRUCTION_SITES)) { continue; }
+                || position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) { continue; }
             positions.push(position);
         }
         this.memory.upgPositions = RoomHelper.serializeIntPositions(positions);
