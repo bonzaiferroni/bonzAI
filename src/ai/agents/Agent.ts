@@ -8,6 +8,7 @@ import {notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {AbstractAgent} from "./AbstractAgent";
 import {RESERVE_AMOUNT} from "../TradeNetwork";
+import {Memorizer} from "../../helpers/Memorizer";
 
 export class Agent extends AbstractAgent {
 
@@ -671,28 +672,6 @@ export class Agent extends AbstractAgent {
     };
 
     /**
-     * Find the nearest energy source with greater than 50 energy, cache with creep memory;
-     * @returns {Creep | StructureContainer}
-     */
-    public rememberBattery(): Creep | StructureContainer {
-        if (this.memory.batteryId) {
-            let battery = Game.getObjectById(this.memory.batteryId) as Creep | StructureContainer;
-            if (battery && Agent.normalizeStore(battery).store.energy >= 50) {
-                return battery;
-            } else {
-                this.memory.batteryId = undefined;
-                return this.rememberBattery();
-            }
-        } else {
-            let battery = this.room.getAltBattery(this.creep);
-            if (battery) {
-                this.memory.batteryId = battery.id;
-                return battery;
-            }
-        }
-    };
-
-    /**
      * Pass in position of recycle bin (aka container next to spawn) and will creep go recycle itself there
      * @param container
      */
@@ -805,13 +784,20 @@ export class Agent extends AbstractAgent {
      * @returns {any}
      */
 
-    public getBattery(): Creep|StructureContainer|StructureTerminal|StructureStorage {
+    public getBattery(): StoreStructure {
         let minEnergy = this.carryCapacity - this.carry.energy;
         if (this.room.storage && this.room.storage.store.energy > minEnergy) {
             return this.room.storage;
         }
 
-        return this.rememberBattery();
+        let find = () => _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
+            .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
+            .filter(x => x.store.energy >= minEnergy).sortBy(x => x.pos.getRangeTo(this))
+            .head();
+
+        let validate = (obj: StoreStructure) => obj.store.energy >= minEnergy;
+
+        return Memorizer.findObject<StoreStructure>(this, "battery", find, validate);
     }
 
     public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
@@ -1122,6 +1108,7 @@ export class Agent extends AbstractAgent {
         }
 
         this.travelTo(waypoint, options);
+        return false;
     }
 
     private travelPortalWaypoint(waypoint: Flag) {
@@ -1158,3 +1145,5 @@ export class Agent extends AbstractAgent {
         }
     }
 }
+
+type StoreStructure = StructureContainer|StructureTerminal|StructureStorage;

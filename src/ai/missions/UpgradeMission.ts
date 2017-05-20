@@ -6,6 +6,8 @@ import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "..
 import {Agent} from "../agents/Agent";
 import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
+import {RoomHelper} from "../RoomHelper";
+import {Memorizer} from "../../helpers/Memorizer";
 export class UpgradeMission extends Mission {
 
     private linkUpgraders: Agent[];
@@ -13,10 +15,12 @@ export class UpgradeMission extends Mission {
     private influxCarts: Agent[];
     private paver: Agent;
 
-    private battery: StructureContainer | StructureStorage | StructureLink;
+    private battery: ControllerBattery;
     private boost: boolean;
     private allowUnboosted: boolean;
     private remoteSpawning: boolean;
+    private _potencyPerCreep: number;
+    private upgraderPositions: RoomPosition[];
 
     public memory: {
         batteryPosition: RoomPosition
@@ -26,8 +30,9 @@ export class UpgradeMission extends Mission {
         transportAnalysis: TransportAnalysis
         potency: number
         max: number
+        upgPositions: string;
+        batteryId: string;
     };
-    private _potencyPerCreep: number;
 
     /**
      * Controller upgrading. Will look for a suitable controller battery (StructureContainer, StructureStorage,
@@ -90,7 +95,9 @@ export class UpgradeMission extends Mission {
         }
     };
 
-    private getMax = () => this.findMaxUpgraders(this.totalPotency, this.potencyPerCreep);
+    private getMax = (): number => {
+        return this.findMaxUpgraders(this.totalPotency, this.potencyPerCreep);
+    };
 
     public roleCall() {
 
@@ -155,38 +162,37 @@ export class UpgradeMission extends Mission {
 
     private linkUpgraderActions(upgrader: Agent, index: number) {
 
-        let battery = this.room.controller.getBattery();
-        if (!battery) {
+        if (!this.battery) {
             upgrader.idleOffRoad(this.flag);
             return; // early
         }
 
-        if (battery instanceof StructureContainer && battery.hits < battery.hitsMax * 0.8) {
-            upgrader.repair(battery);
+        if (this.battery instanceof StructureContainer && this.battery.hits < this.battery.hitsMax * 0.8) {
+            upgrader.repair(this.battery);
         } else {
             upgrader.upgradeController(this.room.controller);
         }
-        let myPosition = this.room.controller.getUpgraderPositions()[index];
+        let myPosition = this.getUpgraderPositions()[index];
         if (myPosition) {
             let range = upgrader.pos.getRangeTo(myPosition);
             if (range > 0) {
                 upgrader.travelTo(myPosition, {range: 0});
             }
         } else {
-            if (upgrader.pos.inRangeTo(battery, 3)) {
-                upgrader.yieldRoad(battery);
+            if (upgrader.pos.inRangeTo(this.battery, 3)) {
+                upgrader.yieldRoad(this.battery);
             } else {
-                upgrader.travelTo(battery);
+                upgrader.travelTo(this.battery);
             }
         }
 
         if (upgrader.carry[RESOURCE_ENERGY] < upgrader.carryCapacity / 4) {
-            upgrader.withdraw(battery, RESOURCE_ENERGY);
+            upgrader.withdraw(this.battery, RESOURCE_ENERGY);
         }
     }
 
     private findControllerBattery() {
-        let battery = this.room.controller.getBattery();
+        let battery = this.getBattery();
 
         if (battery instanceof StructureContainer && this.room.controller.level >= 5) {
             battery.destroy();
@@ -309,8 +315,8 @@ export class UpgradeMission extends Mission {
         }
 
         let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
-        if (this.room.controller.getUpgraderPositions()) {
-            max = Math.min(this.room.controller.getUpgraderPositions().length, max);
+        if (this.getUpgraderPositions()) {
+            max = Math.min(this.getUpgraderPositions().length, max);
         }
 
         return max;
@@ -370,4 +376,60 @@ export class UpgradeMission extends Mission {
 
         return this.memory.potency;
     }
+
+    /**
+     * Positions on which it is viable for an upgrader to stand relative to battery/controller
+     * @returns {Array}
+     */
+    private getUpgraderPositions(): RoomPosition[] {
+        if (!this.battery) { return; }
+
+        if (this.upgraderPositions) {
+            return this.upgraderPositions;
+        }
+
+        // invalidates randomly
+        if (this.memory.upgPositions && Math.random() > .01) {
+            this.upgraderPositions = RoomHelper.deserializeIntPositions(this.memory.upgPositions, this.room.name);
+            return this.upgraderPositions;
+        }
+
+        let positions = [];
+        for (let i = 1; i <= 8; i++) {
+            let position = this.battery.pos.getPositionAtDirection(i);
+            if (!position.isPassible(true) || !position.inRangeTo(this.room.controller, 3)
+                || position.lookFor(LOOK_STRUCTURES).length > 0
+                || position.lookFor(LOOK_CONSTRUCTION_SITES)) { continue; }
+            positions.push(position);
+        }
+        this.memory.upgPositions = RoomHelper.serializeIntPositions(positions);
+        return positions;
+    }
+
+    /**
+     * Looks for structure to be used as an energy holder for upgraders
+     * @returns { StructureLink | StructureStorage | StructureContainer }
+     */
+    private getBattery(structureType?: string): ControllerBattery {
+        let find = () => {
+            this.memory.upgPositions = undefined;
+            return _(this.room.controller.pos.findInRange(FIND_STRUCTURES, 3))
+                .filter((structure: Structure) => {
+                    if (structureType) {
+                        return structure.structureType === structureType;
+                    } else {
+                        if (structure.structureType === STRUCTURE_CONTAINER
+                            || structure.structureType === STRUCTURE_LINK) {
+                            // mining from nearby sources interfere with upgraders
+                            let sourcesInRange = structure.pos.findInRange(FIND_SOURCES, 2);
+                            return sourcesInRange.length === 0;
+                        }
+                    }})
+                .head() as ControllerBattery;
+        };
+
+        return Memorizer.findObject<ControllerBattery>(this, "battery", find);
+    }
 }
+
+type ControllerBattery = StructureLink | StructureStorage | StructureContainer;

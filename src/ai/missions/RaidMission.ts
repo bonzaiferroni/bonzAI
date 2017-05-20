@@ -116,11 +116,6 @@ export abstract class RaidMission extends Mission {
         // creeps report about situation
         this.raidTalk();
 
-        let manualPositioning = this.manualPositioning(attackingCreep);
-        if (manualPositioning) {
-            return;
-        }
-
         /* ------TRAVEL PHASE------ */
         let waypointsTraveled = this.waypointSquadTravel(this.healer, this.attacker, this.raidWaypoints);
         if (!waypointsTraveled) {
@@ -128,6 +123,11 @@ export abstract class RaidMission extends Mission {
         }
 
         /* --------FALLBACK-------- */
+        let manualPositioning = this.manualPositioning(attackingCreep);
+        if (manualPositioning) {
+            return;
+        }
+
         if (this.raidData.fallback) {
             this.squadTravel(this.healer, this.attacker, this.raidData.fallbackFlag);
             return;
@@ -419,11 +419,12 @@ export abstract class RaidMission extends Mission {
         }
 
         if (analysis.fleeType === FleeType.KeepAtRange) {
-            if (this.attackRange > 1 || Game.time === this.memory.lastFleeTick + 1) {
+            return true;
+            /*if (this.attackRange > 1 || Game.time === this.memory.lastFleeTick + 1) {
                 return true;
             } else {
                 return false;
-            }
+            }*/
         }
 
         if (analysis.fleeType === FleeType.SingleMove) {
@@ -694,10 +695,10 @@ export abstract class RaidMission extends Mission {
         let target = attacker.pos.findClosestByRange(this.raidData.targetStructures);
         if (!target || !target.pos.inRangeTo(attacker, this.attackRange)) {
             if (attacker.room !== this.raidData.attackRoom) { return; }
-            target = _(attacker.pos.findInRange(attacker.room.findStructures<StructureRampart>(STRUCTURE_RAMPART),
+            /*target = _(attacker.pos.findInRange(attacker.room.findStructures<StructureRampart>(STRUCTURE_RAMPART),
                 this.attackRange))
                 .sortBy(x => x.hits)
-                .head();
+                .head();*/
         }
 
         if (!target) {
@@ -780,7 +781,9 @@ export abstract class RaidMission extends Mission {
                 return this.findMissionTarget();
             }
         } else {
-            let bestTarget = _.find(this.raidData.targetStructures, x => this.hasValidPath(this.attacker, x));
+            let bestTarget = _(this.raidData.targetStructures)
+                .sortBy(x => x.pos.getRangeTo(this.attacker))
+                .find(x => this.hasValidPath(this.attacker, x));
             if (!bestTarget) {
                 bestTarget = this.findAlternateTarget();
             }
@@ -867,8 +870,10 @@ export abstract class RaidMission extends Mission {
         }
 
         if (attackPosFlag && !healerPosFlag) {
-            let fleeing = this.squadFlee();
-            if (fleeing) { return true; }
+            if (!this.operation.memory.braveMode) {
+                let fleeing = this.squadFlee();
+                if (fleeing) { return true; }
+            }
 
             let range = 0;
             if (attackPosFlag.room) {

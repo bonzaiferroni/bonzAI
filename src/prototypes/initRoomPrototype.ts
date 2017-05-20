@@ -18,7 +18,7 @@ export function initRoomPrototype() {
                 Game.cache.hostiles[this.name] = filteredHostiles;
             }
             return Game.cache.hostiles[this.name];
-        }
+        },
     });
 
     // deprecated
@@ -31,7 +31,7 @@ export function initRoomPrototype() {
                 Game.cache.hostilesAndLairs[this.name] = lairs.concat(this.hostiles);
             }
             return Game.cache.hostilesAndLairs[this.name];
-        }
+        },
     });
 
     Object.defineProperty(Room.prototype, "roomType", {
@@ -56,23 +56,23 @@ export function initRoomPrototype() {
                 if (!this.memory.roomType) {
                     if (this.controller) {
                         this.memory.roomType = ROOMTYPE_CONTROLLER;
-                    }
-                    else {
+                    } else {
                         this.memory.roomType = ROOMTYPE_ALLEY;
                     }
                 }
             }
             return this.memory.roomType;
-        }
+        },
     });
 
     Object.defineProperty(Room.prototype, "structures", {
         get: function myProperty() {
             if (!Game.cache.structures[this.name]) {
-                Game.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s:Structure) => s.structureType);
+                Game.cache.structures[this.name] = _.groupBy(
+                    this.find(FIND_STRUCTURES), (s: Structure) => s.structureType);
             }
             return Game.cache.structures[this.name] || [];
-        }
+        },
     });
 
     /**
@@ -82,51 +82,10 @@ export function initRoomPrototype() {
      */
     Room.prototype.findStructures = function(structureType: string): Structure[] {
         if (!Game.cache.structures[this.name]) {
-            Game.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s:Structure) => s.structureType);
+            Game.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s: Structure) => s.structureType);
         }
         return Game.cache.structures[this.name][structureType] || [];
     };
-
-    /**
-     * Finds creeps and containers in missionRoom that will give up energy, primarily useful when a storage is not available
-     * Caches results on a per-tick basis. Useful before storage is available or in remote mining rooms.
-     * @param roomObject - When this optional argument is supplied, return closest source
-     * @returns {StructureContainer|Creep} - Returns source with highest amount of available energy, unless roomObject is
-     * supplied
-     */
-    Room.prototype.getAltBattery = function(roomObject?: RoomObject): StructureContainer | Creep {
-        if (!this.altBatteries) {
-            let possibilities = [];
-            let containers = this.findStructures(STRUCTURE_CONTAINER);
-            if (this.controller && this.controller.getBattery() instanceof StructureContainer) {
-                _.pull(containers, this.controller.getBattery());
-            }
-            for (let container of containers) {
-                if (container.store.energy >= 50) {
-                    possibilities.push(container);
-                }
-            }
-            let creeps = this.find(FIND_MY_CREEPS, {filter: (c: Creep) => c.memory.donatesEnergy});
-            for (let creep of creeps) {
-                if (creep.carry.energy >= 50) {
-                    possibilities.push(creep);
-                }
-            }
-            if (this.terminal && this.terminal.store.energy >= 50) {
-                possibilities.push(this.terminal);
-            }
-            this.altBatteries = _.sortBy(possibilities, (p: Creep | StructureContainer) => {
-                return Agent.normalizeStore((p)).store.energy;
-            });
-        }
-        if (roomObject) {
-            return roomObject.pos.findClosestByRange(this.altBatteries) as StructureContainer | Creep;
-        }
-        else {
-            return _.last(this.altBatteries) as StructureContainer | Creep;
-        }
-    };
-
 
     /**
      * Returns missionRoom coordinates for a given missionRoom
@@ -139,13 +98,13 @@ export function initRoomPrototype() {
                 this.memory.coordinates = WorldMap.getRoomCoordinates(this.name);
             }
             return this.memory.coordinates;
-        }
+        },
     });
 
     Object.defineProperty(Room.prototype, "defaultMatrix", {
         get: function myProperty() {
             return empire.traveler.getStructureMatrix(this);
-        }
+        },
     });
 
     Object.defineProperty(Room.prototype, "fleeObjects", {
@@ -156,21 +115,20 @@ export function initRoomPrototype() {
                         return _.find(c.body, (part: BodyPartDefinition) => {
                                 return part.type === ATTACK || part.type === RANGED_ATTACK;
                             }) !== null;
-                    }
-                    else {
+                    } else {
                         return true;
                     }
                 });
 
                 if (this.roomType === ROOMTYPE_SOURCEKEEPER) {
-                    fleeObjects = fleeObjects.concat(this.lairThreats)
+                    fleeObjects = fleeObjects.concat(this.lairThreats);
                 }
 
                 Game.cache.fleeObjects[this.name] = fleeObjects;
             }
 
             return Game.cache.fleeObjects[this.name];
-        }
+        },
     });
 
     Object.defineProperty(Room.prototype, "lairThreats", {
@@ -180,23 +138,6 @@ export function initRoomPrototype() {
                     (lair: StructureKeeperLair) => { return !lair.ticksToSpawn || lair.ticksToSpawn < 10; });
             }
             return Game.cache.lairThreats[this.name];
-        }
+        },
     });
-
-    Room.prototype.serializePosition = function(position: {x: number, y: number, roomName: string}): number {
-        return position.x * 100 + position.y;
-    };
-
-    Room.prototype.deserializePosition = function(serializedPos: number): RoomPosition {
-        return new RoomPosition(Math.floor(serializedPos / 100), serializedPos % 100, this.name);
-    };
-
-    Room.prototype.serializePositionTest = function(position: {x: number, y: number, roomName: string}): string {
-        return String.fromCharCode(position.x * 100 + position.y);
-    };
-
-    Room.prototype.deserializePositionTest = function(serializedPos: string): RoomPosition {
-        let n = serializedPos.charCodeAt(0);
-        return new RoomPosition(Math.floor(n / 100), n % 100, this.name);
-    };
 }

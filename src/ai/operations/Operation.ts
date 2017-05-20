@@ -70,7 +70,7 @@ export abstract class Operation {
                 this.missions[missionName].initMission();
                 // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
-                this.reportException(e, "roleCall", missionName);
+                this.reportException(e, "init", missionName);
             }
         }
         this.lastPhaseCompleted = OperationPhase.Init;
@@ -93,8 +93,7 @@ export abstract class Operation {
                 this.missions[missionName].roleCall();
                 // Profiler.end("rc_m." + missionName.substr(0, 3));
             } catch (e) {
-                console.log("error caught in roleCall phase, operation:", this.name, "mission:", missionName);
-                console.log(e.stack);
+                this.reportException(e, "roleCall", missionName);
             }
         }
         this.lastPhaseCompleted = OperationPhase.RoleCall;
@@ -116,9 +115,7 @@ export abstract class Operation {
                 this.missions[missionName].missionActions();
                 // Profiler.end("ac_m." + missionName.substr(0, 3));
             } catch (e) {
-                console.log("error caught in missionActions phase, operation:", this.name, "mission:", missionName,
-                    "in missionRoom ", this.flag.pos.roomName);
-                console.log(e.stack);
+                this.reportException(e, "actions", missionName);
             }
         }
         this.lastPhaseCompleted = OperationPhase.Actions;
@@ -142,8 +139,7 @@ export abstract class Operation {
                 this.missions[missionName].finalizeMission();
                 // Profiler.end("fi_m." + missionName.substr(0, 3));
             } catch (e) {
-                console.log("error caught in finalizeMission phase, operation:", this.name, "mission:", missionName);
-                console.log(e.stack);
+                this.reportException(e, "finalize", missionName);
             }
         }
 
@@ -152,8 +148,7 @@ export abstract class Operation {
             this.finalizeOperation();
             TimeoutTracker.log("post-operation");
         } catch (e) {
-            console.log("error caught in finalizeOperation phase, operation:", this.name);
-            console.log(e.stack);
+            this.reportException(e, "finalizeOp");
         }
 
         this.lastPhaseCompleted = OperationPhase.Finalize;
@@ -249,14 +244,6 @@ export abstract class Operation {
         }
     }
 
-    public manualControllerBattery(id: string) {
-        let object = Game.getObjectById(id);
-        if (!object) { return "that is not a valid game object or not in vision"; }
-        this.flag.room.memory.controllerBatteryId = id;
-        this.flag.room.memory.upgraderPositions = undefined;
-        return "controller battery assigned to" + object;
-    }
-
     public findOperationWaypoints() {
         this.waypoints = [];
         for (let i = 0; i < 100; i++) {
@@ -267,6 +254,7 @@ export abstract class Operation {
                 break;
             }
         }
+        return this.waypoints;
     }
 
     public setMax(missionName: string, max: number) {
@@ -283,9 +271,13 @@ export abstract class Operation {
         return "SPAWN: " + missionName + " boost value changed from " + oldValue + " to " + activateBoost;
     }
 
-    private reportException(e: any, phaseName: string, missionName: string) {
+    private reportException(e: any, phaseName: string, missionName?: string) {
         if (Game.cache.exceptionCount === 0) {
-            console.log(`error caught in ${phaseName} phase, operation: ${this.name}, mission: ${missionName}`);
+            let missionReport = "";
+            if (missionName) {
+                missionReport = `, mission: ${missionName}`;
+            }
+            console.log(`error caught in ${phaseName} phase, operation: ${this.name}${missionReport}`);
             console.log(e.stack);
         }
         Game.cache.exceptionCount++;

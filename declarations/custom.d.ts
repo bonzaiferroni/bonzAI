@@ -22,7 +22,6 @@ interface Game {
 interface Room {
     basicMatrix: CostMatrix;
     findStructures<T>(structureType: string): T[];
-    getAltBattery(roomObject?: RoomObject): StructureContainer | Creep;
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
     fleeObjects: (Creep|Structure)[];
@@ -49,8 +48,6 @@ interface RoomMemory {
     radarData: { x: number, y: number };
     spawnMemory: any;
     boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
-    controllerBatteryId: string;
-    upgraderPositions: RoomPosition[];
     portal: string;
     portalEnd: number;
 }
@@ -150,11 +147,6 @@ interface ResourceOrder {
 interface StrangerReport {
     tickSeen: number;
     roomName: string;
-}
-
-interface StructureController {
-    getBattery(structureType?: string): StructureLink | StructureStorage | StructureContainer;
-    getUpgraderPositions(): RoomPosition[];
 }
 
 interface StructureKeeperLair {

@@ -24,9 +24,10 @@ export class RaidOperation extends Operation {
         wreck: WreckerMission,
         brawler: BrawlerMission,
         longbow: LongbowMission,
+
     };
 
-    private squadNames = ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot"];
+    private squadNames = ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india"];
     private raidMissions: RaidMission[] = [];
     private raidData: RaidData;
     private attackRoomCount: number;

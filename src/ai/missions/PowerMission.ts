@@ -17,6 +17,7 @@ export class PowerMission extends Mission {
         currentBank: BankData;
         scanIndex: number;
         scanData: {[roomName: string]: number}
+        nextClyde: number;
     };
 
     constructor(operation: Operation) {
@@ -57,12 +58,17 @@ export class PowerMission extends Mission {
             reservation: { spawns: 2, currentEnergy: 8000 },
         });
 
-        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}),
-            () => this.bonnies.length);
-
         if (this.spawnedThisTick("bonnie")) {
             this.memory.currentBank.waveIncomplete = true;
+            this.memory.nextClyde = Game.time + 30;
         }
+
+        if (Game.time < this.memory.nextClyde) {
+            this.spawnGroup.isAvailable = false;
+        }
+
+        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}),
+            () => this.bonnies.length);
 
         if (this.spawnedThisTick("clyde")) {
             this.memory.currentBank.waveIncomplete = false;
@@ -196,6 +202,7 @@ export class PowerMission extends Mission {
     private bonnieActions(bonnie: Agent) {
         let myClyde = Game.creeps[bonnie.memory.myClydeName];
         if (!myClyde) {
+            bonnie.idleOffRoad();
             return;
         }
 

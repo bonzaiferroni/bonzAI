@@ -1,6 +1,7 @@
 import {Mission} from "./Mission";
 import {Agent} from "../agents/Agent";
 import {Scheduler} from "../../Scheduler";
+import {Memorizer} from "../../helpers/Memorizer";
 export class LinkNetworkMission extends Mission {
 
     private conduits: Agent[];
@@ -12,6 +13,7 @@ export class LinkNetworkMission extends Mission {
     public memory: {
         storageLinkIds: string[];
         linkFiringIndex: number;
+        contLinkId;
     };
 
     /**
@@ -26,15 +28,11 @@ export class LinkNetworkMission extends Mission {
     }
 
     public initMission() {
-        if (this.room.storage) {
-            let controllerBattery = this.room.controller.getBattery();
-            if (controllerBattery instanceof StructureLink) {
-                this.controllerLink = controllerBattery;
-            }
-            this.findStorageLinks();
-            if (this.room.controller.level === 8) {
-                this.findSourceLinks();
-            }
+        if (!this.room.storage) { return; }
+        this.controllerLink = this.findControllerLink();
+        this.findStorageLinks();
+        if (this.room.controller.level === 8) {
+            this.findSourceLinks();
         }
     }
 
@@ -238,5 +236,13 @@ export class LinkNetworkMission extends Mission {
             }
         }
         return distance;
+    }
+
+    private findControllerLink(): StructureLink {
+        let find = () => {
+            return this.room.controller.pos.findInRange(this.room.findStructures<StructureLink>(STRUCTURE_LINK), 2)[0];
+        };
+
+        return Memorizer.findObject<StructureLink>(this, "contLink", find);
     }
 }
