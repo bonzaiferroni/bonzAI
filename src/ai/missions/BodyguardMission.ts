@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 export class BodyguardMission extends Mission {
 
@@ -47,7 +47,7 @@ export class BodyguardMission extends Mission {
         let maxDefenders = 0;
         if (this.invaderGuru && this.invaderGuru.invaderProbable) {
             maxDefenders = 1;
-            
+
         }
         if (this.hasVision) {
             if (this.hostiles.length > 0) {

@@ -70,7 +70,7 @@ export class RaidGuru extends Guru {
         cache.fallbackPos = this.findFallback(room, cache.bestExit);
         cache.matrix = matrix.serialize();
 
-        helper.showMatrix(matrix);
+        helper.showMatrix(matrix, roomName);
         notifier.log(`ZOMBIE: init raid at ${roomName}, expectedDamage: ${cache.expectedDamage}, bestExit: ${
             cache.bestExit}`);
         return cache;

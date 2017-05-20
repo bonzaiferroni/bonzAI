@@ -1,4 +1,5 @@
 import {PowerFlagScan, Coord} from "../interfaces";
+import {Viz} from "./Viz";
 export var helper = {
     getStoredAmount(target: any, resourceType: string) {
         if (target instanceof Creep) {
@@ -42,12 +43,22 @@ export var helper = {
 
     blockOffPosition(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30, add = false) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
+            let x = roomObject.pos.x + xDelta;
+            if (x < 0 || x > 49) { continue; }
             for (let yDelta = -range; yDelta <= range; yDelta++) {
-                if (Game.map.getTerrainAt(roomObject.pos.x + xDelta,
-                        roomObject.pos.y + yDelta, roomObject.room.name) === "wall") { continue; }
-                let x = roomObject.pos.x + xDelta;
                 let y = roomObject.pos.y + yDelta;
+                if (y < 0 || y > 49) { continue; }
+                let terrain = Game.map.getTerrainAt(x, y, roomObject.room.name);
+                if (terrain === "wall") { continue; }
                 let currentCost = costs.get(x, y);
+                if (currentCost === 0) {
+                    if (terrain === "plain") {
+                        currentCost += 1;
+                    } else {
+                        currentCost += 5;
+                    }
+                }
+                if (currentCost >= 0xff) { continue; }
                 if (add) {
                     costs.set(x, y, Math.min(cost + currentCost, 200));
                     continue;
@@ -56,6 +67,33 @@ export var helper = {
                     continue;
                 }
                 costs.set(x, y, cost);
+            }
+        }
+    },
+
+    blockOffPositionByRange(costs: CostMatrix, roomObject: RoomObject, blockRange: number, multiplier: number,
+                            limit: number) {
+        for (let xDelta = -blockRange; xDelta <= blockRange; xDelta++) {
+            for (let yDelta = -blockRange; yDelta <= blockRange; yDelta++) {
+                let x = roomObject.pos.x + xDelta;
+                let y = roomObject.pos.y + yDelta;
+                if (x < 0 || x > 49 || y < 0 || y > 49) { continue; }
+                let terrain = Game.map.getTerrainAt(x, y, roomObject.room.name);
+                if (terrain === "wall") { continue; }
+                let currentCost = costs.get(x, y);
+                if (currentCost === 0) {
+                    if (terrain === "plain") {
+                        currentCost += 1;
+                    } else {
+                        currentCost += 5;
+                    }
+                }
+                let position = new RoomPosition(x, y, roomObject.pos.roomName);
+                let rangeToPosition = position.getRangeTo(roomObject);
+                if (rangeToPosition > blockRange) { continue; }
+                let newCost = currentCost + multiplier * (blockRange - rangeToPosition + 1);
+                newCost = Math.min(newCost, limit);
+                costs.set(x, y, newCost);
             }
         }
     },
@@ -96,20 +134,36 @@ export var helper = {
         return matrix;
     },
 
-    showMatrix(matrix: CostMatrix) {
+    showMatrix(matrix: CostMatrix, roomName: string, maxValue = 255, consoleReport = false) {
+        if (!Game.temp.showMatrix) { Game.temp.showMatrix = {}; }
+        if (Game.temp.showMatrix[roomName]) {
+            return;
+        }
+
         // showMatrix
         for (let y = 0; y < 50; y++) {
             let line = "";
             for (let x = 0; x < 50; x++) {
+                let position = new RoomPosition(x, y, roomName);
                 let value = matrix.get(x, y);
-                if (value === 0xff) {
-                    line += "ff ";
+                if (value >= 0xff) {
+                    if (consoleReport) {
+                        line += "ff ";
+                    }
+                    Viz.colorPos(position, "red");
                 } else {
-                    line += `${value}${value < 10 ? " " : ""}${value < 100 ? " " : ""}`;
+                    Viz.colorPos(position, "green", value / maxValue);
+                    if (consoleReport) {
+                        line += `${value}${value < 10 ? " " : ""}${value < 100 ? " " : ""}`;
+                    }
                 }
             }
-            console.log(line);
+            if (consoleReport) {
+                console.log(line);
+            }
         }
+
+        Game.temp.showMatrix[roomName] = true;
     },
 
     coordToPosition(coord: Coord, centerPosition: RoomPosition, rotation = 0) {

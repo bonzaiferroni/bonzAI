@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {DefenseGuru} from "../DefenseGuru";
 import {Guru} from "./Guru";
 import {Scheduler} from "../../Scheduler";
@@ -23,6 +23,8 @@ export class MasonMission extends Mission {
     private claimedRamparts: Rampart[] = [];
     private neededRepairRate: number;
     private scheduledDeliveries: Creep[] = [];
+
+    private protectTypes = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_NUKER];
 
     public memory: {
         needMason: boolean;
@@ -58,9 +60,6 @@ export class MasonMission extends Mission {
 
     public maxCarts = () => {
         if (this.needMason && this.defenseGuru.hostiles.length > 0) {
-            return 1;
-        }
-        if (this.operation.name === "bonn0") {
             return 1;
         }
     };
@@ -126,7 +125,7 @@ export class MasonMission extends Mission {
     public missionActions() {
 
         for (let mason of this.masons) {
-            if (this.defenseGuru.hostiles.length > 0 || this.operation.name === "bonn0") {
+            if (this.defenseGuru.hostiles.length > 0) {
                 this.warMasonActions(mason);
             } else {
                 this.masonActions(mason);
@@ -146,7 +145,10 @@ export class MasonMission extends Mission {
         }
 
         if (this.nukeRamparts.length > 0 && this.defenseGuru.hostiles.length === 0) {
-            let lowestRampart = _(this.nukeRamparts).sortBy(x => x.hits).head();
+            let lowestRampart = _(this.nukeRamparts)
+                .filter(x => !x.pos.lookForStructure(STRUCTURE_EXTENSION))
+                .sortBy(x => x.hits)
+                .head();
             for (let tower of this.room.findStructures<StructureTower>(STRUCTURE_TOWER)) {
                 this.towerActions(tower, lowestRampart);
             }
@@ -244,16 +246,32 @@ export class MasonMission extends Mission {
     }
 
     private hazmatActions(hazmat: Agent) {
+
         let rampart = this.getRampartForHazmat(hazmat);
-        if (!rampart) { this.masonActions(hazmat); }
+        if (!rampart) {
+            hazmat.idleOffRoad(this.flag);
+            rampart = hazmat.pos.findClosestByRange(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART));
+            if (rampart) {
+                hazmat.repair(rampart);
+            }
+            return;
+        }
+
         let position = this.getHazmatPosition(rampart);
-        if (!position) { this.masonActions(hazmat); }
+        if (!position) {
+            hazmat.idleOffRoad(this.flag);
+            rampart = hazmat.pos.findClosestByRange(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART));
+            if (rampart) {
+                hazmat.repair(rampart);
+            }
+            return;
+        }
         if (hazmat.pos.inRangeTo(position, 0)) {
             hazmat.memory.inPosition = true;
             hazmat.stealNearby("creep");
             hazmat.repair(rampart);
         } else {
-            hazmat.travelTo(position);
+            hazmat.moveItOrLoseIt(position);
         }
     }
 
@@ -487,18 +505,29 @@ export class MasonMission extends Mission {
 
     private updateNukeData() {
         this.nukes = this.room.find<Nuke>(FIND_NUKES);
-        if (this.nukes.length === 0) { return; } // with 27 rooms this only cost .1 cpu overhead total when no nukes
+        if (this.nukes.length === 0) {
+            delete this.memory.nukeData;
+            return;
+        } // with 27 rooms this only cost .1 cpu overhead total when no nukes
         let totalIncomingDamage = 0;
+
         for (let rampart of this.room.findStructures<Rampart>(STRUCTURE_RAMPART)) {
             // find ramparts in danger
-            if (rampart.pos.lookForStructure(STRUCTURE_ROAD)) { continue; }
             let incomingDamage = this.incomingNukeDamage(rampart.pos, this.nukes);
-            const margin = 10000000;
-            incomingDamage = incomingDamage + margin - rampart.hits;
-            if (incomingDamage > 0) {
-                totalIncomingDamage += incomingDamage;
-                this.nukeRamparts.push(rampart);
-            }
+            if (incomingDamage === 0) { continue; }
+            const margin = 5000000;
+            incomingDamage += margin;
+            incomingDamage -= rampart.hits;
+            if (incomingDamage === 0) { continue; }
+            totalIncomingDamage += incomingDamage;
+            this.nukeRamparts.push(rampart);
+        }
+
+        let flagName = `evac_${this.name}_evac`;
+        let flag = Game.flags[`evac_${this.name}_evac`];
+        if (!flag) {
+            console.log(`creating evac flag`);
+            this.flag.pos.createFlag(flagName);
         }
 
         // find needed repair rate
@@ -514,22 +543,16 @@ export class MasonMission extends Mission {
         }
 
         // deal with nuke memory
-        if (totalIncomingDamage > 0) {
-            if (!this.memory.nukeData) {
-                this.memory.nukeData = {
-                    hazmatPositions: {},
-                };
-            }
-        } else {
-            // clean up when finished
-            delete this.memory.nukeData;
+        if (!this.memory.nukeData) {
+            this.memory.nukeData = {
+                hazmatPositions: {},
+            };
         }
 
         // put ramparts on important structures
         if (Math.random() > .1) { return; }
-        const types = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_NUKER];
         let labCount = 0;
-        for (let type of types) {
+        for (let type of this.protectTypes) {
             let structures = this.room.findStructures<Structure>(type);
             for (let structure of structures) {
                 if (type === STRUCTURE_LAB) {
@@ -563,8 +586,7 @@ export class MasonMission extends Mission {
     private getRampartForHazmat(hazmat: Agent): Rampart {
         if (hazmat.memory.rampartId) {
             let rampart = Game.getObjectById<Rampart>(hazmat.memory.rampartId);
-            if (rampart && rampart.hits < this.incomingNukeDamage(rampart.pos, this.nukes)
-                && !_.includes(this.claimedRamparts, rampart)) {
+            if (rampart && !_.includes(this.claimedRamparts, rampart)) {
                 this.claimedRamparts.push(rampart);
                 return rampart;
             } else {
@@ -625,7 +647,7 @@ export class MasonMission extends Mission {
         if (position.lookForStructure(STRUCTURE_ROAD)) { return false; }
         if (this.room.storage && position.inRangeTo(this.room.storage, 1)) { return false; }
         let serializedPos = this.room.serializePosition(position);
-        if (this.memory.nukeData.hazmatPositions[serializedPos]) { return false; }
+        if (this.memory.nukeData.hazmatPositions[serializedPos]) { return false; } // check if being used
         return true;
     }
 

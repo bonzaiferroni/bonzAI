@@ -4,6 +4,7 @@ import {sandBox} from "./sandbox";
 import {Profiler} from "./Profiler";
 import {TimeoutTracker} from "./TimeoutTracker";
 import {empire} from "./ai/Empire";
+import {Viz} from "./helpers/Viz";
 
 loopHelper.initMemory();
 initPrototypes();
@@ -13,7 +14,8 @@ console.log(`Global Refresh CPU: ${Game.cpu.getUsed()}`);
 module.exports.loop = function () {
     // console.log("beginning of loop");
     Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
-        activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0};
+        activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0, exceptionCount: 0};
+    Game.temp = {};
 
     // profile memory parsing
     let cpu = Game.cpu.getUsed();
@@ -51,6 +53,10 @@ module.exports.loop = function () {
     for (let operation of operations) { operation.finalize(); }
     Profiler.end("finalize");
 
+    if (Game.cache.exceptionCount > 0) {
+        console.log(`Exceptions this tick: ${Game.cache.exceptionCount}`);
+    }
+
     if (Game.cache.bypassCount > 0) {
         console.log(`BYPASS: ${Game.cache.bypassCount}`);
     }
@@ -68,6 +74,7 @@ module.exports.loop = function () {
     try { Profiler.finalize(); } catch (e) { console.log("error checking Profiler:\n", e.stack); }
     try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
     try { TimeoutTracker.finalize(); } catch (e) { console.log("error finalizing TimeoutTracker:\n", e.stack); }
+    try { Viz.maintain(); } catch (e) { console.log("error with Viz:\n", e.stack); }
 
     if (!Memory.temp.timeout) {
         Memory.temp.timeout = Game.time + 1;

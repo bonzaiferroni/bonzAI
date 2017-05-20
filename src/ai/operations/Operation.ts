@@ -70,8 +70,7 @@ export abstract class Operation {
                 this.missions[missionName].initMission();
                 // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
-                console.log("error caught in initMission phase, operation:", this.name, "mission:", missionName);
-                console.log(e.stack);
+                this.reportException(e, "roleCall", missionName);
             }
         }
         this.lastPhaseCompleted = OperationPhase.Init;
@@ -258,7 +257,7 @@ export abstract class Operation {
         return "controller battery assigned to" + object;
     }
 
-    protected findOperationWaypoints() {
+    public findOperationWaypoints() {
         this.waypoints = [];
         for (let i = 0; i < 100; i++) {
             let flag = Game.flags[this.name + "_waypoints_" + i];
@@ -282,6 +281,14 @@ export abstract class Operation {
         let oldValue = this.memory[missionName].activateBoost;
         this.memory[missionName].activateBoost = activateBoost;
         return "SPAWN: " + missionName + " boost value changed from " + oldValue + " to " + activateBoost;
+    }
+
+    private reportException(e: any, phaseName: string, missionName: string) {
+        if (Game.cache.exceptionCount === 0) {
+            console.log(`error caught in ${phaseName} phase, operation: ${this.name}, mission: ${missionName}`);
+            console.log(e.stack);
+        }
+        Game.cache.exceptionCount++;
     }
 }
 

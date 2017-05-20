@@ -2,14 +2,16 @@ import {Operation} from "./Operation";
 import {FireflyMission} from "../missions/FireflyMission";
 import {WreckerMission} from "../missions/WreckerMission";
 import {BrawlerMission} from "../missions/BrawlerMission";
+import {LongbowMission} from "../missions/LongbowMission";
 import {RaidMission} from "../missions/RaidMission";
 import {RaidData, SquadConfig} from "../../interfaces";
-import {OperationPriority, Direction} from "../../config/constants";
+import {OperationPriority, Direction, RAID_CREEP_MATRIX_COST} from "../../config/constants";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
 import {WorldMap} from "../WorldMap";
 import {empire} from "../Empire";
-import {HostileAgent} from "../missions/HostileAgent";
+import {HostileAgent} from "../agents/HostileAgent";
+import {Traveler, traveler} from "../Traveler";
 
 /**
  * Primary tool for raiding. See wiki for details: https://github.com/bonzaiferroni/bonzAI/wiki/Using-RaidOperation
@@ -21,12 +23,17 @@ export class RaidOperation extends Operation {
         firefly: FireflyMission,
         wreck: WreckerMission,
         brawler: BrawlerMission,
+        longbow: LongbowMission,
     };
 
-    private squadNames = ["alfa", "bravo", "charlie"];
+    private squadNames = ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot"];
     private raidMissions: RaidMission[] = [];
     private raidData: RaidData;
     private attackRoomCount: number;
+    // having static variables allows multiple raids to share this data
+    private static structureMatrix: {[roomName: string]: CostMatrix} = {};
+    private static structureMatrixTick: number;
+    private static orderedObservation: boolean;
     private cache: any;
 
     public memory: {
@@ -46,7 +53,6 @@ export class RaidOperation extends Operation {
         tickLastActive: number;
         saveValues: boolean;
         fallbackRoomName: string;
-        placeFlags: {[flagName: string]: RoomPosition}
         attackRoomIndex: number;
         pretending: boolean;
         waveDelay: number;
@@ -54,17 +60,20 @@ export class RaidOperation extends Operation {
         standGround: boolean;
         killCreeps: boolean;
         signText: string;
+        serialMatrix: number[];
+        nextMatrixRefresh: number;
+        nextNuke: number;
+        cache: any;
     };
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.VeryHigh;
         this.cache = {};
+        if (!this.memory.cache) { this.memory.cache = {}; }
     }
 
     public initOperation() {
-        this.flagPlacement();
-        this.checkNewPlacement();
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
         if (!this.raidData) { return; }
@@ -93,7 +102,7 @@ export class RaidOperation extends Operation {
 
         let spawnCount = 0;
         for (let mission of this.raidMissions) {
-            if (mission.spawned) {
+            if (mission.findSpawnedStatus()) {
                 spawnCount++;
             } else {
                 if (this.memory.queue[mission.name]) {
@@ -135,8 +144,6 @@ export class RaidOperation extends Operation {
             let flag = Game.flags[`${this.name}_${flagType}_${i}`];
             if (flag) {
                 flags.push(flag);
-            } else {
-                break;
             }
         }
         return flags;
@@ -193,6 +200,10 @@ export class RaidOperation extends Operation {
         let fallbackFlag = fallbackFlags[this.memory.attackRoomIndex];
         let targetFlags = this.findRaidFlags(`targets_${this.memory.attackRoomIndex}`);
         let targetStructures = this.findTargetStructures(attackFlag.room, targetFlags);
+        let matrix = this.findRaidMatrix(attackFlag);
+        if (matrix) {
+            // helper.showMatrix(matrix, attackFlag.pos.roomName, 100);
+        }
 
         let raidData: RaidData = {
             raidAgents: [],
@@ -204,7 +215,8 @@ export class RaidOperation extends Operation {
             targetFlags: targetFlags,
             targetStructures: targetStructures,
             fallback: this.memory.fallback,
-            getHostileAgents: this.getHostileAgents,
+            raidMatrix: matrix,
+            nextNuke: this.findNextNuke(attackFlag.room),
         };
 
         return raidData;
@@ -220,15 +232,6 @@ export class RaidOperation extends Operation {
             spawnGroups.push(spawnGroup);
         }
         return spawnGroups;
-    }
-
-    private checkNewPlacement() {
-        if (!this.memory.tickLastActive) { this.memory.tickLastActive = Game.time; }
-        if (!this.memory.saveValues && Game.time - this.memory.tickLastActive > 100) {
-            console.log("RAID: new flag placement detected, resetting raid values");
-            this.resetRaid();
-        }
-        this.memory.tickLastActive = Game.time;
     }
 
     private resetRaid() {
@@ -335,11 +338,15 @@ export class RaidOperation extends Operation {
 
     public queueSquad(name: string, type: string, boostlLevel?: number) {
         if (name === "a") {
-            name = "alpha";
+            name = "alfa";
         } else if (name === "b") {
             name = "bravo";
         } else if (name === "c") {
             name = "charlie";
+        } else if (name === "d") {
+            name = "delta";
+        } else if (name === "c") {
+            name = "echo";
         }
 
         if (!type || !_.includes(Object.keys(this.squadTypes), type)) {
@@ -407,9 +414,13 @@ export class RaidOperation extends Operation {
 
         let manualTargets = [];
         for (let flag of flags) {
+            if (!flag.room) { continue; }
             let structure = _.filter(flag.pos.lookFor(LOOK_STRUCTURES),
                 (s: Structure) => s.structureType !== STRUCTURE_ROAD)[0] as Structure;
-            if (!structure) { flag.remove(); }
+            if (!structure) {
+                flag.remove();
+                continue;
+            }
             manualTargets.push(structure);
         }
 
@@ -422,29 +433,29 @@ export class RaidOperation extends Operation {
             return;
         }
 
-        let attackOrder = _.get(this, "memory.attackOrder",
-            [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TERMINAL, STRUCTURE_STORAGE,
-                STRUCTURE_NUKER, STRUCTURE_LAB, STRUCTURE_LINK, STRUCTURE_OBSERVER]
-        );
+        let attackOrder = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TERMINAL, STRUCTURE_STORAGE,
+            STRUCTURE_NUKER, STRUCTURE_LAB, STRUCTURE_LINK, STRUCTURE_OBSERVER];
 
-        let nonRamparted = [];
-        for (let structureType of attackOrder) {
-            nonRamparted = nonRamparted.concat(_.filter(attackRoom.findStructures(structureType),
-                (s: Structure) => {
-                    return !s.pos.lookForStructure(STRUCTURE_RAMPART) && s.pos.lookFor(LOOK_FLAGS).length === 0;
-                }));
-        }
-
-        if (nonRamparted.length > 0) {
-            return nonRamparted;
-        }
-
-        for (let structureType of attackOrder) {
-            let structures = _.filter(attackRoom.findStructures<Structure>(structureType),
-                s => s.pos.lookFor(LOOK_FLAGS).length === 0);
-            if (structures.length > 0) {
-                return structures;
+        let ramparted: Structure[] = [];
+        let nonRamparted: Structure[] = [];
+        for (let type of attackOrder) {
+            let structures = attackRoom.findStructures<Structure>(type);
+            for (let structure of structures) {
+                let flag = structure.pos.lookFor<Flag>(LOOK_FLAGS)[0];
+                if (flag && flag.name.indexOf("exclude") >= 0) { continue; }
+                if (structure.pos.lookForStructure(STRUCTURE_RAMPART)) {
+                    ramparted.push(structure);
+                } else {
+                    nonRamparted.push(structure);
+                }
             }
+            if (nonRamparted.length > 0) {
+                return nonRamparted;
+            }
+        }
+
+        if (ramparted.length > 0) {
+            return ramparted;
         }
 
         // if we made it this far, all structures have been eliminated
@@ -631,20 +642,6 @@ export class RaidOperation extends Operation {
             return;
         } else {
             this.flag.pos.createFlag(name, color);
-            this.memory.placeFlags[name] = pos;
-        }
-    }
-
-    private flagPlacement() {
-        if (!this.memory.placeFlags) {
-            this.memory.placeFlags = {};
-        }
-
-        for (let flagName in this.memory.placeFlags) {
-            let position = helper.deserializeRoomPosition(this.memory.placeFlags[flagName]);
-            let flag = Game.flags[flagName];
-            flag.setPosition(position);
-            delete this.memory.placeFlags[flagName];
         }
     }
 
@@ -738,30 +735,85 @@ export class RaidOperation extends Operation {
         }
     }
 
-    public getHostileAgents = (roomName: string): HostileAgent[] => {
-        if (this.cache.hostileAgents) { return this.cache.hostileAgents[roomName] || []; }
-        if (!this.raidData || this.raidData.raidAgents.length === 0) { return; }
-
-        let hostileAgents: {[roomName: string]: HostileAgent[] } = {};
-        for (let agent of this.raidData.raidAgents) {
-            if (hostileAgents[agent.room.name]) { continue; }
-            hostileAgents[agent.room.name] = this.findHostileAgents(agent.room);
+    private addCreepsToMatrix(matrix: CostMatrix, room: Room) {
+        for (let creep of room.hostiles) {
+            if (creep.getActiveBodyparts(RANGED_ATTACK) > 10) {
+                helper.blockOffPosition(matrix, creep, 5, 5, true);
+            }
+            if (creep.getActiveBodyparts(ATTACK) > 10) {
+                let rampart = creep.pos.lookForStructure(STRUCTURE_RAMPART);
+                if (rampart) {
+                    helper.blockOffPosition(matrix, creep, 2, 0xff);
+                } else {
+                    helper.blockOffPosition(matrix, creep, 4, 10, true);
+                }
+            }
         }
 
-        this.cache.hostileAgents = hostileAgents;
-        return hostileAgents[roomName];
-    };
-
-    private findHostileAgents(room: Room): HostileAgent[] {
-        let hostileAgents: HostileAgent[] = [];
-        for (let hostile of room.hostiles) {
-            if (hostile.owner.username === "Invader") { continue; }
-            if (empire.diplomat.allies[hostile.owner.username]) { continue; }
-            if (!_.find(hostile.body,
-                    p => p.type === RANGED_ATTACK || p.type === ATTACK || p.type === HEAL)) { continue; }
-            let hostileAgent = new HostileAgent(hostile);
-            hostileAgents.push(hostileAgent);
+        // prefer not to path through creeps but don't set them to impassable
+        for (let creep of room.find<Creep>(FIND_CREEPS)) {
+            helper.blockOffPosition(matrix, creep, 0, RAID_CREEP_MATRIX_COST, true);
         }
-        return hostileAgents;
+    }
+
+    private findRaidMatrix(attackFlag: Flag): CostMatrix {
+        if (RaidOperation.structureMatrixTick === Game.time && RaidOperation.structureMatrix[attackFlag.pos.roomName]) {
+            // allows multiple raidOps to use the same matrix;
+            return RaidOperation.structureMatrix[attackFlag.pos.roomName];
+        }
+
+        if (attackFlag.room) {
+            RaidOperation.structureMatrix[attackFlag.pos.roomName] = this.generateStructureMatrix(attackFlag.room);
+            RaidOperation.structureMatrixTick = Game.time;
+        } else if (RaidOperation.structureMatrix[attackFlag.pos.roomName]) {
+            return RaidOperation.structureMatrix[attackFlag.pos.roomName];
+        } else if (!RaidOperation.orderedObservation) {
+            let observer = this.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
+            if (observer) {
+                RaidOperation.orderedObservation = true;
+                observer.observeRoom(attackFlag.pos.roomName);
+            }
+            return;
+        } else {
+            return;
+        }
+
+        this.addCreepsToMatrix(RaidOperation.structureMatrix[attackFlag.pos.roomName], attackFlag.room);
+        return RaidOperation.structureMatrix[attackFlag.pos.roomName];
+    }
+
+    private generateStructureMatrix(attackRoom: Room): CostMatrix {
+        let matrix = empire.traveler.getStructureMatrix(attackRoom).clone();
+
+        // this is expensive but only needs to happen once per room per raid
+        for (let tower of attackRoom.findStructures<StructureTower>(STRUCTURE_TOWER)) {
+            helper.blockOffPosition(matrix, tower, 10, 3, true);
+        }
+
+        return matrix;
+    }
+
+    private findNextNuke(room: Room) {
+        if (!room) {
+            if (this.memory.nextNuke) {
+                if (Game.time > this.memory.nextNuke) {
+                    delete this.memory.nextNuke;
+                } else {
+                    return this.memory.nextNuke;
+                }
+            } else {
+                return Number.MAX_VALUE;
+            }
+        }
+
+        let nextNuke = Number.MAX_VALUE;
+        if (room) {
+            let next = _(room.find<Nuke>(FIND_NUKES)).sortBy(x => x.timeToLand).head();
+            if (next) {
+                nextNuke = next.timeToLand;
+                this.memory.nextNuke = nextNuke;
+            }
+        }
+        return nextNuke;
     }
 }

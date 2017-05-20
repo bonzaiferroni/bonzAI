@@ -1,10 +1,10 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {helper} from "../../helpers/helper";
 import {traveler} from "../Traveler";
-import {HostileAgent} from "./HostileAgent";
+import {HostileAgent} from "../agents/HostileAgent";
 import {Scheduler} from "../../Scheduler";
 export class LairMission extends Mission {
 
@@ -290,7 +290,7 @@ export class LairMission extends Mission {
         }
 
         let chasers = _.filter(this.invaderGuru.invaders,
-            hostileAgent => hostileAgent.potentials[RANGED_ATTACK] > 0);
+            hostileAgent => hostileAgent.getPotential(RANGED_ATTACK) > 0);
         if (tactic === RangerTactic.Retreat) {
             ranger.fleeByPath(chasers, 5, 5);
         } else if (tactic === RangerTactic.HitAndRun) {
@@ -333,7 +333,7 @@ export class LairMission extends Mission {
         ranger.memory.leaderControl = Game.time;
 
         let target = this.findBestTarget(trapper);
-        if (target.potentials[HEAL] > 0) {
+        if (target.getPotential(HEAL) > 0) {
             trapper.travelTo(target, {range: 0});
             ranger.travelTo(trapper, {range: 0});
             return;
@@ -357,7 +357,7 @@ export class LairMission extends Mission {
         }
 
         let expectedDamage = _.sum(ranger.pos.findInRange(this.invaderGuru.invaders, 5),
-            hostileAgent => hostileAgent.potentials[RANGED_ATTACK]);
+            hostileAgent => hostileAgent.getPotential(RANGED_ATTACK));
         if (expectedDamage > healPotential) {
             return RangerTactic.HitAndRun;
         } else {
@@ -367,7 +367,7 @@ export class LairMission extends Mission {
 
     private findBestTarget(agent: Agent): HostileAgent {
         let bestTarget = _(this.invaderGuru.invaders)
-            .filter(hostileAgent => hostileAgent.potentials[HEAL] > 0)
+            .filter(hostileAgent => hostileAgent.getPotential(HEAL) > 0)
             .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(agent))
             .head();
         if (!bestTarget) {

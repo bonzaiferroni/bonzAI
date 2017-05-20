@@ -1,6 +1,6 @@
 import {Guru} from "./Guru";
 import {Operation} from "../operations/Operation";
-import {HostileAgent} from "./HostileAgent";
+import {HostileAgent} from "../agents/HostileAgent";
 export class InvaderGuru extends Guru {
 
     public invaders: HostileAgent[] = [];

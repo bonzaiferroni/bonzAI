@@ -1,5 +1,5 @@
 import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY, WorldMap} from "../ai/WorldMap";
-import {Agent} from "../ai/missions/Agent";
+import {Agent} from "../ai/agents/Agent";
 import {empire} from "../ai/Empire";
 
 export function initRoomPrototype() {

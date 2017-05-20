@@ -13,6 +13,7 @@ interface Game {
         activeLabCount: number;
         placedRoad: boolean;
         bypassCount: number;
+        exceptionCount: number;
     };
     operations: {[opName: string]: any };
     temp: any;
@@ -50,6 +51,8 @@ interface RoomMemory {
     boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
     controllerBatteryId: string;
     upgraderPositions: RoomPosition[];
+    portal: string;
+    portalEnd: number;
 }
 
 interface RoomCoord {
@@ -67,7 +70,8 @@ interface RoomPosition {
     isPassible(ignoreCreeps?: boolean): boolean;
     lookForStructure(structureType: string): Structure;
     isNearExit(range: number): boolean;
-    getRangeToClosest(entities: {pos: RoomPosition}[]): number;
+    getRangeToClosest(positions: {pos: RoomPosition}[] | RoomPosition[]): number;
+    terrainCost(): number;
 }
 
 interface RoomObject {
@@ -77,6 +81,7 @@ interface RoomObject {
 interface Creep {
     partCount(partType: string): number;
     blindMoveTo(destination: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
+    hitsTemp: number;
 }
 
 interface CreepMemory {
@@ -113,13 +118,10 @@ interface Memory {
         average: number;
     };
     rooms: {[roomName: string]: RoomMemory };
-    hostileMemory: {[id: string]: HostileMemory };
+    hostileMemory: any;
     nextGC: number;
     gameTimeLastTick: number;
-}
-
-interface HostileMemory {
-    potentials: {[partType: string]: number};
+    viz: {[tick: number]: any };
 }
 
 interface ProfilerData {

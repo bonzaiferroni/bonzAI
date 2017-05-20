@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {notifier} from "../../notifier";
 import {RaidGuru} from "./RaidGuru";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 
 enum ZombieStatus { Attack, Upgrade, Hold, Complete }
 

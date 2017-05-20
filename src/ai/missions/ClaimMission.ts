@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 export class ClaimMission extends Mission {
 
     private claimers: Agent[];
@@ -36,6 +36,10 @@ export class ClaimMission extends Mission {
     }
 
     private claimerActions(claimer: Agent) {
+
+        let waypoints = this.operation.finalizeOperation();
+        let travelingWaypoints = claimer.travelWaypoints(waypoints);
+        if (travelingWaypoints) { return; }
 
         if (!this.controller) {
             claimer.idleOffRoad();

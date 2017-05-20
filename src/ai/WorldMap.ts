@@ -14,6 +14,7 @@ export class WorldMap {
     public foesRooms: Room[] = [];
 
     public activeNukes: {tick: number; roomName: string}[];
+    public portals: {[roomName: string]: string } = {};
     public artRooms = ARTROOMS;
 
     private diplomat: Diplomat;
@@ -58,6 +59,15 @@ export class WorldMap {
             if (memory.nextTrade) {
                 this.tradeMap[roomName] = memory;
                 if (room) { this.tradeRooms.push(room); }
+            }
+
+            if (memory.portal) {
+                if (Game.time > memory.portalEnd) {
+                    delete memory.portal;
+                    delete memory.portalEnd;
+                } else {
+                    this.portals[roomName] = memory.portal;
+                }
             }
         }
 
@@ -122,6 +132,7 @@ export class WorldMap {
             if (scannedRoom) {
                 scannedRoom.memory.nextScan = Game.time + RADAR_INTERVAL;
                 this.evaluateTrade(scannedRoom);
+                this.evaluatePortal(scannedRoom);
                 // TODO: room selection code
             } else {
                 if (!Memory.rooms[roomName]) { Memory.rooms[roomName] = {} as RoomMemory; }
@@ -148,6 +159,17 @@ export class WorldMap {
             return;
         }
         if (!room.memory.nextTrade) { room.memory.nextTrade = Game.time; }
+    }
+
+    private evaluatePortal(scannedRoom: Room) {
+        let portal = scannedRoom.findStructures<StructurePortal>(STRUCTURE_PORTAL)[0];
+        if (!portal) { return; }
+        scannedRoom.memory.portal = portal.destination.roomName;
+        if (portal.ticksToDecay) {
+            scannedRoom.memory.portalEnd = portal.ticksToDecay + Game.time;
+        } else {
+            scannedRoom.memory.portalEnd = PORTAL_DECAY + Game.time;
+        }
     }
 
     private incrementScan(radarData: {x: number; y: number}) {

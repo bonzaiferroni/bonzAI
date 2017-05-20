@@ -17,6 +17,7 @@ import {ZombieOperation} from "../ai/operations/ZombieOperation";
 import {CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD} from "../config/constants";
 import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {Profiler} from "../Profiler";
+import {EvacOperation} from "../ai/operations/EvacOperation";
 
 const OPERATION_CLASSES = {
     // conquest: ConquestOperation,
@@ -30,6 +31,7 @@ const OPERATION_CLASSES = {
     // auto: AutoOperation,
     flex: FlexOperation,
     // zombie: ZombieOperation,
+    evac: EvacOperation,
 };
 
 export var loopHelper = {
@@ -178,6 +180,7 @@ export var loopHelper = {
         }
         for (let timeStamp in Memory.resourceOrder) {
             let order = Memory.resourceOrder[timeStamp];
+            if (!order.efficiency) { order.efficiency = 1; }
             if (!order || order.roomName === undefined || order.amount === undefined) {
                 console.log("problem with order:", JSON.stringify(order));
                 return;
@@ -192,7 +195,7 @@ export var loopHelper = {
             let count = 0;
             for (let terminal of sortedTerminals) {
                 if (terminal.room.name === order.roomName) { continue; }
-                if (terminal.store[order.resourceType] >= RESERVE_AMOUNT) {
+                if (terminal.store[order.resourceType] >= RESERVE_AMOUNT + 1000) {
                     let amount = Math.min(1000, order.amount - order.amountSent);
                     if (amount <= 0) {
                         break;

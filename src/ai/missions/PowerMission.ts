@@ -4,7 +4,7 @@ import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {notifier} from "../../notifier";
 import {WorldMap} from "../WorldMap";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 
 export class PowerMission extends Mission {

@@ -1,5 +1,5 @@
 import {Mission} from "./Mission";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {Scheduler} from "../../Scheduler";
 export class LinkNetworkMission extends Mission {
 

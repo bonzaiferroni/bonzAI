@@ -2,7 +2,7 @@
 import {Operation} from "../operations/Operation";
 import {Mission} from "../missions/Mission";
 import {helper} from "../../helpers/helper";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 export class EnhancedBodyguardMission extends Mission {
 

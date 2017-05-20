@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 export class DemolishMission extends Mission {
 
     private demolishers: Agent[];

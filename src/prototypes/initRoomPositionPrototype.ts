@@ -191,11 +191,20 @@ export function initRoomPositionPrototype() {
     /**
      * Finds range to closest of an array of entities, returns null if range cannot be calculated
      *
-     * @returns {Structure}
-     * @param entities
+     * @returns
+     * @param positions
      */
-    RoomPosition.prototype.getRangeToClosest = function(entities: {pos: RoomPosition}[]): number {
-        let closest = this.findClosestByRange(entities);
+    RoomPosition.prototype.getRangeToClosest = function(positions: {pos: RoomPosition}[] | RoomPosition[]): number {
+        let closest = this.findClosestByRange(positions);
+        if (!closest) { return Number.MAX_VALUE; }
         return this.getRangeTo(closest);
+    };
+
+    RoomPosition.prototype.terrainCost = function(): number {
+        return {
+            ["swamp"]: 5,
+            ["plain"]: 1,
+            ["wall"]: 0xff,
+        }[Game.map.getTerrainAt(this)];
     };
 }

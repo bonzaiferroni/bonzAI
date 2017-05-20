@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Traveler} from "../Traveler";
 import {WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {helper} from "../../helpers/helper";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {notifier} from "../../notifier";

@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {notifier} from "../../notifier";
 import {Scheduler} from "../../Scheduler";
 import {helper} from "../../helpers/helper";

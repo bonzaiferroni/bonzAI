@@ -1,6 +1,6 @@
 import {RaidMission} from "./RaidMission";
 import {Operation} from "../operations/Operation";
-import {RaidData} from "../../interfaces";
+import {BoostLevel, RaidData} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {RaidOperation} from "../operations/RaidOperation";
 export class WreckerMission extends RaidMission {
@@ -12,16 +12,25 @@ export class WreckerMission extends RaidMission {
         this.specialistBoost = RESOURCE_CATALYZED_ZYNTHIUM_ACID;
         this.spawnCost = 11090;
         this.attackRange = 1;
-        this.attacksCreeps = false;
         this.attackerBoosts = [
             RESOURCE_CATALYZED_ZYNTHIUM_ACID,
             RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
             RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
             RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
         ];
+        if (this.boostLevel === BoostLevel.SuperTough) {
+            this.attackerBoosts.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
+        }
     }
 
+
+
     protected clearActions(attackingCreep: boolean) {
-        this.standardClearActions(attackingCreep);
+
+            let fleeing = this.squadFlee();
+            if (fleeing) { return; }
+
+            super.clearActions(attackingCreep);
     }
+
 }

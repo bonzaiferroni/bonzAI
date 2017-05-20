@@ -1,7 +1,7 @@
 import {Empire, empire} from "../ai/Empire";
 import {Operation} from "../ai/operations/Operation";
 import {helper} from "./helper";
-import {MINERALS_RAW, PRODUCT_LIST} from "../ai/TradeNetwork";
+import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {WorldMap} from "../ai/WorldMap";
 
 declare var emp: Empire;
@@ -65,6 +65,17 @@ export var consoleCommands = {
         for (let mineralType of PRODUCT_LIST) {
             console.log(mineralType + ":", emp.network.inventory[mineralType]);
         }
+    },
+
+    boostReport(boostType: string) {
+        for (let terminal of empire.network.terminals) {
+            console.log(`${terminal.store[boostType]} in ${terminal.room.name}`);
+        }
+
+    },
+
+    sendBoost(boostType: string, roomName: string) {
+        empire.network.sendBoost(boostType, roomName);
     },
 
     /**
@@ -406,5 +417,64 @@ export var consoleCommands = {
             }
         }
         return `reset cpu for ${count} creeps`;
+    },
+
+    pp(roomNames: string, seperator = " ") {
+        return this.portalPath(roomNames.split(seperator));
+    },
+
+    portalPath(roomNames: string[]) {
+        let hits = [];
+
+        for (let targetRoomName of roomNames) {
+            for (let portalRoomName in empire.map.portals) {
+                let farRoomName = emp.map.portals[portalRoomName];
+                let farSideDistance = Game.map.getRoomLinearDistance(targetRoomName, farRoomName);
+                if (farSideDistance > 20) { continue; }
+                for (let ownedRoomName in empire.map.controlledRooms) {
+                    let nearSideDistance = Game.map.getRoomLinearDistance(portalRoomName, ownedRoomName);
+                    let totalDistance = nearSideDistance + farSideDistance;
+                    if (totalDistance > 25) { continue; }
+                    hits.push({
+                        target: targetRoomName,
+                        portal: portalRoomName,
+                        owned: ownedRoomName,
+                        distance: totalDistance,
+                    });
+                }
+            }
+        }
+
+        if (hits.length === 0) {
+            return "found no hits";
+        }
+
+        console.log(`possible hits:`);
+        hits = _.sortBy(hits, "distance");
+        for (let hit of hits) {
+            console.log(JSON.stringify(hit));
+        }
+
+        let best = _(hits).sortBy("distance").head();
+        return `best: ${JSON.stringify(best)}`;
+    },
+
+    pathingCost(substr: string) {
+
+        let total = 0;
+        let count = 0;
+        for (let creepName in Game.creeps) {
+            if (creepName.indexOf(substr) < 0) { continue; }
+            let creep = Game.creeps[creepName];
+            if (!creep.memory._travel) { continue; }
+            let cpu = creep.memory._travel.cpu;
+            cpu = cpu * 1500 / creep.ticksToLive;
+            total += cpu;
+            count++;
+        }
+
+        if (count === 0) { return `couldn't find any ${substr}`}
+
+        return `average pathing cost for ${substr}: ${_.round(total / count, 2)}`;
     },
 };

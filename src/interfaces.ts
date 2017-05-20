@@ -1,8 +1,8 @@
 import {Operation} from "./ai/operations/Operation";
 import {Empire} from "./ai/Empire";
-import {Agent} from "./ai/missions/Agent";
+import {Agent} from "./ai/agents/Agent";
 import {SpawnGroup} from "./ai/SpawnGroup";
-import {HostileAgent} from "./ai/missions/HostileAgent";
+import {HostileAgent} from "./ai/agents/HostileAgent";
 
 // noinspection TsLint
 export interface bonzAI {
@@ -91,21 +91,62 @@ export interface RaidData {
     obstacles: {pos: RoomPosition}[];
     targetFlags: Flag[];
     targetStructures: Structure[];
-    getHostileAgents: (roomName: string) => HostileAgent[];
+    raidMatrix: CostMatrix;
+    nextNuke: number;
+}
+
+export interface FleeAnalysis {
+    fleeType: FleeType;
+    closestToHealer: number;
+    closestToAttacker: number;
+    rangeToClosest: number;
+    singleMover?: Agent;
+    singleMoveDirection?: number;
+    attackerLeads?: boolean;
+}
+
+export enum FleeType {
+    SingleMove,
+    SafeToTravel,
+    KeepAtRange,
+    Flee
+}
+
+export enum FleeDanger {
+    VeryHigh,
+    High,
+    Medium,
+    Low,
+    None,
+}
+
+export interface RaidMissionState {
+    bothInRoom: boolean;
+    neitherInRoom: boolean;
+    atLeastOneInRoom: boolean;
+    bothOnExit: boolean;
+    neitherOnExit: boolean;
+    bothNearExit: boolean;
+    fatigued: boolean;
+    together: boolean;
+    inSameRoom: boolean;
+    oneInRoom: boolean;
+    agentInDanger: boolean;
 }
 
 export interface RaidAction {
     type: RaidActionType;
     endAtTick?: number;
     position?: {x: number, y: number, roomName: string};
+    id?: string;
 }
 
 export enum RaidActionType {
-    EdgeScoot,
     Retreat,
+    Headhunter,
+    EdgeScoot,
     Wallflower,
     LurkOutside,
-    Headhunter,
 }
 
 export interface RaidCache {

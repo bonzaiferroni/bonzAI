@@ -4,7 +4,7 @@ import {IGOR_CAPACITY, PRODUCTION_AMOUNT, REAGENT_LIST} from "../../config/const
 import {IgorCommand, LabProcess, Shortage, BoostRequests} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {POWER_PROCESS_THRESHOLD, RESERVE_AMOUNT, PRODUCT_LIST, MINERALS_RAW} from "../TradeNetwork";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {Scheduler} from "../../Scheduler";
 import {notifier} from "../../notifier";
 export class IgorMission extends Mission {

@@ -4,7 +4,7 @@ import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {PRIORITY_BUILD} from "../../config/constants";
 import {DefenseGuru} from "../DefenseGuru";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 export class BuilderMission extends Mission {
 
     private builders: Agent[];

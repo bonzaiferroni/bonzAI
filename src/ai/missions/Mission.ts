@@ -3,7 +3,7 @@ import {SpawnGroup} from "../SpawnGroup";
 import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {Traveler} from "../Traveler";
 import {RoomHelper} from "../RoomHelper";
@@ -23,6 +23,7 @@ export abstract class Mission {
     public waypoints: Flag[];
     public partnerPairing: {[role: string]: Agent[]} = {};
     public distanceToSpawn: number;
+    protected cache: any;
 
     private _spawnedThisTick: string[] = [];
 
@@ -42,6 +43,7 @@ export abstract class Mission {
         if (operation.waypoints && operation.waypoints.length > 0) {
             this.waypoints = operation.waypoints;
         }
+        this.cache = {};
     }
 
     /**
@@ -93,6 +95,27 @@ export abstract class Mission {
         }
     }
 
+    protected headCount(roleName: string, getBody: () => string[], getMax: () => number,
+                        options: HeadCountOptions = {}): Agent[] {
+        return this.headCountAgents(Agent, roleName, getBody, getMax, options);
+    }
+
+    protected headCountAgents<T extends Agent>(constructor: new (creep: Creep, mission: Mission) => T,
+                                               roleName: string, getBody: () => string[], getMax: () => number,
+                                               options: HeadCountOptions = {},): T[] {
+        if (!constructor) {
+            constructor = (<any> Agent).constructor;
+        }
+        let agentArray = [];
+        let creeps = this.headCountCreeps(roleName, getBody, getMax, options);
+        for (let creep of creeps) {
+            let agent = new constructor(creep, this);
+            let prepared = this.prepAgent(agent, options);
+            if (prepared) { agentArray.push(agent); }
+        }
+        return agentArray;
+    }
+
     /**
      * General purpose function for spawning creeps
      * @param roleName - Used to find creeps belonging to this role, examples: miner, energyCart
@@ -102,8 +125,60 @@ export abstract class Mission {
      * @returns {Agent[]}
      */
 
-    protected headCount(roleName: string, getBody: () => string[], getMax: () => number,
-                        options: HeadCountOptions = {}): Agent[] {
+    protected headCountCreeps(roleName: string, getBody: () => string[], getMax: () => number,
+                              options: HeadCountOptions = {}): Creep[] {
+        let creepArray = [];
+        if (!this.memory.hc[roleName]) { this.memory.hc[roleName] = this.findOrphans(roleName); }
+        let creepNames = this.memory.hc[roleName] as string[];
+
+        let count = 0;
+        for (let i = 0; i < creepNames.length; i++) {
+            let creepName = creepNames[i];
+            let creep = Game.creeps[creepName];
+            if (creep) {
+                creepArray.push(creep);
+                let ticksNeeded = 0;
+                if (options.prespawn !== undefined) {
+                    ticksNeeded += creep.body.length * 3;
+                    ticksNeeded += options.prespawn;
+                }
+                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
+            } else {
+                creepNames.splice(i, 1);
+                delete Memory.creeps[creepName];
+                i--;
+            }
+        }
+
+        let spawnGroup = this.spawnGroup;
+        if (options.altSpawnGroup) {
+            spawnGroup = options.altSpawnGroup;
+        }
+
+        let allowSpawn = spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
+        if (allowSpawn && count < getMax()) {
+            let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
+            let outcome = spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
+            if (_.isString(outcome)) {
+                this._spawnedThisTick.push(roleName);
+                creepNames.push(creepName);
+            }
+        }
+
+        return creepArray;
+    }
+
+    /**
+     * General purpose function for spawning creeps
+     * @param roleName - Used to find creeps belonging to this role, examples: miner, energyCart
+     * @param getBody - function that returns the body to be used if a new creep needs to be spawned
+     * @param getMax - function that returns how many creeps are currently desired, pass 0 to halt spawning
+     * @param options - Optional parameters like prespawn interval, whether to disable attack notifications, etc.
+     * @returns {Agent[]}
+     */
+
+    protected headCount4(roleName: string, getBody: () => string[], getMax: () => number,
+                         options: HeadCountOptions = {}): Agent[] {
         let agentArray = [];
         if (!this.memory.hc[roleName]) { this.memory.hc[roleName] = this.findOrphans(roleName); }
         let creepNames = this.memory.hc[roleName] as string[];

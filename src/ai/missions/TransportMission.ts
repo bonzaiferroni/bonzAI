@@ -1,7 +1,7 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 export class TransportMission extends Mission {
 
     private carts: Agent[];

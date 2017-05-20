@@ -26,6 +26,7 @@ import {DefenseMission} from "../missions/DefenseMission";
 import {DefenseGuru} from "../DefenseGuru";
 import {Scheduler} from "../../Scheduler";
 import {PaverMission} from "../missions/PaverMission";
+import {Viz} from "../../helpers/Viz";
 
 export abstract class ControllerOperation extends Operation {
 
@@ -168,21 +169,14 @@ export abstract class ControllerOperation extends Operation {
         this.memory.centerPosition = new RoomPosition(x, y, this.flag.pos.roomName);
         this.memory.rotation = rotation;
         this.memory.layoutMap = undefined;
-        this.showLayout(false);
+        this.showLayout();
 
         return `moving layout, run command ${this.name}.showLayout(true) to display`;
     }
 
-    public showLayout(show: boolean, type = "all"): string {
+    public showLayout(type = "all"): string {
         if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
             return "No layout defined";
-        }
-
-        if (!show) {
-            for (let flagName in Game.flags) {
-                let flag = Game.flags[flagName];
-                if (flag.name.indexOf(`${this.name}_layout`) >= 0) { flag.remove(); }}
-            return "removing layout flags";
         }
 
         for (let structureType of Object.keys(CONSTRUCTION_COST)) {
@@ -190,37 +184,30 @@ export abstract class ControllerOperation extends Operation {
                 let coords = this.layoutCoords(structureType);
                 let order = 0;
                 for (let coord of coords) {
-                    let flagName = `${this.name}_layout_${structureType}_${order++}`;
-                    let flag = Game.flags[flagName];
-                    if (flag) {
-                        flag.setPosition(coord.x, coord.y);
-                        continue;
-                    }
-
                     let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-                    let color = COLOR_WHITE;
+                    let color = "white";
                     if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
                         || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
-                        color = COLOR_YELLOW;
+                        color = "yellow";
                     } else if (structureType === STRUCTURE_TOWER) {
-                        color = COLOR_BLUE;
+                        color = "blue";
                     } else if (structureType === STRUCTURE_LAB || structureType === STRUCTURE_TERMINAL) {
-                        color = COLOR_CYAN;
+                        color = "aqua";
                     } else if (structureType === STRUCTURE_POWER_SPAWN) {
-                        color = COLOR_RED;
+                        color = "red";
                     } else if (structureType === STRUCTURE_OBSERVER) {
-                        color = COLOR_BROWN;
+                        color = "aqua";
                     } else if (structureType === STRUCTURE_ROAD) {
-                        color = COLOR_GREY;
+                        color = "grey";
                     } else if (structureType === STRUCTURE_RAMPART) {
-                        color = COLOR_GREEN;
+                        color = "green";
                     }
-                    position.createFlag(flagName, color);
+                    Viz.colorPos(position, color, .5, true);
                 }
             }
         }
 
-        return `showing layout flags for: ${type}`;
+        return `showing layout for: ${type}`;
     }
 
     private autoLayout(): boolean {
@@ -247,6 +234,7 @@ export abstract class ControllerOperation extends Operation {
 
     private fixedPlacement(structureType: string) {
         let controllerLevel = this.flag.room.controller.level;
+        if (controllerLevel === 0) { return; }
         let constructionPriority = Math.max(controllerLevel * 10, 40);
         if (controllerLevel === 1) {
             constructionPriority = 90;

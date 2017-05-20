@@ -1,5 +1,5 @@
 import {Mission} from "./Mission";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 export class PaverMission extends Mission {
 
     private pavers: Agent[];

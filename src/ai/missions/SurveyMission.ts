@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 
 export class SurveyMission extends Mission {
 

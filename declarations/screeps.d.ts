@@ -251,6 +251,7 @@ declare var POWER_SPAWN_HITS: number;
 declare var POWER_SPAWN_ENERGY_CAPACITY: number;
 declare var POWER_SPAWN_POWER_CAPACITY: number;
 declare var POWER_SPAWN_ENERGY_RATIO: number;
+declare var PORTAL_DECAY: number;
 declare var EXTRACTOR_HITS: number;
 declare var LAB_HITS: number;
 declare var LAB_MINERAL_CAPACITY: number;
@@ -2432,7 +2433,11 @@ declare class RoomVisual {
     constructor(roomName: string);
 
     line(pos1: RoomPosition, pos2: RoomPosition, style?: RoomVisualLineStyle);
-    text(text: string, x: number, y: number, style?: RoomVisualTextStyle)
+    text(text: string, x: number, y: number, style?: RoomVisualTextStyle);
+    text(text: string, pos: RoomPosition, style?: RoomVisualTextStyle);
+    rect(pos: RoomPosition, width: number, height: number, style?: RoomVisualStyle);
+    rect(x: number, y: number, width: number, height: number, style?: RoomVisualStyle);
+    circle(pos: RoomPosition, style?: RoomVisualShapeStyle);
 }
 
 interface RoomVisualLineStyle {
@@ -2451,4 +2456,20 @@ interface RoomVisualTextStyle {
     backgroundPadding?: string;
     align?: string;
     opacity?: number;
+}
+
+interface RoomVisualStyle {
+    color?: string;
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    opacity?: number;
+}
+
+interface RoomVisualShapeStyle {
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    opacity?: number;
+    lineStyle?: string;
 }

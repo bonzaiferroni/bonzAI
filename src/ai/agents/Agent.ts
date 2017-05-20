@@ -1,49 +1,28 @@
-import {Mission} from "./Mission";
+import {Mission} from "../missions/Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {TravelToOptions, Traveler, TravelData} from "../Traveler";
-import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
+import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {notifier} from "../../notifier";
 import {empire} from "../Empire";
+import {AbstractAgent} from "./AbstractAgent";
+import {RESERVE_AMOUNT} from "../TradeNetwork";
 
-export class Agent {
+export class Agent extends AbstractAgent {
 
-    public creep: Creep;
     public mission: Mission;
-    public room: Room;
     public missionRoom: Room;
     public outcome: number;
-    public carry: StoreDefinition;
-    public carryCapacity: number;
-    public hits: number;
-    public hitsMax: number;
-    public pos: RoomPosition;
-    public ticksToLive: number;
-    public name: string;
-    public id: string;
-    public fatigue: number;
     public spawning: boolean;
-    public memory: any;
-    private cache: any;
+    public name: string;
 
     constructor(creep: Creep, mission: Mission) {
-        this.creep = creep;
+        super(creep);
         this.mission = mission;
-        this.room = creep.room;
         this.missionRoom = mission.room;
-        this.memory = creep.memory;
-        this.pos = creep.pos;
-        this.carry = creep.carry;
-        this.carryCapacity = creep.carryCapacity;
-        this.hits = creep.hits;
-        this.hitsMax = creep.hitsMax;
-        this.ticksToLive = creep.ticksToLive;
-        this.name = creep.name;
-        this.id = creep.id;
-        this.fatigue = creep.fatigue;
         this.spawning = creep.spawning;
-        this.cache = {};
+        this.name = creep.name;
     }
 
     public attack(target: Creep|Structure): number { return this.creep.attack(target); }
@@ -200,10 +179,10 @@ export class Agent {
                 let relDirection = direction + i;
                 relDirection = helper.clampDirection(relDirection);
                 let position = this.creep.pos.getPositionAtDirection(relDirection);
+                if (position.isNearExit(0)) { continue; }
                 if (!position.inRangeTo(place, acceptableRange)) { continue; }
                 if (position.lookForStructure(STRUCTURE_ROAD)) { continue; }
                 if (!position.isPassible()) { continue; }
-                if (position.isNearExit(0)) { continue; }
                 if (position.lookFor(LOOK_TERRAIN)[0] === "swamp") {
                     swampDirection = relDirection;
                     continue;
@@ -330,8 +309,12 @@ export class Agent {
                 requests[boost].requesterIds = _.pull(requests[boost].requesterIds, this.creep.id);
                 this.memory[boost] = true;
             } else {
-                if (Game.time % 10 === 0) { console.log("BOOST: no boost for", this.creep.name,
-                    " it will wait for some boost (allowUnboosted = false)"); }
+                if (Game.time % 10 === 0) {
+                    console.log(`BOOST: no ${boost} for ${this.creep.name}, it will wait (allowUnboosted = false)`);
+                }
+                if (!this.creep.room.terminal.store[boost] || this.creep.room.terminal.store[boost] < 1000) {
+                    empire.network.sendBoost(boost, this.room.name);
+                }
                 this.idleOffRoad(this.missionRoom.storage);
                 return false;
             }
@@ -1027,6 +1010,151 @@ export class Agent {
             this.travelTo(leader);
         } else {
             this.travelTo(leader.pos.findClosestByRange(positions));
+        }
+    }
+
+    /**
+     * Determine if an agent has a path to the destination
+     * @param destination
+     * @param range
+     * @param maxRooms
+     * @param maxOps
+     * @param maxRooms
+     * @param maxOps
+     */
+
+    public hasPathTo(destination: {pos: RoomPosition}, range = 1, maxRooms = 1, maxOps = 1000): boolean {
+        let ret = PathFinder.search(this.pos, {pos: destination.pos, range}, {
+            maxRooms: maxRooms,
+            maxOps: maxOps,
+        });
+        return !ret.incomplete;
+    }
+
+    public nearbyExit(avoiding?: {pos: RoomPosition}, exclude?: RoomPosition): RoomPosition {
+        let directions = [1, 3, 5, 7, 2, 4, 6, 8];
+
+        let bestPosition: RoomPosition;
+        let bestRange = 0;
+        for (let direction of directions) {
+            let pos = this.pos.getPositionAtDirection(direction);
+            if (pos.x !== 0 && pos.x !== 49 && pos.y !== 0 && pos.y !== 49) { continue; }
+            if (pos.lookFor(LOOK_TERRAIN)[0] === "wall") { continue; }
+            if (!avoiding) {
+                return pos;
+            }
+            let range = pos.getRangeTo(avoiding);
+            if (range <= bestRange) { continue; }
+            if (exclude && exclude.inRangeTo(pos, 0)) { continue; }
+            bestRange = range;
+            bestPosition = pos;
+        }
+
+        return bestPosition;
+    }
+
+    public moveAwayFromAlongExit(avoiding: {pos: RoomPosition}, exitRange: number): number {
+        let directions = [2, 4, 6, 8, 1, 3, 5, 7];
+
+        let bestDirection: number;
+        let bestRange = 0;
+        for (let direction of directions) {
+            let pos = this.pos.getPositionAtDirection(direction);
+            if (pos.x !== 0 + exitRange && pos.x !== 49 - exitRange
+                && pos.y !== 0 + exitRange && pos.y !== 49 - exitRange) { continue; }
+            if (pos.lookFor(LOOK_TERRAIN)[0] === "wall") { continue; }
+            let range = pos.getRangeTo(avoiding);
+            if (range <= bestRange) { continue; }
+            bestRange = range;
+            bestDirection = direction;
+        }
+
+        if (bestDirection) {
+            return this.creep.move(bestDirection);
+        } else {
+            return ERR_NO_PATH;
+        }
+    }
+
+    public massAttackDamage(): number {
+        let hostiles = this.pos.findInRange(this.room.hostiles, 3);
+        let totalDamage = 0;
+        let rangeMap = {
+            [1]: 10,
+            [2]: 4,
+            [3]: 1,
+        };
+
+        for (let hostile of hostiles) {
+            if (hostile.pos.lookForStructure(STRUCTURE_RAMPART)) { continue; }
+            let range = this.pos.getRangeTo(hostile);
+            let damage = rangeMap[range];
+            if (!damage) { continue; }
+            totalDamage += damage;
+        }
+
+        return totalDamage;
+    }
+
+    public travelWaypoints(waypoints: Flag[], options?: TravelToOptions): boolean {
+        if (this.memory.waypointsCovered) {
+            return true;
+        }
+
+        if (this.memory.waypointIndex === undefined) {
+            this.memory.waypointIndex = 0;
+        }
+
+        if (this.memory.waypointIndex >= waypoints.length) {
+            this.memory.waypointsCovered = true;
+            return true;
+        }
+
+        let waypoint = waypoints[this.memory.waypointIndex];
+        if (WorldMap.roomTypeFromName(waypoint.pos.roomName) === ROOMTYPE_CORE) {
+            let portalCrossing = this.travelPortalWaypoint(waypoint);
+            if (portalCrossing) { return false; }
+        }
+
+        if (waypoint.room && this.pos.inRangeTo(waypoint, 5) && !this.pos.isNearExit(0)) {
+            console.log(`AGENT: waypoint ${this.memory.waypointIndex} reached (${this.name})`);
+            this.memory.waypointIndex++;
+        }
+
+        this.travelTo(waypoint, options);
+    }
+
+    private travelPortalWaypoint(waypoint: Flag) {
+        if (!this.memory.portalCrossing && (!waypoint.room || !waypoint.pos.lookForStructure(STRUCTURE_PORTAL))) {
+            return false;
+        }
+        this.memory.portalCrossing = true;
+        let crossed = this.crossPortal(waypoint);
+        if (crossed) {
+            this.memory.portalCrossing = false;
+            this.memory.waypointIndex++;
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private crossPortal(waypoint: Flag): boolean {
+        if (Game.map.getRoomLinearDistance(this.pos.roomName, waypoint.pos.roomName) > 5) {
+            // other side
+            if (this.pos.lookForStructure(STRUCTURE_PORTAL)) {
+                let positions = this.pos.openAdjacentSpots();
+                if (positions.length > 0) {
+                    // console.log(this.name + " stepping off portal");
+                    this.travelTo(positions[0]);
+                    return;
+                }
+            }
+            // console.log(agent.name + " waiting on other side");
+            return true;
+        } else {
+            // console.log(agent.name + " traveling to waypoint");
+            this.travelTo(waypoint);
         }
     }
 }

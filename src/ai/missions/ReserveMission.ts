@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {ARTROOMS} from "../WorldMap";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 export class ReserveMission extends Mission {
 

@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
 export class UpgradeMission extends Mission {

@@ -121,6 +121,41 @@ export class TradeNetwork {
         return this.inventory[resourceType] && this.inventory[resourceType] > abundanceAmount;
     }
 
+    public sendBoost(boostType: string, roomName: string) {
+        let underReserve = [];
+        for (let terminal of this.terminals) {
+            let amountStored = terminal.store[boostType];
+            if (!amountStored || amountStored < 100) { continue; }
+            if (amountStored < RESERVE_AMOUNT + 100) {
+                underReserve.push(terminal);
+                continue;
+            }
+            let sendAmount = amountStored - RESERVE_AMOUNT;
+            let outcome = terminal.send(boostType, sendAmount, roomName);
+            console.log(`NETWORK: sent ${sendAmount} of ${boostType} from ${terminal.room.name} to ${
+                roomName} status: plenty -- outcome: ${outcome}`);
+        }
+
+        let mostToSpare = _(underReserve)
+            .filter(x => x.store[boostType] >= 100)
+            .sortBy(x => x.store[boostType])
+            .last();
+        if (!mostToSpare) {
+            console.log(`NETWORK: no ${boostType} available to send to ${roomName}`);
+        }
+
+        let status = "getting low";
+        let amountStored = mostToSpare.store[boostType];
+        let sendAmount = amountStored - 2000;
+        if (sendAmount < 0) {
+            sendAmount = amountStored;
+            status = "last remaining";
+        }
+        let outcome = mostToSpare.send(boostType, sendAmount, roomName);
+        console.log(`NETWORK: sent ${sendAmount} of ${boostType} from ${mostToSpare.room.name} to ${
+            roomName} status: ${status} -- outcome: ${outcome}`);
+    }
+
     private registerMyRooms() {
         for (let roomName in this.map.controlledRooms) {
             let room = this.map.controlledRooms[roomName];
@@ -166,7 +201,7 @@ export class TradeNetwork {
                 let amount = room.terminal.store[resourceType] || 0;
                 if (amount < RESERVE_AMOUNT && !terminalFull) {
                     this.registerShortage(resourceType, room.terminal);
-                } else if (amount >= SURPLUS_AMOUNT) {
+                } else if (amount >= RESERVE_AMOUNT + 1000) {
                     this.registerSurplus(resourceType, room.terminal);
                 }
             }
@@ -207,7 +242,7 @@ export class TradeNetwork {
                         requiredEnergy = 30000;
                     }
                     if (bestSurplus.store.energy >= requiredEnergy) {
-                        let amount = this.sendAmount(resourceType, shortage);
+                        let amount = this.sendAmount(resourceType, shortage, bestSurplus);
                         this.sendResource(bestSurplus, resourceType, amount, shortage);
                     }
                     this.alreadyTraded[bestSurplus.room.name] = true;
@@ -216,10 +251,12 @@ export class TradeNetwork {
         }
     }
 
-    private sendAmount(resourceType: string, shortage: StructureTerminal): number {
+    private sendAmount(resourceType: string, shortage: StructureTerminal, surplus: StructureTerminal): number {
         if (resourceType === RESOURCE_ENERGY) { return TRADE_ENERGY_AMOUNT; }
         let amountStored = shortage.store[resourceType] || 0;
-        return RESERVE_AMOUNT - amountStored;
+        let amountNeeded = RESERVE_AMOUNT - amountStored;
+        let amountAvailable = surplus.store[resourceType] - RESERVE_AMOUNT;
+        return Math.min(amountNeeded, amountAvailable);
     }
 
     private acceptableDistance(resourceType: string, surplus: StructureTerminal): number {

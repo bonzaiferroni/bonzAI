@@ -1,6 +1,8 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
+import {Profiler} from "../../Profiler";
+import {RaidAgent} from "../agents/RaidAgent";
 
 interface EnergyStructure extends Structure {
     pos: RoomPosition;
@@ -57,6 +59,7 @@ export class RefillMission extends Mission {
 
     public missionActions() {
 
+        Profiler.start("refill.actions");
         for (let cart of this.emergencyCarts) {
             this.spawnCartActions(cart, 0);
         }
@@ -66,6 +69,7 @@ export class RefillMission extends Mission {
             this.spawnCartActions(cart, order);
             order++;
         }
+        Profiler.end("refill.actions");
     }
 
     private spawnCartActions2(cart: Agent, order: number) {

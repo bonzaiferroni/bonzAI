@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {Agent} from "./Agent";
+import {Agent} from "../agents/Agent";
 import {notifier} from "../../notifier";
 import {empire} from "../Empire";
 export class LinkMiningMission extends Mission {
@@ -44,7 +44,7 @@ export class LinkMiningMission extends Mission {
     }
 
     public getMaxMiners = () => {
-        if (this.room.hostiles.length === 0) { return 0; }
+        if (this.room.hostiles.length > 0) { return 0; }
         return this.link ? 1 : 0;
     };
 

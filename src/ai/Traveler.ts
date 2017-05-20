@@ -13,6 +13,7 @@ export interface TravelData {
     path: string;
     cpu: number;
     count: number;
+    repath?: number;
 }
 
 export interface TravelToOptions {
@@ -35,6 +36,9 @@ export interface TravelToOptions {
     freshMatrix?: boolean;
     offRoad?: boolean;
     stuckValue?: number;
+    maxRooms?: number;
+    repath?: number;
+    route?: {[roomName: string]: boolean};
 }
 
 interface PathfinderReturn {
@@ -148,8 +152,8 @@ export class Traveler {
         }
 
         let roomDistance = Game.map.getRoomLinearDistance(origin.pos.roomName, destination.pos.roomName);
-        let allowedRooms;
-        if (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2)) {
+        let allowedRooms = options.route;
+        if (!allowedRooms && (options.useFindRoute || (options.useFindRoute === undefined && roomDistance > 2))) {
             allowedRooms = this.findRoute(origin.pos.roomName, destination.pos.roomName, options);
         }
 
@@ -179,6 +183,9 @@ export class Traveler {
                 }
 
                 for (let obstacle of options.obstacles) {
+                    // warning, this is adding obstacles to the matrix used by all creeps, do so with caution
+                    // TODO: make obstacle avoidance particular to the creep calling the function
+                    if (obstacle.pos.roomName !== roomName) { continue; }
                     matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
                 }
             }
@@ -196,12 +203,13 @@ export class Traveler {
 
         let ret = PathFinder.search(origin.pos, {pos: destination.pos, range: options.range}, {
             maxOps: options.maxOps,
+            maxRooms: options.maxRooms,
             plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
             swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
             roomCallback: callback,
         } );
 
-        if (ret.incomplete && roomDistance === 2 && !options.useFindRoute) {
+        if (ret.incomplete && roomDistance === 2 && options.useFindRoute === undefined) {
             console.log(`TRAVELER: path failed without findroute, trying with options.useFindRoute = true`);
             console.log(`from: ${origin.pos}, destination: ${destination.pos}`);
             options.useFindRoute = true;
@@ -235,6 +243,7 @@ export class Traveler {
         let travelData: TravelData = creep.memory._travel;
 
         if (creep.fatigue > 0) {
+            new RoomVisual(creep.pos.roomName).circle(creep.pos, {fill: "aqua"});
             return ERR_BUSY;
         }
 
@@ -248,17 +257,23 @@ export class Traveler {
             return OK;
         } else if (rangeToDestination <= 1) {
             if (rangeToDestination === 1 && !options.range) {
+                new RoomVisual(destination.pos.roomName).circle(destination.pos, {fill: "green", opacity: .2});
                 if (options.returnData) { options.returnData.nextPos = destination.pos; }
                 return creep.move(creep.pos.getDirectionTo(destination));
             }
             return OK;
         }
 
+        // mark destination
+        // new RoomVisual(destination.pos.roomName).circle(destination.pos, {fill: "green"});
+
         // check if creep is stuck
         if (travelData.prev) {
             travelData.prev = Traveler.initPosition(travelData.prev);
             if (creep.pos.inRangeTo(travelData.prev, 0)) {
                 travelData.stuck++;
+                new RoomVisual(creep.pos.roomName).circle(creep.pos,
+                    {fill: "blue", opacity: .3 * travelData.stuck});
             } else {
                 travelData.stuck = 0;
             }
@@ -272,7 +287,7 @@ export class Traveler {
             delete travelData.path;
         }
 
-        // TODO:handle case where creep wasn't traveling last tick and may have moved, but destination is still the same
+        // TODO:handle case where creep moved by some other function, but destination is still the same
 
         // delete path cache if destination is different
         if (!travelData.dest || travelData.dest.x !== destination.pos.x || travelData.dest.y !== destination.pos.y ||
@@ -290,28 +305,52 @@ export class Traveler {
             }
         }
 
+        if (options.repath !== undefined && travelData.repath !== undefined) {
+            travelData.repath--;
+            // randomness can mitigating a lot of repathing on the same tick
+            if (travelData.repath <= 0 && Math.random() < .5) {
+                delete travelData.path;
+            }
+        }
+
         // pathfinding
         if (!travelData.path) {
+            if (options.repath !== undefined) {
+                travelData.repath = options.repath;
+            }
             if (creep.spawning) { return ERR_BUSY; }
+            /*// TODO: have this not rely on prototype addition
+            if (creep.pos.isNearExit(0)) {
+                let directions = [1, 2, 3, 4, 5, 6, 7, 8];
+                for (let direction of directions) {
+                    let pos = creep.pos.getPositionAtDirection(direction);
+                    if (pos.isPassible()) { return creep.move (direction); }
+                }
+            }*/
 
             travelData.dest = destination.pos;
             travelData.prev = undefined;
             let cpu = Game.cpu.getUsed();
             let ret = this.findTravelPath(creep, destination, options);
-            travelData.cpu += (Game.cpu.getUsed() - cpu);
             travelData.count++;
-            if (travelData.cpu > REPORT_CPU_THRESHOLD) {
-                console.log(`TRAVELER: heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)},\n` +
-                    `origin: ${creep.pos}, dest: ${destination.pos}`);
-            }
             if (ret.incomplete) {
                 // console.log(`TRAVELER: incomplete path for ${creep.name}`);
                 if (ret.ops < 2000 && options.useFindRoute === undefined && travelData.stuck < DEFAULT_STUCK_VALUE) {
                     options.useFindRoute = false;
                     ret = this.findTravelPath(creep, destination, options);
-                    console.log(`attempting path without findRoute was ${ret.incomplete ? "not" : ""} successful`);
+                    console.log(`attempting path without findRoute was ${ret.incomplete ? "not" : ""} successful: ${
+                        creep.name}`);
                 }
             }
+
+            let cpuUsed = Game.cpu.getUsed() - cpu;
+            travelData.cpu += cpuUsed;
+            if (travelData.cpu > REPORT_CPU_THRESHOLD) {
+                console.log(`TRAVELER: heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)},\n` +
+                    `origin: ${creep.pos}, dest: ${destination.pos}`);
+            }
+            // new RoomVisual(creep.pos.roomName).text(`${_.round(cpuUsed, 1)}`, creep.pos, {color: "orange"});
+
             travelData.path = Traveler.serializePath(creep.pos, ret.path);
             travelData.stuck = 0;
         }
@@ -431,15 +470,13 @@ export class Traveler {
         return matrix;
     }
 
-    public static serializePath(startPos: RoomPosition, path: RoomPosition[], display = true): string {
+    public static serializePath(startPos: RoomPosition, path: RoomPosition[]): string {
         let serializedPath = "";
         let lastPosition = startPos;
         for (let position of path) {
             if (position.roomName === lastPosition.roomName) {
-                if (display) {
-                    new RoomVisual(position.roomName)
-                        .line(position, lastPosition, {color: "orange", lineStyle: "dashed"});
-                }
+                new RoomVisual(position.roomName)
+                    .line(position, lastPosition, {color: "orange", lineStyle: "dashed"});
                 serializedPath += lastPosition.getDirectionTo(position);
             }
             lastPosition = position;
@@ -450,7 +487,16 @@ export class Traveler {
     private static positionAtDirection(origin: RoomPosition, direction: number): RoomPosition {
         let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
         let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
-        return new RoomPosition(origin.x + offsetX[direction], origin.y + offsetY[direction], origin.roomName);
+        let x = origin.x + offsetX[direction];
+        let y = origin.y + offsetY[direction];
+        if (x > 49 || x < 0 || y > 49 || y < 0) { return; }
+        try {
+            return new RoomPosition(x, y, origin.roomName);
+        } catch (e) {
+            console.log(`---------------------traveler pos args: ${x}, ${y}, ${origin.roomName}`);
+            console.log(`---------------------traveler pos args: ${origin}, ${direction}, ${offsetY[direction]}, ${
+                offsetX[direction]}`);
+        }
     }
 
     public static checkOccupied(roomName: string) {
