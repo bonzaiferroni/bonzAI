@@ -19,7 +19,10 @@ export class ClaimMission extends Mission {
     private getMax = () => (this.controller && !this.controller.my) || !this.hasVision ? 1 : 0;
 
     public roleCall() {
-        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], this.getMax, { blindSpawn: true });
+        this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], this.getMax, {
+            blindSpawn: true,
+            skipMoveToRoom: true,
+        });
     }
 
     public missionActions() {
@@ -37,9 +40,9 @@ export class ClaimMission extends Mission {
 
     private claimerActions(claimer: Agent) {
 
-        let waypoints = this.operation.finalizeOperation();
-        let travelingWaypoints = claimer.travelWaypoints(waypoints);
-        if (travelingWaypoints) { return; }
+        let waypoints = this.operation.findOperationWaypoints();
+        let waypointsCovered = claimer.travelWaypoints(waypoints);
+        if (!waypointsCovered) { return; }
 
         if (!this.controller) {
             claimer.idleOffRoad();
