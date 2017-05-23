@@ -3,6 +3,7 @@ import {Operation} from "../ai/operations/Operation";
 import {helper} from "./helper";
 import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {WorldMap} from "../ai/WorldMap";
+import {BuildingPlannerData} from "../interfaces";
 
 declare var emp: Empire;
 
@@ -476,5 +477,30 @@ export var consoleCommands = {
         if (count === 0) { return `couldn't find any ${substr}`}
 
         return `average pathing cost for ${substr}: ${_.round(total / count, 2)}`;
+    },
+
+    exportLayout(roomName: string, x: number, y: number, radius: number, taper: number, name = "MyLayout") {
+        let room = Game.rooms[roomName];
+        if (!room) { return "no vision in that room"; }
+
+        let pivot = {x: x, y: y};
+        let data: BuildingPlannerData = {
+            name: name,
+            pivot: pivot,
+            radius: radius,
+            taper: taper,
+            buildings: {},
+        };
+
+        let pivotPos = new RoomPosition(pivot.x, pivot.y, roomName);
+        let structures = room.find<Structure>(FIND_STRUCTURES);
+        for (let structure of structures) {
+            let range = structure.pos.getRangeTo(pivotPos);
+            if (range > radius) { continue; }
+            if (!data.buildings[structure.structureType]) { data.buildings[structure.structureType] = {pos: []}; }
+            data.buildings[structure.structureType].pos.push({x: structure.pos.x, y: structure.pos.y });
+        }
+
+        return JSON.stringify(data);
     },
 };

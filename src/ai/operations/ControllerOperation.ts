@@ -27,8 +27,22 @@ import {DefenseGuru} from "../DefenseGuru";
 import {Scheduler} from "../../Scheduler";
 import {PaverMission} from "../missions/PaverMission";
 import {Viz} from "../../helpers/Viz";
+import {FlexMap, Layout, LAYOUT_SEGMENTID, LayoutData, LayoutType, Vector2} from "../layouts/Layout";
+import {LayoutBuilder} from "../layouts/LayoutBuilder";
+import {LayoutDisplay} from "../layouts/LayoutDisplay";
+import {LayoutFactory} from "../layouts/LayoutFactory";
+import {Mem} from "../../helpers/Mem";
 
-export abstract class ControllerOperation extends Operation {
+export class ControllerOperation extends Operation {
+
+    public layout: Layout;
+
+    public memory: {
+        radius: number
+        rotation: number
+        centerPosition: RoomPosition;
+        repairIndices: {[structureType: string]: number}
+    };
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
@@ -38,41 +52,8 @@ export abstract class ControllerOperation extends Operation {
         }
     }
 
-    public memory: {
-        powerMining: boolean
-        noMason: boolean
-        masonPotency: number
-        builderPotency: number
-        wallBoost: boolean
-        mason: { activateBoost: boolean }
-        network: { scanData: { roomNames: string[]} }
-        centerPosition: RoomPosition;
-        centerPoint: Coord;
-        rotation: number
-        repairIndices: {[structureType: string]: number}
-        temporaryPlacement: {[level: number]: boolean}
-        checkLayoutIndex: number
-        layoutMap: {[structureType: string]: Coord[]}
-        radius: number
-        nextCheck: {[structureType: string]: number }
-        spawnRooms: string[]
-
-        // deprecated values
-        flexLayoutMap: {[structureType: string]: Coord[]}
-        flexRadius: number
-    };
-
-    protected staticStructures: {[structureType: string]: Coord[]};
-
-    protected abstract initAutoLayout();
-    protected abstract temporaryPlacement(controllerLevel: number);
-
     public initOperation() {
-        let layoutSuccessful = this.autoLayout();
-        if (!layoutSuccessful) {
-            console.log(`${this.name} is unable to operate, layout parameters have not been set`);
-            return;
-        }
+        this.autoLayout();
 
         this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
         this.initRemoteSpawn(8, 8);
@@ -94,7 +75,8 @@ export abstract class ControllerOperation extends Operation {
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
         if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
-            if (this.remoteSpawn.spawnGroup && this.remoteSpawn.spawnGroup.room.controller.level === 8) {
+            if (this.remoteSpawn && this.remoteSpawn.spawnGroup
+                && this.remoteSpawn.spawnGroup.room.controller.level === 8) {
                 let bodyguard = new BodyguardMission(this);
                 bodyguard.spawnGroup = this.remoteSpawn.spawnGroup;
                 this.addMission(bodyguard);
@@ -165,16 +147,76 @@ export abstract class ControllerOperation extends Operation {
         }
     }
 
-    public moveLayout(x: number, y: number, rotation: number): string {
+    private autoLayout() {
+        if (!this.room) { return; }
+        let layout = LayoutFactory.Instantiate(this.room.name);
+        if (!layout) { return; }
+        let initialized = layout.init();
+        if (!initialized) { return; }
+        this.layout = layout;
+        // LayoutDisplay.showLayout(layout);
+
+        let builder = new LayoutBuilder(layout, this.room);
+        builder.build();
+    }
+
+    protected towerRepair() {
+        if (!this.layout) { return; }
+        if (this.flag.room.hostiles.length > 0) { return; }
+
+        let structureType = STRUCTURE_RAMPART;
+        if (Game.time % 2 === 0) {
+            structureType = STRUCTURE_ROAD;
+        }
+
+        let positions = this.layout.map[structureType];
+        if (!this.memory.repairIndices) { this.memory.repairIndices = {}; }
+        if (this.memory.repairIndices[structureType] === undefined ||
+            this.memory.repairIndices[structureType] >= positions.length) {
+            this.memory.repairIndices[structureType] = 0;
+        }
+
+        let position = positions[this.memory.repairIndices[structureType]++];
+        let structure = position.lookForStructure(structureType);
+        if (structure) {
+            this.repairLayout(structure);
+        }
+    }
+
+    private repairLayout(structure: Structure) {
+
+        let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
+        if (structure.structureType === STRUCTURE_RAMPART) {
+            if (structure.hits >= 100000) { return; }
+        } else {
+            if (repairsNeeded === 0) { return; }
+        }
+
+        let towers = this.flag.room.findStructures<StructureTower>(STRUCTURE_TOWER);
+
+        for (let tower of towers) {
+            if (repairsNeeded === 0) { return; }
+            if (tower.alreadyFired) { continue; }
+            if (!tower.pos.inRangeTo(structure, Math.max(5, this.memory.radius - 3))) { continue; }
+            let outcome = tower.repair(structure);
+            repairsNeeded--;
+        }
+
+        if (repairsNeeded > 0 && towers.length > 0) {
+            structure.pos.findClosestByRange<StructureTower>(towers).repair(structure);
+        }
+    }
+
+    /* public moveLayout(x: number, y: number, rotation: number): string {
         this.memory.centerPosition = new RoomPosition(x, y, this.flag.pos.roomName);
         this.memory.rotation = rotation;
         this.memory.layoutMap = undefined;
-        this.showLayout();
+        this.showLayout("all", true);
 
         return `moving layout, run command ${this.name}.showLayout(true) to display`;
-    }
+    }*/
 
-    public showLayout(type = "all"): string {
+    /*public showLayout(type = "all", maintain = true): string {
         if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
             return "No layout defined";
         }
@@ -202,24 +244,15 @@ export abstract class ControllerOperation extends Operation {
                     } else if (structureType === STRUCTURE_RAMPART) {
                         color = "green";
                     }
-                    Viz.colorPos(position, color, .5, true);
+                    Viz.colorPos(position, color, .5, maintain);
                 }
             }
         }
 
         return `showing layout for: ${type}`;
-    }
+    }*/
 
-    private autoLayout(): boolean {
-
-        this.initWithSpawn();
-        if (!this.memory.centerPosition || this.memory.rotation === undefined ) { return false; }
-        this.initAutoLayout();
-        this.buildLayout();
-        return true;
-    }
-
-    private buildLayout() {
+    /*private buildLayout() {
 
         if (!this.flag.room) { return; }
         let structureTypes = Object.keys(CONSTRUCTION_COST);
@@ -230,9 +263,9 @@ export abstract class ControllerOperation extends Operation {
 
         this.fixedPlacement(structureType);
         this.temporaryPlacement(this.flag.room.controller.level);
-    }
+    }*/
 
-    private fixedPlacement(structureType: string) {
+    /*private fixedPlacement(structureType: string) {
         let controllerLevel = this.flag.room.controller.level;
         if (controllerLevel === 0) { return; }
         let constructionPriority = Math.max(controllerLevel * 10, 40);
@@ -271,9 +304,9 @@ export abstract class ControllerOperation extends Operation {
         }
 
         this.memory.nextCheck[structureType] = Game.time + helper.randomInterval(1000);
-    }
+    }*/
 
-    private recalculateLayout(layoutType?: string) {
+    /*private recalculateLayout(layoutType?: string) {
 
         let sourceData = [];
         for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
@@ -287,26 +320,28 @@ export abstract class ControllerOperation extends Operation {
 
         let analysis = new SeedAnalysis(this.flag.room, seedData);
         let results = analysis.run(this.staticStructures, layoutType);
-        if (results) {
-            let centerPosition = new RoomPosition(results.origin.x, results.origin.y, this.flag.room.name);
-            if (results.seedType === this.type) {
-                console.log(`${this.name} found best seed of type ${results.seedType}, initiating auto-layout`);
-                this.memory.centerPosition = centerPosition;
-                this.memory.rotation = results.rotation;
-            } else {
-                console.log(`${this.name} found best seed of another type, replacing operation`);
-                let flagName = `${results.seedType}_${this.name}`;
-                Memory.flags[flagName] = { centerPosition: centerPosition, rotation: results.rotation };
-                this.flag.pos.createFlag(flagName, COLOR_GREY);
-                this.flag.remove();
-            }
-        } else {
+        if (!results) {
             console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or` +
                 ` room`);
+            return;
         }
-    }
 
-    protected allowedCount(structureType: string, level: number): number {
+        let centerPosition = new RoomPosition(results.origin.x, results.origin.y, this.flag.room.name);
+        if (results.seedType === this.type) {
+            console.log(`${this.name} found best seed of type ${results.seedType}, initiating auto-layout`);
+            this.memory.centerPosition = centerPosition;
+            this.memory.rotation = results.rotation;
+            this.showLayout("all", false);
+        } else {
+            console.log(`${this.name} found best seed of another type, replacing operation`);
+            let flagName = `${results.seedType}_${this.name}`;
+            Memory.flags[flagName] = { centerPosition: centerPosition, rotation: results.rotation };
+            this.flag.pos.createFlag(flagName, COLOR_GREY);
+            this.flag.remove();
+        }
+    }*/
+
+    /*protected allowedCount(structureType: string, level: number): number {
         if (this.name === "bonn0" && (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_ROAD
             || structureType === STRUCTURE_OBSERVER)) {
             // hack due to war, will break normal behavior
@@ -326,9 +361,9 @@ export abstract class ControllerOperation extends Operation {
         }
 
         return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length);
-    }
+    }*/
 
-    protected layoutCoords(structureType: string): Coord[] {
+    /*protected layoutCoords(structureType: string): Coord[] {
         if (this.staticStructures[structureType]) {
             return this.staticStructures[structureType];
         } else if (this.memory.layoutMap && this.memory.layoutMap[structureType]) {
@@ -336,83 +371,21 @@ export abstract class ControllerOperation extends Operation {
         } else {
             return [];
         }
-    }
+    }*/
 
-    private initWithSpawn() {
+    /*private initFromStructures(): boolean {
+        if (!this.flag.room) { return false; }
+        if (Game.time < this.memory.layoutDelay) { return false; }
 
-        if (!this.flag.room) { return; }
-        if (!this.memory.centerPosition || this.memory.rotation === undefined) {
-            let structureCount = this.flag.room.find(FIND_STRUCTURES).length;
-            if (structureCount === 1) {
-                this.recalculateLayout();
-            } else if (structureCount > 1) {
-                this.recalculateLayout(this.type);
-            }
-            return;
-        }
-    }
-
-    protected towerRepair() {
-
-        if (this.flag.room.hostiles.length > 0) { return; }
-
-        let structureType = STRUCTURE_RAMPART;
-        if (Game.time % 2 === 0) {
-            structureType = STRUCTURE_ROAD;
-        }
-
-        let coords = this.layoutCoords(structureType);
-        if (!this.memory.repairIndices) { this.memory.repairIndices = {}; }
-        if (this.memory.repairIndices[structureType] === undefined ||
-            this.memory.repairIndices[structureType] >= coords.length) {
-            this.memory.repairIndices[structureType] = 0;
-        }
-
-        let coord = coords[this.memory.repairIndices[structureType]++];
-        let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-        let structure = position.lookForStructure(structureType);
-        if (structure) {
-            this.repairLayout(structure);
-        }
-    }
-
-    // deprecated
-    private findRemoteSpawn(distanceLimit: number, levelRequirement = 8): SpawnGroup {
-        let remoteSpawn = _(empire.spawnGroups)
-            .filter((s: SpawnGroup) => {
-                return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name) <= distanceLimit
-                    && s.room.controller.level >= levelRequirement
-                    && s.averageAvailability > .3
-                    && s.isAvailable;
-            })
-            .sortBy((s: SpawnGroup) => {
-                return Game.map.getRoomLinearDistance(this.flag.pos.roomName, s.room.name);
-            })
-            .head();
-        return remoteSpawn;
-    }
-
-    private repairLayout(structure: Structure) {
-
-        let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
-        if (structure.structureType === STRUCTURE_RAMPART) {
-            if (structure.hits >= 100000) { return; }
+        let structures = this.flag.room.find(FIND_STRUCTURES);
+        if (structures.length === 0 || (structures.length === 1 && structures[0] instanceof StructureSpawn)) {
+            this.recalculateLayout();
         } else {
-            if (repairsNeeded === 0) { return; }
+            // if there are already structures in the room, assume it must be this operation type
+            this.recalculateLayout(this.type);
         }
 
-        let towers = this.flag.room.findStructures<StructureTower>(STRUCTURE_TOWER);
-
-        for (let tower of towers) {
-            if (repairsNeeded === 0) { return; }
-            if (tower.alreadyFired) { continue; }
-            if (!tower.pos.inRangeTo(structure, Math.max(5, this.memory.radius - 3))) { continue; }
-            let outcome = tower.repair(structure);
-            repairsNeeded--;
-        }
-
-        if (repairsNeeded > 0 && towers.length > 0) {
-            structure.pos.findClosestByRange<StructureTower>(towers).repair(structure);
-        }
-    }
+        this.memory.layoutDelay = Game.time + 100;
+        return;
+    }*/
 }

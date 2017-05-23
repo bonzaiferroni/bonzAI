@@ -46,7 +46,7 @@ export abstract class Operation {
         // variables that require vision (null check where appropriate)
         if (this.flag.room) {
             this.hasVision = true;
-            this.sources = _.sortBy(flag.room.find<Source>(FIND_SOURCES), (s: Source) => s.pos.getRangeTo(flag));
+            this.sources = _.sortBy(flag.room.find<Source>(FIND_SOURCES), "id");
             this.mineral = _.head(flag.room.find<Mineral>(FIND_MINERALS));
         }
     }

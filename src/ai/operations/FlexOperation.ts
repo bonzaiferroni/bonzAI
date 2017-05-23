@@ -6,7 +6,7 @@ import {helper} from "../../helpers/helper";
 
 export class FlexOperation extends ControllerOperation {
 
-    protected temporaryPlacement(level: number) {
+    /*protected temporaryPlacement(level: number) {
         if (!this.memory.temporaryPlacement) { this.memory.temporaryPlacement = {}; }
         if (!this.memory.temporaryPlacement[level]) {
 
@@ -80,5 +80,5 @@ export class FlexOperation extends ControllerOperation {
             {x: 1, y: 0}, {x: 2, y: 1}, {x: 0, y: 1},
             {x: 1, y: 2}, {x: 2, y: 0}, {x: 0, y: 2},
             {x: 0, y: -1}, {x: -1, y: 0}, {x: 1, y: -1}, {x: -1, y: 1}],
-    };
+    }; */
 }

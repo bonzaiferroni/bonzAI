@@ -243,7 +243,8 @@ export class Traveler {
         let travelData: TravelData = creep.memory._travel;
 
         if (creep.fatigue > 0) {
-            new RoomVisual(creep.pos.roomName).circle(creep.pos, {fill: "aqua"});
+            new RoomVisual(creep.pos.roomName).circle(creep.pos, {
+                radius: .4, fill: "transparent", stroke: "aqua", opacity: .3});
             return ERR_BUSY;
         }
 
@@ -351,7 +352,12 @@ export class Traveler {
             }
             // new RoomVisual(creep.pos.roomName).text(`${_.round(cpuUsed, 1)}`, creep.pos, {color: "orange"});
 
-            travelData.path = Traveler.serializePath(creep.pos, ret.path);
+            let color = "orange";
+            if (ret.incomplete) {
+                color = "red";
+            }
+
+            travelData.path = Traveler.serializePath(creep.pos, ret.path, color);
             travelData.stuck = 0;
         }
         if (!travelData.path || travelData.path.length === 0) {
@@ -470,13 +476,15 @@ export class Traveler {
         return matrix;
     }
 
-    public static serializePath(startPos: RoomPosition, path: RoomPosition[]): string {
+    public static serializePath(startPos: RoomPosition, path: RoomPosition[], color = "orange"): string {
         let serializedPath = "";
         let lastPosition = startPos;
+        new RoomVisual(startPos.roomName).circle(startPos, {
+            radius: .5, fill: "transparent", stroke: color});
         for (let position of path) {
             if (position.roomName === lastPosition.roomName) {
                 new RoomVisual(position.roomName)
-                    .line(position, lastPosition, {color: "orange", lineStyle: "dashed"});
+                    .line(position, lastPosition, {color: color, lineStyle: "dashed"});
                 serializedPath += lastPosition.getDirectionTo(position);
             }
             lastPosition = position;

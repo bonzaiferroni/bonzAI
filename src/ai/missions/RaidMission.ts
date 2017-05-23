@@ -858,7 +858,13 @@ export abstract class RaidMission extends Mission {
 
     private manualPositioning(attackingCreep: boolean): boolean {
         let attackPosFlag = Game.flags[`${this.operation.name}_${this.name}_attacker`];
+        if (!attackPosFlag) {
+            attackPosFlag = Game.flags[this.attacker.name];
+        }
         let healerPosFlag = Game.flags[`${this.operation.name}_${this.name}_healer`];
+        if (!healerPosFlag) {
+            healerPosFlag = Game.flags[this.healer.name];
+        }
         if (!attackPosFlag && !healerPosFlag) { return false; }
 
         if (healerPosFlag && !attackPosFlag) {
@@ -881,6 +887,7 @@ export abstract class RaidMission extends Mission {
                 if (structure) {
                     range = this.attackRange;
                     if (this.attacker.pos.inRangeTo(structure, 3) && !attackingCreep) {
+                        this.attacker.creep.cancelOrder("rangedMassAttack");
                         this.attacker.rangedAttack(structure);
                         this.attacker.attack(structure);
                     }

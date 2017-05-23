@@ -138,8 +138,8 @@ export class MiningMission extends Mission {
         }
 
         if (!this.container) {
-            let reserveEnergy = order === 0 && this.minersNeeded > 1;
-            this.buildContainer(miner, this.source, reserveEnergy);
+            this.buildContainer(miner, this.source);
+            miner.memory.donatesEnergy = true;
             return;
         }
 
@@ -227,9 +227,9 @@ export class MiningMission extends Mission {
         }
     }
 
-    private buildContainer(miner: Agent, source: Source, reserveEnergy: boolean) {
+    private buildContainer(miner: Agent, source: Source) {
         if (miner.pos.isNearTo(source)) {
-            if (miner.carry.energy < miner.carryCapacity || reserveEnergy) {
+            if (miner.carry.energy < miner.carryCapacity) {
                 miner.harvest(source);
             } else {
                 let construction = source.pos.findInRange<ConstructionSite>(FIND_CONSTRUCTION_SITES, 1)[0];
@@ -279,8 +279,12 @@ export class MiningMission extends Mission {
             miner.harvest(source);
         }
 
-        if (miner.carry.energy >= 40) {
-            miner.transfer(container, RESOURCE_ENERGY);
+        if (miner.carry.energy === miner.carryCapacity) {
+            if (miner.pos.isNearTo(container)) {
+                miner.transfer(container, RESOURCE_ENERGY);
+            } else {
+                miner.travelTo(container);
+            }
         }
     }
 

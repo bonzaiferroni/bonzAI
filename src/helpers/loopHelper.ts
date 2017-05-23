@@ -1,4 +1,4 @@
-import {Empire} from "../ai/Empire";
+import {Empire, empire} from "../ai/Empire";
 import {FortOperation} from "../ai/operations/FortOperation";
 import {Operation} from "../ai/operations/Operation";
 import {MiningOperation} from "../ai/operations/MiningOperation";
@@ -18,27 +18,27 @@ import {CACHE_INVALIDATION_FREQUENCY, CACHE_INVALIDATION_PERIOD} from "../config
 import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {Profiler} from "../Profiler";
 import {EvacOperation} from "../ai/operations/EvacOperation";
+import {ControllerOperation} from "../ai/operations/ControllerOperation";
 
 const OPERATION_CLASSES = {
     // conquest: ConquestOperation,
     // fort: FortOperation,
-    mining: MiningOperation,
     // tran: TransportOperation,
-    keeper: KeeperOperation,
     // demolish: DemolishOperation,
-    raid: RaidOperation,
-    quad: QuadOperation,
+    // quad: QuadOperation,
     // auto: AutoOperation,
-    flex: FlexOperation,
+    // flex: FlexOperation,
     // zombie: ZombieOperation,
+    mining: MiningOperation,
+    keeper: KeeperOperation,
+    control: ControllerOperation,
+    raid: RaidOperation,
     evac: EvacOperation,
 };
 
 export var loopHelper = {
 
     initEmpire: function() {
-        let empire = new Empire();
-        // allows console access
         global.emp = empire;
         empire.init();
     },

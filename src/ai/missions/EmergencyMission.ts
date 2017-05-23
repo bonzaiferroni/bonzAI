@@ -60,7 +60,16 @@ export class EmergencyMinerMission extends Mission {
 
         miner.memory.donatesEnergy = true;
         miner.memory.scavanger = RESOURCE_ENERGY;
-        miner.harvest(closest);
+        if (miner.carry.energy < miner.carryCapacity) {
+            miner.harvest(closest);
+        } else {
+            let site = miner.pos.findInRange<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, 3)[0];
+            if (site) {
+                miner.build(site);
+            } else {
+                miner.harvest(closest);
+            }
+        }
     }
 
     private findMinersBySources() {

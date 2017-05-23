@@ -12,8 +12,10 @@ export class SpawnGroup {
     public isAvailable: boolean;
     public currentSpawnEnergy: number;
     public maxSpawnEnergy: number;
+    public refillEfficiency: number; // 0 = no refilling activity, 1 = maximum
 
     public memory: {
+        efficiency: number;
         nextCheck: number;
         log: {
             availability: number
@@ -35,6 +37,7 @@ export class SpawnGroup {
         this.currentSpawnEnergy = this.room.energyAvailable;
         this.maxSpawnEnergy = this.room.energyCapacityAvailable;
         this.pos = _.head(this.spawns).pos;
+        this.refillEfficiency = this.findRefillEfficiency();
     }
 
     public spawn (build: string[], name: string, memory?: any, reservation?: SpawnReservation): string | number {
@@ -80,25 +83,6 @@ export class SpawnGroup {
         this.memory.log.availability += count;
         Memory.stats["spawnGroups." + this.room.name + ".idleCount"] = count;
         return count;
-    }
-
-    private getCurrentSpawnEnergy(): number {
-        let sum = 0;
-        for (let ext of this.extensions) {
-            sum += ext.energy;
-        }
-        for (let spawn of this.spawns) {
-            sum += spawn.energy;
-        }
-        return sum;
-    }
-
-    private getMaxSpawnEnergy() {
-        let contollerLevel = this.room.controller.level;
-        let extensionCount = this.extensions.length;
-        let spawnCount = this.spawns.length;
-
-        return spawnCount * SPAWN_ENERGY_CAPACITY + extensionCount * EXTENSION_ENERGY_CAPACITY[contollerLevel];
     }
 
     public static calculateBodyCost(body: string[]): number {
@@ -166,5 +150,16 @@ export class SpawnGroup {
             return false;
         }
         return this.idleSpawnCount > 0;
+    }
+
+    private findRefillEfficiency() {
+        if (this.memory.efficiency === undefined) {
+            this.memory.efficiency = this.currentSpawnEnergy / this.maxSpawnEnergy;
+        }
+
+        let currentStatus = this.currentSpawnEnergy / this.maxSpawnEnergy;
+        let lerp = (a: number, b: number, f: number) => a + f * (b - a);
+        this.memory.efficiency = lerp(this.memory.efficiency, currentStatus, .1);
+        return this.memory.efficiency;
     }
 }

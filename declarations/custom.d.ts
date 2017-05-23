@@ -50,6 +50,9 @@ interface RoomMemory {
     boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
     portal: string;
     portalEnd: number;
+    builder: any;
+    layout: any;
+    finder: any;
 }
 
 interface RoomCoord {
@@ -119,6 +122,7 @@ interface Memory {
     nextGC: number;
     gameTimeLastTick: number;
     viz: {[tick: number]: any };
+    version: number;
 }
 
 interface ProfilerData {
@@ -165,7 +169,7 @@ interface Observation {
     room?: Room;
 }
 
-interface StructureTerminal {
+interface StructureTerminal extends OwnedStructure {
     _send(resourceType: string, amount: number, roomName: string, description?: string): number;
     send(resourceType: string, amount: number, roomName: string, description?: string): number;
 }

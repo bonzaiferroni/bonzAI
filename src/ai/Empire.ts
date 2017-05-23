@@ -9,8 +9,6 @@ import {BonzaiNetwork} from "./BonzaiNetwork";
 import {Visualizer} from "./Visualizer";
 import {Scheduler} from "../Scheduler";
 
-export let empire: Empire;
-
 export class Empire {
 
     public spawnGroups: {[roomName: string]: SpawnGroup};
@@ -31,7 +29,6 @@ export class Empire {
             errantConstructionRooms: {},
         });
         this.memory = Memory.empire;
-        empire = this;
     }
 
     /**
@@ -90,7 +87,7 @@ export class Empire {
     }
 
     public underCPULimit() {
-        return Profiler.proportionUsed() < .9;
+        return Profiler.proportionUsed() < .8;
     }
 
     private clearErrantConstruction() {
@@ -135,3 +132,5 @@ export class Empire {
         return closest.spawn(body, name);
     }
 }
+
+export let empire: Empire = new Empire();

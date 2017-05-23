@@ -41,6 +41,8 @@ export class SurveyAnalyzer {
 
         // place flag in chosen missionRoom
         if (Game.time < this.memory.nextAnalysis) { return; }
+        if (this.spawnGroup.averageAvailability < 1) { }
+
         if (this.memory.chosenRoom) {
             let room = Game.rooms[this.memory.chosenRoom];
             if (room) {
@@ -256,6 +258,12 @@ export class SurveyAnalyzer {
         if (!empire.underCPULimit()) {
             console.log(`SURVEY: avoiding placement, cpu is over limit`);
             this.memory.nextAnalysis = Game.time + helper.randomInterval(10000);
+            return;
+        }
+
+        if (this.spawnGroup.refillEfficiency < .5) {
+            console.log(`SURVEY: poor spawn refill efficiency`);
+            this.memory.nextAnalysis = Game.time + helper.randomInterval(1000);
             return;
         }
 

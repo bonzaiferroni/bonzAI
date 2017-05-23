@@ -7,7 +7,7 @@ const QUAD_RADIUS = 6;
 
 export class QuadOperation extends ControllerOperation {
 
-    protected initAutoLayout() {
+    /* protected initAutoLayout() {
         if (!this.memory.layoutMap) {
             this.memory.layoutMap = {};
             this.memory.radius = QUAD_RADIUS;
@@ -141,5 +141,5 @@ export class QuadOperation extends ControllerOperation {
             {x: -4, y: 2}, {x: -3, y: 3}, {x: -2, y: 4},
         ],
 
-    };
+    };*/
 }

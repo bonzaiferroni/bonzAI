@@ -593,6 +593,7 @@ declare class ConstructionSite extends RoomObject {
     remove(): number;
 }
 declare var Memory: Memory;
+declare var RawMemory: RawMemory;
 declare var Game: Game;
 declare var PathFinder: PathFinder;
 declare type Controller = StructureController;
@@ -1432,6 +1433,7 @@ interface CostMatrix {
      */
     deserialize(val: number[]): CostMatrix;
 }
+
 /**
  * RawMemory object allows to implement your own memory stringifier instead of built-in serializer based on JSON.stringify.
  */
@@ -1445,7 +1447,10 @@ interface RawMemory {
      * @param value New memory value as a string.
      */
     set(value: string): any;
+    segments: any[];
+    setActiveSegments(ids: number[]);
 }
+
 /**
  * A dropped piece of resource. It will decay after a while if not picked up. Dropped resource pile decays for ceil(amount/1000) units per tick.
  */
@@ -2437,7 +2442,7 @@ declare class RoomVisual {
     text(text: string, pos: RoomPosition, style?: RoomVisualTextStyle);
     rect(pos: RoomPosition, width: number, height: number, style?: RoomVisualStyle);
     rect(x: number, y: number, width: number, height: number, style?: RoomVisualStyle);
-    circle(pos: RoomPosition, style?: RoomVisualShapeStyle);
+    circle(pos: RoomPosition, style?: RoomVisualCircleStyle);
 }
 
 interface RoomVisualLineStyle {
@@ -2471,5 +2476,14 @@ interface RoomVisualShapeStyle {
     stroke?: string;
     strokeWidth?: number;
     opacity?: number;
+    lineStyle?: string;
+}
+
+interface RoomVisualCircleStyle {
+    radius?: number;
+    fill?: string;
+    opacity?: number;
+    stroke?: string;
+    strokeWidth?: number;
     lineStyle?: string;
 }

@@ -26,7 +26,7 @@ export function initPrototypes() {
                 this.room.memory[structureType][this.id] = undefined;
                 return this.findMemoStructure(structureType, range, immediate);
             }
-        } else if (Game.time % 10 === 7 || immediate) {
+        } else {
             let structures = this.pos.findInRange(this.room.findStructures(structureType), range);
             if (structures.length > 0) {
                this.room.memory[structureType][this.id] = structures[0].id;

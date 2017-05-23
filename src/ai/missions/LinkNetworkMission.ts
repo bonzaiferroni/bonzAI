@@ -240,7 +240,7 @@ export class LinkNetworkMission extends Mission {
 
     private findControllerLink(): StructureLink {
         let find = () => {
-            return this.room.controller.pos.findInRange(this.room.findStructures<StructureLink>(STRUCTURE_LINK), 2)[0];
+            return this.room.controller.pos.findInRange(this.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
         };
 
         return Memorizer.findObject<StructureLink>(this, "contLink", find);

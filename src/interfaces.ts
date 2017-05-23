@@ -211,3 +211,16 @@ export interface FleeData {
     nextPos: RoomPosition;
     delay: number;
 }
+
+export interface BuildingPlannerData {
+    name: string;
+    pivot: {x: number, y: number };
+    radius: number;
+    taper: number;
+    buildings: {[structureType: string]: {
+        pos: {
+            x: number,
+            y: number
+        }[]
+    }}
+}

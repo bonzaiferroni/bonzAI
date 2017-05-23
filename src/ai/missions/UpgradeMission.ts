@@ -14,7 +14,7 @@ export class UpgradeMission extends Mission {
     private batterySupplyCarts: Agent[];
     private influxCarts: Agent[];
 
-    private battery: ControllerBattery;
+    private battery: StoreStructure;
     private boost: boolean;
     private allowUnboosted: boolean;
     private remoteSpawning: boolean;
@@ -369,7 +369,7 @@ export class UpgradeMission extends Mission {
                 return this.room.find(FIND_SOURCES).length * 10;
             } else {
                 console.log(`unrecognized controller battery type in ${this.operation.name}, ${
-                    this.battery.structureType}`);
+                    this.battery}`);
                 return 0;
             }
         }
@@ -390,7 +390,6 @@ export class UpgradeMission extends Mission {
 
         // invalidates randomly
         if (this.memory.upgPositions && Math.random() > .01) {
-            let cpu = Game.cpu.getUsed();
             this.upgraderPositions = RoomHelper.deserializeIntPositions(this.memory.upgPositions, this.room.name);
             return this.upgraderPositions;
         }
@@ -411,7 +410,7 @@ export class UpgradeMission extends Mission {
      * Looks for structure to be used as an energy holder for upgraders
      * @returns { StructureLink | StructureStorage | StructureContainer }
      */
-    private getBattery(structureType?: string): ControllerBattery {
+    private getBattery(structureType?: string): StoreStructure {
         let find = () => {
             this.memory.upgPositions = undefined;
             return _(this.room.controller.pos.findInRange(FIND_STRUCTURES, 3))
@@ -426,11 +425,11 @@ export class UpgradeMission extends Mission {
                             return sourcesInRange.length === 0;
                         }
                     }})
-                .head() as ControllerBattery;
+                .head() as StoreStructure;
         };
 
-        return Memorizer.findObject<ControllerBattery>(this, "battery", find);
+        return Memorizer.findObject<StoreStructure>(this, "battery", find);
     }
 }
 
-type ControllerBattery = StructureLink | StructureStorage | StructureContainer;
+type StoreStructure = StructureStorage | StructureTerminal | StructureContainer;

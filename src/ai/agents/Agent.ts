@@ -725,27 +725,7 @@ export class Agent extends AbstractAgent {
 
     public procureEnergy(nextDestination?: {pos: RoomPosition}, highPriority = false, getFromSource = false) {
         let battery = this.getBattery();
-
-        if (battery) {
-            if (this.pos.isNearTo(battery)) {
-                let outcome;
-                if (highPriority) {
-                    if (Agent.normalizeStore(battery).store.energy >= 50) {
-                        outcome = this.withdraw(battery, RESOURCE_ENERGY);
-                    }
-                } else {
-                    outcome = this.withdrawIfFull(battery, RESOURCE_ENERGY);
-                }
-                if (outcome === OK) {
-                    this.memory.batteryId = undefined;
-                    if (nextDestination) {
-                        this.travelTo(nextDestination);
-                    }
-                }
-            } else {
-                this.travelTo(battery);
-            }
-        } else {
+        if (!battery) {
             if (getFromSource) {
                 let closest = this.pos.findClosestByRange<Source>(this.mission.sources);
                 if (closest) {
@@ -761,10 +741,35 @@ export class Agent extends AbstractAgent {
                 if (this.memory._travel && this.memory._travel.dest) {
                     let destPos = this.memory._travel.dest;
                     let dest = new RoomPosition(destPos.x, destPos.y, destPos.roomName);
+                    // travel toward wherever you were going last tick
                     this.idleOffRoad({pos: dest}, true);
                 } else {
                     this.idleOffRoad();
                 }
+            }
+            return;
+        }
+
+        if (!this.pos.isNearTo(battery)) {
+            this.travelTo(battery);
+            return;
+        }
+
+        let outcome;
+        if (highPriority) {
+            if (Agent.normalizeStore(battery).store.energy >= 50) {
+                outcome = this.withdraw(battery, RESOURCE_ENERGY);
+            }
+        } else {
+            outcome = this.withdrawIfFull(battery, RESOURCE_ENERGY);
+        }
+        if (outcome === OK) {
+            this.memory.batteryId = undefined;
+            if (nextDestination) {
+                this.travelTo(nextDestination);
+            }
+            if (battery instanceof Creep) {
+                battery.memory.donating = undefined;
             }
         }
     }
@@ -784,20 +789,40 @@ export class Agent extends AbstractAgent {
      * @returns {any}
      */
 
-    public getBattery(): StoreStructure {
+    public getBattery(): StoreStructure|Creep {
         let minEnergy = this.carryCapacity - this.carry.energy;
         if (this.room.storage && this.room.storage.store.energy > minEnergy) {
             return this.room.storage;
         }
 
-        let find = () => _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
-            .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
-            .filter(x => x.store.energy >= minEnergy).sortBy(x => x.pos.getRangeTo(this))
-            .head();
+        let find = () => {
+            let battery: StoreStructure|Creep = _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
+                .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
+                .filter(x => x.store.energy >= minEnergy).sortBy(x => x.pos.getRangeTo(this))
+                .head();
+            if (!battery) {
+                battery = _(this.room.find<Creep>(FIND_MY_CREEPS))
+                    .filter(x => x.memory.donatesEnergy)
+                    .filter(x => x.carry.energy >= 50)
+                    .filter(x => x.memory.donating === undefined || Game.time > x.memory.donating)
+                    .sortBy(x => x.pos.getRangeTo(this))
+                    .head();
+                if (battery) {
+                    battery.memory.donating = Game.time + 20;
+                }
+            }
+            return battery;
+        };
 
-        let validate = (obj: StoreStructure) => obj.store.energy >= minEnergy;
+        let validate = (obj: StoreStructure|Creep) => {
+            if (obj instanceof Structure) {
+                return obj.store.energy >= minEnergy;
+            } else {
+                return obj.carry.energy > 0;
+            }
+        };
 
-        return Memorizer.findObject<StoreStructure>(this, "battery", find, validate);
+        return Memorizer.findObject<StoreStructure|Creep>(this, "battery", find, validate);
     }
 
     public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
