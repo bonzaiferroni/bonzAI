@@ -1447,7 +1447,7 @@ interface RawMemory {
      * @param value New memory value as a string.
      */
     set(value: string): any;
-    segments: any[];
+    segments: string[];
     setActiveSegments(ids: number[]);
 }
 

@@ -6,11 +6,27 @@ export class Patcher {
     public static checkPatch(): boolean {
         if (Memory.version === CURRENT_VERSION) { return false; }
 
+        if (this.memSegmentInit()) { return true; }
         if (this.controllerOpToOwnedOp()) { return true; }
 
         Memory.version = CURRENT_VERSION;
         console.log(`PATCHER: updated to bonzAI v${CURRENT_VERSION}`);
         return true;
+    }
+
+    private static memSegmentInit() {
+        RawMemory.setActiveSegments([LAYOUT_SEGMENTID]);
+        if (!_.includes(Object.keys(RawMemory.segments), `${LAYOUT_SEGMENTID}`)) {
+            console.log("ordering active segement");
+            return true;
+        }
+
+        let flexMapsJson = RawMemory.segments[LAYOUT_SEGMENTID];
+        if (flexMapsJson === undefined || flexMapsJson.length === 0) {
+            console.log(`initializing segment ${LAYOUT_SEGMENTID} to be used with storing layouts`);
+            RawMemory.segments[LAYOUT_SEGMENTID] = "{}";
+            return true;
+        }
     }
 
     private static controllerOpToOwnedOp() {

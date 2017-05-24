@@ -23,8 +23,7 @@ export abstract class Layout {
             RawMemory.setActiveSegments([LAYOUT_SEGMENTID]);
             let flexMapsString = RawMemory.segments[LAYOUT_SEGMENTID];
             if (!flexMapsString) {
-                RawMemory.segments[LAYOUT_SEGMENTID] = {};
-                console.log("no map");
+                console.log(`ordering active segment for layout in ${this.roomName}`);
                 return false;
             }
             let flexMaps = JSON.parse(flexMapsString);

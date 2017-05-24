@@ -196,6 +196,7 @@ export class LairMission extends Mission {
                 return this.findDroppedEnergy(scavenger);
             }
         } else {
+            if (!this.room) { return; }
             let resource = scavenger.pos.findClosestByRange(
                 _.filter(this.room.find(FIND_DROPPED_RESOURCES),
                     (r: Resource) => r.amount > 100 && r.resourceType === RESOURCE_ENERGY) as Resource[]);
