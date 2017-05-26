@@ -226,9 +226,10 @@ export abstract class Mission {
         return _.includes(this._spawnedThisTick, roleName);
     }
 
-    protected roleCount(roleName: string): number {
+    protected roleCount(roleName: string, filter?: (creep: Creep) => boolean): number {
         if (!this.memory.hc || !this.memory.hc[roleName]) { return 0; }
-        return this.memory.hc[roleName].length;
+        if (!filter) { return this.memory.hc[roleName].length; }
+        return _.filter(this.memory.hc[roleName] as string[], x => filter(Game.creeps[x])).length;
     }
 
     protected spawnSharedAgent(roleName: string, getBody: () => string[]): Agent {
@@ -413,6 +414,8 @@ export abstract class Mission {
             }
         }
 
+        if (this.room.storage) { return this.room.storage; }
+
         // invalidated periodically
         if (!Scheduler.delay(this.memory, "nextStorageCheck", 10000)) {
             let bestStorages = RoomHelper.findClosest({pos: pos}, empire.network.storages,
@@ -487,6 +490,26 @@ export abstract class Mission {
             agent.memory.prep = true;
         }
         return true;
+    }
+
+    protected findPartner(agent: Agent, partners: Agent[], tickDifference = 300): Agent {
+        if (agent.memory.partner) {
+            let partner = _.find(partners, x => x.name === agent.memory.partner);
+            if (partner) {
+                return partner;
+            } else {
+                delete agent.memory.partner;
+                this.findPartner(agent, partners, tickDifference);
+            }
+        } else {
+            let partner = _(partners)
+                .filter(x => !x.memory.partner && Math.abs(agent.ticksToLive - x.ticksToLive) <= tickDifference)
+                .min(x => Math.abs(agent.ticksToLive - x.ticksToLive));
+            if (partner && partner instanceof Agent) {
+                agent.memory.partner = partner.name;
+                partner.memory.partner = agent.name;
+            }
+        }
     }
 
     protected findPartnerships(agents: Agent[], role: string) {
@@ -601,10 +624,9 @@ export abstract class Mission {
             defender.memory.healCheck = Game.time;
             let hurtCreep = _(this.room.find<Creep>(FIND_MY_CREEPS))
                 .filter((c: Creep) => c.hits < c.hitsMax && c.ticksToLive > 100)
-                .sortBy((c: Creep) => -c.partCount(WORK))
-                .head();
+                .max((c: Creep) => c.partCount(WORK));
 
-            if (hurtCreep) {
+            if (hurtCreep instanceof Object) {
                 defender.memory.healId = hurtCreep.id;
                 return hurtCreep;
             }

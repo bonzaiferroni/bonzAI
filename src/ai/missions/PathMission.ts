@@ -66,7 +66,7 @@ export class PathMission extends Mission {
             notifier.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
             return;
         }
-        let path = this.findPavedPath(this.start.pos, this.end.pos, this.rangeToEnd);
+        let path = this.findPavedPath(this.end.pos, this.start.pos, 1);
         if (!path) {
             notifier.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${
                 this.start.pos}, finish: ${this.end.pos}, mission: ${this.name}`);
@@ -82,7 +82,7 @@ export class PathMission extends Mission {
                 newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
             }
         }  else {
-            if (_.last(path).inRangeTo(this.end.pos, this.rangeToEnd)) {
+            if (_.last(path).inRangeTo(this.start.pos, 1)) {
                 this.pathData.distance = path.length;
             }
         }
@@ -167,11 +167,12 @@ export class PathMission extends Mission {
     }
 
     private examinePavedPath(path: RoomPosition[]) {
+        if (path.length <= this.rangeToEnd) { return; }
 
         let repairIds = [];
         let hitsToRepair = 0;
 
-        for (let i = 0; i < path.length; i++) {
+        for (let i = this.rangeToEnd; i < path.length; i++) {
             let position = path[i];
             if (!Game.rooms[position.roomName]) { return; }
             if (position.isNearExit(0)) { continue; }

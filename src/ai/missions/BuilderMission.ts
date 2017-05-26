@@ -10,7 +10,6 @@ export class BuilderMission extends Mission {
     private builders: Agent[];
     private supplyCarts: Agent[];
     private sites: ConstructionSite[];
-    private prioritySite: ConstructionSite;
     private walls: Structure[];
     private remoteSpawn: boolean;
     private activateBoost: boolean;
@@ -46,9 +45,6 @@ export class BuilderMission extends Mission {
         }
 
         this.sites = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
-        this.prioritySite = _(this.sites)
-            .sortBy(s => (PRIORITY_BUILD.indexOf(s.structureType) || 100) * 100 + s.pos.getRangeTo(this.flag))
-            .head();
 
         if (Game.time % 10 === 5) {
             for (let site of this.sites) {
@@ -152,7 +148,7 @@ export class BuilderMission extends Mission {
         // repair the rampart you just built
         if (this.memory.rampartPos) {
             let rampart = helper.deserializeRoomPosition(this.memory.rampartPos).lookForStructure(STRUCTURE_RAMPART);
-            if (rampart && rampart.hits < 10000) {
+            if (rampart && rampart.hits < 100000) {
                 if (rampart.pos.inRangeTo(builder, 3)) {
                     builder.repair(rampart);
                 } else {
@@ -165,14 +161,16 @@ export class BuilderMission extends Mission {
         }
 
         // has energy
-        let target = this.prioritySite;
-        if (!target) {
-            target = builder.pos.findClosestByRange(this.sites);
-        }
+        let target = builder.pos.findClosestByRange(this.sites);
 
         if (!target) {
             // this.buildWalls(builder);
             builder.idleOffRoad(this.flag);
+            let rampart = builder.pos.findInRange(
+                builder.room.findStructures<StructureRampart>(STRUCTURE_RAMPART), 3)[0];
+            if (rampart) {
+                builder.repair(rampart);
+            }
             return;
         }
 

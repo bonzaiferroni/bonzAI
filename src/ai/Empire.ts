@@ -31,20 +31,34 @@ export class Empire {
         this.memory = Memory.empire;
     }
 
+    public initGlobal() {
+        this.traveler = traveler;
+        this.diplomat = new BonzaiDiplomat();
+        this.map = new WorldMap(this.diplomat);
+        this.spawnGroups = this.map.initGlobal();
+        this.network = new BonzaiNetwork(this.map, this.diplomat);
+        this.market = new MarketTrader(this.network);
+
+        for (let roomName in this.spawnGroups) {
+            let spawnGroup = this.spawnGroups[roomName];
+            spawnGroup.initGlobal();
+        }
+    }
+
     /**
      * Occurs before operation phases
      */
 
     public init() {
         Profiler.start("emp.init");
-        this.traveler = traveler;
-        this.diplomat = new BonzaiDiplomat();
-        this.map = new WorldMap(this.diplomat);
-        this.spawnGroups = this.map.init();
-        this.network = new BonzaiNetwork(this.map, this.diplomat);
+        for (let roomName in this.spawnGroups) {
+            let spawnGroup = this.spawnGroups[roomName];
+            spawnGroup.init();
+        }
+        Profiler.start("focus");
+        this.map.init();
+        Profiler.end("focus");
         this.network.init();
-        this.market = new MarketTrader(this.network);
-        this.vis = new Visualizer();
         Profiler.end("emp.init");
     }
 
@@ -65,9 +79,6 @@ export class Empire {
         Profiler.start("emp.clr");
         this.clearErrantConstruction();
         Profiler.end("emp.clr");
-        Profiler.start("emp.vis");
-        this.vis.finalize();
-        Profiler.end("emp.vis");
 
         for (let roomName in this.spawnGroups) {
             this.spawnGroups[roomName].finalize();
@@ -77,12 +88,6 @@ export class Empire {
     public getSpawnGroup(roomName: string) {
         if (this.spawnGroups[roomName]) {
             return this.spawnGroups[roomName];
-        } else {
-            let room = Game.rooms[roomName];
-            if (room && room.find(FIND_MY_SPAWNS).length > 0 && room.controller.level > 0) {
-                this.spawnGroups[roomName] = new SpawnGroup(room);
-                return this.spawnGroups[roomName];
-            }
         }
     }
 

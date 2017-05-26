@@ -96,6 +96,10 @@ export class UpgradeMission extends Mission {
     };
 
     private getMax = (): number => {
+        if (this.room.controller.level === 8 && this.room.controller.ticksToDowngrade > 100000
+            && !empire.underCPULimit()) {
+            return 0;
+        }
         return this.findMaxUpgraders(this.totalPotency, this.potencyPerCreep);
     };
 

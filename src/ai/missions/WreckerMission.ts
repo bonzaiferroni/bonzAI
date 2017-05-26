@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {BoostLevel, RaidData} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {RaidOperation} from "../operations/RaidOperation";
+import {Agent} from "../agents/Agent";
 export class WreckerMission extends RaidMission {
 
     constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
@@ -23,14 +24,34 @@ export class WreckerMission extends RaidMission {
         }
     }
 
+    protected attackCreeps(attacker: Agent): boolean {
 
+        let creepTargets = _(attacker.pos.findInRange(attacker.room.hostiles, 3))
+            .filter((c: Creep) => _.filter(c.pos.lookFor(LOOK_STRUCTURES),
+                (s: Structure) => s.structureType === STRUCTURE_RAMPART).length === 0)
+            .sortBy("hits")
+            .value();
+
+        if (creepTargets.length === 0) {
+            return false;
+        }
+
+        let closest = attacker.pos.findClosestByRange(creepTargets);
+        let range = attacker.pos.getRangeTo(closest);
+
+        if (range === 1 || attacker.massAttackDamage() >= 10) {
+            attacker.rangedMassAttack();
+        } else {
+            attacker.rangedAttack(closest);
+        }
+        return false;
+    }
 
     protected clearActions(attackingCreep: boolean) {
+        let fleeing = this.squadFlee();
+        if (fleeing) { return; }
 
-            let fleeing = this.squadFlee();
-            if (fleeing) { return; }
-
-            super.clearActions(attackingCreep);
+        super.clearActions(attackingCreep);
     }
 
 }

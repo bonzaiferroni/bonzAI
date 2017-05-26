@@ -3,11 +3,12 @@ import {helper} from "../helpers/helper";
 import {Scheduler} from "../Scheduler";
 export class SpawnGroup {
 
+    private roomName: string;
+    private spawnIds: string[];
+
     public spawns: Spawn[];
-    public extensions: Extension[];
     public room: Room;
     public pos: RoomPosition;
-
     public idleSpawnCount: number;
     public isAvailable: boolean;
     public currentSpawnEnergy: number;
@@ -24,20 +25,61 @@ export class SpawnGroup {
         },
     };
 
-    constructor(room: Room) {
-        this.room = room;
-        this.spawns = _.filter(this.room.find<StructureSpawn>(FIND_MY_SPAWNS),
-            s => s.canCreateCreep([MOVE]) !== ERR_RCL_NOT_ENOUGH);
-        if (!this.room.memory.spawnMemory) { this.room.memory.spawnMemory = {}; }
-        this.memory = this.room.memory.spawnMemory;
-        this.extensions = room.findStructures(STRUCTURE_EXTENSION) as StructureExtension[];
-        this.manageSpawnLog();
-        this.idleSpawnCount = this.getIdleSpawnCount();
-        this.isAvailable = this.availabilityCheck();
+    constructor(roomName: string) {
+        this.roomName = roomName;
+    }
+
+    public initGlobal() {
+        this.room = Game.rooms[this.roomName];
+        this.initMemory();
+        let spawns = _(this.room.find<StructureSpawn>(FIND_MY_SPAWNS))
+            .filter(s => s.canCreateCreep([MOVE]) !== ERR_RCL_NOT_ENOUGH)
+            .value();
+        this.spawnIds = _.map(spawns, x => x.id);
+        this.pos = _.head(spawns).pos;
+    }
+
+    public init() {
+        this.room = Game.rooms[this.roomName];
+        this.initMemory();
         this.currentSpawnEnergy = this.room.energyAvailable;
         this.maxSpawnEnergy = this.room.energyCapacityAvailable;
-        this.pos = _.head(this.spawns).pos;
+
+        this.manageSpawnLog();
+        this.initSpawns();
+        this.isAvailable = this.availabilityCheck();
         this.refillEfficiency = this.findRefillEfficiency();
+    }
+
+    private initMemory() {
+        if (!this.room.memory.spawnMemory) { this.room.memory.spawnMemory = {}; }
+        this.memory = this.room.memory.spawnMemory;
+    }
+
+    private initSpawns() {
+        this.spawns = [];
+        this.isAvailable = true;
+        let idleSpawnCount = 0;
+        for (let id of this.spawnIds) {
+            let spawn = Game.getObjectById<StructureSpawn>(id);
+            if (!spawn) {
+                continue;
+            }
+            this.spawns.push(spawn);
+            if (spawn.spawning === null) {
+                idleSpawnCount++;
+            }
+        }
+        this.idleSpawnCount = idleSpawnCount;
+        this.memory.log.availability += idleSpawnCount;
+        Memory.stats["spawnGroups." + this.room.name + ".idleCount"] = idleSpawnCount;
+    }
+
+    private availabilityCheck() {
+        if (Game.time < this.memory.nextCheck) {
+            return false;
+        }
+        return this.idleSpawnCount > 0;
     }
 
     public spawn (build: string[], name: string, memory?: any, reservation?: SpawnReservation): string | number {
@@ -71,18 +113,6 @@ export class SpawnGroup {
             }
         }
         return outcome;
-    }
-
-    private getIdleSpawnCount(): number {
-        let count = 0;
-        for (let spawn of this.spawns) {
-            if (spawn.spawning === null) {
-                count++;
-            }
-        }
-        this.memory.log.availability += count;
-        Memory.stats["spawnGroups." + this.room.name + ".idleCount"] = count;
-        return count;
     }
 
     public static calculateBodyCost(body: string[]): number {
@@ -145,14 +175,8 @@ export class SpawnGroup {
         }
     }
 
-    private availabilityCheck() {
-        if (Game.time < this.memory.nextCheck) {
-            return false;
-        }
-        return this.idleSpawnCount > 0;
-    }
-
     private findRefillEfficiency() {
+        if (Math.random() > .2) { return; }
         if (this.memory.efficiency === undefined) {
             this.memory.efficiency = this.currentSpawnEnergy / this.maxSpawnEnergy;
         }

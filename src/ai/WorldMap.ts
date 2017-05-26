@@ -2,16 +2,17 @@ import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
 import {SpawnGroup} from "./SpawnGroup";
 import {helper} from "../helpers/helper";
+import {Profiler} from "../Profiler";
 export class WorldMap {
 
     public controlledRooms: {[roomName: string]: Room } = {};
 
     public allyMap: {[roomName: string]: RoomMemory } = {};
-    public allyRooms: Room[] = [];
+    public allyRooms: Room[];
     public tradeMap: {[roomName: string]: RoomMemory } = {};
-    public tradeRooms: Room[] = [];
+    public tradeRooms: Room[];
     public foesMap: {[roomName: string]: RoomMemory } = {};
-    public foesRooms: Room[] = [];
+    public foesRooms: Room[];
 
     public activeNukes: {tick: number; roomName: string}[];
     public portals: {[roomName: string]: string } = {};
@@ -29,36 +30,27 @@ export class WorldMap {
         this.activeNukes = Memory.empire.activeNukes;
     }
 
-    public init(): {[roomName: string]: SpawnGroup } {
-
+    public initGlobal(): {[roomName: string]: SpawnGroup } {
         let spawnGroups = {};
-
         for (let roomName in Memory.rooms) {
             let memory = Memory.rooms[roomName];
             let room = Game.rooms[roomName];
 
-            if (room) {
-                this.updateMemory(room);
-                if (room.controller && room.controller.my) {
-                    this.radar(room);
-                    this.controlledRooms[roomName] = room;
-                    if (room.find(FIND_MY_SPAWNS).length > 0) {
-                        spawnGroups[roomName] = new SpawnGroup(room);
-                    }
+            if (room && room.controller && room.controller.my) {
+                if (room.find(FIND_MY_SPAWNS).length > 0) {
+                    let spawnGroup = new SpawnGroup(roomName);
+                    spawnGroups[roomName] = spawnGroup;
                 }
             }
 
             if (this.diplomat.allies[memory.owner]) {
                 this.allyMap[roomName] = memory;
-                if (room) { this.allyRooms.push(room); }
             }
             if (this.diplomat.foes[memory.owner]) {
                 this.foesMap[roomName] = memory;
-                if (room) { this.foesRooms.push(room); }
             }
             if (memory.nextTrade) {
                 this.tradeMap[roomName] = memory;
-                if (room) { this.tradeRooms.push(room); }
             }
 
             if (memory.portal) {
@@ -70,8 +62,34 @@ export class WorldMap {
                 }
             }
         }
-
         return spawnGroups;
+    }
+
+    public init() {
+        this.controlledRooms = {};
+        this.allyRooms = [];
+        this.tradeRooms = [];
+        this.foesRooms = [];
+
+        for (let roomName in Game.rooms) {
+            let room = Game.rooms[roomName];
+            this.updateMemory(room);
+
+            if (room.controller && room.controller.my) {
+                this.radar(room);
+                this.controlledRooms[roomName] = room;
+            }
+
+            if (this.diplomat.allies[room.memory.owner]) {
+                this.allyRooms.push(room);
+            }
+            if (this.diplomat.foes[room.memory.owner]) {
+                this.foesRooms.push(room);
+            }
+            if (room.memory.nextTrade) {
+                this.tradeRooms.push(room);
+            }
+        }
     }
 
     public actions() {

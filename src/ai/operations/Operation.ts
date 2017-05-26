@@ -6,6 +6,7 @@ import {helper} from "../../helpers/helper";
 import {TimeoutTracker} from "../../TimeoutTracker";
 import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
+import {Profiler} from "../../Profiler";
 
 export abstract class Operation {
 

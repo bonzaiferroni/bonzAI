@@ -240,7 +240,7 @@ export class GuardMission extends Mission {
             if (range < 3) {
                 this.archerFlee(guard, nearest);
             } else if (range > 3) {
-                guard.travelTo(nearest);
+                guard.travelTo(nearest, {movingTarget: true });
             }
         }
     }

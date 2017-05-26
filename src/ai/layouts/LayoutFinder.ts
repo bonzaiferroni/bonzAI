@@ -1,16 +1,22 @@
 import {Mem} from "../../helpers/Mem";
-import {Layout, LayoutData, LayoutType, PositionMap, Vector2} from "./Layout";
+import {
+    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LayoutData, LayoutType, PositionMap,
+    Vector2,
+} from "./Layout";
 import {RoomMap} from "./RoomMap";
 import {LayoutFactory} from "./LayoutFactory";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {LayoutDisplay} from "./LayoutDisplay";
 export class LayoutFinder {
 
+    private roomName: string;
     private sourcePositions: RoomPosition[];
     private controllerPos: RoomPosition;
     private obstacleMap: RoomMap<number>;
     private progress: LayoutFinderProgress;
-    private layoutTypes = [LayoutType.Mini, LayoutType.Quad, LayoutType.Flex];
+    private layoutTypes = [LAYOUT_MINI, LAYOUT_QUAD, LAYOUT_FLEX];
+    private validLayouts: {[typeName: string]: ValidLayoutData[]};
+    private currentRadius: number;
 
     private structureScores = {
         [STRUCTURE_TERMINAL]: 10,
@@ -18,19 +24,17 @@ export class LayoutFinder {
         [STRUCTURE_SPAWN]: 5,
         [STRUCTURE_POWER_SPAWN]: 5,
         [STRUCTURE_LAB]: 3,
-        [STRUCTURE_ROAD]: 0,
         [STRUCTURE_RAMPART]: 0,
     };
 
-    private roomName: string;
     constructor(roomName: string) {
         this.roomName = roomName;
     }
 
     public init(data?: LayoutFinderData): boolean {
         if (!Memory.rooms[this.roomName]) { Memory.rooms[this.roomName] = {} as any; }
-        let layoutData = Memory.rooms[this.roomName].finder as LayoutFinderData;
-        if (!layoutData) {
+        if (Memory.rooms[this.roomName].layout) { return; }
+        if (!Memory.rooms[this.roomName].finder) {
 
             if (!data) {
                 let room = Game.rooms[this.roomName];
@@ -50,19 +54,22 @@ export class LayoutFinder {
                 sourcePositions: data.sourcePositions,
                 controllerPos: data.controllerPos,
                 obstacleMap: obstacleMap,
-                validLayouts: [],
+                validLayouts: {},
                 progress: {
-                    anchor: {x: 1, y: 1},
+                    anchor: undefined,
                     rotation: 0,
                     typeIndex: 0,
+                    final: false,
                 },
             };
         }
+        let layoutData = Memory.rooms[this.roomName].finder as LayoutFinderData;
 
         this.sourcePositions = Mem.posInstances(layoutData.sourcePositions);
         this.controllerPos = Mem.posInstance(layoutData.controllerPos);
         this.obstacleMap = new RoomMap<number>(layoutData.obstacleMap);
         this.progress = layoutData.progress;
+        this.validLayouts = layoutData.validLayouts;
         return true;
     }
 
@@ -100,9 +107,11 @@ export class LayoutFinder {
 
     private findPositionBlock(pos: RoomPosition, radius: number): RoomPosition[] {
         let block = [];
-        for (let x = -radius; x <= radius; x++) {
+        for (let xDelta = -radius; xDelta <= radius; xDelta++) {
+            let x = pos.x + xDelta;
             if (x > 49 || x < 0) { continue; }
-            for (let y = -radius; y <= radius; y++) {
+            for (let yDelta = -radius; yDelta <= radius; yDelta++) {
+                let y = pos.y + yDelta;
                 if (y > 49 || y < 0) { continue; }
                 block.push(new RoomPosition(x, y, this.roomName));
             }
@@ -139,6 +148,7 @@ export class LayoutFinder {
     }
 
     public run(cpuQuota?: number) {
+        if (Memory.rooms[this.roomName].layout) { return; }
         if (!this.sourcePositions) {
             console.log(`FINDER: I haven't been fully initilized in ${this.roomName}`);
             return;
@@ -149,49 +159,66 @@ export class LayoutFinder {
             deadline = Game.cpu.getUsed() + cpuQuota;
         }
 
+        if (Game.cpu.bucket < 5000) { return; }
+        console.log(`FINDER: beginning this tick with the following progress object:`);
+        console.log(JSON.stringify(this.progress));
         while (!this.progress.final && Game.cpu.getUsed() < deadline) {
             this.runNextSimulation(this.progress);
+        }
+
+        if (this.progress.final) {
+            this.finalize();
         }
     }
 
     private runNextSimulation(progress: LayoutFinderProgress) {
+        let type = this.layoutTypes[progress.typeIndex];
 
         let layout = LayoutFactory.Instantiate(this.roomName, {
             anchor: progress.anchor,
             rotation: progress.rotation,
-            type: this.layoutTypes[progress.typeIndex],
+            type: type,
         });
+
+        this.currentRadius = layout.fixedMap.radius;
+        if (!progress.anchor) {
+            progress.anchor = {x: this.currentRadius, y: this.currentRadius };
+        }
 
         let obstacle = this.obstacleMap.findAnyInRange(progress.anchor, layout.fixedMap.radius, layout.fixedMap.taper);
         if (obstacle) {
-            this.incrementProgress(progress, layout, obstacle);
+            this.incrementProgress(progress, obstacle);
             return;
         }
+
+        let validLayout: ValidLayoutData = {
+            data: {
+                anchor: progress.anchor,
+                rotation: progress.rotation,
+                type: type,
+            },
+            structureScore: 0,
+            energyScore: 0,
+            foundSpawn: false,
+        };
 
         let structurePositions = layout.findFixedMap();
-        if (this.findObstruction(structurePositions)) {
-            this.incrementProgress(progress, layout);
+        let obstruction = this.analyzeStructures(structurePositions, validLayout);
+        if (obstruction) {
+            this.incrementProgress(progress);
             return;
         }
 
-        let energyScore = 0;
         for (let sourcePos of this.sourcePositions) {
-            energyScore += this.findSourceScore(sourcePos, progress.anchor);
+            validLayout.energyScore += this.findSourceScore(sourcePos, progress.anchor);
         }
 
-        let structureScore = 0;
-        for (let structureType in structurePositions) {
-            for (let position of structurePositions[structureType]) {
-                let score = this.findStructureScore(position, structureType);
-                if (!score) {
-                    score = 0;
-                }
-                structureScore += score;
-            }
-        }
+        if (!this.validLayouts[type]) { this.validLayouts[type] = []; }
+        this.validLayouts[type].push(validLayout);
+        this.incrementProgress(progress);
     }
 
-    private incrementProgress(progress: LayoutFinderProgress, layout: Layout, obstacle?: Vector2) {
+    private incrementProgress(progress: LayoutFinderProgress, obstacle?: Vector2) {
         if (obstacle) {
             progress.rotation = 0;
             // TODO: could speed up progress considerably if you calculated how far to move ahead based on the obstacle
@@ -205,21 +232,20 @@ export class LayoutFinder {
             progress.anchor.x++;
         }
 
-        if (progress.anchor.x > 49) {
-            progress.anchor.x = layout.fixedMap.radius;
+        if (progress.anchor.x > 49 - this.currentRadius) {
+            progress.anchor.x = this.currentRadius;
             progress.anchor.y++;
         }
 
-        if (progress.anchor.y > 49) {
+        if (progress.anchor.y > 49 - this.currentRadius) {
             progress.typeIndex++;
-        }
 
-        let type = this.layoutTypes[progress.typeIndex];
-        if (type) {
-            progress.anchor.y = 1;
-            progress.anchor.x = 1;
-        } else {
-            progress.final = true;
+            let type = this.layoutTypes[progress.typeIndex];
+            if (type) {
+                delete progress.anchor;
+            } else {
+                progress.final = true;
+            }
         }
     }
 
@@ -242,28 +268,79 @@ export class LayoutFinder {
         return score / pathLength;
     }
 
-    private findObstruction(structurePositions: PositionMap) {
+    private analyzeStructures(structurePositions: PositionMap, validLayout: ValidLayoutData) {
+        let room = Game.rooms[this.roomName];
+        let allowVisuals = false;
+        if (room && room.visual.getSize() < 400000) {
+            allowVisuals = true;
+        }
+
         for (let structureType in structurePositions) {
             if (structureType === STRUCTURE_WALL || structureType === STRUCTURE_RAMPART) { continue; }
-            for (let structure of structurePositions[structureType]) {
-                LayoutDisplay.showStructure(structure, structureType);
-                let obstacle = this.obstacleMap.get(structure.x, structure.y);
+            let positions = structurePositions[structureType];
+            for (let position of positions) {
+                let obstacle = this.obstacleMap.get(position.x, position.y);
                 if (obstacle) {
-                    new RoomVisual(this.roomName).text("x", structure, {color: "red"});
+                    new RoomVisual(this.roomName).text("x", position, {color: "red"});
                     return true;
                 }
+
+                if (!this.structureScores[structureType] || !room) { continue; }
+                if (allowVisuals) {
+                    LayoutDisplay.showStructure(position, structureType);
+                }
+                let structure = _(position.lookFor<Structure>(LOOK_STRUCTURES))
+                    .filter(x => x.structureType === structureType)
+                    .head();
+                if (!structure) { continue; }
+                if (structure.structureType === STRUCTURE_SPAWN) {
+                    validLayout.foundSpawn = true;
+                }
+                validLayout.structureScore += this.structureScores[structureType];
             }
         }
     }
 
-    private findStructureScore(position: RoomPosition, structureType: string) {
-        let room = Game.rooms[this.roomName];
-        if (!room) { return 0; }
-        let structure = _(position.lookFor<Structure>(LOOK_STRUCTURES))
-            .filter(x => x.structureType === structureType)
-            .head();
-        if (structure) {
-            return this.structureScores[structureType];
+    private finalize() {
+        let bestLayout = this.chooseAmongValidLayouts();
+        if (bestLayout) {
+            console.log(`FINDER: found layout in ${this.roomName}`);
+            Memory.rooms[this.roomName].layout = bestLayout.data;
+        } else {
+            console.log(`FINDER: unable to find auto-layout for ${this.roomName}`);
+            console.log(`possible reasons: 1. spawn too close to sources, controller, wall, 2. not enough space`);
+            console.log(`Initializing CustomLayout (won't build structures automatically but saves ones you build)`);
+            console.log(`to rerun, delete the layout: "delete Memory.rooms.${this.roomName}.layout"`);
+            Memory.rooms[this.roomName].layout = {
+                type: LAYOUT_CUSTOM,
+                rotation: 0,
+                anchor: {x: 25, y: 25 },
+            };
+        }
+        delete Memory.rooms[this.roomName].finder;
+    }
+
+    private chooseAmongValidLayouts(): ValidLayoutData {
+        for (let type in this.validLayouts) {
+            let validLayouts = this.validLayouts[type];
+
+            if (Game.gcl.level <= 1) {
+                // needs to have a spawn hit for the first room
+                let best = _(validLayouts).filter(x => x.foundSpawn).max(x => x.energyScore);
+                if (best) {
+                    return best;
+                } else {
+                    continue;
+                }
+            }
+
+            let best = _(validLayouts)
+                .filter(x => x.structureScore > 0)
+                .max(x => x.structureScore * 1000 + x.energyScore);
+            if (best && best instanceof Object) { return best; }
+
+            best = _(validLayouts).max(x => x.energyScore);
+            if (best && best instanceof Object) { return best; }
         }
     }
 }
@@ -273,12 +350,7 @@ export interface LayoutFinderData {
     controllerPos: RoomPosition;
     obstacleMap?: RoomMap<number>;
     progress?: LayoutFinderProgress;
-    validLayouts?: {
-        data: LayoutData;
-        energyScore: number;
-        structureScore: number;
-        foundSpawn: boolean;
-    }[];
+    validLayouts?: {[typeName: string]: ValidLayoutData[] };
 }
 
 export interface LayoutFinderProgress {
@@ -286,4 +358,11 @@ export interface LayoutFinderProgress {
     rotation: number;
     typeIndex: number;
     final: boolean;
+}
+
+export interface ValidLayoutData {
+    data: LayoutData;
+    energyScore: number;
+    structureScore: number;
+    foundSpawn: boolean;
 }

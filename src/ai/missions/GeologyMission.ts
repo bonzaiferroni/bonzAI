@@ -38,7 +38,9 @@ export class GeologyMission extends Mission {
         if (!this.hasVision) { return; }
 
         this.mineral = this.room.find<Mineral>(FIND_MINERALS)[0];
-        if (!this.store) { this.store = this.getStorage(this.mineral.pos); }
+        if (!this.store) {
+            this.store = this.getStorage(this.mineral.pos);
+        }
         if (!this.store) { return; }
         this.mineralStats();
 

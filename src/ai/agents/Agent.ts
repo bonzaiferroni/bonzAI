@@ -798,20 +798,19 @@ export class Agent extends AbstractAgent {
         let find = () => {
             let battery: StoreStructure|Creep = _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
                 .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
-                .filter(x => x.store.energy >= minEnergy).sortBy(x => x.pos.getRangeTo(this))
-                .head();
-            if (!battery) {
+                .filter(x => x.store.energy >= minEnergy).min(x => x.pos.getRangeTo(this))
+            if (!battery || !(battery instanceof Object)) {
                 battery = _(this.room.find<Creep>(FIND_MY_CREEPS))
-                    .filter(x => x.memory.donatesEnergy)
-                    .filter(x => x.carry.energy >= 50)
+                    .filter(x => x.memory.donatesEnergy && x.carry.energy >= 50)
                     .filter(x => x.memory.donating === undefined || Game.time > x.memory.donating)
-                    .sortBy(x => x.pos.getRangeTo(this))
-                    .head();
-                if (battery) {
+                    .min(x => x.pos.getRangeTo(this));
+                if (battery && battery instanceof Object) {
                     battery.memory.donating = Game.time + 20;
                 }
             }
-            return battery;
+            if (battery instanceof Object) {
+                return battery;
+            }
         };
 
         let validate = (obj: StoreStructure|Creep) => {

@@ -9,8 +9,10 @@ import {Patcher} from "./Patcher";
 
 loopHelper.initMemory();
 initPrototypes();
+empire.initGlobal();
 
 console.log(`Global Refresh CPU: ${Game.cpu.getUsed()}`);
+try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
 
 module.exports.loop = function () {
     // console.log("beginning of loop");
@@ -18,13 +20,13 @@ module.exports.loop = function () {
         activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0, exceptionCount: 0};
     Game.temp = {};
 
+    if (Patcher.checkPatch()) { return; }
 
     // profile memory parsing
     let cpu = Game.cpu.getUsed();
     if (Memory) { }
     let result = Game.cpu.getUsed() - cpu;
     Profiler.resultOnly("mem", result);
-    if (Patcher.checkPatch()) { return; }
 
     // TimeoutTracker - Diagnoses CPU timeouts
     try { TimeoutTracker.init(); } catch (e) { console.log("error initializing TimeoutTracker:\n", e.stack); }
@@ -70,7 +72,6 @@ module.exports.loop = function () {
     try { empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
     try { loopHelper.scavangeResources(); } catch (e) { console.log("error scavanging:\n", e.stack); }
     try { loopHelper.sendResourceOrder(empire); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
-    try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
     try { loopHelper.garbageCollection(); } catch (e) { console.log("error during garbage collection:\n", e.stack ); }
     Profiler.end("postOperations");
     try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }

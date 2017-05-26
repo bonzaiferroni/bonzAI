@@ -16,17 +16,17 @@ export class LayoutBuilder {
 
     private levelRestriction = {
         [STRUCTURE_ROAD]: 4,
-        [STRUCTURE_RAMPART]: 5,
+        [STRUCTURE_RAMPART]: 8,
     };
 
-    private buildPriority = [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_LINK,
+    private buildPriority = [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TOWER, STRUCTURE_LINK,
         STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_RAMPART, STRUCTURE_OBSERVER, STRUCTURE_NUKER,
         STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD];
 
     constructor(layout: Layout, room: Room) {
         this.layout = layout;
         this.room = room;
-        if (!this.room.memory.builder) { this.room.memory.builder = {}; }
+        if (!this.room.memory.builder) { this.room.memory.builder = {} as any; }
         this.memory = this.room.memory.builder;
     }
 
@@ -36,13 +36,15 @@ export class LayoutBuilder {
 
         if (this.checkDemolish()) { return; }
         if (this.checkHostiles()) { return; }
-        if (this.checkMaxConstruction()) { return; }
+        if (this.checkMaxConstruction()) {
+            this.memory.nextCheck = Game.time + 100 + Math.floor(Math.random() * 10);
+            return;
+        }
 
         let structureTypes = this.buildPriority;
         for (let buildType of structureTypes) {
             let positions = this.layout.map[buildType];
             let allowedCount = this.allowedCount(buildType, positions);
-
             for (let i = 0; i < allowedCount; i++) {
                 let position = positions[i];
 
@@ -75,6 +77,9 @@ export class LayoutBuilder {
 
                 errantStructure = this.findErrantStructure(buildType, positions);
                 if (errantStructure) {
+                    if (outcome === ERR_RCL_NOT_ENOUGH && _.find(positions, x => x.getRangeTo(errantStructure) === 0)) {
+                        continue;
+                    }
                     this.demolishStructure(errantStructure);
                     return;
                 }

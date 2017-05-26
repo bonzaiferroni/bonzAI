@@ -345,9 +345,9 @@ export class Traveler {
             }
 
             let cpuUsed = Game.cpu.getUsed() - cpu;
-            travelData.cpu += cpuUsed;
+            travelData.cpu = _.round(cpuUsed + travelData.cpu, 1);
             if (travelData.cpu > REPORT_CPU_THRESHOLD) {
-                console.log(`TRAVELER: heavy cpu use: ${creep.name}, cpu: ${_.round(travelData.cpu, 2)},\n` +
+                console.log(`TRAVELER: heavy cpu use: ${creep.name}, cpu: ${travelData.cpu},\n` +
                     `origin: ${creep.pos}, dest: ${destination.pos}`);
             }
             // new RoomVisual(creep.pos.roomName).text(`${_.round(cpuUsed, 1)}`, creep.pos, {color: "orange"});

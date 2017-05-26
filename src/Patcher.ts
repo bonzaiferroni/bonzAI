@@ -1,4 +1,4 @@
-import {LAYOUT_SEGMENTID, LayoutType} from "./ai/layouts/Layout";
+import {LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LAYOUT_SEGMENTID, LayoutType} from "./ai/layouts/Layout";
 import {Mem} from "./helpers/Mem";
 import {helper} from "./helpers/helper";
 export class Patcher {
@@ -6,18 +6,22 @@ export class Patcher {
     public static checkPatch(): boolean {
         if (Memory.version === CURRENT_VERSION) { return false; }
 
-        if (this.memSegmentInit()) { return true; }
-        if (this.controllerOpToOwnedOp()) { return true; }
+        if (this.detectSim()) { return true; }
+        if (this.memSegmentInit(Memory.version)) { return true; }
+        if (this.quadAndFlexToControl(Memory.version)) { return true; }
+        if (this.patchLayoutEnumToString(Memory.version)) { return true; }
 
         Memory.version = CURRENT_VERSION;
         console.log(`PATCHER: updated to bonzAI v${CURRENT_VERSION}`);
         return true;
     }
 
-    private static memSegmentInit() {
+    private static memSegmentInit(version: number) {
+        if (version > 3) { return false; }
+
         RawMemory.setActiveSegments([LAYOUT_SEGMENTID]);
         if (!_.includes(Object.keys(RawMemory.segments), `${LAYOUT_SEGMENTID}`)) {
-            console.log("ordering active segement");
+            console.log("ordering active segment");
             return true;
         }
 
@@ -29,7 +33,9 @@ export class Patcher {
         }
     }
 
-    private static controllerOpToOwnedOp() {
+    private static quadAndFlexToControl(version: number) {
+        if (version > 3) { return false; }
+
         let types = ["quad", "flex"];
         for (let flagName in Game.flags) {
             for (let type of types) {
@@ -61,7 +67,7 @@ export class Patcher {
                     console.log(`saved quad layout for ${currentname}`);
                     room.memory.layout = {
                         anchor: currentFlag.memory.centerPosition,
-                        type: LayoutType.Quad,
+                        type: LAYOUT_QUAD,
                         rotation: currentFlag.memory.rotation,
                     };
                 } else {
@@ -83,7 +89,7 @@ export class Patcher {
 
                     room.memory.layout = {
                         anchor: currentFlag.memory.centerPosition,
-                        type: LayoutType.Flex,
+                        type: LAYOUT_FLEX,
                         rotation: currentFlag.memory.rotation,
                     };
                 }
@@ -101,6 +107,38 @@ export class Patcher {
             }
         }
     }
+
+    private static patchLayoutEnumToString(version: number) {
+        if (version > 3.1) { return false; }
+
+        let layoutTypes = {
+            [LayoutType.Quad]: LAYOUT_QUAD,
+            [LayoutType.Flex]: LAYOUT_FLEX,
+            [LayoutType.Mini]: LAYOUT_MINI,
+        };
+
+        console.log("patching layout enum to string");
+        for (let roomName in Memory.rooms) {
+            let memory = Memory.rooms[roomName];
+            if (memory.layout && memory.layout.type !== undefined) {
+                let newType = layoutTypes[memory.layout.type];
+                if (newType === undefined) { continue; }
+                console.log(`changing type ${memory.layout.type} to ${newType}`);
+                memory.layout.type = newType;
+            }
+        }
+        console.log("done");
+    }
+
+    private static detectSim() {
+        for (let roomName in Game.rooms) {
+            if (roomName === "sim") {
+                console.log("bonzai cannot currently run in the sim because it does not support memory segments");
+                Memory.version = CURRENT_VERSION;
+                return true;
+            }
+        }
+    }
 }
 
-export const CURRENT_VERSION = 3;
+export const CURRENT_VERSION = 3.1;

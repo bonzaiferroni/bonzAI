@@ -46,10 +46,14 @@ export class Profiler {
     private static updateProfiles() {
         for (let identifier in Memory.profiler) {
             let profile = Memory.profiler[identifier];
+            if (Game.time - profile.lastTickTracked > 1000) {
+                delete Memory.profiler[identifier];
+                continue;
+            }
+
             if (Game.time >= profile.endOfPeriod) {
-                if (profile.count !== 0) {
-                    profile.costPerCall = _.round(profile.total / profile.count, 2);
-                }
+                if (profile.count === 0) { continue; }
+                profile.costPerCall = _.round(profile.total / profile.count, 2);
                 profile.costPerTick = _.round(profile.total / profile.period, 2);
                 profile.callsPerTick = _.round(profile.count / profile.period, 2);
                 profile.max = profile.highest;
@@ -63,9 +67,6 @@ export class Profiler {
                 profile.total = 0;
                 profile.count = 0;
                 profile.highest = 0;
-            }
-            if (Game.time - profile.lastTickTracked > 100) {
-                delete Memory.profiler[identifier];
             }
         }
     }
@@ -85,8 +86,19 @@ export class Profiler {
         return Memory.cpu.average / (Game.gcl.level * 10 + 20);
     }
 
-    public static memoryProfile(memory: any) {
-        this.recursiveMemoryAnalysis(memory, "Memory");
+    public static memoryProfile(memory?: any) {
+        if (!memory) {
+            memory = Memory;
+        }
+
+        for (let propertyName in memory) {
+            let value = memory[propertyName];
+            let cpu = Game.cpu.getUsed();
+            let str = JSON.stringify(value);
+            JSON.parse(str);
+            console.log(`${propertyName}: ${Game.cpu.getUsed() - cpu}`);
+        }
+        // this.recursiveMemoryAnalysis(memory, "Memory");
     }
 
     private static recursiveMemoryAnalysis(node: any, path: string) {

@@ -45,11 +45,7 @@ export class RefillMission extends Mission {
         this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
 
         let cartBody = () => {
-            if (this.operation.type === "flex") {
-                return this.bodyRatio(0, 2, 1, 1, 16);
-            } else {
-                return this.bodyRatio(0, 2, 1, 1, 10);
-            }
+            return this.bodyRatio(0, 2, 1, 1, 16);
         };
 
         let memory = { scavanger: RESOURCE_ENERGY };
@@ -121,7 +117,7 @@ export class RefillMission extends Mission {
         // is near to target
         let outcome = cart.transfer(target, RESOURCE_ENERGY);
         if (outcome === OK) {
-            if (cart.carry.energy > target.energyCapacity) {
+            if (cart.carry.energy > target.energyCapacity - target.energy) {
                 cart.memory.emptyId = undefined;
                 target = this.findNearestEmpty(cart, target);
                 if (target && !cart.pos.isNearTo(target)) {
@@ -141,7 +137,7 @@ export class RefillMission extends Mission {
     private findNearestEmpty(cart: Agent, pullTarget?: EnergyStructure): EnergyStructure {
         if (cart.memory.emptyId) {
             let empty = Game.getObjectById<EnergyStructure>(cart.memory.emptyId);
-            if (empty && empty.energy < empty.energyCapacity) {
+            if (empty && empty.energy < empty.energyCapacity - 50) {
                 let rangeToEmpty = cart.pos.getRangeTo(empty);
                 let closestEmpty = cart.pos.findClosestByRange(this.getEmpties());
                 let rangeToClosest = cart.pos.getRangeTo(closestEmpty);

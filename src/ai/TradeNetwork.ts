@@ -1,15 +1,15 @@
 import {WorldMap} from "./WorldMap";
 export class TradeNetwork {
 
-    public storages: StructureStorage[] = [];
-    public terminals: StructureTerminal[] = [];
+    public storages: StructureStorage[];
+    public terminals: StructureTerminal[];
 
-    private shortages: {[resourceType: string]: StructureTerminal[] } = {};
-    private surpluses: {[resourceType: string]: StructureTerminal[] } = {};
+    private shortages: {[resourceType: string]: StructureTerminal[] };
+    private surpluses: {[resourceType: string]: StructureTerminal[] };
     private _inventory: {[key: string]: number};
     private map: WorldMap;
 
-    private alreadyTraded: {[roomName: string]: boolean } = {};
+    private alreadyTraded: {[roomName: string]: boolean };
 
     private memory: {
         tradeRoomIndex: number;
@@ -23,6 +23,12 @@ export class TradeNetwork {
     }
 
     public init() {
+        this.terminals = [];
+        this.storages = [];
+        this.shortages = {};
+        this.surpluses = {};
+        this.alreadyTraded = {};
+
         this.registerMyRooms();
         this.registerPartnerRooms();
     }
@@ -80,7 +86,7 @@ export class TradeNetwork {
                 continue;
             }
 
-            let roomMemory = this.map.tradeMap[roomName];
+            let roomMemory = Memory.rooms[roomName];
             if (Game.time < roomMemory.nextTrade) {
                 count++;
                 continue;
@@ -138,9 +144,8 @@ export class TradeNetwork {
 
         let mostToSpare = _(underReserve)
             .filter(x => x.store[boostType] >= 100)
-            .sortBy(x => x.store[boostType])
-            .last();
-        if (!mostToSpare) {
+            .max(x => x.store[boostType]);
+        if (!mostToSpare || !(mostToSpare instanceof Object)) {
             console.log(`NETWORK: no ${boostType} available to send to ${roomName}`);
         }
 

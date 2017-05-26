@@ -1,5 +1,6 @@
 import {BuildingPlannerData} from "../../interfaces";
 import {Mem} from "../../helpers/Mem";
+import {LayoutDisplay} from "./LayoutDisplay";
 
 export abstract class Layout {
 
@@ -8,18 +9,29 @@ export abstract class Layout {
     protected roomName: string;
     protected anchor: Vector2;
     protected rotation: number;
-    protected tempMap: {[controllerLevel: number]: PositionMap } = {};
+    protected tempMap: {[controllerLevel: number]: PositionMap };
+    protected data: LayoutData;
+    protected structureCache: {[structureType: string]: Structure[]} = {};
 
     protected static mapCache: {[roomName: string]: PositionMap} = {};
 
-    constructor(roomName: string, anchor: Vector2, rotation: number) {
+    constructor(roomName: string, data: LayoutData) {
         this.roomName = roomName;
-        this.anchor = anchor;
-        this.rotation = rotation;
+        this.anchor = data.anchor;
+        this.rotation = data.rotation;
+        this.data = data;
     }
 
     public init(): boolean {
         if (!Layout.mapCache[this.roomName]) {
+            if (!this.data.flex) {
+                let generating = this.generateFlex();
+                if (generating) {
+                    console.log(`LAYOUT: generating flex map in ${this.roomName}`);
+                    return;
+                }
+            }
+
             RawMemory.setActiveSegments([LAYOUT_SEGMENTID]);
             let flexMapsString = RawMemory.segments[LAYOUT_SEGMENTID];
             if (!flexMapsString) {
@@ -31,6 +43,39 @@ export abstract class Layout {
         }
         this.map = Layout.mapCache[this.roomName];
         return true;
+    }
+
+    public findFixedMap(): PositionMap {
+        let structureTypes = Object.keys(CONSTRUCTION_COST);
+        structureTypes.push("empty");
+        let map = {};
+        for (let structureType of structureTypes) {
+            let positions = this.fixedPositions(structureType);
+            if (!positions) { continue; }
+            map[structureType] = positions;
+        }
+        return map;
+    }
+
+    public findStructures<T extends Structure>(structureType: string): T[] {
+        if (this.structureCache[structureType]) { return this.structureCache[structureType] as any; }
+
+        let structures = [];
+        let room = Game.rooms[this.roomName];
+        let positions = this.map[structureType];
+        if (!positions && !room) { return []; }
+        for (let position of positions) {
+            let structure = position.lookForStructure(structureType);
+            if (!structure) { continue; }
+            structures.push(structure);
+        }
+
+        this.structureCache[structureType] = structures;
+        return structures;
+    }
+
+    public getAnchorPos() {
+        return new RoomPosition(this.anchor.x, this.anchor.y, this.roomName);
     }
 
     protected findMap(flexMap: FlexMap): PositionMap {
@@ -51,15 +96,6 @@ export abstract class Layout {
                 positions = positions.concat(tempPositions);
             }
             map[structureType] = positions;
-        }
-        return map;
-    }
-
-    public findFixedMap(): PositionMap {
-        let structureTypes = Object.keys(CONSTRUCTION_COST);
-        let map = {};
-        for (let structureType of structureTypes) {
-            map[structureType] = this.fixedPositions(structureType);
         }
         return map;
     }
@@ -128,19 +164,35 @@ export abstract class Layout {
     }
 
     protected tempPositions(structureType: string): RoomPosition[] {
+        if (!this.tempMap) { return; }
         let room = Game.rooms[this.roomName];
         if (!room || !room.controller || !this.tempMap[room.controller.level]) { return; }
         return this.tempMap[room.controller.level][structureType];
+    }
+
+    protected generateFlex() {
+        this.data.flex = true;
+        return false;
     }
 }
 
 export type Vector2 = {x: number, y: number}
 export type PositionMap = {[structureType: string]: RoomPosition[] }
 export type FlexMap = {[structureType: string]: string }
+
+// deprecated, use constants instead
 export enum LayoutType { Quad, Mini, Flex } // 0 === Quad, 1 === Mini, 2 === Flex
+
 export const LAYOUT_SEGMENTID = 33; // set this to a value that will work with your memory setup
 export interface LayoutData {
-    type: LayoutType;
+    type: string;
     anchor: Vector2;
     rotation: number;
+    flex?: boolean;
 }
+
+export const LAYOUT_QUAD = "quad";
+export const LAYOUT_FLEX = "flex";
+export const LAYOUT_MINI = "mini";
+export const LAYOUT_SWAP = "swap";
+export const LAYOUT_CUSTOM = "custom";

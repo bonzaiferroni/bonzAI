@@ -1,4 +1,4 @@
-import {Layout} from "./Layout";
+import {Layout, PositionMap} from "./Layout";
 export class LayoutDisplay {
 
     public static colors = {
@@ -29,6 +29,16 @@ export class LayoutDisplay {
             let positions = layout.map[structureType];
             for (let pos of positions) {
                 this.showStructure(pos, structureType);
+            }
+        }
+    }
+
+    public static showMap(map: PositionMap) {
+        for (let structureType in map) {
+            let positions = map[structureType];
+            if (!positions) { continue; }
+            for (let position of positions) {
+                this.showStructure(position, structureType);
             }
         }
     }

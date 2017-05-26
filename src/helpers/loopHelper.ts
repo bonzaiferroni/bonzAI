@@ -19,6 +19,9 @@ import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {Profiler} from "../Profiler";
 import {EvacOperation} from "../ai/operations/EvacOperation";
 import {ControllerOperation} from "../ai/operations/ControllerOperation";
+import {LayoutOperation} from "../ai/operations/LayoutOperation";
+import {GuardOperation} from "../ai/operations/GuardOperation";
+import {SwapOperation} from "../ai/operations/SwapOperation";
 
 const OPERATION_CLASSES = {
     // conquest: ConquestOperation,
@@ -34,6 +37,9 @@ const OPERATION_CLASSES = {
     control: ControllerOperation,
     raid: RaidOperation,
     evac: EvacOperation,
+    layout: LayoutOperation,
+    guard: GuardOperation,
+    swap: SwapOperation,
 };
 
 export var loopHelper = {

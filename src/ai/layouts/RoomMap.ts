@@ -20,6 +20,10 @@ export class RoomMap<T> {
         this.map[x][y] = value;
     }
 
+    public getPos(pos: RoomPosition): T {
+        return this.get(pos.x, pos.y);
+    }
+
     public get(x: number, y: number): T {
         if (!this.map[x]) { return; }
         return this.map[x][y];
@@ -35,5 +39,29 @@ export class RoomMap<T> {
                 if (value) { return {x: x, y: y}; }
             }
         }
+    }
+
+    public getPositions(value: T, roomName: string): RoomPosition[] {
+        let positions = [];
+        for (let x in this.map) {
+            for (let y in this.map[x]) {
+                if (this.map[x][y] !== value) { continue; }
+                positions.push(new RoomPosition(Number.parseInt(x), Number.parseInt(y), roomName));
+            }
+        }
+        return positions;
+    }
+
+    public getAllPositions(roomName: string): {[valueName: string]: RoomPosition[] } {
+        let positions = {};
+        for (let x in this.map) {
+            for (let y in this.map[x]) {
+                let value = this.map[x][y];
+                if (!value) { continue; }
+                if (!positions[value.toString()]) { positions[value.toString()] = []; }
+                positions[value.toString()].push(new RoomPosition(Number.parseInt(x), Number.parseInt(y), roomName));
+            }
+        }
+        return positions;
     }
 }

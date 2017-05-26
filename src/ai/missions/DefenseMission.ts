@@ -382,8 +382,7 @@ export class DefenseMission extends Mission {
             .sortBy(x => x.hits).head();
         let lowestFriendly = _(this.room.find<Creep>(FIND_MY_CREEPS))
             .filter(x => x.hits < x.hitsMax)
-            .sortBy(x => x.hits)
-            .head();
+            .min(x => x.hits);
         for (let i = 0; i < towers.length; i++) {
             let target = targets[i % targets.length];
             let tower = towers[i];
@@ -410,7 +409,7 @@ export class DefenseMission extends Mission {
             if (!this.playerThreat || this.assistTarget || this.vulnerableCreep) {
                 tower.attack(target);
             } else {
-                if (lowestFriendly && lowestFriendly.hits < lowestFriendly.hitsMax - healedAmount) {
+                if (lowestFriendly instanceof Object && lowestFriendly.hits < lowestFriendly.hitsMax - healedAmount) {
                     healedAmount += 300;
                     tower.heal(lowestFriendly);
                 } else {

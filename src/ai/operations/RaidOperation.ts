@@ -24,7 +24,6 @@ export class RaidOperation extends Operation {
         wreck: WreckerMission,
         brawler: BrawlerMission,
         longbow: LongbowMission,
-
     };
 
     private squadNames = ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india"];
@@ -131,6 +130,10 @@ export class RaidOperation extends Operation {
     }
 
     public invalidateOperationCache() {
+    }
+
+    public nextRoom() {
+        this.memory.attackRoomIndex++;
     }
 
     /**

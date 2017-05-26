@@ -203,7 +203,6 @@ export interface BankData {
     timeout: number;
     posCount: number;
     wavesLeft: number;
-    waveIncomplete?: boolean;
 }
 
 export interface FleeData {

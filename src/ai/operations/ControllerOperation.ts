@@ -32,6 +32,7 @@ import {LayoutBuilder} from "../layouts/LayoutBuilder";
 import {LayoutDisplay} from "../layouts/LayoutDisplay";
 import {LayoutFactory} from "../layouts/LayoutFactory";
 import {Mem} from "../../helpers/Mem";
+import {BaseRepairMission} from "../missions/BaseRepairMission";
 
 export class ControllerOperation extends Operation {
 
@@ -115,7 +116,8 @@ export class ControllerOperation extends Operation {
             // scout and place harvest flags
             this.addMission(new SurveyMission(this));
             // repair walls
-            this.addMission(new MasonMission(this, defenseGuru));
+            // this.addMission(new MasonMission(this, defenseGuru));
+            this.addMission(new BaseRepairMission(this));
         }
 
         // upgrader controller
@@ -124,15 +126,24 @@ export class ControllerOperation extends Operation {
         this.addMission(upgradeMission);
 
         // upkeep roads and walls
-        this.towerRepair();
+        // this.towerRepair();
 
-        this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
+        // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
     public finalizeOperation() {
     }
 
     public invalidateOperationCache() {
+    }
+
+    public setLayout(x: number, y: number, rotation: number, type: string) {
+        Memory.rooms[this.flag.pos.roomName].layout = {
+            anchor: {x: x, y: y},
+            rotation: rotation,
+            type: type,
+            flex: false,
+        };
     }
 
     public nuke(x: number, y: number, roomName: string): string {
@@ -216,17 +227,15 @@ export class ControllerOperation extends Operation {
         return `moving layout, run command ${this.name}.showLayout(true) to display`;
     }*/
 
-    /*public showLayout(type = "all", maintain = true): string {
-        if (!this.memory.rotation === undefined || !this.memory.centerPosition) {
+    public showLayout(type = "all", maintain = true): string {
+        if (!this.layout) {
             return "No layout defined";
         }
 
         for (let structureType of Object.keys(CONSTRUCTION_COST)) {
             if (type === "all" || type === structureType ) {
-                let coords = this.layoutCoords(structureType);
-                let order = 0;
-                for (let coord of coords) {
-                    let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+                let positions = this.layout.map[structureType];
+                for (let position of positions) {
                     let color = "white";
                     if (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_SPAWN
                         || structureType === STRUCTURE_STORAGE || structureType === STRUCTURE_NUKER) {
@@ -250,7 +259,7 @@ export class ControllerOperation extends Operation {
         }
 
         return `showing layout for: ${type}`;
-    }*/
+    }
 
     /*private buildLayout() {
 

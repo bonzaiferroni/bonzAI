@@ -369,14 +369,14 @@ export class LairMission extends Mission {
     private findBestTarget(agent: Agent): HostileAgent {
         let bestTarget = _(this.invaderGuru.invaders)
             .filter(hostileAgent => hostileAgent.getPotential(HEAL) > 0)
-            .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(agent))
-            .head();
-        if (!bestTarget) {
+            .min(hostileAgent => hostileAgent.pos.getRangeTo(agent));
+        if (!(bestTarget instanceof Object)) {
             bestTarget = _(this.invaderGuru.invaders)
-                .sortBy(hostileAgent => hostileAgent.pos.getRangeTo(agent))
-                .head();
+                .min(hostileAgent => hostileAgent.pos.getRangeTo(agent))
         }
-        return bestTarget;
+        if (bestTarget instanceof Object) {
+            return bestTarget;
+        }
     }
 }
 

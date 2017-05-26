@@ -1664,6 +1664,8 @@ declare class RoomPosition {
  * An object representing the missionRoom in which your units and structures are in. It can be used to look around, find paths, etc. Every object in the missionRoom contains its linked Room instance in the missionRoom property.
  */
 declare class Room {
+    visual: RoomVisual;
+
     /**
      * The Controller structure of this missionRoom, if present, otherwise undefined.
      */
@@ -2443,6 +2445,7 @@ declare class RoomVisual {
     rect(pos: RoomPosition, width: number, height: number, style?: RoomVisualStyle);
     rect(x: number, y: number, width: number, height: number, style?: RoomVisualStyle);
     circle(pos: RoomPosition, style?: RoomVisualCircleStyle);
+    getSize(): number;
 }
 
 interface RoomVisualLineStyle {

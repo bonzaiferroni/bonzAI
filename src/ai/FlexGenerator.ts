@@ -1,81 +1,56 @@
 import {Coord} from "../interfaces";
 import {helper} from "../helpers/helper";
+import {RoomMap} from "./layouts/RoomMap";
+import {PositionMap} from "./layouts/Layout";
+import {LayoutDisplay} from "./layouts/LayoutDisplay";
 export class FlexGenerator {
 
-    leftMost = 0;
-    rightMost = 0;
-    topMost = 0;
-    bottomMost = 0;
+    private leftMost = 0;
+    private rightMost = 0;
+    private topMost = 0;
+    private bottomMost = 0;
 
-    radius = 0;
-    centerPosition: RoomPosition;
-    rotation: number;
+    private radius = 0;
+    private centerPosition: RoomPosition;
 
-    coreStructureCoordinates: {[structureType: string]: Coord[]};
-    remaining = {
+    private remaining = {
         [STRUCTURE_TOWER]: 6,
         [STRUCTURE_EXTENSION]: 60,
         [STRUCTURE_OBSERVER]: 1,
     };
 
-    roomName: string;
-    map: {[x: number]: {[y: number]: string }} = {};
+    private roomName: string;
+    private flexMap = new RoomMap<string>();
+    private fixedMap: RoomMap<string>;
+    private rampartMap = new RoomMap<string>();
 
-    roadPositions: RoomPosition[] = [];
-    noRoadAccess: Coord[] = [];
-    wallCount: number;
-    recheckCount = 0;
+    private roadPositions: RoomPosition[] = [];
+    private noRoadAccess: Coord[] = [];
+    private insidePositions: RoomPosition[] = [];
+    private wallCount: number;
+    private recheckCount = 0;
 
-    constructor(centerPosition: RoomPosition, rotation: number, staticStructures: {[structureType: string]: Coord[]}) {
-        if (!(centerPosition instanceof RoomPosition)) {
-            centerPosition = helper.deserializeRoomPosition(centerPosition);
-        }
-
-        this.centerPosition = centerPosition;
-        this.roomName = centerPosition.roomName;
-        this.rotation = rotation;
-        this.leftMost = centerPosition.x;
-        this.rightMost = centerPosition.x;
-        this.topMost = centerPosition.y;
-        this.bottomMost = centerPosition.y;
-
-        this.coreStructureCoordinates = staticStructures;
+    constructor(roomName: string, anchor: Vector2, fixedMap: PositionMap) {
+        this.centerPosition = new RoomPosition(anchor.x, anchor.y, roomName);
+        this.roomName = roomName;
+        this.leftMost = anchor.x;
+        this.rightMost = anchor.x;
+        this.topMost = anchor.y;
+        this.bottomMost = anchor.y;
+        this.fixedMap = this.generateFixedMap(fixedMap);
+        this.roadPositions = fixedMap[STRUCTURE_ROAD];
     }
 
-    generate(): {[structureType: string]: Coord[]} {
-
-        this.addFixedStructuresToMap();
+    public generate(): PositionMap {
         this.addUsingExpandingRadius();
         this.addWalls();
         this.removeStragglingRoads();
-        return this.generateCoords();
+        return this.generatePositions();
     }
 
-    private addFixedStructuresToMap() {
-
-        this.coreStructureCoordinates[STRUCTURE_ROAD] = [
-            {x: 0, y: 0}, {x: 1, y: 1}, {x: 2, y: 2}, {x: -1, y: -1}, {x: -2, y: -2},
-            {x: -2, y: 0}, {x: 0, y: -2}, {x: 0, y: -4}, {x: 1, y: -3}, {x: 2, y: -2},
-            {x: 3, y: -1}, {x: 4, y: 0}, {x: 3, y: 1}, {x: 1, y: 3}, {x: 0, y: 4},
-            {x: -1, y: 3}, {x: -3, y: 1}, {x: -4, y: 0}, {x: -3, y: -1}, {x: -1, y: -3},
-        ];
-
-        this.coreStructureCoordinates["empty"] = [
-            {x: -1, y: -2}, {x: 1, y: -2}, {x: 2, y: -1}
-        ];
-
-        for (let structureType in this.coreStructureCoordinates) {
-            let coords = this.coreStructureCoordinates[structureType];
-            for (let coord of coords) {
-                let position = helper.coordToPosition(coord, this.centerPosition, this.rotation);
-                this.addStructurePosition(position, structureType);
-            }
-        }
-    }
-
-    addUsingExpandingRadius() {
+    private addUsingExpandingRadius() {
         let iterations = 0;
-        while (_.sum(this.remaining) > 0 && iterations < 100) {
+        while (_.sum(this.remaining) > 0 && this.radius < 10) {
             iterations++;
             for (let xDelta = -this.radius; xDelta <= this.radius; xDelta++) {
                 let x = this.centerPosition.x + xDelta;
@@ -83,44 +58,43 @@ export class FlexGenerator {
 
                 for (let yDelta = -this.radius; yDelta <= this.radius; yDelta++) {
                     // only consider points on perimeter of gradually expanding rectangle
-                    if (Math.abs(yDelta) !== this.radius && Math.abs(xDelta) !== this.radius) continue;
+                    if (Math.abs(yDelta) !== this.radius && Math.abs(xDelta) !== this.radius) { continue; }
 
                     let y = this.centerPosition.y + yDelta;
                     if (y < 3 || y > 46) { continue; }
 
                     let position = new RoomPosition(x, y, this.roomName);
-                    if (position.lookFor(LOOK_TERRAIN)[0] === "wall") continue;
-
+                    if (Game.map.getTerrainAt(x, y, this.roomName) === "wall") { continue; }
+                    this.insidePositions.push(position);
                     this.addRemaining(xDelta, yDelta);
                 }
             }
             this.radius++;
         }
 
-        if (iterations === 100) {
-            console.log("WARNING: layout process entered endless loop, life is terrible, give up all hope");
+        if (_.sum(this.remaining) > 0) {
+            console.log(`warning, did not finish flex process, layout is incomplete. \n remaining: ${
+                JSON.stringify(this.remaining)}`);
         }
     }
 
-    addRemaining(xDelta: number, yDelta: number, save = true): boolean {
+    private addRemaining(xDelta: number, yDelta: number, save = true): boolean {
 
         let x = this.centerPosition.x + xDelta;
         let y = this.centerPosition.y + yDelta;
         let alreadyUsed = this.checkIfUsed(x, y);
-        console.log(`alreadyUsed: ${alreadyUsed} x: ${xDelta}, y: ${yDelta}`);
-        if (alreadyUsed) return;
+        if (alreadyUsed) { return; }
 
         let position = new RoomPosition(x, y, this.roomName);
         if (Game.rooms[this.roomName]) {
-            if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) return;
-            if (position.inRangeTo(Game.rooms[this.roomName].controller, 3)) return;
+            if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) { return; }
+            if (position.inRangeTo(Game.rooms[this.roomName].controller, 3)) { return; }
         }
 
         let foundRoad = false;
         for (let roadPos of this.roadPositions) {
             if (position.isNearTo(roadPos)) {
                 let structureType = this.findStructureType(xDelta, yDelta);
-                console.log("findStructureType: " + structureType)
                 if (structureType) {
                     this.addStructurePosition(position, structureType);
                     this.remaining[structureType]--;
@@ -138,34 +112,41 @@ export class FlexGenerator {
     private recheckNonAccess() {
         // if (this.recheckCount > 100) return;
         this.recheckCount++;
-        if (this.recheckCount > 100) throw "too fucking long";
-        console.log("rechecking " + this.recheckCount, this.noRoadAccess.length);
+        if (this.recheckCount > 100) { throw "rechecking too many times, something must be wrong"; }
         this.noRoadAccess = _.filter(this.noRoadAccess, (c: Coord) => !this.checkIfUsed(c.x, c.y));
         for (let coord of this.noRoadAccess) {
             this.addRemaining(coord.x, coord.y, false);
         }
     }
 
-    checkIfUsed(x: number, y: number): boolean {
-        return this.map[x] !== undefined && this.map[x][y] !== undefined;
+    private checkIfUsed(x: number, y: number): boolean {
+        let structureType = this.flexMap.get(x, y);
+        if (structureType) { return true; }
+        structureType = this.fixedMap.get(x, y);
+        if (structureType) { return true; }
+        return false;
     }
 
-    addStructurePosition(pos: RoomPosition, structureType: string, overwrite = false) {
-        if (!this.map[pos.x]) this.map[pos.x] = {};
-        let existingStructureType = this.map[pos.x][pos.y];
+    private addRampart(pos: RoomPosition) {
+        this.rampartMap.setPos(pos, STRUCTURE_RAMPART);
+    }
+
+    private addStructurePosition(pos: RoomPosition, structureType: string, overwrite = false) {
+        let existingStructureType = this.flexMap.getPos(pos);
         if (existingStructureType) {
-            if (overwrite) { this.remaining[existingStructureType]++; }
-            else { return; }
+            if (overwrite) {
+                this.remaining[existingStructureType]++;
+            } else {
+                return;
+            }
         }
 
-        this.map[pos.x][pos.y] = structureType;
+        this.flexMap.setPos(pos, structureType);
 
         if (structureType === STRUCTURE_ROAD) {
-            console.log("foundRoad, add pos and recheck: " + pos);
             this.roadPositions.push(pos);
-            this.recheckNonAccess()
-        }
-        else if (structureType !== STRUCTURE_RAMPART && structureType !== STRUCTURE_WALL) {
+            this.recheckNonAccess();
+        } else if (structureType !== STRUCTURE_RAMPART && structureType !== STRUCTURE_WALL) {
             if (pos.x < this.leftMost) { this.leftMost = pos.x; }
             if (pos.x > this.rightMost) { this.rightMost = pos.x; }
             if (pos.y < this.topMost) { this.topMost = pos.y; }
@@ -178,8 +159,7 @@ export class FlexGenerator {
 
         if (isRoadCoord) {
             return STRUCTURE_ROAD;
-        }
-        else {
+        } else {
             for (let structureType in this.remaining) {
                 if (this.remaining[structureType]) {
                     return structureType;
@@ -188,7 +168,7 @@ export class FlexGenerator {
         }
     }
 
-    addWalls() {
+    private addWalls() {
         // push edge by 1 to make room for walls
         let leftWall = this.leftMost - 1;
         let rightWall = this.rightMost + 1;
@@ -206,10 +186,15 @@ export class FlexGenerator {
         for (let x = 0; x < 50; x++) {
             for (let y = 0; y < 50; y++) {
                 let currentBorder;
-                if (x === 0) currentBorder = "left";
-                else if (x === 49) currentBorder = "right";
-                else if (y === 0) currentBorder = "top";
-                else if (y === 49) currentBorder = "bottom";
+                if (x === 0) {
+                    currentBorder = "left";
+                } else if (x === 49) {
+                    currentBorder = "right";
+                } else if (y === 0) {
+                    currentBorder = "top";
+                } else if (y === 49) {
+                    currentBorder = "bottom";
+                }
 
                 let position = new RoomPosition(x, y, this.roomName);
                 if (position.lookFor(LOOK_TERRAIN)[0] === "wall") {
@@ -217,8 +202,7 @@ export class FlexGenerator {
                     if (currentBorder) {
                         lastPositionWasExit[currentBorder] = false;
                     }
-                }
-                else {
+                } else {
                     matrix.set(x, y, 1);
                     if (currentBorder) {
                         if (!lastPositionWasExit[currentBorder]) {
@@ -235,10 +219,10 @@ export class FlexGenerator {
         // start with every wall position being valid around the border
         for (let x = leftWall; x <= rightWall; x++) {
             for (let y = topWall; y <= bottomWall; y++) {
-                if (x !== leftWall && x !== rightWall && y !== topWall && y !== bottomWall) continue;
+                if (x !== leftWall && x !== rightWall && y !== topWall && y !== bottomWall) { continue; }
 
                 let position = new RoomPosition(x, y, this.roomName);
-                if (position.lookFor(LOOK_TERRAIN)[0] === "wall") continue;
+                if (position.lookFor(LOOK_TERRAIN)[0] === "wall") { continue; }
                 allWallPositions.push(position);
                 matrix.set(x, y, 0xff);
             }
@@ -266,42 +250,33 @@ export class FlexGenerator {
             if (breach) {
                 validWallPositions.push(wallPosition);
                 matrix.set(wallPosition.x, wallPosition.y, 0xff);
-            }
-            else {
-
+            } else {
+                this.insidePositions.push(wallPosition);
             }
         }
 
-        for (let position of validWallPositions) {
-            this.addStructurePosition(position, STRUCTURE_RAMPART, true);
+        for (let rampartPos of validWallPositions) {
+            this.addRampart(rampartPos);
+            for (let insidePos of this.insidePositions) {
+                if (insidePos.getRangeTo(rampartPos) <= 2) {
+                    this.addRampart(insidePos);
+                }
+            }
         }
         this.wallCount = validWallPositions.length;
     }
 
-    private generateCoords(): {[structureType: string]: Coord[]} {
-        let roomPositions = {};
+    private generatePositions(): PositionMap {
+        let structurePositions = this.flexMap.getAllPositions(this.roomName);
 
-        for (let x in this.map) {
-            for (let y in this.map[x]) {
-                let structureType = this.map[x][y];
-                if (structureType !== STRUCTURE_ROAD && _.includes(Object.keys(this.coreStructureCoordinates), structureType)) continue;
-                if (!roomPositions[structureType]) roomPositions[structureType] = [];
-                roomPositions[structureType].push(new RoomPosition(Number.parseInt(x), Number.parseInt(y), this.roomName));
-            }
+        for (let structureType in structurePositions) {
+            structurePositions[structureType] = _.sortBy(structurePositions[structureType],
+                x => x.getRangeTo(this.centerPosition));
         }
 
-        let flexLayoutMap = {};
-        let centerPosition = new RoomPosition(this.centerPosition.x, this.centerPosition.y, this.roomName);
-        for (let structureType in roomPositions) {
-            let sortedByDistance = _.sortBy(roomPositions[structureType], (pos: RoomPosition) => pos.getRangeTo(centerPosition) );
-            flexLayoutMap[structureType] = [];
-            for (let position of sortedByDistance) {
-                let coord = helper.positionToCoord(position, this.centerPosition, this.rotation);
-                flexLayoutMap[structureType].push(coord);
-            }
-        }
-
-        return flexLayoutMap;
+        structurePositions[STRUCTURE_RAMPART] = this.rampartMap.getPositions(STRUCTURE_RAMPART, this.roomName);
+        LayoutDisplay.showMap(structurePositions);
+        return structurePositions;
     }
 
     private checkValidRoadCoord(xDelta: number, yDelta: number): boolean {
@@ -309,8 +284,7 @@ export class FlexGenerator {
         let combinedDeviance = Math.abs(xDelta) + Math.abs(yDelta);
         if (combinedDeviance % 2 !== 0 ) {
             return false;
-        }
-        else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
+        } else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
             let pos = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
 
             // check narrow passage due to natural walls
@@ -321,22 +295,29 @@ export class FlexGenerator {
             }
 
             return false;
-        }
-        else {
+        } else {
             return true;
         }
     }
 
     private removeStragglingRoads() {
-        for (let x in this.map) {
-            for (let y in this.map[x]) {
-                let xInt = Number.parseInt(x);
-                let yInt = Number.parseInt(y);
-                if (xInt < this.leftMost - 1 || xInt > this.rightMost + 1
-                    || yInt < this.topMost - 1 || yInt > this.bottomMost + 1) {
-                    this.map[x][y] = undefined;
-                }
+        let roadPositions = this.flexMap.getPositions(STRUCTURE_ROAD, this.roomName);
+        for (let position of roadPositions) {
+            if (position.x < this.leftMost || position.x > this.rightMost
+                || position.y < this.topMost || position.y > this.bottomMost ) {
+                this.flexMap.setPos(position, undefined);
             }
         }
+    }
+
+    private generateFixedMap(fixedMap: PositionMap): RoomMap<string> {
+        let map = new RoomMap<string>();
+        for (let structureType in fixedMap) {
+            let positions = fixedMap[structureType];
+            for (let position of positions) {
+                map.setPos(position, structureType);
+            }
+        }
+        return map;
     }
 }

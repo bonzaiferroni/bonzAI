@@ -701,6 +701,11 @@ export abstract class RaidMission extends Mission {
                 .head();*/
         }
 
+        if (!target && !this.operation.memory.pretending && !attackingCreep
+            && attacker.room === this.raidData.attackRoom) {
+            attacker.rangedMassAttack();
+        }
+
         if (!target) {
             return;
         }
@@ -715,7 +720,7 @@ export abstract class RaidMission extends Mission {
             } else if (range <= 3) {
                 attacker.rangedAttack(target);
             } else if (attacker.room === this.raidData.attackRoom) {
-                attacker.massAttackDamage();
+                attacker.rangedMassAttack();
             }
         }
     }

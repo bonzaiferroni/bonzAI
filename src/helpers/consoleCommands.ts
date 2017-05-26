@@ -4,6 +4,7 @@ import {helper} from "./helper";
 import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
+import {Viz} from "./Viz";
 
 declare var emp: Empire;
 
@@ -503,4 +504,23 @@ export var consoleCommands = {
 
         return JSON.stringify(data);
     },
+
+    visWalls(roomName: string) {
+        let room = Game.rooms[roomName];
+        if (!room) { return "no vision"; }
+
+        let structures = _(room.find<Structure>(FIND_STRUCTURES))
+            .filter(x => x.structureType === STRUCTURE_RAMPART || x.structureType === STRUCTURE_WALL)
+            .value();
+
+        if(structures.length === 0) { return "no walls"}
+
+        let maxHits =_.max(structures, x => x.hits).hits;
+
+        for (let wall of structures) {
+            let pos = wall.pos;
+            let opacity = wall.hits / maxHits;
+            new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: "orange", opacity: opacity});
+        }
+    }
 };

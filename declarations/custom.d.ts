@@ -50,10 +50,43 @@ interface RoomMemory {
     boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
     portal: string;
     portalEnd: number;
-    builder: any;
-    layout: any;
-    finder: any;
+    builder: {
+        demolish: string,
+        nextCheck: number,
+    };
+    layout: LayoutData;
+    finder: LayoutFinderData;
 }
+
+interface LayoutFinderData {
+    sourcePositions: RoomPosition[];
+    controllerPos: RoomPosition;
+    obstacleMap?: any;
+    progress?: LayoutFinderProgress;
+    validLayouts?: {[typeName: string]: ValidLayoutData[] };
+}
+
+interface LayoutFinderProgress {
+    anchor: Vector2;
+    rotation: number;
+    typeIndex: number;
+    final: boolean;
+}
+
+interface ValidLayoutData {
+    data: LayoutData;
+    energyScore: number;
+    structureScore: number;
+    foundSpawn: boolean;
+}
+
+interface LayoutData {
+    type: string;
+    anchor: Vector2;
+    rotation: number;
+    flex?: boolean;
+}
+type Vector2 = {x: number, y: number}
 
 interface RoomCoord {
     x: number;

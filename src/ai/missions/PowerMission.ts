@@ -41,25 +41,41 @@ export class PowerMission extends Mission {
         }
     }
 
+    public getMaxWaves() {
+        if (!this.memory.currentBank) { return 0; }
+        return Math.min(this.memory.currentBank.wavesLeft, this.memory.currentBank.posCount);
+    }
+
+    public getMaxBonnies = () => {
+        if (!this.memory.currentBank || this.memory.currentBank.finishing || this.memory.currentBank.finishing) {
+            return 0;
+        }
+        if (this.roleCount("bonnie") > this.roleCount("clyde")) {
+            return 0;
+        }
+        if (this.spawnGroup.averageAvailability < .5) {
+            return 1;
+        }
+        return this.getMaxWaves();
+    };
+
+    public getMaxClydes = () => {
+        return Math.min(this.roleCount("bonnie"), this.getMaxWaves());
+    };
+
     public roleCall() {
-        let max = 0;
         let distance;
-        if (this.memory.currentBank && !this.memory.currentBank.finishing && !this.memory.currentBank.assisting) {
-            max = 1;
+        if (this.memory.currentBank) {
             distance = this.memory.currentBank.distance;
-            if (this.spawnGroup.averageAvailability > .5 && this.memory.currentBank.wavesLeft
-                && ! this.memory.currentBank.waveIncomplete) {
-                max = Math.min(this.memory.currentBank.wavesLeft, this.memory.currentBank.posCount);
-            }
         }
 
-        this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25}), () => max, {
+        this.bonnies = this.headCount("bonnie", () => this.configBody({ move: 25, heal: 25}),
+            this.getMaxBonnies, {
             prespawn: distance,
             reservation: { spawns: 2, currentEnergy: 8000 },
         });
 
         if (this.spawnedThisTick("bonnie")) {
-            this.memory.currentBank.waveIncomplete = true;
             this.memory.nextClyde = Game.time + 30;
         }
 
@@ -67,12 +83,12 @@ export class PowerMission extends Mission {
             this.spawnGroup.isAvailable = false;
         }
 
-        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}),
-            () => this.bonnies.length);
+        this.clydes = this.headCount("clyde", () => this.configBody({ move: 20, attack: 20}), this.getMaxClydes, {
+                prespawn: distance,
+            });
 
         if (this.spawnedThisTick("clyde")) {
-            this.memory.currentBank.waveIncomplete = false;
-            console.log("spawned another power team");
+            console.log(`spawned another power team ${this.room.name}`);
             this.memory.currentBank.wavesLeft--;
         }
 
@@ -89,28 +105,14 @@ export class PowerMission extends Mission {
     }
 
     public missionActions() {
-        for (let i = 0; i < 2; i++) {
-            let clyde = this.clydes[i];
-            if (clyde) {
-                if (!clyde.memory.myBonnieName) {
-                    if (this.clydes.length === this.bonnies.length) {
-                        clyde.memory.myBonnieName = this.bonnies[i].name;
-                    }
-                } else {
-                    this.clydeActions(clyde);
-                    this.checkForAlly(clyde);
-                }
-            }
-            let bonnie = this.bonnies[i];
-            if (bonnie) {
-                if (!bonnie.memory.myClydeName) {
-                    if (this.clydes.length === this.bonnies.length) {
-                        bonnie.memory.myClydeName = this.clydes[i].name;
-                    }
-                } else {
-                    this.bonnieActions(bonnie);
-                }
-            }
+
+        for (let clyde of this.clydes) {
+            this.clydeActions(clyde);
+            this.checkForAlly(clyde);
+        }
+
+        for (let bonnie of this.bonnies) {
+            this.bonnieActions(bonnie);
         }
 
         if (this.carts) {
@@ -158,8 +160,12 @@ export class PowerMission extends Mission {
 
     private clydeActions(clyde: Agent) {
 
-        let myBonnie = Game.creeps[clyde.memory.myBonnieName];
-        if (!myBonnie || (!clyde.pos.isNearTo(myBonnie) && !clyde.pos.isNearExit(1))) {
+        let bonnie = this.findPartner(clyde, this.bonnies);
+        if (!bonnie && clyde.ticksToLive < 500) {
+            clyde.suicide();
+            return;
+        }
+        if (!bonnie || (!clyde.pos.isNearTo(bonnie) && !clyde.pos.isNearExit(1))) {
             clyde.idleOffRoad(this.flag);
             return;
         }
@@ -167,7 +173,7 @@ export class PowerMission extends Mission {
         if (!this.memory.currentBank) {
             console.log(`POWER: clyde checking out: ${clyde.room.name}`);
             clyde.suicide();
-            myBonnie.suicide();
+            bonnie.suicide();
             return;
         }
 
@@ -189,7 +195,7 @@ export class PowerMission extends Mission {
                     clyde.attack(bank);
                 }
             }
-        } else if (myBonnie.fatigue === 0) {
+        } else if (bonnie.fatigue === 0) {
             if (this.memory.currentBank.assisting === undefined) {
                 // traveling from spawn
                 clyde.travelTo({pos: bankPos}, {ignoreRoads: true});
@@ -200,25 +206,28 @@ export class PowerMission extends Mission {
     }
 
     private bonnieActions(bonnie: Agent) {
-        let myClyde = Game.creeps[bonnie.memory.myClydeName];
-        if (!myClyde) {
+        let clyde = this.findPartner(bonnie, this.clydes);
+        if (!clyde) {
             bonnie.idleOffRoad();
+            if (bonnie.ticksToLive < 500) {
+                bonnie.suicide();
+            }
             return;
         }
 
-        if (myClyde.ticksToLive === 1) {
+        if (clyde.ticksToLive === 1) {
             bonnie.suicide();
             return;
         }
 
-        if (bonnie.pos.isNearTo(myClyde)) {
-            if (myClyde.memory.inPosition) {
-                bonnie.heal(myClyde);
+        if (bonnie.pos.isNearTo(clyde)) {
+            if (clyde.memory.inPosition) {
+                bonnie.heal(clyde);
             } else {
-                bonnie.move(bonnie.pos.getDirectionTo(myClyde));
+                bonnie.move(bonnie.pos.getDirectionTo(clyde));
             }
         } else {
-            bonnie.travelTo(myClyde);
+            bonnie.travelTo(clyde);
         }
     }
 
