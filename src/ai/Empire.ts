@@ -6,8 +6,8 @@ import {WorldMap} from "./WorldMap";
 import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
 import {BonzaiNetwork} from "./BonzaiNetwork";
-import {Visualizer} from "./Visualizer";
 import {Scheduler} from "../Scheduler";
+import {Archiver} from "./Archiver";
 
 export class Empire {
 
@@ -21,7 +21,7 @@ export class Empire {
     public map: WorldMap;
     public network: BonzaiNetwork;
     public market: MarketTrader;
-    public vis: Visualizer;
+    public archiver: Archiver;
 
     constructor() {
         if (!Memory.empire) { Memory.empire = {}; }
@@ -53,12 +53,15 @@ export class Empire {
         Profiler.start("emp.init");
         for (let roomName in this.spawnGroups) {
             let spawnGroup = this.spawnGroups[roomName];
-            spawnGroup.init();
+            let initilized = spawnGroup.init();
+            if (!initilized) {
+                delete this.spawnGroups[roomName];
+            }
         }
-        Profiler.start("focus");
         this.map.init();
-        Profiler.end("focus");
         this.network.init();
+        this.archiver = new Archiver();
+        this.archiver.init();
         Profiler.end("emp.init");
     }
 
@@ -79,6 +82,7 @@ export class Empire {
         Profiler.start("emp.clr");
         this.clearErrantConstruction();
         Profiler.end("emp.clr");
+        this.archiver.finalize();
 
         for (let roomName in this.spawnGroups) {
             this.spawnGroups[roomName].finalize();

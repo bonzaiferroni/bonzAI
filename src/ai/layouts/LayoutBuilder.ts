@@ -77,9 +77,6 @@ export class LayoutBuilder {
 
                 errantStructure = this.findErrantStructure(buildType, positions);
                 if (errantStructure) {
-                    if (outcome === ERR_RCL_NOT_ENOUGH && _.find(positions, x => x.getRangeTo(errantStructure) === 0)) {
-                        continue;
-                    }
                     this.demolishStructure(errantStructure);
                     return;
                 }
@@ -88,6 +85,10 @@ export class LayoutBuilder {
                 if (errantSite) {
                     errantSite.remove();
                     return;
+                }
+
+                if (outcome === ERR_RCL_NOT_ENOUGH) {
+                    continue;
                 }
 
                 console.log(`BUILDER: unhandled error: ${outcome}, position: ${position}, type: ${buildType}`);

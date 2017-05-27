@@ -33,6 +33,7 @@ import {LayoutDisplay} from "../layouts/LayoutDisplay";
 import {LayoutFactory} from "../layouts/LayoutFactory";
 import {Mem} from "../../helpers/Mem";
 import {BaseRepairMission} from "../missions/BaseRepairMission";
+import {Profiler} from "../../Profiler";
 
 export class ControllerOperation extends Operation {
 
@@ -53,9 +54,9 @@ export class ControllerOperation extends Operation {
         }
     }
 
-    public initOperation() {
-        this.autoLayout();
+    public initOperationGlobal() {
 
+        this.autoLayout();
         this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
         this.initRemoteSpawn(8, 8);
 
@@ -129,6 +130,9 @@ export class ControllerOperation extends Operation {
         // this.towerRepair();
 
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
+    }
+
+    public initOperation() {
     }
 
     public finalizeOperation() {

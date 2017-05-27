@@ -275,7 +275,6 @@ export class FlexGenerator {
         }
 
         structurePositions[STRUCTURE_RAMPART] = this.rampartMap.getPositions(STRUCTURE_RAMPART, this.roomName);
-        LayoutDisplay.showMap(structurePositions);
         return structurePositions;
     }
 

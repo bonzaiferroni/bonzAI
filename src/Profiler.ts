@@ -53,14 +53,14 @@ export class Profiler {
 
             if (Game.time >= profile.endOfPeriod) {
                 if (profile.count === 0) { continue; }
-                profile.costPerCall = _.round(profile.total / profile.count, 2);
-                profile.costPerTick = _.round(profile.total / profile.period, 2);
-                profile.callsPerTick = _.round(profile.count / profile.period, 2);
-                profile.max = profile.highest;
+                profile.costPerCall = _.round(profile.total / profile.count, 1);
+                profile.costPerTick = _.round(profile.total / profile.period, 1);
+                profile.callsPerTick = _.round(profile.count / profile.period, 1);
+                profile.max = _.round(profile.highest, 1);
 
                 if (profile.consoleReport) {
                     console.log("PROFILER:", identifier, "perTick:", profile.costPerTick, "perCall:",
-                        profile.costPerCall, "calls per tick:", profile.callsPerTick);
+                        profile.costPerCall, "calls per tick:", profile.callsPerTick, "max:", profile.max);
                 }
 
                 profile.endOfPeriod = Game.time + profile.period;

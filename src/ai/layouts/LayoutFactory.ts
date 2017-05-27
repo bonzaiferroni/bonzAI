@@ -1,7 +1,6 @@
 import {QuadLayout} from "./QuadLayout";
 import {
     Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LAYOUT_SWAP, LayoutData,
-    LayoutType
 } from "./Layout";
 import {MiniLayout} from "./MiniLayout";
 import {FlexLayout} from "./FlexLayout";

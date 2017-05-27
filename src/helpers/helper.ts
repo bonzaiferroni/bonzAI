@@ -41,14 +41,14 @@ export var helper = {
         return new RoomPosition(roomPosition.x, roomPosition.y, roomPosition.roomName);
     },
 
-    blockOffPosition(costs: CostMatrix, roomObject: RoomObject, range: number, cost = 30, add = false) {
+    blockOffPosition(costs: CostMatrix, roomObject: {pos: RoomPosition}, range: number, cost = 30, add = false) {
         for (let xDelta = -range; xDelta <= range; xDelta++) {
             let x = roomObject.pos.x + xDelta;
             if (x < 0 || x > 49) { continue; }
             for (let yDelta = -range; yDelta <= range; yDelta++) {
                 let y = roomObject.pos.y + yDelta;
                 if (y < 0 || y > 49) { continue; }
-                let terrain = Game.map.getTerrainAt(x, y, roomObject.room.name);
+                let terrain = Game.map.getTerrainAt(x, y, roomObject.pos.roomName);
                 if (terrain === "wall") { continue; }
                 let currentCost = costs.get(x, y);
                 if (currentCost === 0) {
@@ -114,17 +114,17 @@ export var helper = {
         return;
     },
 
-    blockOffExits(matrix: CostMatrix, cost = 0xff, roomName?: string): CostMatrix {
-        for (let x = 0; x < 50; x += 49) {
-            for (let y = 0; y < 50; y++) {
+    blockOffExits(matrix: CostMatrix, cost = 0xff, range = 0, roomName?: string): CostMatrix {
+        for (let x = range; x < 50 - range; x += 49 - range * 2) {
+            for (let y = range; y < 50 - range; y++) {
                 if (roomName) {
                     let terrain = Game.map.getTerrainAt(x, y, roomName);
                     if (terrain !== "wall") { matrix.set(x, y, cost); }
                 } else { matrix.set(x, y, 0xff); }
             }
         }
-        for (let x = 0; x < 50; x++) {
-            for (let y = 0; y < 50; y += 49) {
+        for (let x = range; x < 50 - range; x++) {
+            for (let y = range; y < 50 - range; y += 49 - range * 2) {
                 if (roomName) {
                     let terrain = Game.map.getTerrainAt(x, y, roomName);
                     if (terrain !== "wall") { matrix.set(x, y, cost); }

@@ -3,6 +3,7 @@ import {BuildingPlannerData} from "../../interfaces";
 import {FlexGenerator} from "../FlexGenerator";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {Mem} from "../../helpers/Mem";
+import {empire} from "../Empire";
 export class FlexLayout extends Layout {
     public fixedMap: BuildingPlannerData = {
         name: "Flex",
@@ -32,24 +33,17 @@ export class FlexLayout extends Layout {
             return true;
         }
 
-        RawMemory.setActiveSegments([LAYOUT_SEGMENTID]);
-        if (!_.includes(Object.keys(RawMemory.segments), `${LAYOUT_SEGMENTID}`)) {
-            console.log(`ordering active segment to generate flex layout in ${this.roomName}`);
-            return true;
-        }
-
-        let flexLayouts = JSON.parse(RawMemory.segments[LAYOUT_SEGMENTID]);
         let fixedStructures = this.findFixedMap();
         let map = new FlexGenerator(this.roomName, this.anchor, fixedStructures);
         let flexMap = map.generate();
+        LayoutDisplay.showMap(flexMap);
         let serializedMap = {};
         for (let structureType in flexMap) {
             let positions = flexMap[structureType];
             if (!positions) { continue; }
             serializedMap[structureType] = Mem.serializeIntPositions(positions);
         }
-        flexLayouts[this.roomName] = serializedMap;
-        RawMemory.segments[LAYOUT_SEGMENTID] = JSON.stringify(flexLayouts);
+        empire.archiver.set(LAYOUT_SEGMENTID, this.roomName, serializedMap);
         this.data.flex = true;
         console.log(`generated and saved flex layout in ${this.roomName}`);
     }

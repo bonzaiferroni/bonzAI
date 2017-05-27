@@ -4,6 +4,7 @@ import {Mission} from "../missions/Mission";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
+import {TravelToOptions} from "../Traveler";
 export class EnhancedBodyguardMission extends Mission {
 
     private squadAttackers: Agent[];
@@ -94,9 +95,6 @@ export class EnhancedBodyguardMission extends Mission {
 
     public missionActions() {
 
-        this.findPartnerships(this.squadAttackers, "attacker");
-        this.findPartnerships(this.squadHealers, "healer");
-
         for (let attacker of this.squadAttackers) {
             this.squadActions(attacker);
         }
@@ -123,9 +121,7 @@ export class EnhancedBodyguardMission extends Mission {
     private squadActions(attacker: Agent) {
 
         // find healer, flee if there isn't one
-        let healer = this.getPartner(attacker, this.squadHealers);
-        if (!healer) { attacker.memory.partner = undefined; }
-
+        let healer = this.findPartner(attacker, this.squadHealers, 1500);
         if (!healer || healer.spawning) {
             if (attacker.room.name !== this.spawnGroup.pos.roomName || attacker.pos.isNearExit(0)) {
                 attacker.travelTo(this.spawnGroup);
@@ -145,6 +141,7 @@ export class EnhancedBodyguardMission extends Mission {
         let attacking = false;
         let rangeAttacking = false;
         healer.memory.mindControl = true;
+        let msg = "";
         let target = attacker.pos.findClosestByRange(_.filter(this.hostiles,
             (c: Creep) => c.partCount(HEAL) > 0)) as Creep;
         if (!target) {
@@ -163,7 +160,14 @@ export class EnhancedBodyguardMission extends Mission {
                 this.memory.healUp = false;
             }
         } else if (target) {
+            msg += "t"
+
             attacker.memory.targetId = target.id;
+
+            let options: TravelToOptions = {};
+            if (attacker.room === target.room) {
+                options.maxRooms = 1;
+            }
 
             let range = attacker.pos.getRangeTo(target);
             if (range === 1) {
@@ -174,22 +178,25 @@ export class EnhancedBodyguardMission extends Mission {
             }
 
             if (attacker.room.name !== target.room.name) {
-                Agent.squadTravel(attacker, healer, target);
-            } else if (range > 3 || (range > 1 && !(Game.time - attacker.memory.fleeTick === 1))) {
-                Agent.squadTravel(attacker, healer, target);
+                msg += "-nr";
+                Agent.squadTravel(attacker, healer, target, options);
+            } else if (range > 3) {
+                msg += "-r3";
+                Agent.squadTravel(attacker, healer, target, options);
             } else if (range > 1) {
-                let fleePath = PathFinder.search(target.pos, {pos: attacker.pos, range: 5 }, {flee: true, maxRooms: 1});
-                // will only flee-bust  on consecutive ticks
-                if (fleePath.incomplete || !fleePath.path[1] || !fleePath.path[1].isNearExit(0)) {
-                    Agent.squadTravel(attacker, healer, target, {ignoreRoads: true});
+                let direction = attacker.fleeBuster(target);
+                if (direction && attacker.fatigue === 0 && healer.fatigue === 0 && attacker.pos.isNearTo(healer)) {
+                    msg += "-fb";
+                    attacker.move(direction);
+                    healer.travelTo(attacker);
                 } else {
-                    attacker.memory.fleeTick = Game.time;
-                    Agent.squadTravel(attacker, healer, {pos: fleePath.path[1]}, {ignoreRoads: true});
+                    msg += "-nb";
+                    Agent.squadTravel(attacker, healer, target, options);
                 }
             } else {
                 if (!target.pos.isNearExit(0)) {
                     // directly adjacent, move on to same position
-                    Agent.squadTravel(attacker, healer, target, {range: 0});
+                    Agent.squadTravel(attacker, healer, target);
                 } else {
                     let direction = attacker.pos.getDirectionTo(target);
                     if (direction % 2 === 1) { return; } // not a diagonal position, already in best position;
@@ -206,6 +213,8 @@ export class EnhancedBodyguardMission extends Mission {
         } else {
             Agent.squadTravel(attacker, healer, this.flag);
         }
+
+        healer.say(msg)
 
         let closest = attacker.pos.findClosestByRange(this.hostiles);
         if (closest) {
@@ -234,7 +243,7 @@ export class EnhancedBodyguardMission extends Mission {
         }
 
         // hostiles in missionRoom
-        let attacker = Game.creeps[healer.memory.partner];
+        let attacker = this.findPartner(healer, this.squadAttackers, 1500);
         if (!attacker) {
             healer.memory.partner = undefined;
         }

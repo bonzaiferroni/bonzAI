@@ -116,7 +116,7 @@ export class PathMission extends Mission {
                     let roomType = WorldMap.roomTypeFromName(roomName);
                     if (roomType === ROOMTYPE_ALLEY) {
                         let matrix = new PathFinder.CostMatrix();
-                        return helper.blockOffExits(matrix, AVOID_COST, roomName);
+                        return helper.blockOffExits(matrix, AVOID_COST, 0, roomName);
                     }
                     return;
                 }

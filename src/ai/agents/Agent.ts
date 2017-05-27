@@ -9,6 +9,7 @@ import {empire} from "../Empire";
 import {AbstractAgent} from "./AbstractAgent";
 import {RESERVE_AMOUNT} from "../TradeNetwork";
 import {Memorizer} from "../../helpers/Memorizer";
+import {Viz} from "../../helpers/Viz";
 
 export class Agent extends AbstractAgent {
 
@@ -1166,6 +1167,31 @@ export class Agent extends AbstractAgent {
         } else {
             // console.log(agent.name + " traveling to waypoint");
             this.travelTo(waypoint);
+        }
+    }
+
+    public fleeBuster(closest: Structure|Creep) {
+        let currentRange = closest.pos.getRangeTo(this);
+        let ret = PathFinder.search(closest.pos, {pos: this.pos, range: currentRange + 1}, {
+            flee: true,
+        });
+
+        console.log(`fleebust in ${this.room.name}`);
+        if (ret.path.length > 0) {
+            let fleePos = ret.path[0];
+            if (fleePos.getRangeTo(this) <= currentRange) {
+                Viz.colorPos(fleePos, "red");
+                return;
+            }
+            let direction = closest.pos.getDirectionTo(fleePos);
+            let fleebusterPos = this.pos.getPositionAtDirection(direction);
+            if (fleebusterPos.isNearExit(0) || Game.map.getTerrainAt(fleebusterPos) !== "plain" ||
+                fleebusterPos.getRangeTo(closest) > currentRange) {
+                Viz.colorPos(fleebusterPos, "red");
+                return;
+            }
+            Viz.colorPos(fleebusterPos, "yellow");
+            return direction;
         }
     }
 }

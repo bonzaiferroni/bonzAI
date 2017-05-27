@@ -20,13 +20,13 @@ module.exports.loop = function () {
         activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0, exceptionCount: 0};
     Game.temp = {};
 
-    if (Patcher.checkPatch()) { return; }
-
     // profile memory parsing
     let cpu = Game.cpu.getUsed();
     if (Memory) { }
     let result = Game.cpu.getUsed() - cpu;
     Profiler.resultOnly("mem", result);
+
+    if (Patcher.checkPatch()) { return; }
 
     // TimeoutTracker - Diagnoses CPU timeouts
     try { TimeoutTracker.init(); } catch (e) { console.log("error initializing TimeoutTracker:\n", e.stack); }

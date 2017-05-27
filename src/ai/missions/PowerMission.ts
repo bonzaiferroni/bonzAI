@@ -25,7 +25,6 @@ export class PowerMission extends Mission {
     }
 
     public initMission() {
-
         let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
         if (!observer) { return; }
 
@@ -188,7 +187,7 @@ export class PowerMission extends Mission {
                 } else {
                     // wait for carts
                     for (let cart of this.carts) {
-                        if (!bankPos.inRangeTo(cart, 5)) {
+                        if (!bankPos.inRangeTo(cart, 10)) {
                             return;
                         }
                     }

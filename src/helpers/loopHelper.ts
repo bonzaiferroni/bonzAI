@@ -112,7 +112,7 @@ export var loopHelper = {
     scavangeResources: function() {
         for (let v in Game.rooms) {
             let room = Game.rooms[v];
-            let resources = room.find(FIND_DROPPED_ENERGY) as Resource[];
+            let resources = room.find(FIND_DROPPED_RESOURCES) as Resource[];
             for (let resource of resources) {
                 if (resource.amount > 10) {
                     let creep = resource.pos.lookFor(LOOK_CREEPS)[0] as Creep;

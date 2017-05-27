@@ -1,6 +1,7 @@
 import {BuildingPlannerData} from "../../interfaces";
 import {Mem} from "../../helpers/Mem";
 import {LayoutDisplay} from "./LayoutDisplay";
+import {empire} from "../Empire";
 
 export abstract class Layout {
 
@@ -32,13 +33,12 @@ export abstract class Layout {
                 }
             }
 
-            RawMemory.setActiveSegments([LAYOUT_SEGMENTID]);
-            let flexMapsString = RawMemory.segments[LAYOUT_SEGMENTID];
-            if (!flexMapsString) {
-                console.log(`ordering active segment for layout in ${this.roomName}`);
+            let flexMaps = empire.archiver.globalGet(LAYOUT_SEGMENTID);
+            if (!flexMaps) {
+                console.log(`ordering layout segment in ${this.roomName}`);
                 return false;
             }
-            let flexMaps = JSON.parse(flexMapsString);
+
             Layout.mapCache[this.roomName] = this.findMap(flexMaps[this.roomName]);
         }
         this.map = Layout.mapCache[this.roomName];

@@ -6,6 +6,7 @@ export class BaseRepairMission extends Mission {
 
     private layout: Layout;
     private towers: StructureTower[];
+    private repairMax: number;
     public memory: {
         roadOrders: {[towerId: string]: string}
         roadIndex: number;
@@ -25,6 +26,10 @@ export class BaseRepairMission extends Mission {
     public initMission() {
         this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
         this.findRepairTargets();
+        this.repairMax = TOWER_REPAIR_MAX_RAMPART;
+        if (this.room.controller.level < 8) {
+            this.repairMax = 200000;
+        }
     }
 
     public roleCall() {
@@ -62,7 +67,7 @@ export class BaseRepairMission extends Mission {
 
         if (this.memory.rampartOrders[tower.id]) {
             let target = Game.getObjectById<Structure>(this.memory.rampartOrders[tower.id]);
-            if (target && target.hits < TOWER_REPAIR_MAX_RAMPART + 1000000) {
+            if (target && target.hits < this.repairMax) {
                 tower.repair(target);
                 return;
             } else {
@@ -89,6 +94,7 @@ export class BaseRepairMission extends Mission {
             if (this.memory.underThresholdCount === 0) {
                 this.memory.hitsThreshold *= 1.1;
             }
+            this.memory.hitsThreshold = Math.min(this.repairMax, this.memory.hitsThreshold);
         }
         let position = rampartPositions[this.memory.rampartIndex++];
         let rampart = position.lookForStructure(STRUCTURE_RAMPART);

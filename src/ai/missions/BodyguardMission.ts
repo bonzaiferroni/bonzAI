@@ -91,8 +91,15 @@ export class BodyguardMission extends Mission {
         let closest: Structure | Creep = defender.pos.findClosestByRange(this.hostiles);
         if (closest) {
             let range = defender.pos.getRangeTo(closest);
-            if (range > 1) {
+            if (range > 3) {
                 defender.travelTo(closest);
+            } else if (range > 1) {
+                let direction = defender.fleeBuster(closest);
+                if (direction) {
+                    defender.move(direction);
+                } else {
+                    defender.travelTo(closest);
+                }
             } else {
                 attacking = defender.attack(closest) === OK;
                 defender.move(defender.pos.getDirectionTo(closest));

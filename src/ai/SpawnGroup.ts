@@ -39,8 +39,9 @@ export class SpawnGroup {
         this.pos = _.head(spawns).pos;
     }
 
-    public init() {
+    public init(): boolean {
         this.room = Game.rooms[this.roomName];
+        if (!this.room) { return false; }
         this.initMemory();
         this.currentSpawnEnergy = this.room.energyAvailable;
         this.maxSpawnEnergy = this.room.energyCapacityAvailable;
@@ -49,6 +50,7 @@ export class SpawnGroup {
         this.initSpawns();
         this.isAvailable = this.availabilityCheck();
         this.refillEfficiency = this.findRefillEfficiency();
+        return true;
     }
 
     private initMemory() {
