@@ -728,7 +728,7 @@ export class Agent extends AbstractAgent {
         let battery = this.getBattery();
         if (!battery) {
             if (getFromSource) {
-                let closest = this.pos.findClosestByRange<Source>(this.mission.sources);
+                let closest = this.pos.findClosestByRange<Source>(this.mission.state.sources);
                 if (closest) {
                     if (this.pos.isNearTo(closest)) {
                         this.harvest(closest);

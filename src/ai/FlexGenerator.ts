@@ -23,6 +23,7 @@ export class FlexGenerator {
     private flexMap = new RoomMap<string>();
     private fixedMap: RoomMap<string>;
     private rampartMap = new RoomMap<string>();
+    private turtleMap = new RoomMap<string>();
 
     private roadPositions: RoomPosition[] = [];
     private noRoadAccess: Coord[] = [];
@@ -255,12 +256,19 @@ export class FlexGenerator {
             }
         }
 
+
         for (let rampartPos of validWallPositions) {
             this.addRampart(rampartPos);
             for (let insidePos of this.insidePositions) {
-                if (insidePos.getRangeTo(rampartPos) <= 2) {
-                    this.addRampart(insidePos);
-                }
+                if (this.turtleMap.getPos(insidePos)) { continue; }
+                if (this.rampartMap.getPos(insidePos)) { continue; }
+                if (insidePos.getRangeTo(rampartPos) > 2) { continue; }
+                let ret = PathFinder.search(rampartPos, [{pos: insidePos, range: 0}], {
+                    maxRooms: 1,
+                    roomCallback: roomName => matrix,
+                });
+                if (ret.incomplete) { continue; }
+                this.turtleMap.setPos(insidePos, "turtle");
             }
         }
         this.wallCount = validWallPositions.length;

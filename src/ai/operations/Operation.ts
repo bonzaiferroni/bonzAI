@@ -28,12 +28,12 @@ export abstract class Operation {
     public memory: any;
     public flag: Flag;
     public room: Room;
-    public hasVision: boolean;
-    public sources: Source[];
-    public mineral: Mineral;
     public waypoints: Flag[];
     private sourceIds: string[];
     private mineralId: string;
+
+    public state: OperationState;
+    private stateUpdated: number;
 
     private static priorityOrder = [
         OperationPriority.Emergency,
@@ -61,39 +61,42 @@ export abstract class Operation {
         this.pos = flag.pos;
     }
 
-    protected refreshObjects() {
+    protected updateState() {
         this.flag = Game.flags[this.flagName];
         if (!this.flag) { return; } // flag must have been pulled
         this.room = Game.rooms[this.roomName];
+        this.stateUpdated = Game.time;
+        this.bypass = false;
 
         this.memory = this.flag.memory;
         if (!this.memory.spawnData) { this.memory.spawnData = {}; }
         this.spawnData = this.memory.spawnData;
 
+        // find state
+        this.state = {} as OperationState;
+
         if (this.room) {
-            this.hasVision = true;
+            this.state.hasVision = true;
             if (!this.sourceIds) {
                 this.sourceIds = _(this.room.find<Source>(FIND_SOURCES))
                     .sortBy(x => x.id)
                     .map(x => x.id)
                     .value();
             }
-            this.sources = _.map(this.sourceIds, x => Game.getObjectById<Source>(x));
+            this.state.sources = _.map(this.sourceIds, x => Game.getObjectById<Source>(x));
             if (!this.mineralId) {
                 this.mineralId = _(this.room.find<Mineral>(FIND_MINERALS))
                     .map(x => x.id)
                     .head();
             }
-            this.mineral = Game.getObjectById<Mineral>(this.mineralId);
+            this.state.mineral = Game.getObjectById<Mineral>(this.mineralId);
         } else {
-            this.hasVision = false;
-            this.sources = undefined;
-            this.mineral = undefined;
+            this.state.hasVision = false;
         }
     }
 
     /**
-     * Global Phase - Runs on init refreshObjects ticks - initialize operation variables and instantiate missions
+     * Global Phase - Runs on init updateState ticks - initialize operation variables and instantiate missions
      */
 
     public static init(priorityMap: OperationPriorityMap) {
@@ -103,11 +106,7 @@ export abstract class Operation {
             for (let opName in operations) {
                 let operation = operations[opName];
                 try {
-                    operation.refreshObjects();
-                    if (!operation.flag) {
-                        // flag must have been pulled
-                        continue;
-                    }
+                    operation.updateState();
                     operation.init();
                     Mission.init(operation.missions);
                 } catch (e) {
@@ -133,8 +132,9 @@ export abstract class Operation {
             for (let opName in operations) {
                 let operation = operations[opName];
                 try {
-                    operation.bypass = false;
-                    operation.refreshObjects();
+                    if (operation.stateUpdated !== Game.time) {
+                        operation.updateState();
+                    }
                     if (!operation.flag) {
                         // flag must have been pulled
                         operation.bypass = true;
@@ -347,3 +347,8 @@ enum OperationPhase { InitGlobal, Init, RoleCall, Actions, Finalize }
 
 export type OperationPriorityMap = {[priority: number]: { [opName: string]: Operation } }
 export type OperationMap = {[opName: string]: Operation}
+export interface OperationState {
+    hasVision: boolean;
+    sources: Source[];
+    mineral: Mineral;
+}

@@ -99,7 +99,7 @@ export class RaidOperation extends Operation {
             mission.updateRaidData(this.raidData, spawnGroup, config.boostLevel, allowSpawn);
             // this is bad form, need to update RaidMission to handle the new refresh phase
             try {
-                mission.refreshObjects();
+                mission.updateState();
                 mission.init();
                 mission.refresh();
             } catch (e) {
@@ -193,7 +193,7 @@ export class RaidOperation extends Operation {
         let globalConfigComplete = this.initGlobalConfig();
         if (!globalConfigComplete) { return; }
 
-        // refreshObjects squadConfig
+        // updateState squadConfig
         for (let i = 0; i < this.memory.maxSquads; i++) {
             let name = this.squadNames[i];
             if (!this.memory.squadConfig[name]) { this.memory.squadConfig[name] = {

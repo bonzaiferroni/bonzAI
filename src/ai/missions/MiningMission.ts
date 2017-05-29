@@ -1,4 +1,4 @@
-import {Mission} from "./Mission";
+import {Mission, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "../agents/Agent";
@@ -6,6 +6,12 @@ import {Notifier} from "../../notifier";
 import {PathMission} from "./PathMission";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {empire} from "../Empire";
+
+interface MiningState extends MissionState {
+    container: StructureContainer;
+    source: Source;
+    storage: StructureStorage;
+}
 
 export class MiningMission extends Mission {
 
@@ -21,14 +27,13 @@ export class MiningMission extends Mission {
 
     private miners: Agent[];
     private minerCarts: Agent[];
-    private source: Source;
     private sourceId: string;
-    private container: StructureContainer;
-    private storage: StructureStorage;
     private remoteSpawning: boolean;
     private _minersNeeded: number;
     private _analysis: TransportAnalysis;
     private pathMission: PathMission;
+
+    protected state: MiningState;
 
     /**
      * General-purpose energy mining, uses a nested TransportMission to transfer energy
@@ -63,11 +68,10 @@ export class MiningMission extends Mission {
     }
 
     public refresh() {
-        if (!this.hasVision) { return; }
-        this.source = Game.getObjectById<Source>(this.sourceId);
-        if (!this.source) { console.log(this.operation.roomName)}
-        this.container = this.findContainer();
-        this.storage = this.findMinerStorage();
+        if (!this.state.hasVision) { return; }
+        this.state.source = Game.getObjectById<Source>(this.sourceId);
+        this.state.container = this.findContainer();
+        this.state.storage = this.findMinerStorage();
         this.initPathMission();
     }
 
@@ -77,7 +81,7 @@ export class MiningMission extends Mission {
         if (this.remoteSpawning) { return this.workerBody(6, 1, 6); }
         let minersSupported = this.minersSupported();
         if (minersSupported === 1) {
-            let work = Math.ceil((Math.max(this.source.energyCapacity,
+            let work = Math.ceil((Math.max(this.state.source.energyCapacity,
                         SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER) + 1;
             return this.workerBody(work, 1, Math.ceil(work / 2));
         } else if (minersSupported === 2) {
@@ -86,7 +90,7 @@ export class MiningMission extends Mission {
     };
 
     public getMaxCarts = () => {
-        if (!this.storage || this.storage.room.controller.level < 4) { return 0; }
+        if (!this.state.storage || this.state.storage.room.controller.level < 4) { return 0; }
         const FULL_STORAGE_THRESHOLD = STORAGE_CAPACITY - 50000;
         if (_.sum(this.storage.store) > FULL_STORAGE_THRESHOLD) { return 0; }
         if (!this.container) { return 0; }

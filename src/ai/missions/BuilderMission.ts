@@ -1,10 +1,11 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
 import {PRIORITY_BUILD} from "../../config/constants";
 import {DefenseGuru} from "../DefenseGuru";
 import {Agent} from "../agents/Agent";
+
 export class BuilderMission extends Mission {
 
     private builders: Agent[];
@@ -15,15 +16,7 @@ export class BuilderMission extends Mission {
     private activateBoost: boolean;
     private defenseGuru: DefenseGuru;
 
-    public memory: {
-        maxHitsToBuild: number
-        max: number
-        transportAnalysis: TransportAnalysis
-        rampartPos: RoomPosition
-        manualTargetId: string
-        manualTargetHits: number
-        prespawn: number
-    };
+    public memory: BuilderMemory;
     private _analysis: TransportAnalysis;
 
     /**
@@ -361,4 +354,14 @@ export class BuilderMission extends Mission {
         }
         return this._analysis;
     }
+}
+
+interface BuilderMemory extends MissionMemory {
+    maxHitsToBuild: number;
+    max: number;
+    transportAnalysis: TransportAnalysis;
+    rampartPos: RoomPosition;
+    manualTargetId: string;
+    manualTargetHits: number;
+    prespawn: number;
 }

@@ -9,7 +9,7 @@ export class TimeoutTracker {
         }
 
         global.timeoutTracker = {
-            phase: "pre-operation refreshObjects",
+            phase: "pre-operation updateState",
             operation: undefined,
             mission: undefined,
             func: undefined,

@@ -1,6 +1,6 @@
 import {TransportAnalysis} from "../../interfaces";
 import {Operation} from "../operations/Operation";
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
@@ -11,23 +11,12 @@ export class GeologyMission extends Mission {
     private geologists: Agent[];
     private carts: Agent[];
     private repairers: Agent[];
-    private mineral: Mineral;
-    private store: StoreStructure;
     private analysis: TransportAnalysis;
-    private container: StructureContainer;
     private extractorId: string;
     private activated: boolean;
 
-    public memory: {
-        distanceToStorage: number;
-        distanceToSpawn: number;
-        transportAnalysis: TransportAnalysis;
-        containerPosition: RoomPosition;
-        cartWaitPosition: RoomPosition;
-        partsCount: {[partType: string]: number};
-        travelTime: number;
-        containerId: string;
-    };
+    public memory: GeologyMemory;
+    public state: GeologyState;
 
     constructor(operation: Operation) {
         super(operation, "geology");
@@ -35,35 +24,34 @@ export class GeologyMission extends Mission {
 
     public init() {
         this.mineralStats();
-        if (!this.hasVision) { return; }
+        if (!this.state.hasVision) { return; }
         this.calculateBestBody();
-        this.mineral = this.operation.mineral;
-        let extractor = this.mineral.pos.lookForStructure(STRUCTURE_EXTRACTOR);
+        let extractor = this.operation.state.mineral.pos.lookForStructure(STRUCTURE_EXTRACTOR);
         if (extractor) {
             this.extractorId = extractor.id;
         } else {
-            this.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+            this.state.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
             return;
         }
-        this.distanceToSpawn = this.findDistanceToSpawn(this.mineral.pos);
+        this.distanceToSpawn = this.findDistanceToSpawn(this.state.mineral.pos);
         this.initPathMission();
     }
 
     public addStore(store: StoreStructure) {
-        this.store = store;
+        this.state.store = store;
     }
 
     public refresh() {
-        if (!this.hasVision) { return; }
-        this.mineral = this.operation.mineral;
-        if (!this.store) {
-            this.store = this.getStorage(this.mineral.pos);
+        if (!this.state.hasVision) { return; }
+        this.state.mineral = this.operation.state.mineral;
+        if (!this.state.store) {
+            this.state.store = this.getStorage(this.state.mineral.pos);
         }
-        if (!this.store) { return; }
+        if (!this.state.store) { return; }
 
         this.activated = this.findIfActive();
 
-        this.container = this.findContainer();
+        this.state.container = this.findContainer();
         this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
     }
 
@@ -76,7 +64,7 @@ export class GeologyMission extends Mission {
     };
 
     private getMaxGeo = () => {
-        if (this.activated && this.container) {
+        if (this.activated && this.state.container) {
             return 1;
         } else {
             return 0;
@@ -85,7 +73,7 @@ export class GeologyMission extends Mission {
 
     private getMaxCarts = () => this.getMaxGeo() > 0 && this.analysis.cartsNeeded ? 1 : 0;
     private getMaxRepairers = () => {
-        if (this.mineral.mineralAmount > 5000 && this.container && this.container.hits < 50000) {
+        if (this.state.mineral.mineralAmount > 5000 && this.state.container && this.state.container.hits < 50000) {
             return 1;
         } else {
             return 0;
@@ -109,7 +97,7 @@ export class GeologyMission extends Mission {
         }
 
         for (let cart of this.carts) {
-            if (this.mineral.mineralAmount > 0) {
+            if (this.state.mineral.mineralAmount > 0) {
                 this.cartActions(cart);
             } else {
                 this.cleanupCartActions(cart);
@@ -168,27 +156,27 @@ export class GeologyMission extends Mission {
         let fleeing = geologist.fleeHostiles();
         if (fleeing) { return; } // early
 
-        if (!this.container) {
-            geologist.idleOffRoad(this.mineral);
+        if (!this.state.container) {
+            geologist.idleOffRoad(this.state.mineral);
             return; // early
         }
 
-        if (!geologist.pos.inRangeTo(this.container, 0)) {
-            geologist.moveItOrLoseIt(this.container.pos, "geologist");
+        if (!geologist.pos.inRangeTo(this.state.container, 0)) {
+            geologist.moveItOrLoseIt(this.state.container.pos, "geologist");
             return; // early
         }
 
-        if (this.mineral.mineralAmount === 0) {
-            if (this.container.store[this.mineral.mineralType] === 0) {
+        if (this.state.mineral.mineralAmount === 0) {
+            if (this.state.container.store[this.state.mineral.mineralType] === 0) {
                 // break down container
-                geologist.dismantle(this.container);
+                geologist.dismantle(this.state.container);
             }
             return; // early
         }
 
-        if (!this.container.store[this.mineral.mineralType] ||
-            this.container.store[this.mineral.mineralType] < this.container.storeCapacity - 33) {
-            if (Game.time % 6 === 0) { geologist.harvest(this.mineral); }
+        if (!this.state.container.store[this.state.mineral.mineralType] ||
+            this.state.container.store[this.state.mineral.mineralType] < this.state.container.storeCapacity - 33) {
+            if (Game.time % 6 === 0) { geologist.harvest(this.state.mineral); }
         }
 
     }
@@ -199,30 +187,30 @@ export class GeologyMission extends Mission {
         if (fleeing) { return; } // early
 
         if (_.sum(cart.carry) === cart.carryCapacity) {
-            if (cart.pos.isNearTo(this.store)) {
-                cart.transferEverything(this.store);
+            if (cart.pos.isNearTo(this.state.store)) {
+                cart.transferEverything(this.state.store);
             } else {
-                cart.travelTo(this.store);
+                cart.travelTo(this.state.store);
             }
             return; // early;
         }
 
-        if (this.container && _.sum(this.container.store) > 0) {
-            if (cart.pos.isNearTo(this.container)) {
-                if (this.container.store.energy > 0) {
-                    cart.withdraw(this.container, RESOURCE_ENERGY);
-                } else if (this.container.store[this.mineral.mineralType] > 0) {
-                    cart.withdraw(this.container, this.mineral.mineralType);
+        if (this.state.container && _.sum(this.state.container.store) > 0) {
+            if (cart.pos.isNearTo(this.state.container)) {
+                if (this.state.container.store.energy > 0) {
+                    cart.withdraw(this.state.container, RESOURCE_ENERGY);
+                } else if (this.state.container.store[this.state.mineral.mineralType] > 0) {
+                    cart.withdraw(this.state.container, this.state.mineral.mineralType);
                 }
             } else {
-                cart.travelTo(this.container);
+                cart.travelTo(this.state.container);
             }
         } else {
             if (_.sum(cart.carry) > 0) {
-                if (cart.pos.isNearTo(this.store)) {
-                    cart.transferEverything(this.store);
+                if (cart.pos.isNearTo(this.state.store)) {
+                    cart.transferEverything(this.state.store);
                 } else {
-                    cart.travelTo(this.store);
+                    cart.travelTo(this.state.store);
                 }
                 return; // early;
             }
@@ -253,7 +241,7 @@ export class GeologyMission extends Mission {
                 return this.findContainer();
             }
         } else {
-            let container = this.mineral.pos.findInRange<StructureContainer>(
+            let container = this.state.mineral.pos.findInRange<StructureContainer>(
                 this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER), 1)[0];
             if (container) {
                 this.memory.containerId = container.id;
@@ -261,9 +249,9 @@ export class GeologyMission extends Mission {
             }
         }
 
-        if (this.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) { return; }
+        if (this.state.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) { return; }
 
-        let ret = empire.traveler.findTravelPath(this.mineral, this.store);
+        let ret = empire.traveler.findTravelPath(this.state.mineral, this.state.store);
         if (ret.incomplete) {
             console.log(`MINER: bad path for finding container position ${this.flag.pos.roomName}`);
             return;
@@ -279,44 +267,45 @@ export class GeologyMission extends Mission {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            if (!this.container) {
+            if (!this.state.container) {
                 if (!cart.pos.isNearTo(this.flag)) {
                     cart.travelTo(this.flag);
                 }
                 return;
             }
 
-            if (_.sum(this.container.store) < cart.carryCapacity &&
-                this.container.pos.lookFor(LOOK_CREEPS).length === 0) {
-                cart.idleNear(this.container, 3);
+            if (_.sum(this.state.container.store) < cart.carryCapacity &&
+                this.state.container.pos.lookFor(LOOK_CREEPS).length === 0) {
+                cart.idleNear(this.state.container, 3);
                 return;
             }
 
-            if (cart.pos.isNearTo(this.container)) {
-                if (this.container.store.energy > 0) {
-                    cart.withdraw(this.container, RESOURCE_ENERGY);
+            if (cart.pos.isNearTo(this.state.container)) {
+                if (this.state.container.store.energy > 0) {
+                    cart.withdraw(this.state.container, RESOURCE_ENERGY);
                 } else {
-                    let outcome = cart.withdrawIfFull(this.container, this.mineral.mineralType);
-                    if (outcome === OK && this.container.store[this.mineral.mineralType] >= cart.carryCapacity) {
-                        cart.travelTo(this.store);
+                    let outcome = cart.withdrawIfFull(this.state.container, this.state.mineral.mineralType);
+                    if (outcome === OK &&
+                        this.state.container.store[this.state.mineral.mineralType] >= cart.carryCapacity) {
+                        cart.travelTo(this.state.store);
                     }
                 }
             } else {
-                cart.travelTo(this.container);
+                cart.travelTo(this.state.container);
             }
             return; // early
         }
 
-        if (cart.pos.isNearTo(this.store)) {
-            let outcome = cart.transferEverything(this.store);
+        if (cart.pos.isNearTo(this.state.store)) {
+            let outcome = cart.transferEverything(this.state.store);
             if (outcome === OK && cart.ticksToLive < this.analysis.distance) {
                 cart.suicide();
             } else if (outcome === OK) {
-                cart.travelTo(this.container);
+                cart.travelTo(this.state.container);
             }
 
         } else {
-            cart.travelTo(this.store);
+            cart.travelTo(this.state.store);
         }
     }
 
@@ -331,20 +320,20 @@ export class GeologyMission extends Mission {
 
         let hasLoad = repairer.hasLoad();
         if (!hasLoad) {
-            repairer.procureEnergy(this.container);
+            repairer.procureEnergy(this.state.container);
             return;
         }
 
-        if (!this.container || this.container.hits === this.container.hitsMax) {
+        if (!this.state.container || this.state.container.hits === this.state.container.hitsMax) {
             repairer.idleOffRoad(this.flag);
             return;
         }
 
-        if (repairer.pos.inRangeTo(this.container, 3)) {
-            repairer.repair(this.container);
-            repairer.yieldRoad(this.container);
+        if (repairer.pos.inRangeTo(this.state.container, 3)) {
+            repairer.repair(this.state.container);
+            repairer.yieldRoad(this.state.container);
         } else {
-            repairer.travelTo(this.container);
+            repairer.travelTo(this.state.container);
         }
     }
 
@@ -355,11 +344,11 @@ export class GeologyMission extends Mission {
     }
 
     private initPathMission() {
-        if (!this.store) { return; }
+        if (!this.state.store) { return; }
 
         let pathMission = new PathMission(this.operation, this.name + "Path", {
-            start: this.store,
-            end: this.mineral,
+            start: this.state.store,
+            end: this.state.mineral,
             rangeToEnd: 2,
         });
         this.operation.addMissionLate(pathMission);
@@ -369,9 +358,26 @@ export class GeologyMission extends Mission {
     }
 
     private findIfActive() {
-        return this.mineral.mineralAmount > 0 || this.mineral.ticksToRegeneration < 1000
-            || this.mineral.ticksToRegeneration > MINERAL_REGEN_TIME - 1000;
+        return this.state.mineral.mineralAmount > 0 || this.state.mineral.ticksToRegeneration < 1000
+            || this.state.mineral.ticksToRegeneration > MINERAL_REGEN_TIME - 1000;
     }
 }
 
 type StoreStructure = StructureTerminal | StructureContainer | StructureStorage;
+
+interface GeologyMemory extends MissionMemory {
+    distanceToStorage: number;
+    distanceToSpawn: number;
+    transportAnalysis: TransportAnalysis;
+    containerPosition: RoomPosition;
+    cartWaitPosition: RoomPosition;
+    partsCount: {[partType: string]: number};
+    travelTime: number;
+    containerId: string;
+}
+
+interface GeologyState extends MissionState {
+    mineral: Mineral;
+    store: StoreStructure;
+    container: StructureContainer;
+}

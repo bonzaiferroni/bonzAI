@@ -2,14 +2,13 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
+
 export class BodyguardMission extends Mission {
 
     private defenders: Agent[];
     private hostiles: Creep[];
     private invaderGuru: InvaderGuru;
     private potency: number;
-
-    public memory: {};
 
     /**
      * Remote defense for non-owned rooms. If boosted invaders are likely, use EnhancedBodyguardMission
@@ -34,7 +33,7 @@ export class BodyguardMission extends Mission {
     }
 
     public refresh() {
-        if (!this.hasVision) { return; } // early
+        if (!this.state.hasVision) { return; } // early
         this.hostiles = this.room.hostiles;
     }
 
@@ -53,7 +52,7 @@ export class BodyguardMission extends Mission {
             maxDefenders = 1;
 
         }
-        if (this.hasVision) {
+        if (this.state.hasVision) {
             if (this.hostiles.length > 0) {
                 maxDefenders = Math.ceil(this.hostiles.length / 2);
             }
@@ -82,7 +81,7 @@ export class BodyguardMission extends Mission {
     }
 
     private defenderActions(defender: Agent) {
-        if (!this.hasVision || this.hostiles.length === 0) {
+        if (!this.state.hasVision || this.hostiles.length === 0) {
             if (defender.hits < defender.hitsMax) {
                 defender.heal(defender);
             } else {

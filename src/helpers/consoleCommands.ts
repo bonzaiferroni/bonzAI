@@ -523,5 +523,3 @@ export var consoleCommands = {
         }
     },
 };
-
-global.cc = consoleCommands;

@@ -46,7 +46,7 @@ export class PathMission extends Mission {
 
     public roleCall() {
         if (!this.pathData.roadRepairIds) { return; }
-        if (this.room.controller && this.room.controller.level === 1) { return; }
+        if (!this.hasVision || (this.room.controller && this.room.controller.level === 1)) { return; }
         let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
         this.paver = this.spawnSharedAgent("paver", paverBody);
     }

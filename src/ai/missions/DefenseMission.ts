@@ -1,9 +1,10 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
 import {Scheduler} from "../../Scheduler";
 import {helper} from "../../helpers/helper";
+
 export class DefenseMission extends Mission {
 
     private refillCarts: Agent[];
@@ -12,39 +13,8 @@ export class DefenseMission extends Mission {
     private squadAttackers: Agent[];
     private towers: StructureTower[];
 
-    private state: {
-        enemySquads: Creep[][];
-        vulnerableCreep: Creep;
-        assistTarget: Creep;
-        openRamparts: Structure[];
-        jonRamparts: Structure[];
-        hostileHealers: Creep[];
-        hostileAttackers: Creep[];
-        enhancedBoost: boolean;
-        likelyTowerDrainAttempt: boolean;
-        playerThreat: boolean;
-        attackedCreep: Creep;
-        healedDefender: Agent;
-        closestHostile: Creep;
-        empties: StructureTower[];
-    };
-
-    public memory: {
-        idlePosition: RoomPosition;
-        unleash: boolean;
-        disableSafeMode: boolean;
-        wallCount: number;
-        closestWallId: string;
-        preSpawn: boolean
-        lastCheckedTowers: number;
-        loggedAttack: boolean;
-        vulnerableIndex: number;
-        targetIds: string[];
-        targetHits: number;
-        hitCount: number;
-        healerTargetIndex: number;
-        towerDrainDelay: number;
-    };
+    public state: DefenseState;
+    public memory: DefenseMemory;
 
     constructor(operation: Operation) {
         super(operation, "defense");
@@ -505,7 +475,7 @@ export class DefenseMission extends Mission {
 
         let playerCreeps = this.findPlayerCreeps();
 
-        this.state.playerThreat = playerCreeps.length > 0 || this.memory.preSpawn;
+        this.state.playerThreat = playerCreeps.length > 0;
 
         // Notifier reporting
         this.updateAttackLog(playerCreeps);
@@ -756,4 +726,37 @@ export class DefenseMission extends Mission {
 
         return safest;
     }
+}
+
+interface DefenseMemory extends MissionMemory {
+    idlePosition: RoomPosition;
+    unleash: boolean;
+    disableSafeMode: boolean;
+    wallCount: number;
+    closestWallId: string;
+    lastCheckedTowers: number;
+    loggedAttack: boolean;
+    vulnerableIndex: number;
+    targetIds: string[];
+    targetHits: number;
+    hitCount: number;
+    healerTargetIndex: number;
+    towerDrainDelay: number;
+}
+
+interface DefenseState extends MissionState {
+    enemySquads: Creep[][];
+    vulnerableCreep: Creep;
+    assistTarget: Creep;
+    openRamparts: Structure[];
+    jonRamparts: Structure[];
+    hostileHealers: Creep[];
+    hostileAttackers: Creep[];
+    enhancedBoost: boolean;
+    likelyTowerDrainAttempt: boolean;
+    playerThreat: boolean;
+    attackedCreep: Creep;
+    healedDefender: Agent;
+    closestHostile: Creep;
+    empties: StructureTower[];
 }

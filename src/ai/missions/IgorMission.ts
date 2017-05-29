@@ -8,6 +8,7 @@ import {Agent} from "../agents/Agent";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
+import {Viz} from "../../helpers/Viz";
 export class IgorMission extends Mission {
 
     private igors: Agent[];
@@ -27,6 +28,7 @@ export class IgorMission extends Mission {
         lastCommandTick: number;
         checkProcessTick: number;
         labProcess: LabProcess;
+        boostOrders: {[boostType: string]: string}
     };
 
     constructor(operation: Operation) {
@@ -34,6 +36,8 @@ export class IgorMission extends Mission {
     }
 
     public init() {
+        if (!this.memory.boostOrders) { this.memory.boostOrders = {}; }
+        if (!this.room.memory.boostRequests) { this.room.memory.boostRequests = {}; }
         this.findIgorIdlePosition();
     }
 
@@ -168,7 +172,10 @@ export class IgorMission extends Mission {
         let energyInStorage = storage.store.energy;
         let energyInTerminal = terminal.store.energy;
 
-        let command = this.checkPullFlags();
+        let command = this.checkLabEnergy();
+        if (command) { return command; }
+
+        command = this.checkBoostOrders();
         if (command) { return command; }
 
         command = this.checkReagentLabs();
@@ -240,29 +247,29 @@ export class IgorMission extends Mission {
         return this.memory.command;
     }
 
-    private checkPullFlags(): IgorCommand {
+    private checkLabEnergy(): IgorCommand {
         if (!this.productLabs) { return; }
         for (let lab of this.productLabs) {
             if (this.terminal.store.energy >= IGOR_CAPACITY && lab.energy < IGOR_CAPACITY) {
                 // restore boosting energy to lab
                 return { origin: this.terminal.id, destination: lab.id, resourceType: RESOURCE_ENERGY };
             }
+        }
+    }
 
-            let flag = lab.pos.lookFor<Flag>(LOOK_FLAGS)[0];
-            if (!flag) { continue; }
+    private checkBoostOrders() {
+        for (let resourceType in this.memory.boostOrders) {
+            let labId = this.memory.boostOrders[resourceType];
+            let lab = Game.getObjectById<StructureLab>(labId);
+            if (!lab) { continue; }
 
-            let mineralType = flag.name.substring(flag.name.indexOf("_") + 1);
-            if (!_.includes(PRODUCT_LIST, mineralType)) {
-                console.log("ERROR: invalid lab request:", flag.name);
-                return; // early
-            }
-            if (lab.mineralType && lab.mineralType !== mineralType) {
+            if (lab.mineralType && lab.mineralType !== resourceType) {
                 // empty wrong mineral type
                 return { origin: lab.id, destination: this.terminal.id, resourceType: lab.mineralType };
             } else if (LAB_MINERAL_CAPACITY - lab.mineralAmount >= IGOR_CAPACITY &&
-                this.terminal.store[mineralType] >= IGOR_CAPACITY ) {
+                this.terminal.store[resourceType] >= IGOR_CAPACITY ) {
                 // bring mineral to lab when amount is below igor capacity
-                return { origin: this.terminal.id, destination: lab.id, resourceType: mineralType };
+                return { origin: this.terminal.id, destination: lab.id, resourceType: resourceType };
             }
         }
     }
@@ -296,13 +303,11 @@ export class IgorMission extends Mission {
 
         for (let lab of this.productLabs) {
 
-            if (this.terminal.store.energy >= IGOR_CAPACITY && lab.energy < IGOR_CAPACITY) {
-                // restore boosting energy to lab
-                return { origin: this.terminal.id, destination: lab.id, resourceType: RESOURCE_ENERGY };
+            let labId = this.memory.boostOrders[lab.mineralType];
+            if (labId) {
+                let targetLab = Game.getObjectById<StructureLab>(labId);
+                if (targetLab === lab) { continue; }
             }
-
-            let flag = lab.pos.lookFor<Flag>(LOOK_FLAGS)[0];
-            if (flag) { continue; }
 
             if (lab.mineralAmount > 0 && (!this.labProcess ||
                 lab.mineralType !== this.labProcess.currentShortage.mineralType)) {
@@ -538,7 +543,6 @@ export class IgorMission extends Mission {
     }
 
     private checkBoostRequests() {
-        if (!this.room.memory.boostRequests) { this.room.memory.boostRequests = {}; }
         let requests = this.room.memory.boostRequests as BoostRequests;
 
         for (let resourceType in requests) {
@@ -551,35 +555,37 @@ export class IgorMission extends Mission {
                 }
             }
 
-            let flag = Game.flags[request.flagName];
-
-            if (request.requesterIds.length === 0 && flag) {
-                console.log("IGOR: removing boost flag:", flag.name);
-                flag.remove();
-                requests[resourceType] = undefined;
+            if (request.requesterIds.length === 0) {
+                console.log(`IGOR: removing boost flag in ${this.room.name}: ${resourceType}`);
+                delete this.memory.boostOrders[resourceType];
+                delete requests[resourceType];
+                continue;
             }
 
-            if (request.requesterIds.length > 0 && !flag) {
-                request.flagName = this.placePullFlag(resourceType);
+            let labId = this.memory.boostOrders[resourceType];
+            if (labId) {
+                let lab = Game.getObjectById<StructureLab>(labId);
+                if (lab) {
+                    Viz.text(lab.pos, resourceType);
+                } else {
+                    console.log("IGOR: lost a lab? removing boost order");
+                    delete this.memory.boostOrders[resourceType];
+                }
+            } else {
+                this.makeBoostOrder(resourceType);
             }
         }
     }
 
-    private placePullFlag(resourceType: string) {
-        let existingFlag = Game.flags[this.operation.name + "_" + resourceType];
-        if (existingFlag) { return existingFlag.name; }
-        let labs = _.filter(this.productLabs, (l: StructureLab) => l.pos.lookFor(LOOK_FLAGS).length === 0);
+    private makeBoostOrder(resourceType: string) {
+        let labs = _.filter(this.productLabs, (l: StructureLab) => _.find(this.memory.boostOrders, x => x !== l.id));
         if (labs.length === 0) { return; }
 
         let closestToSpawn = this.spawnGroup.spawns[0].pos.findClosestByRange(labs);
-        if (this.productLabs.length > 1) {
-            this.productLabs = _.pull(this.productLabs, closestToSpawn);
-        }
-        let outcome = closestToSpawn.pos.createFlag(this.operation.name + "_" + resourceType);
-        if (_.isString(outcome)) {
-            console.log("IGOR: placing boost flag:", outcome);
-            return outcome;
-        }
+        if (!closestToSpawn) { return; }
+
+        this.memory.boostOrders[resourceType] = closestToSpawn.id;
+        console.log(`IGOR: placing boost order for ${resourceType} in ${this.room.name}`);
     }
 
     private findIgorIdlePosition() {

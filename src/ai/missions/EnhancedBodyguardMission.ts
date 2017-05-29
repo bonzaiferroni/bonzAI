@@ -1,6 +1,6 @@
 
 import {Operation} from "../operations/Operation";
-import {Mission} from "../missions/Mission";
+import {Mission, MissionMemory, MissionState} from "../missions/Mission";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
@@ -13,6 +13,8 @@ export class EnhancedBodyguardMission extends Mission {
     private hostiles: Creep[];
     private invaderGuru: InvaderGuru;
 
+    public memory: EnhancedBodyguardMemory;
+
     constructor(operation: Operation, invaderGuru: InvaderGuru,  allowSpawn = true) {
         super(operation, "defense", allowSpawn);
         this.invaderGuru = invaderGuru;
@@ -22,7 +24,7 @@ export class EnhancedBodyguardMission extends Mission {
     }
 
     public refresh() {
-        if (!this.hasVision) { return; } // early
+        if (!this.state.hasVision) { return; } // early
         this.hostiles = _.filter(this.room.hostiles, (hostile: Creep) => hostile.owner.username !== "Source Keeper");
 
         if (!this.spawnGroup.room.terminal) { return; }
@@ -79,7 +81,11 @@ export class EnhancedBodyguardMission extends Mission {
         }
     };
 
-    private getMaxSquads = () => this.invaderGuru.invaderProbable || this.hasVision && this.hostiles.length > 0 ? 1 : 0;
+    private getMaxSquads = () => {
+        if (this.invaderGuru.invaderProbable) { return 1; }
+        if (this.state.hasVision && this.hostiles.length > 0) { return 1; }
+        return 0;
+    };
 
     public roleCall() {
         let healerMemory;
@@ -278,4 +284,14 @@ export class EnhancedBodyguardMission extends Mission {
             healer.heal(healer);
         }
     }
+}
+
+interface EnhancedBodyguardMemory extends MissionMemory {
+    allowUnboosted: boolean;
+    ticksToLive: {[creepId: string]: number};
+    potencyUp: boolean;
+    healUp: boolean;
+}
+
+interface EnhancedBodyguardState extends MissionState {
 }

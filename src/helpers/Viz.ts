@@ -37,6 +37,10 @@ export class Viz {
             }
         }
     }
+
+    public static text(pos: RoomPosition, text: string, color = "white") {
+        new RoomVisual(pos.roomName).text(text, pos, {color: color});
+    }
 }
 
 export interface VizOrder {

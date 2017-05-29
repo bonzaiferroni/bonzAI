@@ -1,20 +1,14 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {ControllerOperation} from "../operations/ControllerOperation";
 import {Layout} from "../layouts/Layout";
 import {Scheduler} from "../../Scheduler";
+
 export class BaseRepairMission extends Mission {
 
     private layout: Layout;
     private towers: StructureTower[];
     private repairMax: number;
-    public memory: {
-        roadOrders: {[towerId: string]: string}
-        roadIndex: number;
-        rampartOrders: {[towerId: string]: string}
-        rampartIndex: number;
-        hitsThreshold: number;
-        minHits: number;
-    };
+    public memory: BaseRepairMemory;
 
     constructor(operation: ControllerOperation) {
         super(operation, "repair");
@@ -140,3 +134,12 @@ export class BaseRepairMission extends Mission {
 
 export const TOWER_REPAIR_IDEAL = 5;
 export const TOWER_REPAIR_MAX_RAMPART = 50000000;
+
+interface BaseRepairMemory extends MissionMemory {
+    roadOrders: {[towerId: string]: string};
+    roadIndex: number;
+    rampartOrders: {[towerId: string]: string};
+    rampartIndex: number;
+    hitsThreshold: number;
+    minHits: number;
+}

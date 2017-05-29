@@ -76,7 +76,6 @@ export interface SpawnReservation {
 
 export interface BoostRequests {
     [resourceType: string]: {
-        flagName: string;
         requesterIds: string[];
     };
 }

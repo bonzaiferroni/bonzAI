@@ -10,22 +10,39 @@ import {RoomHelper} from "../RoomHelper";
 import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
+
+export interface MissionState {
+    hasVision: boolean;
+    sources: Source[];
+    spawnedThisTick: string[];
+    mineral: Mineral;
+}
+
+export interface MissionMemory {
+    hc: {[roleName: string]: string[]};
+    activateBoost: boolean;
+    max: number;
+    distanceToSpawn: number;
+    transportAnalysis: TransportAnalysis;
+    storageId: string;
+    nextStorageCheck: number;
+    prespawn: number;
+}
+
 export abstract class Mission {
 
     public flag: Flag;
     public room: Room;
-    public memory: any;
     public spawnGroup: SpawnGroup;
     public name: string;
     public operation: Operation;
     public allowSpawn: boolean;
     public distanceToSpawn: number;
+    public state: MissionState;
+    protected refreshedObjects: number;
     protected cache: any;
-
-    public sources: Source[];
-    public hasVision: boolean;
-    public waypoints: Flag[];
-    public _spawnedThisTick: string[];
+    protected waypoints: Flag[];
+    protected memory: MissionMemory;
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.operation = operation;
@@ -34,22 +51,27 @@ export abstract class Mission {
         this.allowSpawn = allowSpawn;
     }
 
-    public refreshObjects() {
+    public updateState() {
         this.flag = this.operation.flag;
         this.room = Game.rooms[this.operation.roomName];
+        this.refreshedObjects = Game.time;
         if (!this.operation.memory[this.name]) { this.operation.memory[this.name] = {}; }
         this.memory = this.operation.memory[this.name];
         // initialize memory to be used by this mission
         if (!this.memory.hc) { this.memory.hc = {}; }
+        this.cache = {
+            spawnedThisTick: [],
+        };
+
+        // find state
+        this.state = {} as MissionState;
         if (this.room) {
-            this.hasVision = true;
-            this.sources = this.operation.sources;
+            this.state.hasVision = true;
+            this.state.sources = this.operation.state.sources;
+            this.state.mineral = this.operation.state.mineral;
         } else {
-            this.hasVision = false;
-            this.sources = undefined;
+            this.state.hasVision = false;
         }
-        this._spawnedThisTick = [];
-        this.cache = {};
     }
 
     /**
@@ -60,7 +82,7 @@ export abstract class Mission {
         for (let missionName in missions) {
             let mission = missions[missionName];
             try {
-                mission.refreshObjects();
+                mission.updateState();
                 mission.init();
             } catch (e) {
                 Notifier.reportException(e, "init", missionName);
@@ -79,7 +101,7 @@ export abstract class Mission {
             let mission = missions[missionName];
             try {
                 // Profiler.start("in_m." + missionName.substr(0, 3));
-                mission.refreshObjects();
+                if (mission.refreshedObjects !== Game.time) { mission.updateState(); }
                 mission.refresh();
                 // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
@@ -248,12 +270,12 @@ export abstract class Mission {
             spawnGroup = options.altSpawnGroup;
         }
 
-        let allowSpawn = spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
+        let allowSpawn = spawnGroup.isAvailable && this.allowSpawn && (this.state.hasVision || options.blindSpawn);
         if (allowSpawn && count < getMax()) {
             let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
             let outcome = spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
             if (_.isString(outcome)) {
-                this._spawnedThisTick.push(roleName);
+                this.cache.spawnedThisTick.push(roleName);
                 creepNames.push(creepName);
             }
         }
@@ -261,62 +283,8 @@ export abstract class Mission {
         return creepArray;
     }
 
-    /**
-     * General purpose function for spawning creeps
-     * @param roleName - Used to find creeps belonging to this role, examples: miner, energyCart
-     * @param getBody - function that returns the body to be used if a new creep needs to be spawned
-     * @param getMax - function that returns how many creeps are currently desired, pass 0 to halt spawning
-     * @param options - Optional parameters like prespawn interval, whether to disable attack notifications, etc.
-     * @returns {Agent[]}
-     */
-
-    protected headCount4(roleName: string, getBody: () => string[], getMax: () => number,
-                         options: HeadCountOptions = {}): Agent[] {
-        let agentArray = [];
-        if (!this.memory.hc[roleName]) { this.memory.hc[roleName] = this.findOrphans(roleName); }
-        let creepNames = this.memory.hc[roleName] as string[];
-
-        let count = 0;
-        for (let i = 0; i < creepNames.length; i++) {
-            let creepName = creepNames[i];
-            let creep = Game.creeps[creepName];
-            if (creep) {
-                let agent = new Agent(creep, this);
-                let prepared = this.prepAgent(agent, options);
-                if (prepared) { agentArray.push(agent); }
-                let ticksNeeded = 0;
-                if (options.prespawn !== undefined) {
-                    ticksNeeded += creep.body.length * 3;
-                    ticksNeeded += options.prespawn;
-                }
-                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
-            } else {
-                creepNames.splice(i, 1);
-                delete Memory.creeps[creepName];
-                i--;
-            }
-        }
-
-        let spawnGroup = this.spawnGroup;
-        if (options.altSpawnGroup) {
-            spawnGroup = options.altSpawnGroup;
-        }
-
-        let allowSpawn = spawnGroup.isAvailable && this.allowSpawn && (this.hasVision || options.blindSpawn);
-        if (allowSpawn && count < getMax()) {
-            let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
-            let outcome = spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
-            if (_.isString(outcome)) {
-                this._spawnedThisTick.push(roleName);
-                creepNames.push(creepName);
-            }
-        }
-
-        return agentArray;
-    }
-
     protected spawnedThisTick(roleName: string) {
-        return _.includes(this._spawnedThisTick, roleName);
+        return _.includes(this.cache.spawnedThisTick, roleName);
     }
 
     protected roleCount(roleName: string, filter?: (creep: Creep) => boolean): number {
@@ -497,14 +465,11 @@ export abstract class Mission {
     // deprecated, use similar function on TransportGuru
     protected getStorage(pos: RoomPosition): StructureStorage {
 
-        if (this.memory.tempStorageId) {
-            let storage = Game.getObjectById<StructureStorage>(this.memory.tempStorageId);
-            if (storage) {
-                return storage;
-            } else {
-                console.log("ATTN: Clearing temporary storage id due to not finding object in", this.operation.name);
-                this.memory.tempStorageId = undefined;
-            }
+        let flag = Game.flags[`${this.operation.name}_storage`];
+        if (flag && flag.room) {
+            // could also return containers and terminals, make sure that is intended
+            let structure = _(flag.pos.lookFor<StructureStorage>(LOOK_STRUCTURES)).filter(x => x.store).head();
+            if (structure) { return structure; }
         }
 
         if (this.room.storage && this.room.storage.my) { return this.room.storage; }

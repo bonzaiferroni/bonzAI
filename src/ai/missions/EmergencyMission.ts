@@ -1,12 +1,10 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 export class EmergencyMinerMission extends Mission {
 
     private emergencyMiners: Agent[];
-    public memory: {
-        lastTick: number
-    };
+    protected memory: EmergencyMinerMemory;
 
     /**
      * Checks every 100 ticks if storage is full or a miner is present, if not spawns an emergency miner. Should come
@@ -83,4 +81,8 @@ export class EmergencyMinerMission extends Mission {
         }
         return false;
     }
+}
+
+interface EmergencyMinerMemory extends MissionMemory {
+    lastTick: number;
 }

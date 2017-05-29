@@ -19,7 +19,7 @@ export class ClaimMission extends Mission {
         }
     }
 
-    private getMax = () => (this.controller && !this.controller.my) || !this.hasVision ? 1 : 0;
+    private getMax = () => (this.controller && !this.controller.my) || !this.state.hasVision ? 1 : 0;
 
     public roleCall() {
         this.claimers = this.headCount("claimer", () => [CLAIM, MOVE], this.getMax, {

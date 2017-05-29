@@ -119,7 +119,7 @@ export class TradeNetwork {
 
     /**
      * Used to determine whether there is an abundance of a given resource type among all terminals.
-     * Should only be used after refreshObjects() phase
+     * Should only be used after updateState() phase
      * @param resourceType
      * @param amountPerRoom - specify how much per missionRoom you consider an abundance, default is SURPLUS_AMOUNT
      */

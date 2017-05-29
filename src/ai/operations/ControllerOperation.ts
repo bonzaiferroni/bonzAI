@@ -53,11 +53,15 @@ export class ControllerOperation extends Operation {
         this.priority = OperationPriority.OwnedRoom;
     }
 
-    public init() {
-
-        this.autoLayout();
+    protected updateState() {
+        super.updateState();
+        if (!this.flag) { return; }
         this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
         this.initRemoteSpawn(8, 8);
+        if (!this.layout) { this.autoLayout(); }
+    }
+
+    public init() {
 
         let remoteSpawning = false;
         if (!this.spawnGroup) {
@@ -125,9 +129,6 @@ export class ControllerOperation extends Operation {
         let upgradeMission = new UpgradeMission(this, boostUpgraders);
         this.addMission(upgradeMission);
 
-        // upkeep roads and walls
-        // this.towerRepair();
-
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
@@ -177,29 +178,6 @@ export class ControllerOperation extends Operation {
         this.builder = new LayoutBuilder(layout, this.room);
     }
 
-    protected towerRepair() {
-        if (!this.layout) { return; }
-        if (this.flag.room.hostiles.length > 0) { return; }
-
-        let structureType = STRUCTURE_RAMPART;
-        if (Game.time % 2 === 0) {
-            structureType = STRUCTURE_ROAD;
-        }
-
-        let positions = this.layout.map[structureType];
-        if (!this.memory.repairIndices) { this.memory.repairIndices = {}; }
-        if (this.memory.repairIndices[structureType] === undefined ||
-            this.memory.repairIndices[structureType] >= positions.length) {
-            this.memory.repairIndices[structureType] = 0;
-        }
-
-        let position = positions[this.memory.repairIndices[structureType]++];
-        let structure = position.lookForStructure(structureType);
-        if (structure) {
-            this.repairLayout(structure);
-        }
-    }
-
     private repairLayout(structure: Structure) {
 
         let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
@@ -223,15 +201,6 @@ export class ControllerOperation extends Operation {
             structure.pos.findClosestByRange<StructureTower>(towers).repair(structure);
         }
     }
-
-    /* public moveLayout(x: number, y: number, rotation: number): string {
-        this.memory.centerPosition = new RoomPosition(x, y, this.flag.pos.roomName);
-        this.memory.rotation = rotation;
-        this.memory.layoutMap = undefined;
-        this.showLayout("all", true);
-
-        return `moving layout, run command ${this.name}.showLayout(true) to display`;
-    }*/
 
     public showLayout(type = "all", maintain = true): string {
         if (!this.layout) {
@@ -266,141 +235,4 @@ export class ControllerOperation extends Operation {
 
         return `showing layout for: ${type}`;
     }
-
-    /*private buildLayout() {
-
-        if (!this.flag.room) { return; }
-        let structureTypes = Object.keys(CONSTRUCTION_COST);
-        if (this.memory.checkLayoutIndex === undefined || this.memory.checkLayoutIndex >= structureTypes.length) {
-            this.memory.checkLayoutIndex = 0;
-        }
-        let structureType = structureTypes[this.memory.checkLayoutIndex++];
-
-        this.fixedPlacement(structureType);
-        this.temporaryPlacement(this.flag.room.controller.level);
-    }*/
-
-    /*private fixedPlacement(structureType: string) {
-        let controllerLevel = this.flag.room.controller.level;
-        if (controllerLevel === 0) { return; }
-        let constructionPriority = Math.max(controllerLevel * 10, 40);
-        if (controllerLevel === 1) {
-            constructionPriority = 90;
-        }
-        if (Object.keys(Game.constructionSites).length > constructionPriority) { return; }
-        if (structureType === STRUCTURE_RAMPART && controllerLevel < 5) { return; }
-        if (!this.memory.nextCheck) { this.memory.nextCheck = {}; }
-        if (Game.time < this.memory.nextCheck[structureType]) { return; }
-
-        let coords = this.layoutCoords(structureType);
-        let allowedCount = this.allowedCount(structureType, controllerLevel);
-
-        for (let i = 0; i < coords.length; i++) {
-            if (i >= allowedCount) { break; }
-
-            let coord = coords[i];
-            let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-            let structure = position.lookForStructure(structureType);
-            if (structure) {
-                this.repairLayout(structure);
-                continue;
-            }
-            let hasConstruction = position.lookFor(LOOK_CONSTRUCTION_SITES)[0];
-            if (hasConstruction) { continue; }
-
-            let outcome = position.createConstructionSite(structureType);
-            if (outcome === OK) {
-                console.log(`LAYOUT: placing ${structureType} at ${position} (${this.name})`);
-            } else {
-                console.log(`LAYOUT: error: ${outcome}, ${structureType}, ${position} (${this.name})`);
-            }
-
-            return;
-        }
-
-        this.memory.nextCheck[structureType] = Game.time + helper.randomInterval(1000);
-    }*/
-
-    /*private recalculateLayout(layoutType?: string) {
-
-        let sourceData = [];
-        for (let source of this.flag.room.find<Source>(FIND_SOURCES)) {
-            sourceData.push({pos: source.pos, amount: 3000 });
-        }
-        let seedData = {
-            sourceData: sourceData,
-            seedScan: {},
-            seedSelectData: undefined,
-        };
-
-        let analysis = new SeedAnalysis(this.flag.room, seedData);
-        let results = analysis.run(this.staticStructures, layoutType);
-        if (!results) {
-            console.log(`${this.name} could not find a suitable auto-layout, consider using another spawn location or` +
-                ` room`);
-            return;
-        }
-
-        let centerPosition = new RoomPosition(results.origin.x, results.origin.y, this.flag.room.name);
-        if (results.seedType === this.type) {
-            console.log(`${this.name} found best seed of type ${results.seedType}, initiating auto-layout`);
-            this.memory.centerPosition = centerPosition;
-            this.memory.rotation = results.rotation;
-            this.showLayout("all", false);
-        } else {
-            console.log(`${this.name} found best seed of another type, replacing operation`);
-            let flagName = `${results.seedType}_${this.name}`;
-            Memory.flags[flagName] = { centerPosition: centerPosition, rotation: results.rotation };
-            this.flag.pos.createFlag(flagName, COLOR_GREY);
-            this.flag.remove();
-        }
-    }*/
-
-    /*protected allowedCount(structureType: string, level: number): number {
-        if (this.name === "bonn0" && (structureType === STRUCTURE_EXTENSION || structureType === STRUCTURE_ROAD
-            || structureType === STRUCTURE_OBSERVER)) {
-            // hack due to war, will break normal behavior
-            return 0;
-        }
-
-        if (structureType === STRUCTURE_EXTENSION &&
-            (this.room.hostiles.length > 0 || this.room.find<Nuke>(FIND_NUKES).length > 0)) {
-            // don't build extensions while hostiles are in the room
-            // sometimes extensions need to be destroyed to make room for hazmat
-            return 0;
-        }
-
-        if (level < 5 && (structureType === STRUCTURE_RAMPART || structureType === STRUCTURE_WALL
-            || structureType === STRUCTURE_ROAD)) {
-            return 0;
-        }
-
-        return Math.min(CONTROLLER_STRUCTURES[structureType][level], this.layoutCoords(structureType).length);
-    }*/
-
-    /*protected layoutCoords(structureType: string): Coord[] {
-        if (this.staticStructures[structureType]) {
-            return this.staticStructures[structureType];
-        } else if (this.memory.layoutMap && this.memory.layoutMap[structureType]) {
-            return this.memory.layoutMap[structureType];
-        } else {
-            return [];
-        }
-    }*/
-
-    /*private initFromStructures(): boolean {
-        if (!this.flag.room) { return false; }
-        if (Game.time < this.memory.layoutDelay) { return false; }
-
-        let structures = this.flag.room.find(FIND_STRUCTURES);
-        if (structures.length === 0 || (structures.length === 1 && structures[0] instanceof StructureSpawn)) {
-            this.recalculateLayout();
-        } else {
-            // if there are already structures in the room, assume it must be this operation type
-            this.recalculateLayout(this.type);
-        }
-
-        this.memory.layoutDelay = Game.time + 100;
-        return;
-    }*/
 }

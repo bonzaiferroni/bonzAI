@@ -77,8 +77,16 @@ export abstract class Layout {
         return new RoomPosition(this.anchor.x, this.anchor.y, this.roomName);
     }
 
-    protected findMap(flexMap: FlexMap): PositionMap {
+    protected findStructureTypes(): string[] {
         let structureTypes = Object.keys(CONSTRUCTION_COST);
+        if (this.data.turtle) {
+            structureTypes.push("turtle");
+        }
+        return structureTypes;
+    }
+
+    protected findMap(flexMap: FlexMap): PositionMap {
+        let structureTypes = this.findStructureTypes();
         let map = {};
         for (let structureType of structureTypes) {
             let positions = [];
@@ -188,6 +196,7 @@ export interface LayoutData {
     anchor: Vector2;
     rotation: number;
     flex?: boolean;
+    turtle?: boolean;
 }
 
 export const LAYOUT_QUAD = "quad";

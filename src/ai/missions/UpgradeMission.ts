@@ -29,10 +29,10 @@ export class UpgradeMission extends Mission {
         positionCount: number
         roadRepairIds: string[]
         transportAnalysis: TransportAnalysis
-        potency: number
         max: number
         upgPositions: string;
         batteryId: string;
+        potency: number;
     };
 
     /**
@@ -68,6 +68,7 @@ export class UpgradeMission extends Mission {
     public refresh() {
         // Profiler.end("focus", );
         // Profiler.start("focus", true, 3);
+        this._potencyPerCreep = undefined;
         this.battery = Game.getObjectById<StoreStructure>(this.batteryId);
     }
 
@@ -89,15 +90,18 @@ export class UpgradeMission extends Mission {
     };
 
     private getMax = (): number => {
-        if (this.room.controller.level === 8 && this.room.controller.ticksToDowngrade > 100000
-            && !empire.underCPULimit()) {
-            return 0;
-        }
         return this.findMaxUpgraders(this.totalPotency, this.potencyPerCreep);
     };
 
     public roleCall() {
 
+        let max = this.getMax();
+        if (this.room.controller.level === 8 && max > 1) {
+            console.log(`upgrader count error: ${max}, ${this.operation.name}`);
+            console.log(`${this.room}, ${this.spawnGroup.room}`);
+            console.log(`${this.totalPotency}, ${this.potencyPerCreep}, ${this.spawnGroup.maxSpawnEnergy}, ${
+                this.remoteSpawning}, ${this._potencyPerCreep}`);
+        }
         // memory
         let memory;
         if (this.boost) { // || empire.network.hasAbundance(RESOURCE_CATALYZED_GHODIUM_ACID)
@@ -327,8 +331,8 @@ export class UpgradeMission extends Mission {
                 potencyPerCreep = Math.min(this.totalPotency, 23);
             } else {
                 let unitCost = 125;
-                potencyPerCreep = Math.min(Math.floor((this.spawnGroup.maxSpawnEnergy - 200) / unitCost), 30,
-                    this.totalPotency);
+                let maxLocalPotency = Math.floor((this.spawnGroup.maxSpawnEnergy - 200) / unitCost);
+                potencyPerCreep = Math.min(maxLocalPotency, 30, this.totalPotency);
             }
             this._potencyPerCreep = potencyPerCreep;
         }
@@ -338,41 +342,47 @@ export class UpgradeMission extends Mission {
     get totalPotency(): number {
         if (!this.battery || this.room.hostiles.length > 0) { return 0; }
 
-        if (!this.memory.potency || Game.time % 10 === 0) {
-            if (this.room.controller.level === 8) {
-                if (this.room.storage && this.room.storage.store.energy > NEED_ENERGY_THRESHOLD) {
-                    return 15;
-                } else {
-                    return 1;
-                }
-            }
+        if (this.memory.potency !== undefined) {
+            // manual override
+            return this.memory.potency;
+        }
 
-            if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 &&
-                (!this.room.storage || this.room.storage.store.energy < 50000)) {
-                return 1;
-            }
-
-            let storageCapacity;
-            if (this.room.storage) {
-                storageCapacity = Math.floor(this.room.storage.store.energy / 1500);
-            }
-
-            if (this.battery instanceof StructureLink && this.room.storage) {
-                let cooldown = this.battery.pos.getRangeTo(this.room.storage) + 3;
-                let linkCount = this.room.storage.pos.findInRange(
-                    this.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length;
-                return Math.min(Math.floor(((LINK_CAPACITY * .97) * linkCount) / cooldown), storageCapacity);
-            } else if (this.battery instanceof StructureContainer) {
-                if (this.room.storage) { return storageCapacity; }
-                return this.room.find(FIND_SOURCES).length * 10;
-            } else {
-                console.log(`unrecognized controller battery type in ${this.operation.name}, ${
-                    this.battery}`);
+        if (this.room.controller.level === 8) {
+            // cpu saving mechanism
+            if (this.room.controller.ticksToDowngrade > 100000 && !empire.underCPULimit()) {
                 return 0;
+            }
+            if (this.room.storage && this.room.storage.store.energy > NEED_ENERGY_THRESHOLD) {
+                return 15;
+            } else {
+                return 1;
             }
         }
 
-        return this.memory.potency;
+        // build less upgraders while builders are active
+        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 &&
+            (!this.room.storage || this.room.storage.store.energy < 50000)) {
+            return 1;
+        }
+
+        let storageCapacity;
+        if (this.room.storage) {
+            storageCapacity = Math.floor(this.room.storage.store.energy / 1500);
+        }
+
+        if (this.battery instanceof StructureLink && this.room.storage) {
+            let cooldown = this.battery.pos.getRangeTo(this.room.storage) + 3;
+            let linkCount = this.room.storage.pos.findInRange(
+                this.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length;
+            return Math.min(Math.floor(((LINK_CAPACITY * .97) * linkCount) / cooldown), storageCapacity);
+        } else if (this.battery instanceof StructureContainer) {
+            if (this.room.storage) { return storageCapacity; }
+            return this.room.find(FIND_SOURCES).length * 10;
+        } else {
+            console.log(`unrecognized controller battery type in ${this.operation.name}, ${
+                this.battery}`);
+            return 0;
+        }
     }
 
     /**
@@ -448,6 +458,7 @@ export class UpgradeMission extends Mission {
 
     protected findDistanceToSpawn(): number {
         if (this.spawnGroup.room !== this.room) {
+            console.log(`UPGRADER: remote spawning in ${this.room}`);
             this.remoteSpawning = true;
             return Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name);
         } else {

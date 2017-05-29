@@ -9,6 +9,7 @@ import {Patcher} from "./Patcher";
 import {Operation, OperationPriorityMap} from "./ai/operations/Operation";
 import {OperationFactory} from "./ai/operations/OperationFactory";
 import {Tick} from "./Tick";
+import {consoleCommands} from "./helpers/consoleCommands";
 
 /* _____ init phase - instantiate operations _____ */
 // init game.cache
@@ -51,9 +52,10 @@ module.exports.loop = function () {
         // init utilities
         TimeoutTracker.init();
         TimeoutTracker.log("init"); // TODO: change to "refresh" once you get comparison data
+        global.cc = consoleCommands;
 
         empire.refresh();
-    } catch (e) { console.log("error refreshObjects phase:\n", e.stack); }
+    } catch (e) { console.log("error updateState phase:\n", e.stack); }
 
     Profiler.start("init");
     Operation.refresh(operations);

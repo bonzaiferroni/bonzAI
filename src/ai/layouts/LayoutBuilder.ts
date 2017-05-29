@@ -45,6 +45,9 @@ export class LayoutBuilder {
         for (let buildType of structureTypes) {
             let positions = this.layout.map[buildType];
             let allowedCount = this.allowedCount(buildType, positions);
+            if (buildType === "turtle") {
+                buildType = STRUCTURE_RAMPART;
+            }
             for (let i = 0; i < allowedCount; i++) {
                 let position = positions[i];
 
@@ -160,6 +163,8 @@ export class LayoutBuilder {
         if (restriction && this.room.controller.level < restriction) {
             return 0;
         }
+
+        if (!CONTROLLER_STRUCTURES[structureType]) { return positions.length; }
 
         return Math.min(CONTROLLER_STRUCTURES[structureType][this.room.controller.level],
             positions.length);
