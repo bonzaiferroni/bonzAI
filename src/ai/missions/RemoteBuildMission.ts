@@ -21,7 +21,10 @@ export class RemoteBuildMission extends Mission {
         this.allowSpawn = allowSpawn;
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         if (!this.hasVision) {
             return; // early
         }
@@ -35,13 +38,13 @@ export class RemoteBuildMission extends Mission {
             return this.bodyRatio(1, 1, 1, .8, 10);
         };
         let memory;
-        if (this.memory.activateBoost || (this.room.controller && this.room.controller.my)) {
+        if (this.memory.activateBoost) {
             memory = { boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID], allowUnboosted: true};
         }
         this.builders = this.headCount("remoteBuilder", getBody, maxBuilders, {memory: memory});
     }
 
-    public missionActions() {
+    public actions() {
         for (let builder of this.builders) {
             if (!this.waypoints && this.recycleWhenDone && this.construction.length === 0) {
                 this.recycleBuilder(builder);
@@ -51,10 +54,10 @@ export class RemoteBuildMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private builderActions(builder: Agent) {

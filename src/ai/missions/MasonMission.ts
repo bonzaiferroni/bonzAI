@@ -4,25 +4,25 @@ import {Agent} from "../agents/Agent";
 import {DefenseGuru} from "../DefenseGuru";
 import {Guru} from "./Guru";
 import {Scheduler} from "../../Scheduler";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 
 const SANDBAG_THRESHOLD = 1000000;
 
 export class MasonMission extends Mission {
 
-    private masons: Agent[] = [];
-    private hazmats: Agent[] = [];
-    private carts: Agent[] = [];
-    private hazmatCarts: Agent[] = [];
+    private masons: Agent[];
+    private hazmats: Agent[];
+    private carts: Agent[];
+    private hazmatCarts: Agent[];
     public defenseGuru: DefenseGuru;
 
     private _sandbags: RoomPosition[];
     private nukes: Nuke[];
-    private nukeRamparts: Rampart[] = [];
-    private claimedRamparts: Rampart[] = [];
+    private nukeRamparts: Rampart[];
+    private claimedRamparts: Rampart[];
     private neededRepairRate: number;
-    private scheduledDeliveries: Creep[] = [];
+    private scheduledDeliveries: Creep[];
 
     private protectTypes = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_NUKER];
 
@@ -40,7 +40,13 @@ export class MasonMission extends Mission {
         this.defenseGuru = defenseGuru;
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
+        this.nukeRamparts = [];
+        this.claimedRamparts = [];
+        this.scheduledDeliveries = [];
         this.updateNukeData();
     }
 
@@ -122,7 +128,7 @@ export class MasonMission extends Mission {
         this.memory.hazmatsLastTick = this.roleCount("hazmat");
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let mason of this.masons) {
             if (this.defenseGuru.hostiles.length > 0) {
@@ -155,10 +161,10 @@ export class MasonMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
         this.memory.needMason = undefined;
     }
 
@@ -635,7 +641,7 @@ export class MasonMission extends Mission {
         }
 
         if (destroyableExtension) {
-            notifier.log(`MASON: destroying extension to make room for hazmat`);
+            Notifier.log(`MASON: destroying extension to make room for hazmat`);
             destroyableExtension.destroy();
             return destroyableExtension.pos;
         }

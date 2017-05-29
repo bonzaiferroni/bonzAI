@@ -8,7 +8,7 @@ import {SpawnGroup} from "../SpawnGroup";
 import {Agent} from "../agents/Agent";
 import {ROOMTYPE_CORE, WorldMap} from "../WorldMap";
 import {empire} from "../Empire";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {RaidOperation} from "../operations/RaidOperation";
 import {HostileAgent} from "../agents/HostileAgent";
@@ -28,13 +28,13 @@ export abstract class RaidMission extends Mission {
     protected specialistPart: string;
     protected specialistBoost: string;
     protected spawnCost: number;
-    protected raidWaypoints: Flag[];
     protected boostLevel: number;
-    protected healerBoosts: string[];
-    protected attackerBoosts: string[];
+    protected healerBoosts: {[boostName: string]: boolean};
+    protected attackerBoosts: {[boostName: string]: boolean};
     protected attackRange: number;
-    protected braveMode: boolean;
     protected state: RaidMissionState;
+    protected braveMode: boolean;
+    protected raidWaypoints: Flag[];
 
     public memory: {
         healerLead: boolean;
@@ -50,20 +50,27 @@ export abstract class RaidMission extends Mission {
 
     protected static cache: any;
 
-    constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
-                allowSpawn: boolean) {
-        super(operation, name, allowSpawn);
+    constructor(operation: RaidOperation, name: string) {
+        super(operation, name);
         this.raidOperation = operation;
-        this.raidData = raidData;
-        this.spawnGroup = spawnGroup;
-        this.boostLevel = boostLevel;
+    }
+
+    public init() {
         if (!this.memory.cache) { this.memory.cache = {}; }
         if (!RaidMission.cache) { RaidMission.cache = {}; }
     }
 
-    public initMission() {
+    public refresh() {
         this.raidWaypoints = this.findRaidWaypoints();
         this.updateBoosts();
+    }
+
+    public updateRaidData(raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+                          allowSpawn: boolean) {
+        this.raidData = raidData;
+        this.spawnGroup = spawnGroup;
+        this.boostLevel = boostLevel;
+        this.allowSpawn = allowSpawn;
     }
 
     public roleCall() {
@@ -74,7 +81,7 @@ export abstract class RaidMission extends Mission {
         }
 
         this.attacker = _.head(this.headCount(this.name + "Attacker", this.attackerBody, max, {
-            memory: {boosts: this.attackerBoosts },
+            memory: {boosts: Object.keys(this.attackerBoosts) },
             reservation: reservation,
         }));
 
@@ -84,7 +91,7 @@ export abstract class RaidMission extends Mission {
         }
 
         this.healer = _.head(this.headCount(this.name + "Healer", this.healerBody, max, {
-            memory: { boosts: this.healerBoosts },
+            memory: { boosts: Object.keys(this.healerBoosts) },
         }));
 
         if (this.healer) {
@@ -92,7 +99,7 @@ export abstract class RaidMission extends Mission {
         }
     }
 
-    public missionActions() {
+    public actions() {
 
         /* ------PREPARE PHASE------ */
         // prep, wait for the other to boost
@@ -166,7 +173,7 @@ export abstract class RaidMission extends Mission {
         this.finishActions(attackingCreep);
     }
 
-    public finalizeMission() {
+    public finalize() {
 
         this.spawned = this.findSpawnedStatus();
         // console report
@@ -175,7 +182,7 @@ export abstract class RaidMission extends Mission {
         }
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     public getSpecialAction(): RaidAction {
@@ -845,13 +852,20 @@ export abstract class RaidMission extends Mission {
 
     private updateBoosts() {
         if (this.boostLevel === BoostLevel.Training || this.boostLevel === BoostLevel.Unboosted) {
-            this.healerBoosts = [];
-            this.attackerBoosts = [];
+            this.healerBoosts = {};
+            this.attackerBoosts = {};
         } else {
-            this.healerBoosts = [
-                RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
-                RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
-                RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
+            this.healerBoosts = {
+                [RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE]: true,
+                [RESOURCE_CATALYZED_GHODIUM_ALKALIDE]: true,
+                [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE]: true,
+            };
+        }
+
+        if (this.boostLevel === BoostLevel.SuperTough) {
+            this.attackerBoosts[RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE] = true;
+        } else {
+            delete this.attackerBoosts[RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
         }
     }
 

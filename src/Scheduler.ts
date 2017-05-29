@@ -15,11 +15,11 @@ export class Scheduler {
         return false;
     }
 
-    public static randomInterval(interval: number): number {
-        return interval + Math.floor((Math.random() - .5) * interval * .2);
-    }
-
     public static nextTick(memoryHost: {memory: any}, taskName: string) {
         memoryHost.memory[taskName] = Game.time + 1;
+    }
+
+    public static randomInterval(interval: number): number {
+        return interval + Math.floor((Math.random() - .5) * interval * .2);
     }
 }

@@ -6,10 +6,11 @@ import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
+import {Tick} from "../../Tick";
 export class PathMission extends Mission {
-    private start: {pos: RoomPosition };
-    private end: {pos: RoomPosition };
+    private startPos: RoomPosition;
+    private endPos: RoomPosition;
     private rangeToEnd: number;
     private ignoreConstructionLimit: boolean;
     private pathData: {
@@ -26,16 +27,20 @@ export class PathMission extends Mission {
         ignoreConstructionLimit?: boolean;
     }) {
         super(operation, name);
-        this.start = details.start;
-        this.end = details.end;
+        this.startPos = details.start.pos;
+        this.endPos = details.end.pos;
         this.rangeToEnd = details.rangeToEnd;
         this.ignoreConstructionLimit = details.ignoreConstructionLimit;
+    }
+
+    public init() {
         if (!this.memory.pathData) { this.memory.pathData = {}; }
         this.pathData = this.memory.pathData;
     }
 
-    public initMission() {
-        this.spawnGroup = empire.getSpawnGroup(this.start.pos.roomName);
+    public refresh() {
+        this.pathData = this.memory.pathData;
+        this.spawnGroup = empire.getSpawnGroup(this.startPos.roomName);
         this.checkPath();
     }
 
@@ -46,15 +51,15 @@ export class PathMission extends Mission {
         this.paver = this.spawnSharedAgent("paver", paverBody);
     }
 
-    public missionActions() {
+    public actions() {
         if (!this.paver) { return; }
         this.paverActions(this.paver);
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     get distance(): number { return this.pathData.distance; }
@@ -62,27 +67,27 @@ export class PathMission extends Mission {
     private checkPath() {
         if (Scheduler.delay(this.memory, "pathCheck", 1000)) { return; }
 
-        if (Game.map.getRoomLinearDistance(this.start.pos.roomName, this.end.pos.roomName) > 2) {
-            notifier.log(`PAVER: path too long: ${this.start.pos.roomName} to ${this.end.pos.roomName}`);
+        if (Game.map.getRoomLinearDistance(this.startPos.roomName, this.endPos.roomName) > 2) {
+            Notifier.log(`PAVER: path too long: ${this.startPos.roomName} to ${this.endPos.roomName}`);
             return;
         }
-        let path = this.findPavedPath(this.end.pos, this.start.pos, 1);
+        let path = this.findPavedPath(this.endPos, this.startPos, 1);
         if (!path) {
-            notifier.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${
-                this.start.pos}, finish: ${this.end.pos}, mission: ${this.name}`);
+            Notifier.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${
+                this.startPos}, finish: ${this.endPos}, mission: ${this.name}`);
             return;
         }
 
         let newConstructionPos = this.examinePavedPath(path);
         if (newConstructionPos && (this.ignoreConstructionLimit || Object.keys(Game.constructionSites).length < 60)) {
             Scheduler.nextTick(this, "pathCheck");
-            if (!Game.cache.placedRoad) {
-                Game.cache.placedRoad = true;
+            if (!Tick.cache.placedRoad) {
+                Tick.cache.placedRoad = true;
                 console.log(`PAVER: placed road ${newConstructionPos} in ${this.operation.name}`);
                 newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
             }
         }  else {
-            if (_.last(path).inRangeTo(this.start.pos, 1)) {
+            if (_.last(path).inRangeTo(this.startPos, 1)) {
                 this.pathData.distance = path.length;
             }
         }

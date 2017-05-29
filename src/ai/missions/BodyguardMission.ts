@@ -7,6 +7,7 @@ export class BodyguardMission extends Mission {
     private defenders: Agent[];
     private hostiles: Creep[];
     private invaderGuru: InvaderGuru;
+    private potency: number;
 
     public memory: {};
 
@@ -22,24 +23,27 @@ export class BodyguardMission extends Mission {
         this.invaderGuru = invaderGuru;
     }
 
-    public initMission() {
-        if (!this.hasVision) { return; } // early
-        this.hostiles = this.room.hostiles;
-    }
-
-    private getBody = () => {
+    protected init() {
         let unit = this.configBody({
             tough: 1,
             move: 5,
             attack: 3,
             heal: 1,
         });
-        let potency = Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
+        this.potency = Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
+    }
+
+    public refresh() {
+        if (!this.hasVision) { return; } // early
+        this.hostiles = this.room.hostiles;
+    }
+
+    private getBody = () => {
         return this.configBody({
-            tough: potency,
-            move: potency * 5,
-            attack: potency * 3,
-            heal: potency,
+            tough: this.potency,
+            move: this.potency * 5,
+            attack: this.potency * 3,
+            heal: this.potency,
         });
     };
 
@@ -64,17 +68,17 @@ export class BodyguardMission extends Mission {
         this.defenders = this.headCount("leeroy", this.getBody, this.maxDefenders, { prespawn: 50 } );
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let defender of this.defenders) {
             this.defenderActions(defender);
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private defenderActions(defender: Agent) {

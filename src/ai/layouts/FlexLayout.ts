@@ -2,7 +2,7 @@ import {Layout, LAYOUT_SEGMENTID} from "./Layout";
 import {BuildingPlannerData} from "../../interfaces";
 import {FlexGenerator} from "../FlexGenerator";
 import {LayoutDisplay} from "./LayoutDisplay";
-import {Mem} from "../../helpers/Mem";
+import {MemHelper} from "../../helpers/MemHelper";
 import {empire} from "../Empire";
 export class FlexLayout extends Layout {
     public fixedMap: BuildingPlannerData = {
@@ -41,7 +41,7 @@ export class FlexLayout extends Layout {
         for (let structureType in flexMap) {
             let positions = flexMap[structureType];
             if (!positions) { continue; }
-            serializedMap[structureType] = Mem.serializeIntPositions(positions);
+            serializedMap[structureType] = MemHelper.serializeIntPositions(positions);
         }
         empire.archiver.set(LAYOUT_SEGMENTID, this.roomName, serializedMap);
         this.data.flex = true;

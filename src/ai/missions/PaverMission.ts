@@ -10,7 +10,7 @@ export class PaverMission extends Mission {
         this.allowSpawn = allowSpawn;
     }
 
-    public initMission() {
+    public init() {
         if (!this.hasVision) { return; }
 
         if (!this.memory.potency) {
@@ -22,6 +22,9 @@ export class PaverMission extends Mission {
             this.memory.potency = Math.max(Math.ceil(sum / 500000), 1);
         }
         this.potency = this.memory.potency;
+    }
+
+    public refresh() {
     }
 
     public roleCall() {
@@ -37,15 +40,15 @@ export class PaverMission extends Mission {
         this.pavers = this.headCount(this.name, body, max, {prespawn: 10} );
     }
 
-    public missionActions() {
+    public actions() {
         for (let paver of this.pavers) {
             this.deprecatedPaverActions(paver);
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
-    public invalidateMissionCache() {
+    public invalidateCache() {
         if (Math.random() < .01) { this.memory.potency = undefined; }
     }
 

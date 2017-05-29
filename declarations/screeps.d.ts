@@ -870,7 +870,7 @@ declare class Flag extends RoomObject {
     }): number;
 }
 /**
- * The main global game object containing all the gameplay information.
+ * The main init game object containing all the gameplay information.
  */
 interface Game {
     /**
@@ -894,11 +894,11 @@ interface Game {
      */
     readonly gcl: GlobalControlLevel;
     /**
-     * A global object representing world GameMap.
+     * A init object representing world GameMap.
      */
     readonly map: GameMap;
     /**
-     * A global object representing the in-game market.
+     * A init object representing the in-game market.
      */
     readonly market: Market;
     /**
@@ -1113,7 +1113,7 @@ interface SurvivalGameInfo {
     wave: number;
 }
 /**
- * A global object representing world map. Use it to navigate between rooms. The object is accessible via Game.map property.
+ * A init object representing world map. Use it to navigate between rooms. The object is accessible via Game.map property.
  */
 declare class GameMap {
     /**
@@ -1184,7 +1184,7 @@ declare class GameMap {
     isRoomAvailable(roomName: string): boolean;
 }
 /**
- * A global object representing the in-game market. You can use this object to track resource transactions to/from your
+ * A init object representing the in-game market. You can use this object to track resource transactions to/from your
  * terminals, and your buy/sell orders (in development). The object is accessible via the singleton Game.market property.
  */
 declare class Market {
@@ -1273,7 +1273,7 @@ interface Memory {
  */
 declare class Mineral extends RoomObject {
     /**
-     * The prototype is stored in the Mineral.prototype global object. You can use it to extend game objects behaviour globally.
+     * The prototype is stored in the Mineral.prototype init object. You can use it to extend game objects behaviour globally.
      */
     prototype: Mineral;
     /**
@@ -1839,7 +1839,7 @@ declare class Room {
  */
 declare class Source extends RoomObject {
     /**
-     * The prototype is stored in the Source.prototype global object. You can use it to extend game objects behaviour globally:
+     * The prototype is stored in the Source.prototype init object. You can use it to extend game objects behaviour globally:
      */
     prototype: Source;
     /**

@@ -12,30 +12,34 @@ export class BaseRepairMission extends Mission {
         roadIndex: number;
         rampartOrders: {[towerId: string]: string}
         rampartIndex: number;
-        underThresholdCount: number;
         hitsThreshold: number;
+        minHits: number;
     };
 
     constructor(operation: ControllerOperation) {
         super(operation, "repair");
         this.layout = operation.layout;
-        if (!this.memory.rampartOrders) { this.memory.rampartOrders = {}; }
-        if (!this.memory.roadOrders) { this.memory.roadOrders = {}; }
     }
 
-    public initMission() {
-        this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
-        this.findRepairTargets();
+    protected init() {
+        if (!this.memory.rampartOrders) { this.memory.rampartOrders = {}; }
+        if (!this.memory.roadOrders) { this.memory.roadOrders = {}; }
         this.repairMax = TOWER_REPAIR_MAX_RAMPART;
         if (this.room.controller.level < 8) {
             this.repairMax = 200000;
         }
+        this.initRampartMemory();
+    }
+
+    public refresh() {
+        this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
+        this.findRepairTargets();
     }
 
     public roleCall() {
     }
 
-    public missionActions() {
+    public actions() {
         if (this.room.hostiles.length > 0) { return; }
 
         for (let tower of this. towers) {
@@ -43,10 +47,10 @@ export class BaseRepairMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private towerActions(tower: StructureTower) {
@@ -87,18 +91,19 @@ export class BaseRepairMission extends Mission {
 
     private findRamparts() {
         let rampartPositions = this.layout.map[STRUCTURE_RAMPART];
-        this.initRampartMemory();
         if (rampartPositions.length === 0 || this.towers.length === 0) { return; }
         if (this.memory.rampartIndex >= rampartPositions.length) {
             this.memory.rampartIndex = 0;
-            if (this.memory.underThresholdCount === 0) {
-                this.memory.hitsThreshold *= 1.1;
-            }
-            this.memory.hitsThreshold = Math.min(this.repairMax, this.memory.hitsThreshold);
+            this.memory.hitsThreshold = _.round(this.memory.minHits * 1.5);
+            this.memory.minHits = TOWER_REPAIR_MAX_RAMPART;
         }
         let position = rampartPositions[this.memory.rampartIndex++];
         let rampart = position.lookForStructure(STRUCTURE_RAMPART);
-        if (!rampart || rampart.hits > this.memory.hitsThreshold) { return; }
+        if (!rampart) { return; }
+        if (rampart.hits < this.memory.minHits) {
+            this.memory.minHits = rampart.hits;
+        }
+        if (rampart.hits > this.memory.hitsThreshold) { return; }
         let towers = rampart.pos.findInRange(this.towers, 5);
         if (!towers) {
             towers = [rampart.pos.findClosestByRange(this.towers)];
@@ -110,7 +115,7 @@ export class BaseRepairMission extends Mission {
     private initRampartMemory() {
         if (this.memory.rampartIndex !== undefined) { return; }
         this.memory.rampartIndex = 0;
-        this.memory.underThresholdCount = 0;
+        this.memory.minHits = TOWER_REPAIR_MAX_RAMPART;
         this.memory.hitsThreshold = 100000;
     }
 

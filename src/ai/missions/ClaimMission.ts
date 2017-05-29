@@ -10,7 +10,10 @@ export class ClaimMission extends Mission {
         super(operation, "claimer");
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         if (this.room) {
             this.controller = this.room.controller;
         }
@@ -25,17 +28,17 @@ export class ClaimMission extends Mission {
         });
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let claimer of this.claimers) {
             this.claimerActions(claimer);
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private claimerActions(claimer: Agent) {

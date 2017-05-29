@@ -4,11 +4,11 @@ import {helper} from "../../helpers/helper";
 import {TravelToOptions, Traveler, TravelData} from "../Traveler";
 import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {AbstractAgent} from "./AbstractAgent";
 import {RESERVE_AMOUNT} from "../TradeNetwork";
-import {Memorizer} from "../../helpers/Memorizer";
+import {MemHelper} from "../../helpers/MemHelper";
 import {Viz} from "../../helpers/Viz";
 
 export class Agent extends AbstractAgent {
@@ -799,7 +799,7 @@ export class Agent extends AbstractAgent {
         let find = () => {
             let battery: StoreStructure|Creep = _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
                 .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
-                .filter(x => x.store.energy >= minEnergy).min(x => x.pos.getRangeTo(this))
+                .filter(x => x.store.energy >= minEnergy).min(x => x.pos.getRangeTo(this));
             if (!battery || !(battery instanceof Object)) {
                 battery = _(this.room.find<Creep>(FIND_MY_CREEPS))
                     .filter(x => x.memory.donatesEnergy && x.carry.energy >= 50)
@@ -822,7 +822,7 @@ export class Agent extends AbstractAgent {
             }
         };
 
-        return Memorizer.findObject<StoreStructure|Creep>(this, "battery", find, validate);
+        return MemHelper.findObject<StoreStructure|Creep>(this, "battery", find, validate);
     }
 
     public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
@@ -934,7 +934,7 @@ export class Agent extends AbstractAgent {
             if (options.returnData.nextPos) {
                 let creep = options.returnData.nextPos.lookFor<Creep>(LOOK_CREEPS)[0];
                 if (creep && creep.my && (!exclusion || creep.name.indexOf(exclusion) < 0)) {
-                    notifier.log(`pushed creep ${creep.pos}`);
+                    Notifier.log(`pushed creep ${creep.pos}`);
                     this.say("excuse me", true);
                     creep.move(creep.pos.getDirectionTo(this));
                 }
@@ -1186,7 +1186,7 @@ export class Agent extends AbstractAgent {
             let direction = closest.pos.getDirectionTo(fleePos);
             let fleebusterPos = this.pos.getPositionAtDirection(direction);
             if (fleebusterPos.isNearExit(0) || Game.map.getTerrainAt(fleebusterPos) !== "plain" ||
-                fleebusterPos.getRangeTo(closest) > currentRange) {
+                fleebusterPos.getRangeTo(closest) >= currentRange) {
                 Viz.colorPos(fleebusterPos, "red");
                 return;
             }

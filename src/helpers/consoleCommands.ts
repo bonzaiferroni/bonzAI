@@ -5,8 +5,7 @@ import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
 import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
-
-declare var emp: Empire;
+import {Tick} from "../Tick";
 
 export var consoleCommands = {
 
@@ -65,7 +64,7 @@ export var consoleCommands = {
 
     pinv() {
         for (let mineralType of PRODUCT_LIST) {
-            console.log(mineralType + ":", emp.network.inventory[mineralType]);
+            console.log(mineralType + ":", empire.network.inventory[mineralType]);
         }
     },
 
@@ -238,7 +237,7 @@ export var consoleCommands = {
      */
 
     changeOpName(opName: string, newOpName: string) {
-        let operation = Game.operations[opName] as Operation;
+        let operation = Tick.operations[opName] as Operation;
         if (!operation) { return "you don't have an operation by that name"; }
 
         let newFlagName = operation.type + "_" + newOpName;
@@ -309,17 +308,17 @@ export var consoleCommands = {
      */
 
     roomConvention(opName: string, alternate?: string): string {
-        let controllerOp = Game.operations[opName + 0];
+        let controllerOp = Tick.operations[opName + 0];
         if (!controllerOp) {
             return "owned missionRoom doesn't exist";
         }
 
         for (let direction = 1; direction <= 8; direction++) {
             let tempName = opName + "temp" + direction;
-            if (!Game.operations[tempName]) { continue; }
+            if (!Tick.operations[tempName]) { continue; }
             console.log(`found temp ${tempName}`);
             let desiredName = opName + direction;
-            let currentOp = Game.operations[desiredName];
+            let currentOp = Tick.operations[desiredName];
             if (currentOp) {
                 console.log(`current op with that name, changing name to temp`);
                 let tempDir = WorldMap.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
@@ -331,9 +330,9 @@ export var consoleCommands = {
 
         for (let direction = 1; direction <= 9; direction++) {
             let testOpName = opName + direction;
-            let testOp = Game.operations[testOpName];
+            let testOp = Tick.operations[testOpName];
             if (!testOp && alternate) {
-                testOp = Game.operations[alternate + direction];
+                testOp = Tick.operations[alternate + direction];
                 if (testOp) {
                     testOpName = alternate + direction;
                 }
@@ -343,7 +342,7 @@ export var consoleCommands = {
             if (correctDir === direction) { continue; }
             let correctOpName = opName + correctDir;
             console.log(`inconsistent name (${testOpName} at dir ${correctDir} should be ${correctOpName})`);
-            let currentOp = Game.operations[correctOpName];
+            let currentOp = Tick.operations[correctOpName];
             if (currentOp) {
                 console.log(`current op with that name, changing name to temp`);
                 let tempDir = WorldMap.findRelativeRoomDir(controllerOp.flag.room.name, currentOp.flag.room.name);
@@ -430,7 +429,7 @@ export var consoleCommands = {
 
         for (let targetRoomName of roomNames) {
             for (let portalRoomName in empire.map.portals) {
-                let farRoomName = emp.map.portals[portalRoomName];
+                let farRoomName = empire.map.portals[portalRoomName];
                 let farSideDistance = Game.map.getRoomLinearDistance(targetRoomName, farRoomName);
                 if (farSideDistance > 20) { continue; }
                 for (let ownedRoomName in empire.map.controlledRooms) {
@@ -475,7 +474,7 @@ export var consoleCommands = {
             count++;
         }
 
-        if (count === 0) { return `couldn't find any ${substr}`}
+        if (count === 0) { return `couldn't find any ${substr}`; }
 
         return `average pathing cost for ${substr}: ${_.round(total / count, 2)}`;
     },
@@ -513,14 +512,16 @@ export var consoleCommands = {
             .filter(x => x.structureType === STRUCTURE_RAMPART || x.structureType === STRUCTURE_WALL)
             .value();
 
-        if(structures.length === 0) { return "no walls"}
+        if (structures.length === 0) { return "no walls"; }
 
-        let maxHits =_.max(structures, x => x.hits).hits;
+        let maxHits = _.max(structures, x => x.hits).hits;
 
         for (let wall of structures) {
             let pos = wall.pos;
             let opacity = wall.hits / maxHits;
             new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: "orange", opacity: opacity});
         }
-    }
+    },
 };
+
+global.cc = consoleCommands;

@@ -21,6 +21,18 @@ export class InvaderGuru extends Guru {
     }
 
     public init() {
+        super.init();
+        if (!this.memory.invaderTrack) {
+            this.memory.invaderTrack = {
+                energyHarvested: 0,
+                tickLastSeen: Game.time,
+                energyPossible: 0,
+            };
+        }
+    }
+
+    public refresh() {
+        super.refresh();
         if (!this.room) { return; }
         this.hasVision = true;
         for (let creep of _.filter(this.room.hostiles, c => c.owner.username === "Invader")) {
@@ -38,13 +50,6 @@ export class InvaderGuru extends Guru {
     get invaderProbable(): boolean { return this.memory.invaderProbable; }
 
     private trackEnergyTillInvader() {
-        if (!this.memory.invaderTrack) {
-            this.memory.invaderTrack = {
-                energyHarvested: 0,
-                tickLastSeen: Game.time,
-                energyPossible: 0 };
-        }
-
         let memory = this.memory.invaderTrack;
 
         let harvested = 0;

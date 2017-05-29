@@ -7,7 +7,8 @@ import {Agent} from "../agents/Agent";
 import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
 import {RoomHelper} from "../RoomHelper";
-import {Memorizer} from "../../helpers/Memorizer";
+import {MemHelper} from "../../helpers/MemHelper";
+import {Profiler} from "../../Profiler";
 export class UpgradeMission extends Mission {
 
     private linkUpgraders: Agent[];
@@ -15,6 +16,7 @@ export class UpgradeMission extends Mission {
     private influxCarts: Agent[];
 
     private battery: StoreStructure;
+    private batteryId: string;
     private boost: boolean;
     private allowUnboosted: boolean;
     private remoteSpawning: boolean;
@@ -48,34 +50,25 @@ export class UpgradeMission extends Mission {
         this.allowUnboosted = allowUnboosted;
     }
 
-    public initMission() {
+    public init() {
         if (!this.memory.cartCount) { this.memory.cartCount = 0; }
-        if (this.spawnGroup.room !== this.room) {
-            this.remoteSpawning = true;
-            this.distanceToSpawn = Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name);
-        } else {
-            this.distanceToSpawn = this.findDistanceToSpawn(this.room.controller.pos);
+        this.distanceToSpawn = this.findDistanceToSpawn();
+
+        let battery = this.findControllerBattery();
+        if (battery) {
+            this.batteryId = battery.id;
         }
-        this.battery = this.findControllerBattery();
+
         this.upgraderPositions = this.findUpgraderPositions();
 
         // instantiate path-paver
-        if (this.battery) {
-            let startingPosition: {pos: RoomPosition} = this.room.storage;
-            if (!startingPosition) {
-                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
-            }
-            if (startingPosition) {
-                let pathMission = new PathMission(this.operation, this.name + "Path", {
-                    start: startingPosition,
-                    end: this.battery,
-                    rangeToEnd: 1,
-                    ignoreConstructionLimit: true,
-                });
-                pathMission.initMission();
-                this.operation.addMission(pathMission);
-            }
-        }
+        this.addUpgraderPathMission();
+    }
+
+    public refresh() {
+        // Profiler.end("focus", );
+        // Profiler.start("focus", true, 3);
+        this.battery = Game.getObjectById<StoreStructure>(this.batteryId);
     }
 
     private linkUpgraderBody = () => {
@@ -138,7 +131,7 @@ export class UpgradeMission extends Mission {
             { memory: influxMemory, skipMoveToRoom: true });
     }
 
-    public missionActions() {
+    public actions() {
         let index = 0;
         for (let upgrader of this.linkUpgraders) {
             this.linkUpgraderActions(upgrader, index);
@@ -156,12 +149,13 @@ export class UpgradeMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
         if (Math.random() < .01) { this.memory.positionCount = undefined; }
         if (Math.random() < .1) { this.memory.transportAnalysis = undefined; }
+        this.memory.upgPositions = undefined;
     }
 
     private linkUpgraderActions(upgrader: Agent, index: number) {
@@ -393,7 +387,7 @@ export class UpgradeMission extends Mission {
         }
 
         // invalidates randomly
-        if (this.memory.upgPositions && Math.random() > .01) {
+        if (this.memory.upgPositions) {
             this.upgraderPositions = RoomHelper.deserializeIntPositions(this.memory.upgPositions, this.room.name);
             return this.upgraderPositions;
         }
@@ -432,7 +426,33 @@ export class UpgradeMission extends Mission {
                 .head() as StoreStructure;
         };
 
-        return Memorizer.findObject<StoreStructure>(this, "battery", find);
+        return MemHelper.findObject<StoreStructure>(this, "battery", find);
+    }
+
+    private addUpgraderPathMission() {
+        if (!this.battery) { return; }
+        let startingPosition: {pos: RoomPosition} = this.room.storage;
+        if (!startingPosition) {
+            startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+        }
+        if (startingPosition) {
+            let pathMission = new PathMission(this.operation, this.name + "Path", {
+                start: startingPosition,
+                end: this.battery,
+                rangeToEnd: 1,
+                ignoreConstructionLimit: true,
+            });
+            this.operation.addMissionLate(pathMission);
+        }
+    }
+
+    protected findDistanceToSpawn(): number {
+        if (this.spawnGroup.room !== this.room) {
+            this.remoteSpawning = true;
+            return Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name);
+        } else {
+            return super.findDistanceToSpawn(this.room.controller.pos);
+        }
     }
 }
 

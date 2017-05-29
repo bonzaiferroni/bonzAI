@@ -12,6 +12,7 @@ import {WorldMap} from "../WorldMap";
 import {empire} from "../Empire";
 import {HostileAgent} from "../agents/HostileAgent";
 import {Traveler, traveler} from "../Traveler";
+import {Notifier} from "../../notifier";
 
 /**
  * Primary tool for raiding. See wiki for details: https://github.com/bonzaiferroni/bonzAI/wiki/Using-RaidOperation
@@ -27,7 +28,6 @@ export class RaidOperation extends Operation {
     };
 
     private squadNames = ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india"];
-    private raidMissions: RaidMission[] = [];
     private raidData: RaidData;
     private attackRoomCount: number;
     // having static variables allows multiple raids to share this data
@@ -69,11 +69,14 @@ export class RaidOperation extends Operation {
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.VeryHigh;
-        this.cache = {};
+    }
+
+    public init() {
         if (!this.memory.cache) { this.memory.cache = {}; }
     }
 
-    public initOperation() {
+    public refresh() {
+        this.cache = {};
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
         if (!this.raidData) { return; }
@@ -83,6 +86,8 @@ export class RaidOperation extends Operation {
         let squadCount = this.memory.squadCount;
         if (!squadCount) { squadCount = 0; }
 
+        let missions: {[missionName: string]: RaidMission} = {};
+
         for (let i = 0; i < squadCount; i++) {
             let name = this.squadNames[i];
             let config = this.memory.squadConfig[name] as SquadConfig;
@@ -90,18 +95,29 @@ export class RaidOperation extends Operation {
             let allowSpawn = i < this.memory.maxSquads && this.memory.allowSpawn;
 
             let missionClass = this.squadTypes[config.type];
-            let mission = new missionClass(this, name, this.raidData, spawnGroup, config.boostLevel, allowSpawn);
-            this.raidMissions.push(mission);
-            this.addMission(mission);
+            let mission = new missionClass(this, name) as RaidMission;
+            mission.updateRaidData(this.raidData, spawnGroup, config.boostLevel, allowSpawn);
+            // this is bad form, need to update RaidMission to handle the new refresh phase
+            try {
+                mission.refreshObjects();
+                mission.init();
+                mission.refresh();
+            } catch (e) {
+                Notifier.reportException(e, "refresh", "raidMission");
+            }
+            missions[mission.name] = mission;
         }
+
+        this.missions = missions;
     }
 
-    public finalizeOperation() {
+    public finalize() {
 
         if (!this.raidData) { return; }
 
         let spawnCount = 0;
-        for (let mission of this.raidMissions) {
+        for (let missionName in this.missions) {
+            let mission = this.missions[missionName] as RaidMission;
             if (mission.findSpawnedStatus()) {
                 spawnCount++;
             } else {
@@ -129,7 +145,7 @@ export class RaidOperation extends Operation {
         }
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 
     public nextRoom() {
@@ -177,7 +193,7 @@ export class RaidOperation extends Operation {
         let globalConfigComplete = this.initGlobalConfig();
         if (!globalConfigComplete) { return; }
 
-        // init squadConfig
+        // refreshObjects squadConfig
         for (let i = 0; i < this.memory.maxSquads; i++) {
             let name = this.squadNames[i];
             if (!this.memory.squadConfig[name]) { this.memory.squadConfig[name] = {

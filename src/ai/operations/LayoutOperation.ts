@@ -2,7 +2,13 @@ import {Operation} from "./Operation";
 import {LayoutFinder} from "../layouts/LayoutFinder";
 import {ROOMTYPE_ALLEY, WorldMap} from "../WorldMap";
 import {helper} from "../../helpers/helper";
+import {OperationPriority} from "../../config/constants";
 export class LayoutOperation extends Operation {
+
+    constructor(flag: Flag, name: string, type: string) {
+        super(flag, name, type);
+        this.priority = OperationPriority.Low;
+    }
 
     public memory: {
         data: {
@@ -14,10 +20,13 @@ export class LayoutOperation extends Operation {
         }
     };
 
-    public initOperation() {
+    public init() {
     }
 
-    public finalizeOperation() {
+    public refresh() {
+    }
+
+    public finalize() {
         if (Memory.rooms[this.flag.pos.roomName].layout) {
             delete this.memory.data;
             let newFlagName = `control_${this.name}`;
@@ -74,7 +83,7 @@ export class LayoutOperation extends Operation {
         finder.run();
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 
     private findNearbyRooms(): string[] {

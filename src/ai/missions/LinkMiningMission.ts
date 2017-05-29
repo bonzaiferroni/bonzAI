@@ -1,12 +1,13 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 export class LinkMiningMission extends Mission {
 
     private linkMiners: Agent[];
     private source: Source;
+    private sourceId: string;
     private link: StructureLink;
 
     /**
@@ -19,7 +20,7 @@ export class LinkMiningMission extends Mission {
 
     constructor(operation: Operation, name: string, source: Source) {
         super(operation, name);
-        this.source = source;
+        this.sourceId = source.id;
     }
 
     /**
@@ -36,7 +37,11 @@ export class LinkMiningMission extends Mission {
         }
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
+        this.source = Game.getObjectById<Source>(this.sourceId);
         this.link = this.findLink();
         if (!this.link) {
             this.placeLink();
@@ -52,15 +57,15 @@ export class LinkMiningMission extends Mission {
         this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), this.getMaxMiners );
     }
 
-    public missionActions() {
+    public actions() {
         for (let miner of this.linkMiners) {
             this.minerActions(miner);
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private minerActions(miner: Agent) {

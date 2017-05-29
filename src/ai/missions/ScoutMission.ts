@@ -8,7 +8,9 @@ export class ScoutMission extends Mission {
         super(operation, "scout");
     }
 
-    public initMission() {
+    public init() { }
+
+    public refresh() {
     }
 
     public roleCall() {
@@ -16,7 +18,7 @@ export class ScoutMission extends Mission {
         this.scouts = this.headCount(this.name, () => this.workerBody(0, 0, 1), maxScouts, {blindSpawn: true});
     }
 
-    public missionActions() {
+    public actions() {
         for (let scout of this.scouts) {
 
             if (!scout.pos.isNearTo(this.flag)) {
@@ -25,9 +27,9 @@ export class ScoutMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 }

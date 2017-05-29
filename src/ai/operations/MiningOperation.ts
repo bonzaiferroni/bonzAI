@@ -10,6 +10,7 @@ import {OperationPriority, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../c
 import {ROOMTYPE_CORE} from "../WorldMap";
 import {InvaderGuru} from "../missions/InvaderGuru";
 export class MiningOperation extends Operation {
+    private invaderGuru: InvaderGuru;
 
     /**
      * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can
@@ -25,7 +26,7 @@ export class MiningOperation extends Operation {
         this.priority = OperationPriority.Low;
     }
 
-    public initOperation() {
+    public init() {
 
         this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 4, 50);
         if (this.remoteSpawn) {
@@ -38,13 +39,13 @@ export class MiningOperation extends Operation {
 
         this.addMission(new ScoutMission(this));
 
-        let invaderGuru = new InvaderGuru(this);
-        invaderGuru.init();
+        this.invaderGuru = new InvaderGuru(this);
+        this.invaderGuru.init();
         // defense
         if (this.flag.room && this.flag.room.roomType === ROOMTYPE_CORE) {
-            this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
+            this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
         } else {
-            this.addMission(new BodyguardMission(this, invaderGuru));
+            this.addMission(new BodyguardMission(this, this.invaderGuru));
         }
 
         if (!this.flag.room) { return; }
@@ -55,14 +56,16 @@ export class MiningOperation extends Operation {
         this.addMission(new RemoteBuildMission(this, true));
 
         if (!this.flag.room.controller || this.memory.swapMining) {
-            let storeStructure = this.memory.swapMining ? this.flag.room.terminal : undefined;
-            this.addMission(new GeologyMission(this, storeStructure));
+            this.addMission(new GeologyMission(this));
         }
-
     }
 
-    public finalizeOperation() {
+    public refresh() {
+        this.invaderGuru.refresh();
     }
-    public invalidateOperationCache() {
+
+    public finalize() {
+    }
+    public invalidateCache() {
     }
 }

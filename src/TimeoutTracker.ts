@@ -1,15 +1,15 @@
-import {notifier} from "./notifier";
+import {Notifier} from "./notifier";
 export class TimeoutTracker {
     public static init() {
         if (global.timeoutTracker && global.timeoutTracker.phase !== "finished") {
             let data = global.timeoutTracker;
-            notifier.log(`TIMEOUT: operation: ${data.operation}, mission: ${data.mission}, phase: ${data.phase}, ` +
+            Notifier.log(`TIMEOUT: operation: ${data.operation}, mission: ${data.mission}, phase: ${data.phase}, ` +
                 `function: ${data.func}, tick: ${data.tick}, current: ${Game.time}, cpu: ${_.round(data.cpu)}`);
             delete global.timeoutTracker;
         }
 
         global.timeoutTracker = {
-            phase: "pre-operation init",
+            phase: "pre-operation refreshObjects",
             operation: undefined,
             mission: undefined,
             func: undefined,
@@ -18,7 +18,7 @@ export class TimeoutTracker {
         };
 
         if (Game.time > Memory.gameTimeLastTick + 4) {
-            notifier.log(`HARD_RESET: tick: ${Memory.gameTimeLastTick}`);
+            Notifier.log(`HARD_RESET: tick: ${Memory.gameTimeLastTick}`);
         }
         Memory.gameTimeLastTick = Game.time;
     }

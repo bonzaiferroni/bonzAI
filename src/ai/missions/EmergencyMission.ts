@@ -18,7 +18,10 @@ export class EmergencyMinerMission extends Mission {
         super(operation, "emergencyMiner");
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
     }
 
     public roleCall() {
@@ -40,15 +43,15 @@ export class EmergencyMinerMission extends Mission {
         this.emergencyMiners = this.headCount("emergencyMiner", () => this.workerBody(2, 1, 1), getMaxMiners);
     }
 
-    public missionActions() {
+    public actions() {
         for (let miner of this.emergencyMiners) {
             this.minerActions(miner);
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private minerActions(miner: Agent) {

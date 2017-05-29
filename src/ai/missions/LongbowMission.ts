@@ -27,7 +27,7 @@ export class LongbowMission extends FireflyMission {
     private claimedHealerSlots: RoomPosition[] = [];
 
     public initMission() {
-        super.initMission();
+        super.refresh();
         this.targetFlag = Game.flags[`${this.operation.name}_longbow`];
         if (!this.targetFlag) {
             return;
@@ -76,7 +76,7 @@ export class LongbowMission extends FireflyMission {
     }
 
     public missionActions() {
-        super.missionActions();
+        super.actions();
         if (!this.squire) { return; }
 
         let attackingCreep = this.attackCreeps(this.squire);
@@ -99,7 +99,7 @@ export class LongbowMission extends FireflyMission {
     }
 
     public finalizeMission() {
-        super.finalizeMission();
+        super.finalize();
         this.memory.cache.positionedHealerCount = LongbowMission.tactics.positionedHealers.length;
         this.memory.cache.positioningAttackersCount = LongbowMission.tactics.positioningAttackers.length;
     }

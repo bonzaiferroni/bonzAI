@@ -1,4 +1,3 @@
-
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
@@ -8,13 +7,10 @@ import {Traveler} from "../Traveler";
 export class GuardMission extends Mission {
 
     private guards: Agent[];
-    private melee: Agent[];
 
     private guardedFlags: Flag[];
     private potency: number;
-    private swampRat: boolean = false;
-    private hostiles: Creep[];
-    private scaryDudes: Creep[] = [];
+    private scaryDudes: Creep[];
     private targetFlags: Flag[];
 
     public memory: {
@@ -25,13 +21,19 @@ export class GuardMission extends Mission {
         minPotency: number;
         targetId: string;
         ticksToLive: {[key: string]: number}
+        swampRat: boolean;
     };
 
     constructor(operation: Operation) {
         super(operation, "guard");
     }
 
-    public initMission() {
+    public init() {
+        if (!this.memory.ticksToLive) { this.memory.ticksToLive = {}; }
+    }
+
+    public refresh() {
+        this.scaryDudes = [];
         this.guardedFlags = this.getFlagSet("_guarded_", 10);
         if (!this.memory.potency) { this.memory.potency = 1; }
         this.potency = Math.min(this.memory.potency, 8);
@@ -77,38 +79,17 @@ export class GuardMission extends Mission {
         });
     }
 
-    public missionActions() {
+    public actions() {
         for (let guard of this.guards) {
-            if (guard.partCount(RANGED_ATTACK) > 0) {
-                this.rangerActions(guard);
-            } else {
-                this.meleeActions(guard);
-            }
+            this.rangerActions(guard);
         }
     }
 
-    public finalizeMission() {
-        if (!this.memory.ticksToLive) { this.memory.ticksToLive = {}; }
-        for (let guard of this.guards) {
-            this.memory.ticksToLive[guard.id] = guard.ticksToLive;
-        }
-
-        for (let id in this.memory.ticksToLive) {
-            let creep = Game.getObjectById(id);
-            if (creep) { continue; }
-            let ticksToLive = this.memory.ticksToLive[id];
-            if (ticksToLive > 10) {
-                console.log("GUARD:", this.operation.name, "was killed, increasing potency:",
-                    this.memory.potency, "->", ++this.memory.potency);
-            } else if (this.memory.potency > 1) {
-                console.log("GUARD:", this.operation.name, "guard died of old age, decreasing potency:",
-                    this.memory.potency, "->", --this.memory.potency);
-            }
-            delete this.memory.ticksToLive[id];
-        }
+    public finalize() {
+        this.managePotency();
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private rangerActions(guard: Agent) {
@@ -251,8 +232,8 @@ export class GuardMission extends Mission {
 
         let ret = PathFinder.search(guard.pos, avoidPositions, {
             flee: true,
-            swampCost: this.swampRat ? 1 : 5,
-            plainCost: this.swampRat ? 2 : 1,
+            swampCost: this.memory.swampRat ? 1 : 5,
+            plainCost: this.memory.swampRat ? 2 : 1,
             maxRooms: 1,
             roomCallback: (roomName: string) : CostMatrix => {
                 if (roomName !== guard.room.name) { return; }
@@ -282,26 +263,23 @@ export class GuardMission extends Mission {
         guard.move(guard.pos.getDirectionTo(pos));
     }
 
-    private meleeActions(guard: Agent) {
+    private managePotency() {
+        for (let guard of this.guards) {
+            this.memory.ticksToLive[guard.id] = guard.ticksToLive;
+        }
 
-        let retreating = guard.hits < guard.hitsMax * .5;
-
-        let closest = guard.pos.findClosestByRange(guard.room.hostiles) as Creep;
-        if (closest) {
-            let range = guard.pos.getRangeTo(closest);
-            if (range === 1) {
-                guard.attack(closest);
-                guard.rangedMassAttack();
+        for (let id in this.memory.ticksToLive) {
+            let creep = Game.getObjectById(id);
+            if (creep) { continue; }
+            let ticksToLive = this.memory.ticksToLive[id];
+            if (ticksToLive > 10) {
+                console.log("GUARD:", this.operation.name, "was killed, increasing potency:",
+                    this.memory.potency, "->", ++this.memory.potency);
+            } else if (this.memory.potency > 1) {
+                console.log("GUARD:", this.operation.name, "guard died of old age, decreasing potency:",
+                    this.memory.potency, "->", --this.memory.potency);
             }
-            if (range <= 3) {
-                guard.rangedAttack(closest);
-            }
-
-            if (!retreating) {
-                if (range > 1) {
-                    guard.travelTo(closest);
-                }
-            }
+            delete this.memory.ticksToLive[id];
         }
     }
 }

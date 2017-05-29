@@ -8,8 +8,13 @@ export class DefenseGuru extends Guru {
         super(operation, "defenseGuru");
     }
 
+    public refresh() {
+        super.refresh();
+        this._hostiles = undefined;
+    }
+
     get hostiles(): Creep[] {
-        if (!this._hostiles) {
+        if (!this._hostiles && this.room) {
             this._hostiles = _.filter(this.room.hostiles, (c: Creep) => {
                 return c.owner.username !== "Invader" && c.body.length >= 40 &&
                     _.filter(c.body, part => part.boost).length > 0;

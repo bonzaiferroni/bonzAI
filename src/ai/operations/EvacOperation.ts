@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
@@ -14,13 +14,15 @@ export class EvacOperation extends Operation {
         ids: string[];
     };
 
-    public initOperation() {
+    public init() {
     }
 
-    public finalizeOperation() {
+    public refresh() { }
+
+    public finalize() {
         let soonestNuke = _(this.room.find<Nuke>(FIND_NUKES)).sortBy(x => x.timeToLand).head();
         if (!soonestNuke) {
-            notifier.log(`evacuation complete in ${this.flag.room}`);
+            Notifier.log(`evacuation complete in ${this.flag.room}`);
             this.memory.ids = undefined;
             this.flag.remove();
             return;
@@ -49,7 +51,7 @@ export class EvacOperation extends Operation {
         }
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 
     private fleeRoom(creep: Creep, fleePos: RoomPosition) {

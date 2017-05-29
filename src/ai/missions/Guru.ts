@@ -8,14 +8,23 @@ export abstract class Guru {
     protected memory: any;
     protected room: Room;
     protected spawnGroup: SpawnGroup;
+    private name: string;
 
     constructor(operation: Operation, name: string) {
         this.operation = operation;
-        this.flag = operation.flag;
-        this.room = operation.room;
+        this.name = name;
         this.spawnGroup = operation.spawnGroup;
-        if (!operation.memory[name]) { operation.memory[name] = {}; }
-        this.memory = operation.memory[name];
+    }
+
+    public init() {
+        if (!this.operation.memory[this.name]) { this.operation.memory[this.name] = {}; }
+        this.memory = this.operation.memory[this.name];
+    }
+
+    public refresh() {
+        this.flag = this.operation.flag;
+        this.room = Game.rooms[this.operation.roomName];
+        this.memory = this.operation.memory[this.name];
     }
 
     protected observeRoom(roomName: string): Room {

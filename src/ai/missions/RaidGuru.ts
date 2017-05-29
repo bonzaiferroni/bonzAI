@@ -2,7 +2,7 @@ import {Guru} from "./Guru";
 import {RaidCache} from "../../interfaces";
 import {SpawnGroup} from "../SpawnGroup";
 import {helper} from "../../helpers/helper";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {Traveler} from "../Traveler";
 import {WorldMap} from "../WorldMap";
 import {Operation} from "../operations/Operation";
@@ -34,7 +34,7 @@ export class RaidGuru extends Guru {
     get matrix(): CostMatrix { if (this.cache) { return PathFinder.CostMatrix.deserialize(this.cache.matrix); } }
     get startTime(): number { return this.memory.startTime; }
 
-    public init(roomName: string, safeEntrance: boolean): boolean {
+    public refreshGuru(roomName: string, safeEntrance: boolean): boolean {
         this.raidRoomName = roomName;
         this.raidRoom = Game.rooms[roomName];
         this.cache = this.memory.cache;
@@ -71,7 +71,7 @@ export class RaidGuru extends Guru {
         cache.matrix = matrix.serialize();
 
         helper.showMatrix(matrix, roomName);
-        notifier.log(`ZOMBIE: init raid at ${roomName}, expectedDamage: ${cache.expectedDamage}, bestExit: ${
+        Notifier.log(`ZOMBIE: init raid at ${roomName}, expectedDamage: ${cache.expectedDamage}, bestExit: ${
             cache.bestExit}`);
         return cache;
     }

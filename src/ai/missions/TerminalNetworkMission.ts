@@ -18,7 +18,9 @@ export class TerminalNetworkMission extends Mission {
         super(operation, "network");
     }
 
-    public initMission() {
+    public init() {}
+
+    public refresh() {
         this.terminal = this.room.terminal;
         this.storage = this.room.storage;
     }
@@ -26,15 +28,15 @@ export class TerminalNetworkMission extends Mission {
     public roleCall() {
     }
 
-    public missionActions() {
+    public actions() {
         this.sellOverstock();
         this.checkOverstock();
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private sellOverstock() {

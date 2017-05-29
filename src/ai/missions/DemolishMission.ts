@@ -7,8 +7,7 @@ export class DemolishMission extends Mission {
     private scavangers: Agent[];
 
     private demoFlags: Flag[] = [];
-    private demoStructures: Structure[] = [];
-    private potency: number;
+    private demoStructures: Structure[];
     private storeStructure: StructureContainer|StructureStorage|StructureTerminal;
 
     /**
@@ -24,7 +23,11 @@ export class DemolishMission extends Mission {
         super(operation, "demolish");
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
+        this.demoStructures = [];
 
         for (let i = 0; i <= 50; i++ ) {
             let flag = Game.flags["Flag" + i];
@@ -55,7 +58,7 @@ export class DemolishMission extends Mission {
         this.scavangers = this.headCount("scavanger", () => this.bodyRatio(0, 1, 1, 1), this.getMaxScavengers);
     }
 
-    public missionActions() {
+    public actions() {
         for (let demolisher of this.demolishers) {
             this.demolisherActions(demolisher);
         }
@@ -65,10 +68,10 @@ export class DemolishMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private demolisherActions(demolisher: Agent) {

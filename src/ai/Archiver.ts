@@ -9,18 +9,26 @@ export class Archiver {
         globalTimeout: {[id: number]: number };
     };
 
-    constructor() {
+    public init() {
         if (!Memory.empire.archiver) { Memory.empire.archiver = {}; }
         this.memory = Memory.empire.archiver;
         if (!this.memory.tempSegments) { this.memory.tempSegments = {}; }
         if (!this.memory.globalSegments) { this.memory.globalSegments = {}; }
         if (!this.memory.globalTimeout) { this.memory.globalTimeout = {}; }
-    }
-
-    public init() {
         this.activeSegments = {};
         this.needSegments = {};
+    }
 
+    public refresh() {
+        this.memory = Memory.empire.archiver;
+        if (!this.activeSegments) {
+            this.activeSegments = {};
+            this.needSegments = {};
+        }
+        this.examineActiveSegments();
+    }
+
+    private examineActiveSegments() {
         for (let segmentId in RawMemory.segments) {
 
             // parse

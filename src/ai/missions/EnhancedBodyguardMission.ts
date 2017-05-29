@@ -11,7 +11,6 @@ export class EnhancedBodyguardMission extends Mission {
     private squadHealers: Agent[];
 
     private hostiles: Creep[];
-    private hurtCreeps: Creep[];
     private invaderGuru: InvaderGuru;
 
     constructor(operation: Operation, invaderGuru: InvaderGuru,  allowSpawn = true) {
@@ -19,7 +18,10 @@ export class EnhancedBodyguardMission extends Mission {
         this.invaderGuru = invaderGuru;
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         if (!this.hasVision) { return; } // early
         this.hostiles = _.filter(this.room.hostiles, (hostile: Creep) => hostile.owner.username !== "Source Keeper");
 
@@ -93,7 +95,7 @@ export class EnhancedBodyguardMission extends Mission {
             {prespawn: 50, memory: healerMemory, skipMoveToRoom: true});
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let attacker of this.squadAttackers) {
             this.squadActions(attacker);
@@ -104,7 +106,7 @@ export class EnhancedBodyguardMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
         if (!this.memory.ticksToLive) { this.memory.ticksToLive = {}; }
         for (let creep of this.squadAttackers) {
             this.memory.ticksToLive[creep.id] = creep.ticksToLive;
@@ -114,7 +116,7 @@ export class EnhancedBodyguardMission extends Mission {
         }
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
         this.memory.allowUnboosted = undefined;
     }
 
@@ -160,7 +162,7 @@ export class EnhancedBodyguardMission extends Mission {
                 this.memory.healUp = false;
             }
         } else if (target) {
-            msg += "t"
+            msg += "t";
 
             attacker.memory.targetId = target.id;
 
@@ -214,7 +216,7 @@ export class EnhancedBodyguardMission extends Mission {
             Agent.squadTravel(attacker, healer, this.flag);
         }
 
-        healer.say(msg)
+        healer.say(msg);
 
         let closest = attacker.pos.findClosestByRange(this.hostiles);
         if (closest) {

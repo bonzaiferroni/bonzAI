@@ -8,21 +8,17 @@ import {HostileAgent} from "../agents/HostileAgent";
 import {helper} from "../../helpers/helper";
 export class FireflyMission extends RaidMission {
 
-    constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
-                allowSpawn: boolean) {
-        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
+    constructor(operation: RaidOperation, name: string) {
+        super(operation, name);
         this.specialistPart = RANGED_ATTACK;
         this.specialistBoost = RESOURCE_CATALYZED_KEANIUM_ALKALIDE;
         this.spawnCost = 12440;
         this.attackRange = 3;
-        this.attackerBoosts = [
-            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
-            RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
-            RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
-        ];
-        if (this.boostLevel === BoostLevel.SuperTough) {
-            this.attackerBoosts.push(RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE);
-        }
+        this.attackerBoosts = {
+            [RESOURCE_CATALYZED_KEANIUM_ALKALIDE]: true,
+            [RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE]: true,
+            [RESOURCE_CATALYZED_GHODIUM_ALKALIDE]: true,
+        };
     }
 
     protected clearActions(attackingCreep: boolean) {

@@ -30,7 +30,7 @@ export class WorldMap {
         this.activeNukes = Memory.empire.activeNukes;
     }
 
-    public initGlobal(): {[roomName: string]: SpawnGroup } {
+    public init(): {[roomName: string]: SpawnGroup } {
         let spawnGroups = {};
         for (let roomName in Memory.rooms) {
             let memory = Memory.rooms[roomName];
@@ -65,7 +65,7 @@ export class WorldMap {
         return spawnGroups;
     }
 
-    public init() {
+    public refresh() {
         this.controlledRooms = {};
         this.allyRooms = [];
         this.tradeRooms = [];

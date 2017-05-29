@@ -1,11 +1,12 @@
 import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY, WorldMap} from "../ai/WorldMap";
 import {Agent} from "../ai/agents/Agent";
 import {empire} from "../ai/Empire";
+import {Tick} from "../Tick";
 
 export function initRoomPrototype() {
     Object.defineProperty(Room.prototype, "hostiles", {
         get: function myProperty() {
-            if (!Game.cache.hostiles[this.name]) {
+            if (!Tick.cache.hostiles[this.name]) {
                 let hostiles = this.find(FIND_HOSTILE_CREEPS) as Creep[];
                 let filteredHostiles = [];
                 for (let hostile of hostiles) {
@@ -15,22 +16,22 @@ export function initRoomPrototype() {
                         filteredHostiles.push(hostile);
                     }
                 }
-                Game.cache.hostiles[this.name] = filteredHostiles;
+                Tick.cache.hostiles[this.name] = filteredHostiles;
             }
-            return Game.cache.hostiles[this.name];
+            return Tick.cache.hostiles[this.name];
         },
     });
 
     // deprecated
     Object.defineProperty(Room.prototype, "hostilesAndLairs", {
         get: function myProperty() {
-            if (!Game.cache.hostilesAndLairs[this.name]) {
+            if (!Tick.cache.hostilesAndLairs[this.name]) {
                 let lairs = _.filter(this.findStructures(STRUCTURE_KEEPER_LAIR), (lair: StructureKeeperLair) => {
                     return !lair.ticksToSpawn || lair.ticksToSpawn < 10;
                 });
-                Game.cache.hostilesAndLairs[this.name] = lairs.concat(this.hostiles);
+                Tick.cache.hostilesAndLairs[this.name] = lairs.concat(this.hostiles);
             }
-            return Game.cache.hostilesAndLairs[this.name];
+            return Tick.cache.hostilesAndLairs[this.name];
         },
     });
 
@@ -67,11 +68,11 @@ export function initRoomPrototype() {
 
     Object.defineProperty(Room.prototype, "structures", {
         get: function myProperty() {
-            if (!Game.cache.structures[this.name]) {
-                Game.cache.structures[this.name] = _.groupBy(
+            if (!Tick.cache.structures[this.name]) {
+                Tick.cache.structures[this.name] = _.groupBy(
                     this.find(FIND_STRUCTURES), (s: Structure) => s.structureType);
             }
-            return Game.cache.structures[this.name] || [];
+            return Tick.cache.structures[this.name] || [];
         },
     });
 
@@ -81,10 +82,10 @@ export function initRoomPrototype() {
      * @returns {Structure[]}
      */
     Room.prototype.findStructures = function(structureType: string): Structure[] {
-        if (!Game.cache.structures[this.name]) {
-            Game.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s: Structure) => s.structureType);
+        if (!Tick.cache.structures[this.name]) {
+            Tick.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s: Structure) => s.structureType);
         }
-        return Game.cache.structures[this.name][structureType] || [];
+        return Tick.cache.structures[this.name][structureType] || [];
     };
 
     /**
@@ -109,7 +110,7 @@ export function initRoomPrototype() {
 
     Object.defineProperty(Room.prototype, "fleeObjects", {
         get: function myProperty() {
-            if (!Game.cache.fleeObjects[this.name]) {
+            if (!Tick.cache.fleeObjects[this.name]) {
                 let fleeObjects = _.filter(this.hostiles, (c: Creep): boolean => {
                     if (c instanceof Creep) {
                         return _.find(c.body, (part: BodyPartDefinition) => {
@@ -124,20 +125,20 @@ export function initRoomPrototype() {
                     fleeObjects = fleeObjects.concat(this.lairThreats);
                 }
 
-                Game.cache.fleeObjects[this.name] = fleeObjects;
+                Tick.cache.fleeObjects[this.name] = fleeObjects;
             }
 
-            return Game.cache.fleeObjects[this.name];
+            return Tick.cache.fleeObjects[this.name];
         },
     });
 
     Object.defineProperty(Room.prototype, "lairThreats", {
         get: function myProperty() {
-            if (!Game.cache.lairThreats[this.name]) {
-                Game.cache.lairThreats[this.name] = _.filter(this.findStructures(STRUCTURE_KEEPER_LAIR),
+            if (!Tick.cache.lairThreats[this.name]) {
+                Tick.cache.lairThreats[this.name] = _.filter(this.findStructures(STRUCTURE_KEEPER_LAIR),
                     (lair: StructureKeeperLair) => { return !lair.ticksToSpawn || lair.ticksToSpawn < 10; });
             }
-            return Game.cache.lairThreats[this.name];
+            return Tick.cache.lairThreats[this.name];
         },
     });
 }

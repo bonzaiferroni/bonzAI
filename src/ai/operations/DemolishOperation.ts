@@ -20,15 +20,17 @@ export class DemolishOperation extends Operation {
         this.priority = OperationPriority.Low
     }
 
-    public initOperation() {
+    public init() {
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
 
         this.addMission(new DemolishMission(this));
     }
 
-    public finalizeOperation() {
+    public refresh() { }
+
+    public finalize() {
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 }

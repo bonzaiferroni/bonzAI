@@ -32,7 +32,11 @@ export class RefillMission extends Mission {
         super(operation, "refill");
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
+        this.empties = undefined;
         this.emergencyMode = this.memory.cartsLastTick === 0;
     }
 
@@ -53,7 +57,7 @@ export class RefillMission extends Mission {
         this.memory.cartsLastTick = this.carts.length;
     }
 
-    public missionActions() {
+    public actions() {
 
         Profiler.start("refill.actions");
         for (let cart of this.emergencyCarts) {
@@ -129,9 +133,9 @@ export class RefillMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private findNearestEmpty(cart: Agent, pullTarget?: EnergyStructure): EnergyStructure {

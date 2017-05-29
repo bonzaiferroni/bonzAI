@@ -1,7 +1,7 @@
 import {SurveyMission} from "./SurveyMission";
 import {helper} from "../../helpers/helper";
 import {SpawnGroup} from "../SpawnGroup";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {Mission} from "./Mission";
 import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER} from "../WorldMap";
 import {Traveler} from "../Traveler";
@@ -49,7 +49,7 @@ export class SurveyAnalyzer {
                 this.placeFlag(room);
                 delete this.memory.chosenRoom;
                 if (Object.keys(this.memory.surveyRooms).length === 0) {
-                    notifier.log(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
+                    Notifier.log(`SURVEY: no more rooms to evaluate in ${this.room.name}`);
                 } else {
                     this.memory.nextAnalysis = Game.time + helper.randomInterval(1000);
                 }
@@ -188,7 +188,7 @@ export class SurveyAnalyzer {
                 },
             });
             if (ret.incomplete) {
-                notifier.log(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
+                Notifier.log(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
             }
 
             let distance = ret.path.length;
@@ -197,7 +197,7 @@ export class SurveyAnalyzer {
 
             // disqualify due to source distance
             if (cartsNeeded > data.sourceCount) {
-                notifier.log(`SURVEY: disqualified ${room.name} due to distance to source: ${cartsNeeded}`);
+                Notifier.log(`SURVEY: disqualified ${room.name} due to distance to source: ${cartsNeeded}`);
                 delete this.memory.surveyRooms[room.name];
                 return;
             }
@@ -316,7 +316,7 @@ export class SurveyAnalyzer {
         }
         let flagName = `${opType}_${opName}`;
         helper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
-        notifier.log(`SURVEY: created new operation in ${room.name}: ${flagName}`);
+        Notifier.log(`SURVEY: created new operation in ${room.name}: ${flagName}`);
         delete this.memory.surveyRooms[room.name];
     }
 }

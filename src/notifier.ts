@@ -1,10 +1,14 @@
-export const notifier = {
-    log(message: string) {
+export class Notifier {
+
+    public static exceptionCount: number;
+    public static tick: number;
+
+    public static log(message: string) {
         console.log(message);
         Memory.notifier.push({time: Game.time, earthTime: this.earthTime(-7), message: message});
-    },
+    }
 
-    review(limit = Number.MAX_VALUE, burnAfterReading = false) {
+    public static review(limit = Number.MAX_VALUE, burnAfterReading = false) {
         let messageCount = Memory.notifier.length;
 
         let count = 0;
@@ -34,9 +38,9 @@ export const notifier = {
         }
 
         return `viewing ${count} of ${messageCount} notifications`;
-    },
+    }
 
-    clear(term: string) {
+    public static clear(term: string) {
         if (term) {
             let initialCount = Memory.notifier.length;
             term = term.toLocaleLowerCase();
@@ -58,13 +62,28 @@ export const notifier = {
             Memory.notifier = [];
             return `removed ${count} messages;`;
         }
-    },
+    }
 
-    earthTime(timeZoneOffset: number): string {
+    public static earthTime(timeZoneOffset: number): string {
         let date = new Date();
         let hours = date.getHours() + timeZoneOffset; // my timezone offset
         if (hours < 0) { hours += 24; }
         return `${hours}:${date.getMinutes() > 9 ? date.getMinutes() : "0" + date.getMinutes()}:${
             date.getSeconds() > 9 ? date.getSeconds() : "0" + date.getSeconds() }`;
-    },
-};
+    }
+
+    public static reportException(e: any, phaseName: string, identifier?: string) {
+        if (this.tick !== Game.time) {
+            this.tick = Game.time;
+            this.exceptionCount = 0;
+        }
+
+        if (this.exceptionCount === 0) {
+            console.log(`NOTIFIER: error caught in ${phaseName} phase for ${identifier}`);
+            console.log(e.stack);
+        }
+        this.exceptionCount++;
+    }
+}
+
+global.Notifier = Notifier;

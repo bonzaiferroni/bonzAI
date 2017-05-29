@@ -2,7 +2,7 @@ import {Operation} from "./ai/operations/Operation";
 import {Mission} from "./ai/missions/Mission";
 import {Agent} from "./ai/agents/Agent";
 import {RoomHelper} from "./ai/RoomHelper";
-import {notifier} from "./notifier";
+import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
 
@@ -26,10 +26,10 @@ export var sandBox = {
         if (sandboxFlag) {
             let sandboxOp = new SandboxOperation(sandboxFlag, "sand0", "sandbox");
             global.sand0 = sandboxOp;
-            sandboxOp.init();
-            sandboxOp.roleCall();
-            sandboxOp.actions();
-            sandboxOp.finalize();
+            // sandboxOp.init();
+            // sandboxOp.roleCall();
+            // sandboxOp.actions();
+            // sandboxOp.finalize();
         }
 
         if (!Memory.temp.ranTest) {
@@ -138,35 +138,39 @@ function testSerialPos() {
 }
 
 class SandboxOperation extends Operation {
-    public initOperation() {
+    protected refresh() {
+    }
+    public init() {
         this.addMission(new SandboxMission(this, "sandbox"));
     }
 
-    public finalizeOperation() {
+    public finalize() {
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 
 }
 
 class SandboxMission extends Mission {
-    public initMission() {
+    protected init() {
+    }
+    public refresh() {
     }
 
     public roleCall() {
     }
 
-    public missionActions() {
+    public actions() {
         // this.squadTravelTest();
         // this.fleeByPathTest();
         this.fatigueTest();
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     public squadTravelTest() {

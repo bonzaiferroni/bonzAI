@@ -25,7 +25,10 @@ export class LairMission extends Mission {
         this.invaderGuru = invaderGuru;
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         if (!this.hasVision) { return; } // early
 
         this.lairs = this.findLairs();
@@ -58,7 +61,7 @@ export class LairMission extends Mission {
         // });
     }
 
-    public missionActions() {
+    public actions() {
         if (this.invaderGuru.invadersPresent) {
             let invaderKiller = this.findInvaderDuty();
             // if (!invaderKiller) { this.assignInvaderDuty(); }
@@ -81,10 +84,10 @@ export class LairMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private trapperActions(trapper: Agent) {
@@ -372,7 +375,7 @@ export class LairMission extends Mission {
             .min(hostileAgent => hostileAgent.pos.getRangeTo(agent));
         if (!(bestTarget instanceof Object)) {
             bestTarget = _(this.invaderGuru.invaders)
-                .min(hostileAgent => hostileAgent.pos.getRangeTo(agent))
+                .min(hostileAgent => hostileAgent.pos.getRangeTo(agent));
         }
         if (bestTarget instanceof Object) {
             return bestTarget;

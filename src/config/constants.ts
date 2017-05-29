@@ -21,6 +21,7 @@ export const LOADAMOUNT_MINERAL = Math.ceil(33 / 6);
 export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
 
 export enum OperationPriority { Emergency, OwnedRoom, VeryHigh, High, Medium, Low, VeryLow }
+
 export enum Direction {
     North = 1,
     NorthEast = 2,

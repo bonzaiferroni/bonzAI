@@ -1,99 +1,107 @@
-import {loopHelper} from "./helpers/loopHelper";
+import {GrafanaStats} from "./helpers/GrafanaStats";
 import {initPrototypes} from "./prototypes/initPrototypes";
 import {sandBox} from "./sandbox";
 import {Profiler} from "./Profiler";
 import {TimeoutTracker} from "./TimeoutTracker";
-import {empire} from "./ai/Empire";
+import {Empire} from "./ai/Empire";
 import {Viz} from "./helpers/Viz";
 import {Patcher} from "./Patcher";
+import {Operation, OperationPriorityMap} from "./ai/operations/Operation";
+import {OperationFactory} from "./ai/operations/OperationFactory";
+import {Tick} from "./Tick";
 
-loopHelper.initMemory();
-initPrototypes();
-empire.initGlobal();
+/* _____ init phase - instantiate operations _____ */
+// init game.cache
 
-console.log(`Global Refresh CPU: ${Game.cpu.getUsed()}`);
-try { loopHelper.initConsoleCommands(); } catch (e) { console.log("error loading console commands:\n", e.stack); }
+let empire: Empire;
+let operations: OperationPriorityMap;
+try {
+    Tick.init();
+    initPrototypes();
 
+    empire = Empire.init();
+    // scan flags for operations and instantiate
+    operations = OperationFactory.getOperations();
+    Operation.init(operations);
+
+    // report cpu
+    console.log(`Global Refresh CPU: ${Game.cpu.getUsed()}`);
+
+} catch (e) { console.log("error during init phase:\n", e.stack); }
+
+// MAIN LOOP
 module.exports.loop = function () {
-    // console.log("beginning of loop");
-    Game.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
-        activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0, exceptionCount: 0};
-    Game.temp = {};
 
-    // profile memory parsing
-    let cpu = Game.cpu.getUsed();
-    if (Memory) { }
-    let result = Game.cpu.getUsed() - cpu;
-    Profiler.resultOnly("mem", result);
+    // _____ refresh phase - update operations with game state _____
 
-    if (Patcher.checkPatch()) { return; }
+    try {
+        Tick.refresh();
+        // profile memory parsing
+        let cpu = Game.cpu.getUsed();
+        if (Memory) { }
+        let result = Game.cpu.getUsed() - cpu;
+        Profiler.resultOnly("mem", result);
 
-    // TimeoutTracker - Diagnoses CPU timeouts
-    try { TimeoutTracker.init(); } catch (e) { console.log("error initializing TimeoutTracker:\n", e.stack); }
+        // reinitialize if flagcount is different (new operations might have been placed)
+        operations = OperationFactory.refreshOperations(operations);
 
-    // Init phase - Information is gathered about the game state and game objects instantiated
-    TimeoutTracker.log("init");
+        // patch memory or game state from earlier versions of bonzAI
+        if (Patcher.checkPatch()) { return; }
+
+        // init utilities
+        TimeoutTracker.init();
+        TimeoutTracker.log("init"); // TODO: change to "refresh" once you get comparison data
+
+        empire.refresh();
+    } catch (e) { console.log("error refreshObjects phase:\n", e.stack); }
+
     Profiler.start("init");
-    loopHelper.initEmpire();
-    let operations = loopHelper.getOperations(empire);
-    for (let operation of operations) { operation.init(); }
+    Operation.refresh(operations);
     Profiler.end("init");
 
-    // RoleCall phase - Find creeps belonging to missions and spawn any additional needed.
+    // _____ roleCall phase - Find creeps belonging to missions and spawn any additional needed _____
     TimeoutTracker.log("roleCall");
     Profiler.start("roleCall");
-    for (let operation of operations) { operation.roleCall(); }
+    Operation.roleCall(operations);
     Profiler.end("roleCall");
 
-    // Actions phase - Actions that change the game state are executed in this phase.
+    // _____ actions phase - Actions that change the game state are executed in this phase _____
     TimeoutTracker.log("actions");
     Profiler.start("actions");
-    for (let operation of operations) { operation.actions(); }
+    Operation.actions(operations);
     Profiler.end("actions");
 
-    // Finalize phase - Code that needs to run post-actions phase
+    // _____ finalize phase - Code that needs to run post-actions phase _____
     TimeoutTracker.log("finalize");
-    for (let operation of operations) { operation.invalidateCache(); }
     Profiler.start("finalize");
-    for (let operation of operations) { operation.finalize(); }
+    Operation.finalize(operations);
     Profiler.end("finalize");
 
-    if (Game.cache.exceptionCount > 0) {
-        console.log(`Exceptions this tick: ${Game.cache.exceptionCount}`);
-    }
+    // _____ invalidate phase - happens once very 100 ticks on average, garbage collection and misc _____
 
-    if (Game.cache.bypassCount > 0) {
-        console.log(`BYPASS: ${Game.cache.bypassCount}`);
-    }
+    Operation.invalidateCache(operations);
 
-    // post-operation actions and utilities
+    // _____ post-operation actions and utilities _____
 
-    Profiler.start("postOperations");
-    try { empire.actions(); } catch (e) { console.log("error with empire actions\n", e.stack); }
-    try { loopHelper.scavangeResources(); } catch (e) { console.log("error scavanging:\n", e.stack); }
-    try { loopHelper.sendResourceOrder(empire); } catch (e) { console.log("error reporting transactions:\n", e.stack); }
-    try { loopHelper.garbageCollection(); } catch (e) { console.log("error during garbage collection:\n", e.stack ); }
-    Profiler.end("postOperations");
-    try { sandBox.run(); } catch (e) { console.log("error loading sandbox:\n", e.stack ); }
-    try { Profiler.finalize(); } catch (e) { console.log("error checking Profiler:\n", e.stack); }
-    try { loopHelper.grafanaStats(empire); } catch (e) { console.log("error reporting stats:\n", e.stack); }
-    try { TimeoutTracker.finalize(); } catch (e) { console.log("error finalizing TimeoutTracker:\n", e.stack); }
-    try { Viz.maintain(); } catch (e) { console.log("error with Viz:\n", e.stack); }
+    try {
 
-    if (!Memory.temp.timeout) {
-        Memory.temp.timeout = Game.time + 1;
-        console.log("scheduling timeout");
-    }
-
-    if (Memory.temp.timeout === Game.time) {
-        console.log("building array");
-        let array = [];
-        for (let i = 0; i < 100000; i++) {
-            array.push(Memory);
+        if (Tick.cache.exceptionCount > 0) {
+            console.log(`Exceptions this tick: ${Tick.cache.exceptionCount}`);
         }
-        console.log("stringify it!");
-        JSON.stringify(array);
-    }
+
+        if (Tick.cache.bypassCount > 0) {
+            console.log(`BYPASS: ${Tick.cache.bypassCount}`);
+        }
+
+        Profiler.start("postOperations");
+        empire.actions();
+        sandBox.run();
+        Viz.maintain();
+        Profiler.end("postOperations");
+        Profiler.finalize();
+        GrafanaStats.run(empire);
+        TimeoutTracker.finalize();
+    } catch (e) { console.log("error during post-operations phase\n", e.stack); }
 
     // console.log(`end of loop, time: ${Game.time}, cpu ${Game.cpu.getUsed()}`);
 };

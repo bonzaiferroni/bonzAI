@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "../agents/Agent";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {PathMission} from "./PathMission";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {empire} from "../Empire";
@@ -22,6 +22,7 @@ export class MiningMission extends Mission {
     private miners: Agent[];
     private minerCarts: Agent[];
     private source: Source;
+    private sourceId: string;
     private container: StructureContainer;
     private storage: StructureStorage;
     private remoteSpawning: boolean;
@@ -39,7 +40,7 @@ export class MiningMission extends Mission {
 
     constructor(operation: Operation, name: string, source: Source, remoteSpawning = false) {
         super(operation, name);
-        this.source = source;
+        this.sourceId = source.id;
         this.remoteSpawning = remoteSpawning;
     }
 
@@ -58,8 +59,13 @@ export class MiningMission extends Mission {
         }
     }
 
-    // return-early
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
+        if (!this.hasVision) { return; }
+        this.source = Game.getObjectById<Source>(this.sourceId);
+        if (!this.source) { console.log(this.operation.roomName)}
         this.container = this.findContainer();
         this.storage = this.findMinerStorage();
         this.initPathMission();
@@ -106,7 +112,7 @@ export class MiningMission extends Mission {
             {prespawn: this.analysis.distance, memory: memory});
     }
 
-    public missionActions() {
+    public actions() {
 
         let order = 0;
         for (let miner of this.miners) {
@@ -119,8 +125,8 @@ export class MiningMission extends Mission {
         }
     }
 
-    public finalizeMission() { }
-    public invalidateMissionCache() {
+    public finalize() { }
+    public invalidateCache() {
         this.memory.transportAnalysis = undefined;
     }
 
@@ -342,7 +348,7 @@ export class MiningMission extends Mission {
             },
         });
         if (ret.incomplete || ret.path.length === 0) {
-            notifier.log(`path used for container placement in ${this.operation.name} incomplete, please investigate`);
+            Notifier.log(`path used for container placement in ${this.operation.name} incomplete, please investigate`);
         }
 
         let position = ret.path[0];
@@ -399,31 +405,30 @@ export class MiningMission extends Mission {
     }
 
     private initPathMission() {
-        if (this.container) {
-            let startingPosition: {pos: RoomPosition} = this.storage;
-            if (!startingPosition) {
-                startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+        if (!this.container) { return; }
+
+        let startingPosition: {pos: RoomPosition} = this.storage;
+        if (!startingPosition) {
+            startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+        }
+        if (!startingPosition) {
+            startingPosition = this.room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES,
+                {filter: ( (s: ConstructionSite) => s.structureType === STRUCTURE_SPAWN)})[0];
+        }
+        if (startingPosition) {
+            if (Game.map.getRoomLinearDistance(startingPosition.pos.roomName, this.container.pos.roomName) > 2) {
+                console.log(`path too long for miner in ${this.operation.name}`);
+                return;
             }
-            if (!startingPosition) {
-                startingPosition = this.room.find<ConstructionSite>(FIND_CONSTRUCTION_SITES,
-                    {filter: ( (s: ConstructionSite) => s.structureType === STRUCTURE_SPAWN)})[0];
-            }
-            if (startingPosition) {
-                if (Game.map.getRoomLinearDistance(startingPosition.pos.roomName, this.container.pos.roomName) > 2) {
-                    console.log(`path too long for miner in ${this.operation.name}`);
-                    return;
-                }
-                this.pathMission = new PathMission(this.operation, this.name + "Path", {
-                    start: startingPosition,
-                    end: this.container,
-                    rangeToEnd: 1,
-                });
-                this.pathMission.initMission();
-                this.operation.addMission(this.pathMission);
-                let distance = this.pathMission.distance;
-                if (distance) {
-                    this.memory.distanceToStorage = distance;
-                }
+            this.pathMission = new PathMission(this.operation, this.name + "Path", {
+                start: startingPosition,
+                end: this.container,
+                rangeToEnd: 1,
+            });
+            this.operation.addMissionLate(this.pathMission);
+            let distance = this.pathMission.distance;
+            if (distance) {
+                this.memory.distanceToStorage = distance;
             }
         }
     }

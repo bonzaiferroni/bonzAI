@@ -4,13 +4,14 @@ import {OperationPriority} from "../../config/constants";
 import {ZombieMission} from "../missions/ZombieMission";
 import {RaidGuru} from "../missions/RaidGuru";
 export class ZombieOperation extends Operation {
+    private raidGuru: RaidGuru;
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.High;
     }
 
-    public initOperation() {
+    public init() {
         this.initRemoteSpawn(4, 8);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
@@ -19,15 +20,18 @@ export class ZombieOperation extends Operation {
         }
 
         if (!this.spawnGroup) { return; }
-        let raidGuru = new RaidGuru(this);
-        raidGuru.init(this.flag.pos.roomName, true);
-        this.addMission(new ZombieMission(this, raidGuru));
+        this.raidGuru = new RaidGuru(this);
+        this.addMission(new ZombieMission(this, this.raidGuru));
     }
 
-    public finalizeOperation() {
+    public refresh() {
+        this.raidGuru.refreshGuru(this.roomName, true);
     }
 
-    public invalidateOperationCache() {
+    public finalize() {
+    }
+
+    public invalidateCache() {
     }
 
 }

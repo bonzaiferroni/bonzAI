@@ -515,8 +515,8 @@ export class Traveler {
 // uncomment this to have an instance of traveler available through import
 export const traveler = new Traveler();
 
-// uncomment to assign an instance to global
-// global.traveler = new Traveler();
+// uncomment to assign an instance to init
+// init.traveler = new Traveler();
 
 // uncomment this block to assign a function to Creep.prototype: creep.travelTo(destination)
 /*

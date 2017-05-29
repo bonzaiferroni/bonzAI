@@ -33,7 +33,7 @@ export class ConquestOperation extends Operation {
         this.priority = OperationPriority.Medium;
     }
 
-    public initOperation() {
+    public init() {
         this.findOperationWaypoints();
         if (!this.memory.spawnRoom) {
             if (Game.time % 3 === 0) {
@@ -104,10 +104,12 @@ export class ConquestOperation extends Operation {
         this.addMission(new DefenseMission(this));
     }
 
-    public finalizeOperation() {
+    public refresh() { }
+
+    public finalize() {
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 
 }

@@ -1,22 +1,39 @@
 declare var module: any;
 declare var global: any;
 
-interface Game {
-    cache: {
-        structures: { [roomName: string]: {[structureType: string]: Structure[]} },
-        hostiles: { [roomName: string]: Creep[] },
-        hostilesAndLairs: { [roomName: string]: RoomObject[] }
-        lairThreats: { [roomName: string]: StructureKeeperLair[] }
-        fleeObjects: { [roomName: string]: RoomObject[] }
-        mineralCount: { [mineralType: string]: number }
-        labProcesses: { [resourceType: string]: number }
-        activeLabCount: number;
-        placedRoad: boolean;
-        bypassCount: number;
-        exceptionCount: number;
-    };
-    operations: {[opName: string]: any };
+interface Memory {
+    rooms: {[roomName: string]: RoomMemory };
     temp: any;
+    stats: any;
+    roomAttacks: any;
+    hostileMemory: any;
+    empire: any;
+    strangerDanger: {[username: string]: StrangerReport[] };
+    traders: {[username: string]: { [resourceType: string]: number; }};
+    resourceOrder: {[time: number]: ResourceOrder};
+    playerConfig: {
+        terminalNetworkRange: number;
+        enableStats: boolean;
+        muteSpawn: boolean;
+        creditReserveAmount: number;
+        powerMinimum: number;
+    };
+    profiler: {[identifier: string]: ProfilerData };
+    notifier: {
+        time: number,
+        earthTime: string,
+        message: string,
+    }[];
+    powerObservers: {[scanningRoomName: string]: {[roomName: string]: number}};
+    cpu: {
+        history: number[];
+        average: number;
+    };
+    nextGC: number;
+    gameTimeLastTick: number;
+    viz: {[tick: number]: any };
+    version: number;
+    flagCount: number;
 }
 
 interface Room {
@@ -121,41 +138,6 @@ interface CreepMemory {
     boosts: string[];
     inPosition: boolean;
     scavanger: string;
-}
-
-interface Memory {
-    // we can add any properties we intend to use here, instead of making Memory of type any
-    temp: any;
-    strangerDanger: {[username: string]: StrangerReport[] };
-    stats: any;
-    traders: {[username: string]: { [resourceType: string]: number; }};
-    resourceOrder: {[time: number]: ResourceOrder};
-    playerConfig: {
-        terminalNetworkRange: number;
-        enableStats: boolean;
-        muteSpawn: boolean;
-        creditReserveAmount: number;
-        powerMinimum: number;
-    };
-    empire: any;
-    profiler: {[identifier: string]: ProfilerData };
-    notifier: {
-        time: number,
-        earthTime: string,
-        message: string,
-    }[];
-    roomAttacks: any;
-    powerObservers: {[scanningRoomName: string]: {[roomName: string]: number}};
-    cpu: {
-        history: number[];
-        average: number;
-    };
-    rooms: {[roomName: string]: RoomMemory };
-    hostileMemory: any;
-    nextGC: number;
-    gameTimeLastTick: number;
-    viz: {[tick: number]: any };
-    version: number;
 }
 
 interface ProfilerData {

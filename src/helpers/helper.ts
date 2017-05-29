@@ -1,5 +1,7 @@
 import {PowerFlagScan, Coord} from "../interfaces";
 import {Viz} from "./Viz";
+import {Tick} from "../Tick";
+
 export var helper = {
     getStoredAmount(target: any, resourceType: string) {
         if (target instanceof Creep) {
@@ -135,8 +137,8 @@ export var helper = {
     },
 
     showMatrix(matrix: CostMatrix, roomName: string, maxValue = 255, consoleReport = false) {
-        if (!Game.temp.showMatrix) { Game.temp.showMatrix = {}; }
-        if (Game.temp.showMatrix[roomName]) {
+        if (!Tick.temp.showMatrix) { Tick.temp.showMatrix = {}; }
+        if (Tick.temp.showMatrix[roomName]) {
             return;
         }
 
@@ -163,7 +165,7 @@ export var helper = {
             }
         }
 
-        Game.temp.showMatrix[roomName] = true;
+        Tick.temp.showMatrix[roomName] = true;
     },
 
     coordToPosition(coord: Coord, centerPosition: RoomPosition, rotation = 0) {
@@ -299,3 +301,6 @@ export var helper = {
         return interval + Math.floor((Math.random() - .5) * interval * .2);
     },
 };
+
+// make available through console
+global.helper = helper;

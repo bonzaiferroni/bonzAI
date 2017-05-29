@@ -1,5 +1,5 @@
 import {LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LAYOUT_SEGMENTID, LayoutType} from "./ai/layouts/Layout";
-import {Mem} from "./helpers/Mem";
+import {MemHelper} from "./helpers/MemHelper";
 import {helper} from "./helpers/helper";
 export class Patcher {
 
@@ -77,7 +77,7 @@ export class Patcher {
                             .map(x => helper.coordToPosition(x, currentFlag.memory.centerPosition,
                                 currentFlag.memory.rotation))
                             .value();
-                        flexMap[structureType] = Mem.serializeIntPositions(positions);
+                        flexMap[structureType] = MemHelper.serializeIntPositions(positions);
                     }
 
                     if (!flexMap) {

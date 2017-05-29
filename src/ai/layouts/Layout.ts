@@ -1,5 +1,5 @@
 import {BuildingPlannerData} from "../../interfaces";
-import {Mem} from "../../helpers/Mem";
+import {MemHelper} from "../../helpers/MemHelper";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {empire} from "../Empire";
 
@@ -12,9 +12,7 @@ export abstract class Layout {
     protected rotation: number;
     protected tempMap: {[controllerLevel: number]: PositionMap };
     protected data: LayoutData;
-    protected structureCache: {[structureType: string]: Structure[]} = {};
-
-    protected static mapCache: {[roomName: string]: PositionMap} = {};
+    protected structureCache: {[structureType: string]: Structure[]};
 
     constructor(roomName: string, data: LayoutData) {
         this.roomName = roomName;
@@ -24,25 +22,26 @@ export abstract class Layout {
     }
 
     public init(): boolean {
-        if (!Layout.mapCache[this.roomName]) {
-            if (!this.data.flex) {
-                let generating = this.generateFlex();
-                if (generating) {
-                    console.log(`LAYOUT: generating flex map in ${this.roomName}`);
-                    return;
-                }
+        if (!this.data.flex) {
+            let generating = this.generateFlex();
+            if (generating) {
+                console.log(`LAYOUT: generating flex map in ${this.roomName}`);
+                return;
             }
-
-            let flexMaps = empire.archiver.globalGet(LAYOUT_SEGMENTID);
-            if (!flexMaps) {
-                console.log(`ordering layout segment in ${this.roomName}`);
-                return false;
-            }
-
-            Layout.mapCache[this.roomName] = this.findMap(flexMaps[this.roomName]);
         }
-        this.map = Layout.mapCache[this.roomName];
+
+        let flexMaps = empire.archiver.globalGet(LAYOUT_SEGMENTID);
+        if (!flexMaps) {
+            console.log(`ordering layout segment in ${this.roomName}`);
+            return false;
+        }
+
+        this.map = this.findMap(flexMaps[this.roomName]);
         return true;
+    }
+
+    public refresh() {
+        this.structureCache = {};
     }
 
     public findFixedMap(): PositionMap {
@@ -160,7 +159,7 @@ export abstract class Layout {
         if (!serializedPositions) {
             return;
         }
-        return Mem.deserializeIntPositions(serializedPositions, this.roomName);
+        return MemHelper.deserializeIntPositions(serializedPositions, this.roomName);
     }
 
     protected tempPositions(structureType: string): RoomPosition[] {

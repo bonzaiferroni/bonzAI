@@ -11,78 +11,72 @@ export class GeologyMission extends Mission {
     private geologists: Agent[];
     private carts: Agent[];
     private repairers: Agent[];
-    private paver: Agent;
     private mineral: Mineral;
-    private store: StructureStorage | StructureTerminal;
+    private store: StoreStructure;
     private analysis: TransportAnalysis;
     private container: StructureContainer;
+    private extractorId: string;
+    private activated: boolean;
 
     public memory: {
         distanceToStorage: number;
         distanceToSpawn: number;
-        builtExtractor: boolean;
-        bestBody: string[];
-        roadRepairIds: string[];
-        storageId: string;
         transportAnalysis: TransportAnalysis;
         containerPosition: RoomPosition;
         cartWaitPosition: RoomPosition;
+        partsCount: {[partType: string]: number};
+        travelTime: number;
+        containerId: string;
     };
 
-    constructor(operation: Operation, storeStructure?: StructureStorage | StructureTerminal) {
+    constructor(operation: Operation) {
         super(operation, "geology");
-        this.store = storeStructure;
     }
 
-    public initMission() {
+    public init() {
+        this.mineralStats();
         if (!this.hasVision) { return; }
+        this.calculateBestBody();
+        this.mineral = this.operation.mineral;
+        let extractor = this.mineral.pos.lookForStructure(STRUCTURE_EXTRACTOR);
+        if (extractor) {
+            this.extractorId = extractor.id;
+        } else {
+            this.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
+            return;
+        }
+        this.distanceToSpawn = this.findDistanceToSpawn(this.mineral.pos);
+        this.initPathMission();
+    }
 
-        this.mineral = this.room.find<Mineral>(FIND_MINERALS)[0];
+    public addStore(store: StoreStructure) {
+        this.store = store;
+    }
+
+    public refresh() {
+        if (!this.hasVision) { return; }
+        this.mineral = this.operation.mineral;
         if (!this.store) {
             this.store = this.getStorage(this.mineral.pos);
         }
         if (!this.store) { return; }
-        this.mineralStats();
 
-        if ((!this.room.controller || this.room.controller.level >= 7) && !this.memory.builtExtractor) {
-            let extractor = this.mineral.pos.lookForStructure(STRUCTURE_EXTRACTOR);
-            if (!extractor) {
-                this.mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR);
-            }
-            this.memory.builtExtractor = true;
-        }
+        this.activated = this.findIfActive();
 
-        this.distanceToSpawn = this.findDistanceToSpawn(this.mineral.pos);
-
-        if (!this.memory.bestBody) {
-            this.memory.bestBody = this.calculateBestBody();
-        }
-
-        this.initPathMission();
-
-        if (this.mineral.mineralAmount === 0 && this.mineral.ticksToRegeneration > 1000 &&
-            this.mineral.ticksToRegeneration < MINERAL_REGEN_TIME - 1000) {
-            return; // early
-        }
-
-        this.container = this.mineral.findMemoStructure(STRUCTURE_CONTAINER, 1) as StructureContainer;
-        if (!this.container && this.memory.builtExtractor &&
-            (this.mineral.ticksToRegeneration < 1000 || this.mineral.mineralAmount > 0)) {
-            this.buildContainer();
-        }
+        this.container = this.findContainer();
         this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
     }
 
     private geoBody = () => {
-        if (this.room.controller && this.room.controller.my) {
-            return this.memory.bestBody;
+        if (this.room.controller) {
+            return this.workerBody(this.memory.partsCount[WORK], 0, this.memory.partsCount[MOVE]);
         } else {
             return this.workerBody(33, 0, 17);
         }
     };
 
     private getMaxGeo = () => {
-        if (this.hasVision && this.container && this.mineral.mineralAmount > 0 && this.memory.builtExtractor) {
+        if (this.activated && this.container) {
             return 1;
         } else {
             return 0;
@@ -109,7 +103,7 @@ export class GeologyMission extends Mission {
         this.repairers = this.headCount("repairer", () => this.workerBody(5, 15, 10), this.getMaxRepairers);
     }
 
-    public missionActions() {
+    public actions() {
         for (let geologist of this.geologists) {
             this.geologistActions(geologist);
         }
@@ -127,23 +121,24 @@ export class GeologyMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
         if (Math.random() < .01) {
-            this.memory.storageId = undefined;
             this.memory.transportAnalysis = undefined;
             this.memory.distanceToStorage = undefined;
-            this.memory.builtExtractor = undefined;
             this.memory.distanceToSpawn = undefined;
         }
     }
 
     private calculateBestBody() {
+        if (this.memory.partsCount) { return; }
+        this.memory.partsCount = {};
         let bestMineAmount = 0;
         let bestMovePartsCount = 0;
         let bestWorkPartsCount = 0;
+        let bestTravelTime: number;
 
         for (let i = 1; i < 50; i++) {
             let movePartsCount = i;
@@ -156,11 +151,15 @@ export class GeologyMission extends Mission {
 
             if (mineAmount > bestMineAmount) {
                 bestMineAmount = mineAmount;
+                bestTravelTime = travelTime;
                 bestMovePartsCount = movePartsCount;
                 bestWorkPartsCount = workPartsCount;
             }
         }
 
+        this.memory.partsCount[WORK] = bestWorkPartsCount;
+        this.memory.partsCount[MOVE] = bestMovePartsCount;
+        this.memory.travelTime = bestTravelTime;
         return this.workerBody(bestWorkPartsCount, 0, bestMovePartsCount);
     }
 
@@ -242,16 +241,35 @@ export class GeologyMission extends Mission {
         }
     }
 
-    private buildContainer() {
-        if (this.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length === 0) {
-            let ret = empire.traveler.findTravelPath(this.mineral, this.store);
-            if (ret.incomplete) {
-                console.log(`MINER: bad path for finding container position ${this.flag.pos.roomName}`);
-                return;
+    private findContainer() {
+        if (!this.activated) { return; }
+
+        if (this.memory.containerId) {
+            let container = Game.getObjectById<StructureContainer>(this.memory.containerId);
+            if (container) {
+                return container;
+            } else {
+                this.memory.containerId = undefined;
+                return this.findContainer();
             }
-            console.log("GEO: building container in", this.operation.name);
-            ret.path[0].createConstructionSite(STRUCTURE_CONTAINER);
+        } else {
+            let container = this.mineral.pos.findInRange<StructureContainer>(
+                this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER), 1)[0];
+            if (container) {
+                this.memory.containerId = container.id;
+                return container;
+            }
         }
+
+        if (this.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) { return; }
+
+        let ret = empire.traveler.findTravelPath(this.mineral, this.store);
+        if (ret.incomplete) {
+            console.log(`MINER: bad path for finding container position ${this.flag.pos.roomName}`);
+            return;
+        }
+        console.log("GEO: building container in", this.operation.name);
+        ret.path[0].createConstructionSite(STRUCTURE_CONTAINER);
     }
 
     private cartActions(cart: Agent) {
@@ -331,22 +349,29 @@ export class GeologyMission extends Mission {
     }
 
     private mineralStats() {
-        if (!Game.cache[this.mineral.mineralType]) { Game.cache[this.mineral.mineralType] = 0; }
-        Game.cache[this.mineral.mineralType]++;
+        // TODO: refactor mineralstats to work in global
+        // if (!Game.cache[this.operation.mineral.mineralType]) { Game.cache[this.operation.mineral.mineralType] = 0; }
+        // Game.cache[this.mineral.mineralType]++;
     }
 
     private initPathMission() {
-        if (this.memory.builtExtractor) {
-            let pathMission = new PathMission(this.operation, this.name + "Path", {
-                start: this.store,
-                end: this.mineral,
-                rangeToEnd: 2,
-            });
-            pathMission.initMission();
-            this.operation.addMission(pathMission);
-            if (pathMission.distance) {
-                this.memory.distanceToStorage = pathMission.distance;
-            }
+        if (!this.store) { return; }
+
+        let pathMission = new PathMission(this.operation, this.name + "Path", {
+            start: this.store,
+            end: this.mineral,
+            rangeToEnd: 2,
+        });
+        this.operation.addMissionLate(pathMission);
+        if (pathMission.distance) {
+            this.memory.distanceToStorage = pathMission.distance;
         }
     }
+
+    private findIfActive() {
+        return this.mineral.mineralAmount > 0 || this.mineral.ticksToRegeneration < 1000
+            || this.mineral.ticksToRegeneration > MINERAL_REGEN_TIME - 1000;
+    }
 }
+
+type StoreStructure = StructureTerminal | StructureContainer | StructureStorage;

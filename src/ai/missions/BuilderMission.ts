@@ -39,7 +39,10 @@ export class BuilderMission extends Mission {
         this.activateBoost = activateBoost;
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         if (this.room !== this.spawnGroup.room) {
             this.remoteSpawn = true;
         }
@@ -117,7 +120,7 @@ export class BuilderMission extends Mission {
             {prespawn: this.memory.prespawn, memory: cartMemory });
     }
 
-    public missionActions() {
+    public actions() {
         for (let builder of this.builders) {
             this.builderActions(builder);
         }
@@ -127,10 +130,10 @@ export class BuilderMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
         this.memory.transportAnalysis = undefined;
         if (Math.random() < 0.01) { this.memory.maxHitsToBuild = undefined; }
     }

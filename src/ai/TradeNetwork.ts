@@ -22,7 +22,7 @@ export class TradeNetwork {
         this.memory = Memory.empire;
     }
 
-    public init() {
+    public refresh() {
         this.terminals = [];
         this.storages = [];
         this.shortages = {};
@@ -37,6 +37,7 @@ export class TradeNetwork {
         this.observeTradeRoom();
         this.tradeMonkey();
         this.reportTransactions();
+        this.sendResourceOrder();
     }
 
     // should only be accessed after Init()
@@ -118,7 +119,7 @@ export class TradeNetwork {
 
     /**
      * Used to determine whether there is an abundance of a given resource type among all terminals.
-     * Should only be used after init() phase
+     * Should only be used after refreshObjects() phase
      * @param resourceType
      * @param amountPerRoom - specify how much per missionRoom you consider an abundance, default is SURPLUS_AMOUNT
      */
@@ -145,7 +146,7 @@ export class TradeNetwork {
         let mostToSpare = _(underReserve)
             .filter(x => x.store[boostType] >= 100)
             .max(x => x.store[boostType]);
-        if (!mostToSpare || !(mostToSpare instanceof Object)) {
+        if (!mostToSpare || _.isNumber(mostToSpare)) {
             console.log(`NETWORK: no ${boostType} available to send to ${roomName}`);
         }
 
@@ -361,6 +362,51 @@ export class TradeNetwork {
     }
 
     protected processTransaction(item: Transaction) { } // overridden in BonzaiNetwork
+
+    protected sendResourceOrder() {
+        if (!Memory.resourceOrder) {
+            Memory.resourceOrder = {};
+        }
+        for (let timeStamp in Memory.resourceOrder) {
+            let order = Memory.resourceOrder[timeStamp];
+            if (!order.efficiency) { order.efficiency = 1; }
+            if (!order || order.roomName === undefined || order.amount === undefined) {
+                console.log("problem with order:", JSON.stringify(order));
+                return;
+            }
+            if (!order.amountSent) {
+                order.amountSent = 0;
+            }
+
+            let sortedTerminals = _.sortBy(this.terminals, (t: StructureTerminal) =>
+                Game.map.getRoomLinearDistance(order.roomName, t.room.name)) as StructureTerminal[];
+
+            let count = 0;
+            for (let terminal of sortedTerminals) {
+                if (terminal.room.name === order.roomName) { continue; }
+                if (terminal.store[order.resourceType] >= RESERVE_AMOUNT + 1000) {
+                    let amount = Math.min(1000, order.amount - order.amountSent);
+                    if (amount <= 0) {
+                        break;
+                    }
+                    let msg = order.resourceType + " delivery: " + (order.amountSent + amount) + "/" + order.amount;
+                    let outcome = terminal.send(order.resourceType, amount, order.roomName, msg);
+                    if (outcome === OK) {
+                        order.amountSent += amount;
+                        console.log(msg);
+                    }
+
+                    count++;
+                    if (count === order.efficiency) { break; }
+                }
+            }
+
+            if (order.amountSent === order.amount) {
+                console.log("finished sending mineral order: " + order.resourceType);
+                Memory.resourceOrder[timeStamp] = undefined;
+            }
+        }
+    }
 }
 
 // these are the constants that govern your energy balance

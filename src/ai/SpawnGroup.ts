@@ -29,7 +29,14 @@ export class SpawnGroup {
         this.roomName = roomName;
     }
 
-    public initGlobal() {
+    public static init(spawnGroups: {[roomName: string]: SpawnGroup}) {
+        for (let roomName in spawnGroups) {
+            let spawnGroup = spawnGroups[roomName];
+            spawnGroup.init();
+        }
+    }
+
+    public init() {
         this.room = Game.rooms[this.roomName];
         this.initMemory();
         let spawns = _(this.room.find<StructureSpawn>(FIND_MY_SPAWNS))
@@ -39,18 +46,36 @@ export class SpawnGroup {
         this.pos = _.head(spawns).pos;
     }
 
-    public init(): boolean {
+    public static refresh(spawnGroups: {[roomName: string]: SpawnGroup}) {
+        for (let roomName in spawnGroups) {
+            let spawnGroup = spawnGroups[roomName];
+            let invalid = spawnGroup.refresh();
+            if (invalid) {
+                delete spawnGroups[roomName];
+            }
+        }
+    }
+
+    /**
+     * @returns invalid {boolean}
+     */
+
+    public refresh(): boolean {
         this.room = Game.rooms[this.roomName];
-        if (!this.room) { return false; }
+        if (!this.room) { return true; } // lost vision since it was instantiated
         this.initMemory();
         this.currentSpawnEnergy = this.room.energyAvailable;
         this.maxSpawnEnergy = this.room.energyCapacityAvailable;
-
         this.manageSpawnLog();
         this.initSpawns();
         this.isAvailable = this.availabilityCheck();
         this.refillEfficiency = this.findRefillEfficiency();
-        return true;
+    }
+
+    public static finalize(spawnGroups: {[roomName: string]: SpawnGroup}) {
+        for (let roomName in spawnGroups) {
+            spawnGroups[roomName].finalize();
+        }
     }
 
     private initMemory() {

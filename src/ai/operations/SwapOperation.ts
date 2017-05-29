@@ -6,20 +6,26 @@ import {LayoutBuilder} from "../layouts/LayoutBuilder";
 import {ScoutMission} from "../missions/ScoutMission";
 export class SwapOperation extends Operation {
     public layout: Layout;
+    private builder: LayoutBuilder;
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.Low;
     }
 
-    public initOperation() {
+    public init() {
         this.autoLayout();
     }
 
-    public finalizeOperation() {
+    public refresh() {
+        if (!this.layout) { return; }
+        this.builder.build();
     }
 
-    public invalidateOperationCache() {
+    public finalize() {
+    }
+
+    public invalidateCache() {
     }
 
     private autoLayout() {
@@ -38,7 +44,6 @@ export class SwapOperation extends Operation {
         if (!initilized) { return; }
         this.layout = layout;
 
-        let builder = new LayoutBuilder(layout, this.room);
-        builder.build();
+        this.builder = new LayoutBuilder(layout, this.room);
     }
 }

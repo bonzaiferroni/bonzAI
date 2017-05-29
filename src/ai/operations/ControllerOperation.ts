@@ -31,13 +31,15 @@ import {FlexMap, Layout, LAYOUT_SEGMENTID, LayoutData, LayoutType, Vector2} from
 import {LayoutBuilder} from "../layouts/LayoutBuilder";
 import {LayoutDisplay} from "../layouts/LayoutDisplay";
 import {LayoutFactory} from "../layouts/LayoutFactory";
-import {Mem} from "../../helpers/Mem";
+import {MemHelper} from "../../helpers/MemHelper";
 import {BaseRepairMission} from "../missions/BaseRepairMission";
 import {Profiler} from "../../Profiler";
 
 export class ControllerOperation extends Operation {
 
     public layout: Layout;
+    private defenseGuru: DefenseGuru;
+    private builder: LayoutBuilder;
 
     public memory: {
         radius: number
@@ -49,15 +51,12 @@ export class ControllerOperation extends Operation {
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.OwnedRoom;
-        if (this.flag.room && this.flag.room.controller.level < 6) {
-            this.priority = OperationPriority.VeryHigh;
-        }
     }
 
-    public initOperationGlobal() {
+    public init() {
 
         this.autoLayout();
-        this.spawnGroup = empire.getSpawnGroup(this.flag.pos.roomName);
+        this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
         this.initRemoteSpawn(8, 8);
 
         let remoteSpawning = false;
@@ -92,7 +91,7 @@ export class ControllerOperation extends Operation {
             this.addMission(new RefillMission(this));
         }
 
-        let defenseGuru = new DefenseGuru(this);
+        this.defenseGuru = new DefenseGuru(this);
         this.addMission(new DefenseMission(this));
         this.addMission(new PowerMission(this));
 
@@ -106,7 +105,7 @@ export class ControllerOperation extends Operation {
         MiningMission.Add(this, true);
 
         // build construction
-        let buildMission = new BuilderMission(this, defenseGuru);
+        let buildMission = new BuilderMission(this, this.defenseGuru);
         this.addMission(buildMission);
 
         if (this.flag.room.storage) {
@@ -132,13 +131,19 @@ export class ControllerOperation extends Operation {
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
-    public initOperation() {
+    public refresh() {
+        this.defenseGuru.refresh();
+        if (this.layout) {
+            // LayoutDisplay.showLayout(layout);
+            this.layout.refresh();
+            this.builder.build();
+        }
     }
 
-    public finalizeOperation() {
+    public finalize() {
     }
 
-    public invalidateOperationCache() {
+    public invalidateCache() {
     }
 
     public setLayout(x: number, y: number, rotation: number, type: string) {
@@ -169,10 +174,7 @@ export class ControllerOperation extends Operation {
         let initialized = layout.init();
         if (!initialized) { return; }
         this.layout = layout;
-        // LayoutDisplay.showLayout(layout);
-
-        let builder = new LayoutBuilder(layout, this.room);
-        builder.build();
+        this.builder = new LayoutBuilder(layout, this.room);
     }
 
     protected towerRepair() {

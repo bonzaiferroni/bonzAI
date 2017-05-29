@@ -6,7 +6,8 @@ import {helper} from "../../helpers/helper";
 import {POWER_PROCESS_THRESHOLD, RESERVE_AMOUNT, PRODUCT_LIST, MINERALS_RAW} from "../TradeNetwork";
 import {Agent} from "../agents/Agent";
 import {Scheduler} from "../../Scheduler";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
+import {Tick} from "../../Tick";
 export class IgorMission extends Mission {
 
     private igors: Agent[];
@@ -32,7 +33,11 @@ export class IgorMission extends Mission {
         super(operation, "igor");
     }
 
-    public initMission() {
+    public init() {
+        this.findIgorIdlePosition();
+    }
+
+    public refresh() {
         this.labs = this.room.findStructures(STRUCTURE_LAB) as StructureLab[];
         this.terminal = this.room.terminal;
         this.storage = this.room.storage;
@@ -43,13 +48,11 @@ export class IgorMission extends Mission {
         this.labProcess = this.findLabProcess();
         if (this.labProcess) {
             let target = this.labProcess.targetShortage.mineralType;
-            if (!Game.cache.labProcesses[target]) {Game.cache.labProcesses[target] = 0; }
-            Game.cache.labProcesses[target]++;
+            if (!Tick.cache.labProcesses[target]) {Tick.cache.labProcesses[target] = 0; }
+            Tick.cache.labProcesses[target]++;
         }
 
         this.powerSpawn = this.room.findStructures(STRUCTURE_POWER_SPAWN)[0] as PowerSpawn;
-
-        this.findIgorIdlePosition();
     }
 
     public roleCall() {
@@ -62,7 +65,7 @@ export class IgorMission extends Mission {
         }
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let i = 0; i < this.igors.length; i++) {
             let igor = this.igors[i];
@@ -81,10 +84,10 @@ export class IgorMission extends Mission {
         this.checkBoostRequests();
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
         if (!this.memory.labCount) { this.memory.labCount = this.labs.length; }
         if (this.memory.labCount !== this.labs.length) {
             this.memory.labCount = this.labs.length;
@@ -392,7 +395,7 @@ export class IgorMission extends Mission {
             if (!lab.mineralType || lab.mineralType === this.labProcess.currentShortage.mineralType) {
                 let outcome = lab.runReaction(this.reagentLabs[0], this.reagentLabs[1]);
                 if (outcome === OK) {
-                    Game.cache.activeLabCount++;
+                    Tick.cache.activeLabCount++;
                 }
             }
         }
@@ -593,21 +596,21 @@ export class IgorMission extends Mission {
     }
 
     private optimalIgorPos(): RoomPosition {
-        let rangeToStorage = this.terminal.pos.getRangeTo(this.storage);
+        let rangeToStorage = this.room.terminal.pos.getRangeTo(this.room.storage);
         if (rangeToStorage !== 2) { return; }
 
-        let directionToStorage = this.terminal.pos.getDirectionTo(this.storage);
+        let directionToStorage = this.room.terminal.pos.getDirectionTo(this.room.storage);
         let isDiagonal = directionToStorage % 2 === 0;
         if (!isDiagonal) { return; }
 
-        let bestPosition = this.terminal.pos.getPositionAtDirection(directionToStorage);
+        let bestPosition = this.room.terminal.pos.getPositionAtDirection(directionToStorage);
         let passable = bestPosition.isPassible(true);
         if (!passable) { return; }
 
         console.log(`IGOR: found a good idle position in ${this.operation.name}: ${bestPosition}`);
         let road = bestPosition.lookForStructure(STRUCTURE_ROAD);
         if (road) {
-            notifier.log(`IGOR: destroying road: ${this.room.name}, tick: ${Game.time}`);
+            Notifier.log(`IGOR: destroying road: ${this.room.name}, tick: ${Game.time}`);
             road.destroy();
         }
         return bestPosition;
@@ -617,12 +620,12 @@ export class IgorMission extends Mission {
         let positions = [];
         // look at diagonal positions
         for (let i = 2; i <= 8; i += 2) {
-            positions.push(this.terminal.pos.getPositionAtDirection(i));
+            positions.push(this.room.terminal.pos.getPositionAtDirection(i));
         }
         for (let position of positions) {
             // check each position for valid conditions
             if (position.lookFor(LOOK_STRUCTURES).length === 0 && position.isPassible(true) &&
-                position.isNearTo(this.storage)) {
+                position.isNearTo(this.room.storage)) {
                 console.log(`IGOR: found a good idle position in ${this.operation.name}: ${position}`);
                 return position;
             }

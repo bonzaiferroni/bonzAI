@@ -1,4 +1,4 @@
-import {Mem} from "../../helpers/Mem";
+import {MemHelper} from "../../helpers/MemHelper";
 import {
     Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LayoutData, LayoutType, PositionMap,
     Vector2,
@@ -65,8 +65,8 @@ export class LayoutFinder {
         }
         let layoutData = Memory.rooms[this.roomName].finder as LayoutFinderData;
 
-        this.sourcePositions = Mem.posInstances(layoutData.sourcePositions);
-        this.controllerPos = Mem.posInstance(layoutData.controllerPos);
+        this.sourcePositions = MemHelper.posInstances(layoutData.sourcePositions);
+        this.controllerPos = MemHelper.posInstance(layoutData.controllerPos);
         this.obstacleMap = new RoomMap<number>(layoutData.obstacleMap);
         this.progress = layoutData.progress;
         this.validLayouts = layoutData.validLayouts;
@@ -321,15 +321,20 @@ export class LayoutFinder {
     }
 
     private chooseAmongValidLayouts(): ValidLayoutData {
+
+
         for (let type in this.validLayouts) {
             let validLayouts = this.validLayouts[type];
 
-            if (Game.gcl.level <= 1) {
+            if (Object.keys(Game.spawns).length === 1) {
                 // needs to have a spawn hit for the first room
                 let best = _(validLayouts).filter(x => x.foundSpawn).max(x => x.energyScore);
-                if (best) {
+                console.log(JSON.stringify(best));
+                if (_.isObject(best)) {
+                    console.log("yes!");
                     return best;
                 } else {
+                    console.log("no!");
                     continue;
                 }
             }
@@ -337,10 +342,10 @@ export class LayoutFinder {
             let best = _(validLayouts)
                 .filter(x => x.structureScore > 0)
                 .max(x => x.structureScore * 1000 + x.energyScore);
-            if (best && best instanceof Object) { return best; }
+            if (_.isObject(best)) { return best; }
 
             best = _(validLayouts).max(x => x.energyScore);
-            if (best && best instanceof Object) { return best; }
+            if (_.isObject(best)) { return best; }
         }
     }
 }

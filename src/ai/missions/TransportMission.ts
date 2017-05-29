@@ -30,7 +30,9 @@ export class TransportMission extends Mission {
         this.offroad = offroad;
     }
 
-    public initMission() {
+    public init() { }
+
+    public refresh() {
         this.waypoints = [];
         if (!this.origin) {
             let originFlag = Game.flags[this.operation.name + "_origin"];
@@ -70,7 +72,7 @@ export class TransportMission extends Mission {
         this.carts = this.headCount("cart", body, () => this.maxCarts, {memory: memory});
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let cart of this.carts) {
             if (!this.memory.originPos || !this.memory.destinationPos) {
@@ -81,10 +83,10 @@ export class TransportMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private cartActions(cart: Agent) {

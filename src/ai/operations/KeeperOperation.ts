@@ -9,6 +9,7 @@ import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
 import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH, OperationPriority} from "../../config/constants";
 export class KeeperOperation extends Operation {
+    private invaderGuru: InvaderGuru;
 
     /**
      * Remote mining, spawns Scout if there is no vision, spawns a MiningMission for each source in the missionRoom. Can
@@ -23,7 +24,7 @@ export class KeeperOperation extends Operation {
         this.priority = OperationPriority.High;
     }
 
-    public initOperation() {
+    public init() {
 
         this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
         if (this.remoteSpawn) {
@@ -34,10 +35,10 @@ export class KeeperOperation extends Operation {
         }
 
         this.addMission(new ScoutMission(this));
-        let invaderGuru = new InvaderGuru(this);
-        invaderGuru.init();
-        this.addMission(new EnhancedBodyguardMission(this, invaderGuru));
-        this.addMission(new LairMission(this, invaderGuru));
+        this.invaderGuru = new InvaderGuru(this);
+        this.invaderGuru.init();
+        this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
+        this.addMission(new LairMission(this, this.invaderGuru));
 
         if (!this.hasVision) { return; } // early
 
@@ -50,8 +51,12 @@ export class KeeperOperation extends Operation {
         }
     }
 
-    public finalizeOperation() {
+    public refresh() {
+        this.invaderGuru.refresh();
     }
-    public invalidateOperationCache() {
+
+    public finalize() {
+    }
+    public invalidateCache() {
     }
 }

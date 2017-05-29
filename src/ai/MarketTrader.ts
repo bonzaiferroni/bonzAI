@@ -178,7 +178,7 @@ export class MarketTrader {
         let count = 0;
         for (let orderId in Game.market.orders) {
             let order = Game.market.orders[orderId];
-            if (order.remainingAmount < 10) {
+            if (order.remainingAmount < 10 && order.resourceType !== "token") {
                 Game.market.cancelOrder(orderId);
             } else if (order.type === type && order.resourceType === resourceType) {
                 count++;

@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {ARTROOMS} from "../WorldMap";
 import {Agent} from "../agents/Agent";
@@ -25,7 +25,10 @@ export class ReserveMission extends Mission {
         operation.addMission(new ReserveMission(operation));
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         if (!this.hasVision) { return; }
         this.controller = this.room.controller;
 
@@ -47,7 +50,7 @@ export class ReserveMission extends Mission {
             () => this.memory.needBulldozer ? 1 : 0);
     }
 
-    public missionActions() {
+    public actions() {
         for (let reserver of this.reservers) {
             this.reserverActions(reserver);
         }
@@ -57,10 +60,10 @@ export class ReserveMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private reserverActions(reserver: Agent) {
@@ -110,7 +113,7 @@ export class ReserveMission extends Mission {
         let ignoredStructures = empire.traveler.findTravelPath(this.spawnGroup, this.room.controller,
             {range: 1, ignoreStructures: true});
         if (ignoredStructures.incomplete) {
-            notifier.log(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
+            Notifier.log(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
             console.log(helper.debugPath(ret.path, this.operation.name));
             return false;
         }
@@ -128,7 +131,7 @@ export class ReserveMission extends Mission {
 
         if (dozer.pos.isNearTo(this.room.controller)) {
             this.memory.needBulldozer = false;
-            notifier.log(`RESERVER: bulldozer cleared path in ${this.operation.name}`);
+            Notifier.log(`RESERVER: bulldozer cleared path in ${this.operation.name}`);
             dozer.suicide();
         } else {
             if (dozer.room === this.room) {

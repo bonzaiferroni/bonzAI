@@ -9,18 +9,18 @@ export class GuardOperation extends Operation {
         this.priority = OperationPriority.High;
     }
 
-    public initOperation() {
-
-        this.findOperationWaypoints();
-
+    public init() {
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.addMission(new GuardMission(this));
     }
 
-    public finalizeOperation() {
+    public refresh() {
     }
 
-    public invalidateOperationCache() {
+    public finalize() {
+    }
+
+    public invalidateCache() {
     }
 
 }

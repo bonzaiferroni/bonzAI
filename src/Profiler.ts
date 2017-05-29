@@ -1,4 +1,3 @@
-import {notifier} from "./notifier";
 export class Profiler {
 
     public static start(identifier: string, consoleReport = false, period = 5) {
@@ -117,5 +116,7 @@ export class Profiler {
             this.recursiveMemoryAnalysis(item.node, item.path);
         }
     }
-
 }
+
+// make available through console
+global.profiler = Profiler;

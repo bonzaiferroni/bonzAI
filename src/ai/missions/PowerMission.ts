@@ -2,7 +2,7 @@ import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {WorldMap} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
@@ -24,7 +24,10 @@ export class PowerMission extends Mission {
         super(operation, "power");
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
         let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
         if (!observer) { return; }
 
@@ -103,7 +106,7 @@ export class PowerMission extends Mission {
             () => maxCarts);
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let clyde of this.clydes) {
             this.clydeActions(clyde);
@@ -123,10 +126,10 @@ export class PowerMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private findAlleysInRange(range: number) {
@@ -328,11 +331,11 @@ export class PowerMission extends Mission {
                 }
                 this.memory.currentBank.assisting = true;
                 clyde.say("damn", true);
-                notifier.log(`"POWER: ally gets the power! ${bank.room.name}`);
+                Notifier.log(`"POWER: ally gets the power! ${bank.room.name}`);
             } else {
                 this.memory.currentBank.assisting = false;
                 clyde.say("yay!", true);
-                notifier.log(`"POWER: I get the power! ${bank.room.name}`);
+                Notifier.log(`"POWER: I get the power! ${bank.room.name}`);
             }
         } else {
             console.log("POWER: ally found in", clyde.room.name, "playing a game to find out who gets power");
@@ -360,7 +363,7 @@ export class PowerMission extends Mission {
             let position = helper.pathablePosition(roomName);
             let ret = empire.traveler.findTravelPath(spawn, {pos: position});
             if (ret.incomplete) {
-                notifier.log(`POWER: incomplete path generating scanData (${this.operation.name}, room: ${roomName})`);
+                Notifier.log(`POWER: incomplete path generating scanData (${this.operation.name}, room: ${roomName})`);
                 continue;
             }
 
@@ -407,7 +410,7 @@ export class PowerMission extends Mission {
             }
         }
         if (Game.time > currentBank.timeout) {
-            notifier.log(`POWER: bank timed out ${JSON.stringify(currentBank)}, removing room from powerObservers`);
+            Notifier.log(`POWER: bank timed out ${JSON.stringify(currentBank)}, removing room from powerObservers`);
             delete Memory.powerObservers[this.room.name][this.memory.currentBank.pos.roomName];
             this.memory.currentBank = undefined;
         }

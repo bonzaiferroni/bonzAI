@@ -1,6 +1,6 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {notifier} from "../../notifier";
+import {Notifier} from "../../notifier";
 import {RaidGuru} from "./RaidGuru";
 import {Agent} from "../agents/Agent";
 
@@ -16,8 +16,10 @@ export class ZombieMission extends Mission {
         this.guru = raidGuru;
     }
 
-    public initMission() {
-        this.guru.init(this.flag.pos.roomName, true);
+    public init() { }
+
+    public refresh() {
+        this.guru.refreshGuru(this.flag.pos.roomName, true);
     }
 
     public roleCall() {
@@ -31,21 +33,21 @@ export class ZombieMission extends Mission {
                 blindSpawn: true});
     }
 
-    public missionActions() {
+    public actions() {
         for (let zombie of this.zombies) {
             this.zombieActions(zombie);
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
 
         if (this.status === ZombieStatus.Complete) {
-            notifier.log(`ZOMBIE: mission complete in ${this.room.name}`);
+            Notifier.log(`ZOMBIE: mission complete in ${this.room.name}`);
             this.flag.remove();
         }
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private zombieActions(zombie: Agent) {

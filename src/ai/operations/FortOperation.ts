@@ -31,9 +31,9 @@ export class FortOperation extends Operation {
         this.priority = OperationPriority.OwnedRoom;
     }
 
-    public initOperation() {
+    public init() {
         if (this.flag.room) {
-            // initOperation FortOperation variables
+            // init FortOperation variables
             this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
 
             // spawn emergency miner if needed
@@ -85,9 +85,11 @@ export class FortOperation extends Operation {
         }
     }
 
-    public finalizeOperation() {
+    public refresh() { }
+
+    public finalize() {
     }
-    public invalidateOperationCache() {
+    public invalidateCache() {
         this.memory.masonPotency = undefined;
         this.memory.builderPotency = undefined;
     }

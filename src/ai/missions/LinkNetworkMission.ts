@@ -1,13 +1,13 @@
 import {Mission} from "./Mission";
 import {Agent} from "../agents/Agent";
 import {Scheduler} from "../../Scheduler";
-import {Memorizer} from "../../helpers/Memorizer";
+import {MemHelper} from "../../helpers/MemHelper";
 export class LinkNetworkMission extends Mission {
 
     private conduits: Agent[];
 
-    private storageLinks: StructureLink[] = [];
-    private sourceLinks: StructureLink[] = [];
+    private storageLinks: StructureLink[];
+    private sourceLinks: StructureLink[];
     private controllerLink: StructureLink;
 
     public memory: {
@@ -27,7 +27,12 @@ export class LinkNetworkMission extends Mission {
         super(operation, "linkNetwork");
     }
 
-    public initMission() {
+    public init() {
+    }
+
+    public refresh() {
+        this.storageLinks = [];
+        this.sourceLinks = [];
         if (!this.room.storage) { return; }
         this.controllerLink = this.findControllerLink();
         this.findStorageLinks();
@@ -45,7 +50,7 @@ export class LinkNetworkMission extends Mission {
         this.conduits = this.headCount("conduit", conduitBody, max, {prespawn: 10, memory: memory });
     }
 
-    public missionActions() {
+    public actions() {
         for (let conduit of this.conduits) {
             this.conduitActions(conduit);
         }
@@ -57,9 +62,9 @@ export class LinkNetworkMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private findStorageLinks() {
@@ -243,6 +248,6 @@ export class LinkNetworkMission extends Mission {
             return this.room.controller.pos.findInRange(this.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
         };
 
-        return Memorizer.findObject<StructureLink>(this, "contLink", find);
+        return MemHelper.findObject<StructureLink>(this, "contLink", find);
     }
 }

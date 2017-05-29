@@ -17,7 +17,11 @@ export class SurveyMission extends Mission {
         super(operation, "survey");
     }
 
-    public initMission() {
+    public init() { }
+
+    public refresh() {
+        this.chosenRoom = undefined;
+        this.needsVision = undefined;
         if (this.memory.surveyComplete) { return; }
         let analyzer = new SurveyAnalyzer(this);
         this.needsVision = analyzer.run();
@@ -35,7 +39,7 @@ export class SurveyMission extends Mission {
         this.surveyors = this.headCount("surveyor", () => this.workerBody(0, 0, 1), this.maxSurveyors);
     }
 
-    public missionActions() {
+    public actions() {
 
         for (let surveyor of this.surveyors) {
             if (this.needsVision) {
@@ -50,10 +54,10 @@ export class SurveyMission extends Mission {
         }
     }
 
-    public finalizeMission() {
+    public finalize() {
     }
 
-    public invalidateMissionCache() {
+    public invalidateCache() {
     }
 
     private explorerActions(explorer: Agent) {
