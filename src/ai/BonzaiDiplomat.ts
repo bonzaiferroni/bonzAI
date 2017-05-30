@@ -10,7 +10,5 @@ export class BonzaiDiplomat extends Diplomat {
             safe: {},
             danger: {},
         });
-        this.safe = Memory.empire.safe;
-        this.danger = Memory.empire.danger;
     }
 }

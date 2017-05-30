@@ -6,6 +6,8 @@ import {empire} from "../Empire";
 
 export class TransportOperation extends Operation {
 
+    public memory: any;
+
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.Low;
@@ -20,7 +22,7 @@ export class TransportOperation extends Operation {
             this.memory.offRoad));
     }
 
-    public refresh() { }
+    public update() { }
 
     public finalize() {
     }

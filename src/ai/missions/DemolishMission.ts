@@ -26,7 +26,7 @@ export class DemolishMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
         this.demoStructures = [];
 
         for (let i = 0; i <= 50; i++ ) {

@@ -20,7 +20,7 @@ export class BuilderMission extends Mission {
     private _analysis: TransportAnalysis;
 
     /**
-     * Spawns a creep to build construction and repair walls. Construction will take priority over walls
+     * Spawns a creep to update construction and repair walls. Construction will take priority over walls
      * @param operation
      * @param defenseGuru
      * @param activateBoost
@@ -35,7 +35,7 @@ export class BuilderMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
         if (this.room !== this.spawnGroup.room) {
             this.remoteSpawn = true;
         }

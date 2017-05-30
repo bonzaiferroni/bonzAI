@@ -1,28 +1,34 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {Traveler} from "../Traveler";
+
+interface GuardMissionState extends MissionState {
+    guardedFlags: Flag[];
+    potency: number;
+    scaryDudes: Creep[];
+    targetFlags: Flag[];
+}
+
+interface GuardMissionMemory extends MissionMemory {
+    potency: number;
+    max: number;
+    activateBoost: boolean;
+    melee: boolean;
+    minPotency: number;
+    targetId: string;
+    ticksToLive: {[key: string]: number};
+    swampRat: boolean;
+}
+
 export class GuardMission extends Mission {
 
     private guards: Agent[];
 
-    private guardedFlags: Flag[];
-    private potency: number;
-    private scaryDudes: Creep[];
-    private targetFlags: Flag[];
-
-    public memory: {
-        potency: number;
-        max: number;
-        activateBoost: boolean;
-        melee: boolean;
-        minPotency: number;
-        targetId: string;
-        ticksToLive: {[key: string]: number}
-        swampRat: boolean;
-    };
+    public state: GuardMissionState;
+    public memory: GuardMissionMemory;
 
     constructor(operation: Operation) {
         super(operation, "guard");
@@ -30,18 +36,18 @@ export class GuardMission extends Mission {
 
     public init() {
         if (!this.memory.ticksToLive) { this.memory.ticksToLive = {}; }
+        if (!this.memory.potency) { this.memory.potency = 1; }
     }
 
-    public refresh() {
-        this.scaryDudes = [];
-        this.guardedFlags = this.getFlagSet("_guarded_", 10);
-        if (!this.memory.potency) { this.memory.potency = 1; }
-        this.potency = Math.min(this.memory.potency, 8);
-        this.targetFlags = this.getFlagSet("_targets_", 10);
+    public update() {
+        this.state.scaryDudes = [];
+        this.state.guardedFlags = this.getFlagSet("_guarded_", 10);
+        this.state.potency = Math.min(this.memory.potency, 8);
+        this.state.targetFlags = this.getFlagSet("_targets_", 10);
     }
 
     public maxGuards = () => {
-        if (this.guardedFlags.length === 0) { return 0; }
+        if (this.state.guardedFlags.length === 0) { return 0; }
         if (this.memory.max !== undefined) { return this.memory.max; }
         return 1;
     };
@@ -54,13 +60,13 @@ export class GuardMission extends Mission {
         if (this.memory.melee) {
             // not supported yet
         } else {
-            if (this.memory.minPotency && this.potency < this.memory.minPotency) {
-                this.potency = this.memory.minPotency;
+            if (this.memory.minPotency && this.state.potency < this.memory.minPotency) {
+                this.state.potency = this.memory.minPotency;
             }
             return this.configBody({
-                [RANGED_ATTACK]: 2 * this.potency,
-                [MOVE]: 3 * this.potency,
-                [HEAL]: this.potency,
+                [RANGED_ATTACK]: 2 * this.state.potency,
+                [MOVE]: 3 * this.state.potency,
+                [HEAL]: this.state.potency,
             });
         }
     };
@@ -96,9 +102,9 @@ export class GuardMission extends Mission {
         if (guard.memory.flagIndex === undefined) { guard.memory.flagIndex = 0; }
         let guardedFlag;
         if (guard.memory.reversed) {
-            guardedFlag = this.guardedFlags.reverse()[guard.memory.flagIndex];
+            guardedFlag = this.state.guardedFlags.reverse()[guard.memory.flagIndex];
         } else {
-            guardedFlag = this.guardedFlags[guard.memory.flagIndex];
+            guardedFlag = this.state.guardedFlags[guard.memory.flagIndex];
         }
         if (!guardedFlag) {
             return;
@@ -108,7 +114,7 @@ export class GuardMission extends Mission {
             guard.heal(guard);
         }
 
-        for (let flag of this.targetFlags) {
+        for (let flag of this.state.targetFlags) {
             if (flag.pos.roomName === guard.pos.roomName) {
                 let structure = flag.pos.lookFor(LOOK_STRUCTURES)[0] as Structure;
                 if (structure) {
@@ -163,7 +169,7 @@ export class GuardMission extends Mission {
 
         if (guard.pos.isNearTo(guardedFlag)) {
             guard.memory.flagIndex++;
-            if (guard.memory.flagIndex >= this.guardedFlags.length) {
+            if (guard.memory.flagIndex >= this.state.guardedFlags.length) {
                 guard.memory.reversed = !guard.memory.reversed;
                 guard.memory.flagIndex = 0;
             }
@@ -176,13 +182,13 @@ export class GuardMission extends Mission {
         let myRangedPartCount = guard.partCount(RANGED_ATTACK);
         for (let hostile of hostiles) {
             if (hostile.partCount(RANGED_ATTACK) > myRangedPartCount * (this.memory.activateBoost ? 4 : 1)) {
-                this.scaryDudes.push(hostile);
+                this.state.scaryDudes.push(hostile);
             }
         }
 
         // enemy detection
         let nearest = guard.pos.findClosestByRange(hostiles);
-        let nearestScaryDude = guard.pos.findClosestByRange(this.scaryDudes) as Creep;
+        let nearestScaryDude = guard.pos.findClosestByRange(this.state.scaryDudes) as Creep;
 
         if (this.memory.targetId) {
             let creep = Game.getObjectById(this.memory.targetId) as Creep;
@@ -241,7 +247,7 @@ export class GuardMission extends Mission {
 
                 helper.blockOffPosition(costs, roomObject, 2);
 
-                for (let dude of this.scaryDudes) {
+                for (let dude of this.state.scaryDudes) {
                     if (!dude.pos.inRangeTo(guard, 4)) {
                         helper.blockOffPosition(costs, dude, 5);
                     }

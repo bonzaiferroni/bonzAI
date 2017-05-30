@@ -32,6 +32,8 @@ export class OperationFactory {
         swap: SwapOperation,
     };
 
+    private static scannedFlags: {[flagName: string]: boolean } = {};
+
     /**
      * scan for operations flags and instantiate
      */
@@ -40,40 +42,54 @@ export class OperationFactory {
 
         // gather flag data, instantiate operations
         for (let flagName in Game.flags) {
-            for (let typeName in this.classes) {
-                if (flagName.substring(0, typeName.length) !== typeName) { continue; }
-                let operationClass = this.classes[typeName];
-                let flag = Game.flags[flagName];
-                let name = flagName.substring(flagName.indexOf("_") + 1);
-
-                let operation = new operationClass(flag, name, typeName) as Operation;
-                let priority = operation.priority;
-                if (!this.map[priority]) { this.map[priority] = {}; }
-
-                if (global.hasOwnProperty(name)) {
-                    console.log(`operation with name ${name} already exists (type: ${
-                        this.map[priority][name].type}), please use a different name`);
-                    console.log(`you may ignore this if you are just temporarily adjusting your flags`);
-                }
-
-                global[name] = operation;
-                this.map[priority][name] = operation;
-            }
+            this.scannedFlags[flagName] = true;
+            let flag = Game.flags[flagName];
+            let operation = this.checkFlag(flag);
+            if (!operation) { continue; }
+            this.addToMap(operation);
         }
 
         this.flagCount = Object.keys(Game.flags).length;
         return this.map;
     }
 
-    public static refreshOperations(operations: OperationPriorityMap) {
+    public static flagCheck() {
         let flagCountThisTick = Object.keys(Game.flags).length;
-        if (flagCountThisTick !== this.flagCount || flagCountThisTick !== Memory.flagCount) {
-            Memory.flagCount = flagCountThisTick;
+        if (flagCountThisTick !== this.flagCount) {
             this.flagCount = flagCountThisTick;
-            operations = OperationFactory.getOperations();
-            Operation.init(operations);
+            for (let flagName in Game.flags) {
+                if (this.scannedFlags[flagName]) { continue; }
+                this.scannedFlags[flagName] = true;
+                let flag = Game.flags[flagName];
+                let operation = this.checkFlag(flag);
+                if (!operation) { continue; }
+                this.addToMap(operation);
+                operation.selfInit();
+            }
+        }
+    }
+
+    private static checkFlag(flag: Flag) {
+        for (let typeName in this.classes) {
+            if (flag.name.substring(0, typeName.length) !== typeName) { continue; }
+            let operationClass = this.classes[typeName];
+            let name = flag.name.substring(flag.name.indexOf("_") + 1);
+
+            let operation = new operationClass(flag, name, typeName) as Operation;
+            return operation;
+        }
+    }
+
+    private static addToMap(operation: Operation) {
+        let priority = operation.priority;
+        if (!this.map[priority]) { this.map[priority] = {}; }
+
+        if (global.hasOwnProperty(operation.name)) {
+            console.log(`operation with name ${operation.name} already exists (type: ${
+                this.map[priority][operation.name].type}), please use a different name`);
         }
 
-        return operations;
+        global[operation.name] = operation;
+        this.map[priority][operation.name] = operation;
     }
 }

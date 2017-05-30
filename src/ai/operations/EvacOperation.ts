@@ -1,23 +1,26 @@
-import {Operation} from "./Operation";
+import {Operation, OperationMemory} from "./Operation";
 import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
+
+interface EvacMemory extends OperationMemory {
+    ids: string[];
+}
+
 export class EvacOperation extends Operation {
+
+    public memory: EvacMemory;
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.High;
     }
 
-    public memory: {
-        ids: string[];
-    };
-
     public init() {
     }
 
-    public refresh() { }
+    public update() { }
 
     public finalize() {
         let soonestNuke = _(this.room.find<Nuke>(FIND_NUKES)).sortBy(x => x.timeToLand).head();

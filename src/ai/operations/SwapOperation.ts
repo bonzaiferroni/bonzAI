@@ -17,9 +17,9 @@ export class SwapOperation extends Operation {
         this.autoLayout();
     }
 
-    public refresh() {
+    public update() {
         if (!this.layout) { return; }
-        this.builder.build();
+        this.builder.update();
     }
 
     public finalize() {
@@ -44,6 +44,6 @@ export class SwapOperation extends Operation {
         if (!initilized) { return; }
         this.layout = layout;
 
-        this.builder = new LayoutBuilder(layout, this.room);
+        this.builder = new LayoutBuilder(layout, this.roomName);
     }
 }

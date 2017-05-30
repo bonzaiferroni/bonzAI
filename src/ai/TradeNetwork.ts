@@ -17,12 +17,11 @@ export class TradeNetwork {
 
     constructor(map: WorldMap) {
         this.map = map;
-
         if (!Memory.empire) { Memory.empire = {}; }
-        this.memory = Memory.empire;
     }
 
-    public refresh() {
+    public update() {
+        this.memory = Memory.empire;
         this.terminals = [];
         this.storages = [];
         this.shortages = {};
@@ -119,7 +118,7 @@ export class TradeNetwork {
 
     /**
      * Used to determine whether there is an abundance of a given resource type among all terminals.
-     * Should only be used after updateState() phase
+     * Should only be used after baseRefresh() phase
      * @param resourceType
      * @param amountPerRoom - specify how much per missionRoom you consider an abundance, default is SURPLUS_AMOUNT
      */

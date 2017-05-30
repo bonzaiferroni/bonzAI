@@ -2,6 +2,7 @@ import {Layout} from "./Layout";
 export class LayoutBuilder {
 
     private layout: Layout;
+    private roomName: string;
     private room: Room;
     private memory: {
         demolish: string,
@@ -23,15 +24,19 @@ export class LayoutBuilder {
         STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_RAMPART, STRUCTURE_OBSERVER, STRUCTURE_NUKER,
         STRUCTURE_POWER_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD];
 
-    constructor(layout: Layout, room: Room) {
+    constructor(layout: Layout, roomName: string) {
         this.layout = layout;
-        this.room = room;
-        if (!this.room.memory.builder) { this.room.memory.builder = {} as any; }
-        this.memory = this.room.memory.builder;
+        this.roomName = roomName;
     }
 
-    public build() {
-        if (!this.room || !this.layout) { return; }
+    public init() {
+        if (!Memory.rooms[this.roomName].builder) { Memory.rooms[this.roomName].builder = {} as any; }
+    }
+
+    public update() {
+        this.room = Game.rooms[this.roomName];
+        if (!this.room) { return; }
+        this.memory = this.room.memory.builder;
         if (Game.time < this.memory.nextCheck) { return; }
 
         if (this.checkDemolish()) { return; }

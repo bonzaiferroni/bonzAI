@@ -28,6 +28,8 @@ export class ConquestOperation extends Operation {
      * @param empire
      */
 
+    public memory: any;
+
     constructor(flag: Flag, name: string, type: string) {
         super (flag, name, type);
         this.priority = OperationPriority.Medium;
@@ -51,17 +53,17 @@ export class ConquestOperation extends Operation {
 
         this.addMission(new ScoutMission(this));
 
-        if (!this.hasVision || !this.flag.room.controller.my) {
+        if (!this.state.hasVision || !this.flag.room.controller.my) {
             this.addMission(new ClaimMission(this));
         }
 
-        if (!this.hasVision) { return; } // early
+        if (!this.state.hasVision) { return; } // early
 
         if (this.flag.room.findStructures(STRUCTURE_TOWER).length === 0) {
             this.addMission(new BodyguardMission(this));
         }
 
-        // build construction
+        // update construction
         this.addMission(new RemoteBuildMission(this, false));
 
         // upgrader controller
@@ -104,7 +106,7 @@ export class ConquestOperation extends Operation {
         this.addMission(new DefenseMission(this));
     }
 
-    public refresh() { }
+    public update() { }
 
     public finalize() {
     }

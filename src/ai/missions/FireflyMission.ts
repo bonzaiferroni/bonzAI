@@ -8,8 +8,9 @@ import {HostileAgent} from "../agents/HostileAgent";
 import {helper} from "../../helpers/helper";
 export class FireflyMission extends RaidMission {
 
-    constructor(operation: RaidOperation, name: string) {
-        super(operation, name);
+    constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+                allowSpawn: boolean) {
+        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
         this.specialistPart = RANGED_ATTACK;
         this.specialistBoost = RESOURCE_CATALYZED_KEANIUM_ALKALIDE;
         this.spawnCost = 12440;

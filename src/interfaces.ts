@@ -119,20 +119,6 @@ export enum FleeDanger {
     None,
 }
 
-export interface RaidMissionState {
-    bothInRoom: boolean;
-    neitherInRoom: boolean;
-    atLeastOneInRoom: boolean;
-    bothOnExit: boolean;
-    neitherOnExit: boolean;
-    bothNearExit: boolean;
-    fatigued: boolean;
-    together: boolean;
-    inSameRoom: boolean;
-    oneInRoom: boolean;
-    agentInDanger: boolean;
-}
-
 export interface RaidAction {
     type: RaidActionType;
     endAtTick?: number;

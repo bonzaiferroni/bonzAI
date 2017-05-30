@@ -65,7 +65,8 @@ export class WorldMap {
         return spawnGroups;
     }
 
-    public refresh() {
+    public update() {
+        this.activeNukes = Memory.empire.activeNukes;
         this.controlledRooms = {};
         this.allyRooms = [];
         this.tradeRooms = [];

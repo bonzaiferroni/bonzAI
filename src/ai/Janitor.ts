@@ -14,7 +14,7 @@ export class Janitor {
         if (!this.memory.errantConstructionRooms) { this.memory.errantConstructionRooms = {}; }
     }
 
-    public refresh() {
+    public update() {
         this.memory = Memory.empire.janitor;
     }
 

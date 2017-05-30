@@ -8,8 +8,8 @@ export class DefenseGuru extends Guru {
         super(operation, "defenseGuru");
     }
 
-    public refresh() {
-        super.refresh();
+    public update() {
+        super.update();
         this._hostiles = undefined;
     }
 
@@ -19,11 +19,6 @@ export class DefenseGuru extends Guru {
                 return c.owner.username !== "Invader" && c.body.length >= 40 &&
                     _.filter(c.body, part => part.boost).length > 0;
             });
-
-            let fauxHostiles = _.filter(this.room.find(FIND_FLAGS), (f: Flag) => f.name.indexOf("faux") >= 0);
-            if (fauxHostiles.length > 0) {
-                this._hostiles = fauxHostiles as Creep[];
-            }
         }
         return this._hostiles;
     }

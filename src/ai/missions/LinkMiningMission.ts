@@ -29,10 +29,10 @@ export class LinkMiningMission extends Mission {
      * @constructor
      */
     public static Add(operation: Operation) {
-        for (let i = 0; i < operation.sources.length; i++) {
+        for (let i = 0; i < operation.state.sources.length; i++) {
             // disable harvesting sources manually by putting a flag over it
-            if (operation.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
-            let source = operation.sources[i];
+            if (operation.state.sources[i].pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
+            let source = operation.state.sources[i];
             operation.addMission(new LinkMiningMission(operation, "miner" + i, source));
         }
     }
@@ -40,7 +40,7 @@ export class LinkMiningMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
         this.source = Game.getObjectById<Source>(this.sourceId);
         this.link = this.findLink();
         if (!this.link) {

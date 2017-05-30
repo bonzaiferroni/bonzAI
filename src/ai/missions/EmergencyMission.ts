@@ -19,7 +19,7 @@ export class EmergencyMinerMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
     }
 
     public roleCall() {

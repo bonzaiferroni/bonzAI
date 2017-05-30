@@ -19,8 +19,10 @@ import {empire} from "../Empire";
 
 export class FortOperation extends Operation {
 
+    public memory: any;
+
     /**
-     * Manages the activities of an owned missionRoom, assumes bonzaiferroni's build spec
+     * Manages the activities of an owned missionRoom, assumes bonzaiferroni's update spec
      * @param flag
      * @param name
      * @param type
@@ -59,18 +61,18 @@ export class FortOperation extends Operation {
             // harvest energy
             MiningMission.Add(this, true);
 
-            // build construction
+            // update construction
             let defenseGuru = new DefenseGuru(this);
             this.addMission(new BuilderMission(this, defenseGuru));
 
-            // build walls
+            // update walls
             // TODO: make MasonMission
 
             // use link array near storage to fire energy at controller link (pre-rcl8)
             if (this.flag.room.storage) {
                 this.addMission(new LinkNetworkMission(this));
 
-                let extractor = this.mineral.pos.lookFor<StructureExtractor>(LOOK_STRUCTURES)[0];
+                let extractor = this.state.mineral.pos.lookFor<StructureExtractor>(LOOK_STRUCTURES)[0];
                 if (this.flag.room.energyCapacityAvailable > 5000 && extractor && extractor.my) {
                     this.addMission(new GeologyMission(this));
                 }
@@ -85,7 +87,7 @@ export class FortOperation extends Operation {
         }
     }
 
-    public refresh() { }
+    public update() { }
 
     public finalize() {
     }

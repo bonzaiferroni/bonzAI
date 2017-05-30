@@ -1,29 +1,32 @@
-import {Operation} from "./Operation";
+import {Operation, OperationMemory} from "./Operation";
 import {LayoutFinder} from "../layouts/LayoutFinder";
 import {ROOMTYPE_ALLEY, WorldMap} from "../WorldMap";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
+
+interface LayoutOperationMemory extends OperationMemory {
+    data: {
+        ready: boolean,
+        nearbyRooms: string[],
+        checkedRooms: string[],
+        sourcePositions: RoomPosition[],
+        controllerPosition: RoomPosition,
+    };
+}
+
 export class LayoutOperation extends Operation {
+
+    public memory: LayoutOperationMemory;
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.Low;
     }
 
-    public memory: {
-        data: {
-            ready: boolean,
-            nearbyRooms: string[],
-            checkedRooms: string[],
-            sourcePositions: RoomPosition[],
-            controllerPosition: RoomPosition,
-        }
-    };
-
     public init() {
     }
 
-    public refresh() {
+    public update() {
     }
 
     public finalize() {

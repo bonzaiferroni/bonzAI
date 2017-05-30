@@ -1,4 +1,4 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Profiler} from "../../Profiler";
@@ -10,17 +10,23 @@ interface EnergyStructure extends Structure {
     energyCapacity: number;
 }
 
+interface RefillMemory extends MissionMemory {
+    cartsLastTick: number;
+    max: number;
+}
+
+interface RefillState extends MissionState {
+    emergencyMode: boolean;
+    empties: EnergyStructure[];
+}
+
 export class RefillMission extends Mission {
 
     private carts: Agent[];
     private emergencyCarts: Agent[];
-    private emergencyMode: boolean;
-    private empties: EnergyStructure[];
 
-    public memory: {
-        cartsLastTick: number,
-        max: number
-    };
+    public memory: RefillMemory;
+    public state: RefillState;
 
     /**
      * General-purpose structure refilling. Can be used to refill spawning energy, towers, links, labs, etc.
@@ -35,15 +41,14 @@ export class RefillMission extends Mission {
     public init() {
     }
 
-    public refresh() {
-        this.empties = undefined;
-        this.emergencyMode = this.memory.cartsLastTick === 0;
+    public update() {
+        this.state.emergencyMode = this.memory.cartsLastTick === 0;
     }
 
     public roleCall() {
 
         let max = () => this.room.storage ? 1 : 2;
-        let emergencyMax = () => this.emergencyMode ? 1 : 0;
+        let emergencyMax = () => this.state.emergencyMode ? 1 : 0;
 
         let emergencyBody = () => { return this.workerBody(0, 4, 2); };
         this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
@@ -70,19 +75,6 @@ export class RefillMission extends Mission {
             order++;
         }
         Profiler.end("refill.actions");
-    }
-
-    private spawnCartActions2(cart: Agent, order: number) {
-        let hasLoad = cart.hasLoad();
-        if (!hasLoad) {
-            if (order !== 0 && cart.ticksToLive < 50) {
-                cart.suicide();
-                return;
-            }
-            cart.memory.emptyId = undefined;
-            cart.procureEnergy(this.findNearestEmpty(cart), true);
-            return;
-        }
     }
 
     private spawnCartActions(cart: Agent, order: number) {
@@ -165,19 +157,20 @@ export class RefillMission extends Mission {
     }
 
     private getEmpties(pullTarget?: EnergyStructure): EnergyStructure[] {
-        if (!this.empties) {
-            this.empties = _.filter(this.room.findStructures<EnergyStructure>(STRUCTURE_SPAWN)
+        if (!this.state.empties) {
+            let empties = _.filter(this.room.findStructures<EnergyStructure>(STRUCTURE_SPAWN)
                 .concat(this.room.findStructures<EnergyStructure>(STRUCTURE_EXTENSION)), (s: StructureSpawn) => {
                 return s.energy < s.energyCapacity;
             });
-            this.empties = this.empties.concat(_.filter(this.room.findStructures<EnergyStructure>(STRUCTURE_TOWER),
+            empties = empties.concat(_.filter(this.room.findStructures<EnergyStructure>(STRUCTURE_TOWER),
                 (s: StructureTower) => { return s.energy < s.energyCapacity * .5; }));
+            this.state.empties = empties;
         }
 
         if (pullTarget) {
-            _.pull(this.empties, pullTarget);
+            _.pull(this.state.empties, pullTarget);
         }
 
-        return this.empties;
+        return this.state.empties;
     }
 }

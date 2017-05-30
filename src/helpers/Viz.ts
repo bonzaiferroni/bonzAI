@@ -38,8 +38,8 @@ export class Viz {
         }
     }
 
-    public static text(pos: RoomPosition, text: string, color = "white") {
-        new RoomVisual(pos.roomName).text(text, pos, {color: color});
+    public static text(pos: RoomPosition, text: string, color = "white", font = .2) {
+        new RoomVisual(pos.roomName).text(text, pos.x, pos.y, {color: color, font: font});
     }
 }
 

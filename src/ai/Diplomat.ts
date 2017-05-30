@@ -18,6 +18,12 @@ export class Diplomat {
         this.partners = Memory.empire.partners;
     }
 
+    public update() {
+        this.allies = Memory.empire.allies;
+        this.foes = Memory.empire.foes;
+        this.partners = Memory.empire.partners;
+    }
+
     public checkEnemy(username: string, roomName: string) {
         if ( this.allies[username] ) {
             return false;

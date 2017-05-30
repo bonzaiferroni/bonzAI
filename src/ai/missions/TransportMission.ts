@@ -1,7 +1,8 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
+
 export class TransportMission extends Mission {
 
     private carts: Agent[];
@@ -11,6 +12,7 @@ export class TransportMission extends Mission {
     private resourceType: string;
     private offroad: boolean;
     public waypoints: Flag[];
+    public memory: any;
 
     constructor(operation: Operation, maxCarts: number,
                 origin?: StructureContainer | StructureStorage | StructureTerminal,
@@ -32,7 +34,7 @@ export class TransportMission extends Mission {
 
     public init() { }
 
-    public refresh() {
+    public update() {
         this.waypoints = [];
         if (!this.origin) {
             let originFlag = Game.flags[this.operation.name + "_origin"];

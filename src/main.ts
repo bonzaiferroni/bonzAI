@@ -14,15 +14,14 @@ import {consoleCommands} from "./helpers/consoleCommands";
 /* _____ init phase - instantiate operations _____ */
 // init game.cache
 
-let empire: Empire;
-let operations: OperationPriorityMap;
+let empire = Empire.get();
+let operations = OperationFactory.getOperations();
 try {
     Tick.init();
     initPrototypes();
 
-    empire = Empire.init();
     // scan flags for operations and instantiate
-    operations = OperationFactory.getOperations();
+    empire.init();
     Operation.init(operations);
 
     // report cpu
@@ -33,7 +32,7 @@ try {
 // MAIN LOOP
 module.exports.loop = function () {
 
-    // _____ refresh phase - update operations with game state _____
+    // _____ update phase - update operations with game state _____
 
     try {
         Tick.refresh();
@@ -44,21 +43,21 @@ module.exports.loop = function () {
         Profiler.resultOnly("mem", result);
 
         // reinitialize if flagcount is different (new operations might have been placed)
-        operations = OperationFactory.refreshOperations(operations);
+        OperationFactory.flagCheck();
 
         // patch memory or game state from earlier versions of bonzAI
         if (Patcher.checkPatch()) { return; }
 
         // init utilities
         TimeoutTracker.init();
-        TimeoutTracker.log("init"); // TODO: change to "refresh" once you get comparison data
+        TimeoutTracker.log("init"); // TODO: change to "update" once you get comparison data
         global.cc = consoleCommands;
 
         empire.refresh();
-    } catch (e) { console.log("error updateState phase:\n", e.stack); }
+    } catch (e) { console.log("error baseUpdate phase:\n", e.stack); }
 
     Profiler.start("init");
-    Operation.refresh(operations);
+    Operation.update(operations);
     Profiler.end("init");
 
     // _____ roleCall phase - Find creeps belonging to missions and spawn any additional needed _____

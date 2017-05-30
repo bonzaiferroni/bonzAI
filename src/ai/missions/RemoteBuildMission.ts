@@ -6,7 +6,6 @@ export class RemoteBuildMission extends Mission {
     private builders: Agent[];
     private construction: ConstructionSite[];
     private recycleWhenDone: boolean;
-    private boost: boolean;
 
     /**
      * Builds construction in remote locations, can recycle self when finished
@@ -24,11 +23,8 @@ export class RemoteBuildMission extends Mission {
     public init() {
     }
 
-    public refresh() {
-        if (!this.hasVision) {
-            return; // early
-        }
-
+    public update() {
+        if (!this.state.hasVision) { return; }
         this.construction = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
     }
 
@@ -65,7 +61,7 @@ export class RemoteBuildMission extends Mission {
         let fleeing = builder.fleeHostiles();
         if (fleeing) { return; } // early
 
-        if (!this.hasVision) {
+        if (!this.state.hasVision) {
             if (!builder.pos.isNearTo(this.flag)) {
                 builder.travelTo(this.flag);
             }

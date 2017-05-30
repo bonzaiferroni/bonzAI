@@ -138,7 +138,7 @@ function testSerialPos() {
 }
 
 class SandboxOperation extends Operation {
-    protected refresh() {
+    protected update() {
     }
     public init() {
         this.addMission(new SandboxMission(this, "sandbox"));
@@ -155,7 +155,7 @@ class SandboxOperation extends Operation {
 class SandboxMission extends Mission {
     protected init() {
     }
-    public refresh() {
+    public update() {
     }
 
     public roleCall() {

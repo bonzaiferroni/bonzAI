@@ -9,7 +9,7 @@ export class TimeoutTracker {
         }
 
         global.timeoutTracker = {
-            phase: "pre-operation updateState",
+            phase: "pre-operation baseUpdate",
             operation: undefined,
             mission: undefined,
             func: undefined,

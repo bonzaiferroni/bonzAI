@@ -21,7 +21,15 @@ export class LayoutFactory {
             if (!Memory.rooms[roomName]) { Memory.rooms[roomName] = {} as any; }
             data = Memory.rooms[roomName].layout;
             if (!data) {
-                return;
+                if (Game.time % 10 === 0) {
+                    console.log(`LAYOUT: no auto-layout type specified for ${roomName}`);
+                }
+                data = {
+                    flex: true,
+                    anchor: {x: 0, y: 0},
+                    rotation: 0,
+                    type: LAYOUT_CUSTOM,
+                };
             }
         }
         let layoutClass = LayoutFactory.layoutClasses[data.type];

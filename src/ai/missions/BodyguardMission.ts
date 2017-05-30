@@ -32,7 +32,7 @@ export class BodyguardMission extends Mission {
         this.potency = Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
     }
 
-    public refresh() {
+    public update() {
         if (!this.state.hasVision) { return; } // early
         this.hostiles = this.room.hostiles;
     }

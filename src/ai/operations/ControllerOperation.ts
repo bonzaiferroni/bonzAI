@@ -1,4 +1,4 @@
-import {Operation} from "./Operation";
+import {Operation, OperationMemory} from "./Operation";
 import {EmergencyMinerMission} from "../missions/EmergencyMission";
 import {RefillMission} from "../missions/RefillMission";
 import {PowerMission} from "../missions/PowerMission";
@@ -35,33 +35,35 @@ import {MemHelper} from "../../helpers/MemHelper";
 import {BaseRepairMission} from "../missions/BaseRepairMission";
 import {Profiler} from "../../Profiler";
 
+interface ControllerOperationMemory extends OperationMemory {
+    radius: number;
+    rotation: number;
+    centerPosition: RoomPosition;
+    repairIndices: {[structureType: string]: number};
+}
+
 export class ControllerOperation extends Operation {
 
     public layout: Layout;
     private defenseGuru: DefenseGuru;
     private builder: LayoutBuilder;
 
-    public memory: {
-        radius: number
-        rotation: number
-        centerPosition: RoomPosition;
-        repairIndices: {[structureType: string]: number}
-    };
+    public memory: ControllerOperationMemory;
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.OwnedRoom;
     }
 
-    protected updateState() {
-        super.updateState();
-        if (!this.flag) { return; }
-        this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
-        this.initRemoteSpawn(8, 8);
-        if (!this.layout) { this.autoLayout(); }
-    }
-
     public init() {
+
+        this.defenseGuru = new DefenseGuru(this);
+        this.defenseGuru.init();
+        this.layout = LayoutFactory.Instantiate(this.room.name);
+        this.layout.init();
+        this.builder = new LayoutBuilder(this.layout, this.roomName);
+        this.builder.init();
+        this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
 
         let remoteSpawning = false;
         if (!this.spawnGroup) {
@@ -75,7 +77,7 @@ export class ControllerOperation extends Operation {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
             this.addMission(new ScoutMission(this));
             this.addMission(new ClaimMission(this));
-            if (!this.hasVision || this.room.controller.level === 0) { return; } // vision can be assumed after this
+            if (!this.state.hasVision || this.room.controller.level === 0) { return; }
         }
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
@@ -95,7 +97,6 @@ export class ControllerOperation extends Operation {
             this.addMission(new RefillMission(this));
         }
 
-        this.defenseGuru = new DefenseGuru(this);
         this.addMission(new DefenseMission(this));
         this.addMission(new PowerMission(this));
 
@@ -108,7 +109,7 @@ export class ControllerOperation extends Operation {
         // harvest energy
         MiningMission.Add(this, true);
 
-        // build construction
+        // update construction
         let buildMission = new BuilderMission(this, this.defenseGuru);
         this.addMission(buildMission);
 
@@ -126,19 +127,18 @@ export class ControllerOperation extends Operation {
 
         // upgrader controller
         let boostUpgraders = this.flag.room.controller.level < 8;
-        let upgradeMission = new UpgradeMission(this, boostUpgraders);
-        this.addMission(upgradeMission);
+        this.addMission(new UpgradeMission(this, boostUpgraders));
 
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
-    public refresh() {
-        this.defenseGuru.refresh();
-        if (this.layout) {
-            // LayoutDisplay.showLayout(layout);
-            this.layout.refresh();
-            this.builder.build();
-        }
+    public update() {
+        this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
+        this.initRemoteSpawn(8, 8);
+
+        this.defenseGuru.update();
+        this.layout.update();
+        this.builder.update();
     }
 
     public finalize() {
@@ -165,40 +165,6 @@ export class ControllerOperation extends Operation {
             return "NUKER: Bombs away! \\o/";
         } else {
             return `NUKER: error: ${outcome}`;
-        }
-    }
-
-    private autoLayout() {
-        if (!this.room) { return; }
-        let layout = LayoutFactory.Instantiate(this.room.name);
-        if (!layout) { return; }
-        let initialized = layout.init();
-        if (!initialized) { return; }
-        this.layout = layout;
-        this.builder = new LayoutBuilder(layout, this.room);
-    }
-
-    private repairLayout(structure: Structure) {
-
-        let repairsNeeded = Math.floor((structure.hitsMax - structure.hits) / 800);
-        if (structure.structureType === STRUCTURE_RAMPART) {
-            if (structure.hits >= 100000) { return; }
-        } else {
-            if (repairsNeeded === 0) { return; }
-        }
-
-        let towers = this.flag.room.findStructures<StructureTower>(STRUCTURE_TOWER);
-
-        for (let tower of towers) {
-            if (repairsNeeded === 0) { return; }
-            if (tower.alreadyFired) { continue; }
-            if (!tower.pos.inRangeTo(structure, Math.max(5, this.memory.radius - 3))) { continue; }
-            let outcome = tower.repair(structure);
-            repairsNeeded--;
-        }
-
-        if (repairsNeeded > 0 && towers.length > 0) {
-            structure.pos.findClosestByRange<StructureTower>(towers).repair(structure);
         }
     }
 

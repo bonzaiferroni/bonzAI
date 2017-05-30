@@ -11,6 +11,8 @@ export class ZombieMission extends Mission {
     private zombies: Agent[];
     private guru: RaidGuru;
 
+    public memory: any;
+
     constructor(operation: Operation, raidGuru: RaidGuru) {
         super(operation, "zombie");
         this.guru = raidGuru;
@@ -18,7 +20,7 @@ export class ZombieMission extends Mission {
 
     public init() { }
 
-    public refresh() {
+    public update() {
         this.guru.refreshGuru(this.flag.pos.roomName, true);
     }
 

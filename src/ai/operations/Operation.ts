@@ -10,6 +10,19 @@ import {Profiler} from "../../Profiler";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
 
+export interface OperationState {
+    hasVision: boolean;
+    sources: Source[];
+    mineral: Mineral;
+}
+
+export interface OperationMemory {
+    spawnData: {
+        spawnRooms: { distance: number, roomName: string }[];
+        nextSpawnCheck: number;
+    };
+}
+
 export abstract class Operation {
 
     public flagName: string;
@@ -20,12 +33,8 @@ export abstract class Operation {
     public priority: OperationPriority;
     public spawnGroup: SpawnGroup;
     public remoteSpawn: {distance: number, spawnGroup: SpawnGroup};
-    public missions: {[roleName: string]: Mission} = {};
-    public spawnData: {
-        spawnRooms: { distance: number, roomName: string }[];
-        nextSpawnCheck: number;
-    };
-    public memory: any;
+    public missions: {[missionName: string]: Mission} = {};
+    public memory: OperationMemory;
     public flag: Flag;
     public room: Room;
     public waypoints: Flag[];
@@ -33,7 +42,8 @@ export abstract class Operation {
     private mineralId: string;
 
     public state: OperationState;
-    private stateUpdated: number;
+    private lastUpdated: number;
+    private bypass: boolean;
 
     private static priorityOrder = [
         OperationPriority.Emergency,
@@ -44,7 +54,6 @@ export abstract class Operation {
         OperationPriority.Low,
         OperationPriority.VeryLow,
         ];
-    private bypass: boolean;
 
     /**
      *
@@ -61,16 +70,15 @@ export abstract class Operation {
         this.pos = flag.pos;
     }
 
-    protected updateState() {
+    protected baseUpdate() {
         this.flag = Game.flags[this.flagName];
         if (!this.flag) { return; } // flag must have been pulled
         this.room = Game.rooms[this.roomName];
-        this.stateUpdated = Game.time;
+        this.lastUpdated = Game.time;
         this.bypass = false;
 
         this.memory = this.flag.memory;
-        if (!this.memory.spawnData) { this.memory.spawnData = {}; }
-        this.spawnData = this.memory.spawnData;
+        if (!this.memory.spawnData) { this.memory.spawnData = {} as any; }
 
         // find state
         this.state = {} as OperationState;
@@ -96,17 +104,18 @@ export abstract class Operation {
     }
 
     /**
-     * Global Phase - Runs on init updateState ticks - initialize operation variables and instantiate missions
+     * Global Phase - Runs on init baseUpdate ticks - initialize operation variables and instantiate missions
      */
 
     public static init(priorityMap: OperationPriorityMap) {
+
         for (let priority of this.priorityOrder) {
             let operations = priorityMap[priority];
             if (!operations) { continue; }
             for (let opName in operations) {
                 let operation = operations[opName];
                 try {
-                    operation.updateState();
+                    operation.baseUpdate();
                     operation.init();
                     Mission.init(operation.missions);
                 } catch (e) {
@@ -119,11 +128,21 @@ export abstract class Operation {
 
     protected abstract init();
 
+    // this is sort of a hack so that operation flags that are added after global update can still be used
+    public selfInit() {
+        try {
+            this.baseUpdate();
+            this.init();
+        } catch (e) {
+            Notifier.reportException(e, "selfInit", this.name);
+        }
+    }
+
     /**
      * Init Phase - Runs every tick - initialize operation variables and instantiate missions
      */
 
-    public static refresh(priorityMap: OperationPriorityMap) {
+    public static update(priorityMap: OperationPriorityMap) {
 
         for (let priority of this.priorityOrder) {
             let operations = priorityMap[priority];
@@ -132,16 +151,18 @@ export abstract class Operation {
             for (let opName in operations) {
                 let operation = operations[opName];
                 try {
-                    if (operation.stateUpdated !== Game.time) {
-                        operation.updateState();
+                    if (operation.lastUpdated !== Game.time) {
+                        operation.baseUpdate();
                     }
+
                     if (!operation.flag) {
                         // flag must have been pulled
                         operation.bypass = true;
                         continue;
                     }
-                    operation.refresh();
-                    Mission.refresh(operation.missions);
+
+                    operation.update();
+                    Mission.update(operation.missions);
                 } catch (e) {
                     Notifier.reportException(e, "init", opName);
                     operation.bypass = true;
@@ -150,7 +171,7 @@ export abstract class Operation {
         }
     }
 
-    protected abstract refresh();
+    protected abstract update();
 
     /**
      * RoleCall Phase - Iterate through missions and call mission.roleCall()
@@ -276,7 +297,7 @@ export abstract class Operation {
         }
 
         // invalidated periodically
-        if (!Scheduler.delay(this.spawnData, "nextSpawnCheck", 10000)) {
+        if (!Scheduler.delay(this.memory.spawnData, "nextSpawnCheck", 10000)) {
             let spawnGroups = _.filter(_.toArray(empire.spawnGroups),
                 spawnGroup => spawnGroup.room.controller.level >= levelRequirement
                 && spawnGroup.room.name !== this.flag.pos.roomName);
@@ -285,19 +306,19 @@ export abstract class Operation {
 
             if (bestGroups.length > 0) {
                 bestGroups = _.sortBy(bestGroups, value => value.distance);
-                this.spawnData.spawnRooms = _.map(bestGroups, value => {
+                this.memory.spawnData.spawnRooms = _.map(bestGroups, value => {
                     return {distance: value.distance, roomName: value.destination.room.name};
                 });
             } else {
-                this.spawnData.nextSpawnCheck = Game.time + 100; // Around 6 min
+                this.memory.spawnData.nextSpawnCheck = Game.time + 100; // Around 6 min
             }
             console.log(`SPAWN: finding spawn rooms in ${this.name}, result: ${bestGroups.length} found`);
         }
 
-        if (this.spawnData.spawnRooms) {
+        if (this.memory.spawnData.spawnRooms) {
             let bestAvailability = 0;
             let bestSpawn: {distance: number, roomName: string };
-            for (let data of this.spawnData.spawnRooms) {
+            for (let data of this.memory.spawnData.spawnRooms) {
                 let spawnGroup = empire.spawnGroups[data.roomName];
                 if (!spawnGroup) { continue; }
                 if (spawnGroup.averageAvailability >= 1) {
@@ -347,8 +368,3 @@ enum OperationPhase { InitGlobal, Init, RoleCall, Actions, Finalize }
 
 export type OperationPriorityMap = {[priority: number]: { [opName: string]: Operation } }
 export type OperationMap = {[opName: string]: Operation}
-export interface OperationState {
-    hasVision: boolean;
-    sources: Source[];
-    mineral: Mineral;
-}

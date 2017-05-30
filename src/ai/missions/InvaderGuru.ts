@@ -31,8 +31,8 @@ export class InvaderGuru extends Guru {
         }
     }
 
-    public refresh() {
-        super.refresh();
+    public update() {
+        super.update();
         if (!this.room) { return; }
         this.hasVision = true;
         for (let creep of _.filter(this.room.hostiles, c => c.owner.username === "Invader")) {

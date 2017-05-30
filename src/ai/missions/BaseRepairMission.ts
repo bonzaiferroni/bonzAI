@@ -25,7 +25,7 @@ export class BaseRepairMission extends Mission {
         this.initRampartMemory();
     }
 
-    public refresh() {
+    public update() {
         this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
         this.findRepairTargets();
     }
@@ -66,7 +66,7 @@ export class BaseRepairMission extends Mission {
         if (this.memory.rampartOrders[tower.id]) {
             let target = Game.getObjectById<Structure>(this.memory.rampartOrders[tower.id]);
             if (target && target.hits < this.repairMax) {
-                tower.repair(target);
+                // tower.repair(target);
                 return;
             } else {
                 delete this.memory.rampartOrders[tower.id];
@@ -114,6 +114,7 @@ export class BaseRepairMission extends Mission {
     }
 
     private findRoads() {
+        if (!this.layout.map) { return; }
         let roadPositions = this.layout.map[STRUCTURE_ROAD];
         if (roadPositions.length === 0 || this.towers.length === 0) { return; }
         if (this.memory.roadIndex === undefined || this.memory.roadIndex >= roadPositions.length) {

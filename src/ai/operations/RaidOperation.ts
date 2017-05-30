@@ -1,4 +1,4 @@
-import {Operation} from "./Operation";
+import {Operation, OperationMemory} from "./Operation";
 import {FireflyMission} from "../missions/FireflyMission";
 import {WreckerMission} from "../missions/WreckerMission";
 import {BrawlerMission} from "../missions/BrawlerMission";
@@ -13,6 +13,37 @@ import {empire} from "../Empire";
 import {HostileAgent} from "../agents/HostileAgent";
 import {Traveler, traveler} from "../Traveler";
 import {Notifier} from "../../notifier";
+
+interface RaidMemory extends OperationMemory {
+    manual: boolean;
+    squadCount: number;
+    squadConfig: {[squadName: string]: SquadConfig };
+    queue: {[squadName: string]: SquadConfig };
+    allowSpawn: boolean;
+    maxSquads: number;
+    waveComplete: boolean;
+    spawnSync: boolean;
+    raidComplete: boolean;
+    fallback: boolean;
+    defaultBoostLevel: number;
+    defaultSquad: string;
+    additionalRooms: string[];
+    tickLastActive: number;
+    saveValues: boolean;
+    fallbackRoomName: string;
+    attackRoomIndex: number;
+    pretending: boolean;
+    waveDelay: number;
+    nextWave: number;
+    standGround: boolean;
+    killCreeps: boolean;
+    signText: string;
+    serialMatrix: number[];
+    nextMatrixRefresh: number;
+    nextNuke: number;
+    braveMode: boolean;
+    cache: any;
+}
 
 /**
  * Primary tool for raiding. See wiki for details: https://github.com/bonzaiferroni/bonzAI/wiki/Using-RaidOperation
@@ -36,35 +67,8 @@ export class RaidOperation extends Operation {
     private static orderedObservation: boolean;
     private cache: any;
 
-    public memory: {
-        manual: boolean;
-        squadCount: number;
-        squadConfig: {[squadName: string]: SquadConfig };
-        queue: {[squadName: string]: SquadConfig };
-        allowSpawn: boolean;
-        maxSquads: number;
-        waveComplete: boolean;
-        spawnSync: boolean;
-        raidComplete: boolean;
-        fallback: boolean;
-        defaultBoostLevel: number;
-        defaultSquad: string;
-        additionalRooms: string[];
-        tickLastActive: number;
-        saveValues: boolean;
-        fallbackRoomName: string;
-        attackRoomIndex: number;
-        pretending: boolean;
-        waveDelay: number;
-        nextWave: number;
-        standGround: boolean;
-        killCreeps: boolean;
-        signText: string;
-        serialMatrix: number[];
-        nextMatrixRefresh: number;
-        nextNuke: number;
-        cache: any;
-    };
+    public memory: RaidMemory;
+    private raidMissions: { [missionName: string]: RaidMission };
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
@@ -75,7 +79,7 @@ export class RaidOperation extends Operation {
         if (!this.memory.cache) { this.memory.cache = {}; }
     }
 
-    public refresh() {
+    public update() {
         this.cache = {};
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
         this.raidData = this.generateRaidData();
@@ -95,20 +99,14 @@ export class RaidOperation extends Operation {
             let allowSpawn = i < this.memory.maxSquads && this.memory.allowSpawn;
 
             let missionClass = this.squadTypes[config.type];
-            let mission = new missionClass(this, name) as RaidMission;
-            mission.updateRaidData(this.raidData, spawnGroup, config.boostLevel, allowSpawn);
-            // this is bad form, need to update RaidMission to handle the new refresh phase
-            try {
-                mission.updateState();
-                mission.init();
-                mission.refresh();
-            } catch (e) {
-                Notifier.reportException(e, "refresh", "raidMission");
-            }
-            missions[mission.name] = mission;
+            let mission = new missionClass(this, name, this.raidData, spawnGroup, config.boostLevel,
+                allowSpawn) as RaidMission;
+            // this is bad form, need to update RaidMission to handle the new update phase
+            this.addMissionLate(mission);
         }
 
-        this.missions = missions;
+        this.missions = missions as any;
+        this.raidMissions = missions;
     }
 
     public finalize() {
@@ -117,7 +115,7 @@ export class RaidOperation extends Operation {
 
         let spawnCount = 0;
         for (let missionName in this.missions) {
-            let mission = this.missions[missionName] as RaidMission;
+            let mission = this.raidMissions[missionName];
             if (mission.findSpawnedStatus()) {
                 spawnCount++;
             } else {
@@ -193,7 +191,7 @@ export class RaidOperation extends Operation {
         let globalConfigComplete = this.initGlobalConfig();
         if (!globalConfigComplete) { return; }
 
-        // updateState squadConfig
+        // baseUpdate squadConfig
         for (let i = 0; i < this.memory.maxSquads; i++) {
             let name = this.squadNames[i];
             if (!this.memory.squadConfig[name]) { this.memory.squadConfig[name] = {

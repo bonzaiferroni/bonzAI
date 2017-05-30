@@ -5,6 +5,39 @@ import {Notifier} from "../../notifier";
 import {Scheduler} from "../../Scheduler";
 import {helper} from "../../helpers/helper";
 
+interface DefenseMemory extends MissionMemory {
+    idlePosition: RoomPosition;
+    unleash: boolean;
+    disableSafeMode: boolean;
+    wallCount: number;
+    closestWallId: string;
+    lastCheckedTowers: number;
+    loggedAttack: boolean;
+    vulnerableIndex: number;
+    targetIds: string[];
+    targetHits: number;
+    hitCount: number;
+    healerTargetIndex: number;
+    towerDrainDelay: number;
+}
+
+interface DefenseState extends MissionState {
+    enemySquads: Creep[][];
+    vulnerableCreep: Creep;
+    assistTarget: Creep;
+    openRamparts: Structure[];
+    jonRamparts: Structure[];
+    hostileHealers: Creep[];
+    hostileAttackers: Creep[];
+    enhancedBoost: boolean;
+    likelyTowerDrainAttempt: boolean;
+    playerThreat: boolean;
+    attackedCreep: Creep;
+    healedDefender: Agent;
+    closestHostile: Creep;
+    empties: StructureTower[];
+}
+
 export class DefenseMission extends Mission {
 
     private refillCarts: Agent[];
@@ -23,9 +56,7 @@ export class DefenseMission extends Mission {
     public init() {
     }
 
-    public refresh() {
-        this.state = {} as any;
-
+    public update() {
         this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
 
         this.analyzePlayerThreat();
@@ -424,8 +455,9 @@ export class DefenseMission extends Mission {
             let wallCount = this.room.findStructures(STRUCTURE_WALL)
                 .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
             if (this.memory.wallCount && wallCount < this.memory.wallCount) {
-                this.room.controller.activateSafeMode();
-                this.memory.unleash = true;
+                if (this.room.controller.level === 8) {
+                    this.room.controller.activateSafeMode();
+                }
             }
             this.memory.wallCount = wallCount;
         } else {
@@ -726,37 +758,4 @@ export class DefenseMission extends Mission {
 
         return safest;
     }
-}
-
-interface DefenseMemory extends MissionMemory {
-    idlePosition: RoomPosition;
-    unleash: boolean;
-    disableSafeMode: boolean;
-    wallCount: number;
-    closestWallId: string;
-    lastCheckedTowers: number;
-    loggedAttack: boolean;
-    vulnerableIndex: number;
-    targetIds: string[];
-    targetHits: number;
-    hitCount: number;
-    healerTargetIndex: number;
-    towerDrainDelay: number;
-}
-
-interface DefenseState extends MissionState {
-    enemySquads: Creep[][];
-    vulnerableCreep: Creep;
-    assistTarget: Creep;
-    openRamparts: Structure[];
-    jonRamparts: Structure[];
-    hostileHealers: Creep[];
-    hostileAttackers: Creep[];
-    enhancedBoost: boolean;
-    likelyTowerDrainAttempt: boolean;
-    playerThreat: boolean;
-    attackedCreep: Creep;
-    healedDefender: Agent;
-    closestHostile: Creep;
-    empties: StructureTower[];
 }

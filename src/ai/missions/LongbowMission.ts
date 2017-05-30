@@ -27,7 +27,7 @@ export class LongbowMission extends FireflyMission {
     private claimedHealerSlots: RoomPosition[] = [];
 
     public initMission() {
-        super.refresh();
+        super.update();
         this.targetFlag = Game.flags[`${this.operation.name}_longbow`];
         if (!this.targetFlag) {
             return;
@@ -91,7 +91,7 @@ export class LongbowMission extends FireflyMission {
             }
         }
 
-        if (this.operation.memory.fallback) {
+        if (this.raidOperation.memory.fallback) {
             this.longBowTravel(this.squire, this.raidData.fallbackFlag);
         }
 

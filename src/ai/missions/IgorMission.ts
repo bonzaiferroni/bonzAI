@@ -1,4 +1,4 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {IGOR_CAPACITY, PRODUCTION_AMOUNT, REAGENT_LIST} from "../../config/constants";
 import {IgorCommand, LabProcess, Shortage, BoostRequests} from "../../interfaces";
@@ -9,6 +9,19 @@ import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
 import {Viz} from "../../helpers/Viz";
+
+interface IgorMemory extends MissionMemory {
+    idlePosition: RoomPosition;
+    command: IgorCommand;
+    labCount: number;
+    reagentLabIds: string[];
+    productLabIds: string[];
+    lastCommandTick: number;
+    checkProcessTick: number;
+    labProcess: LabProcess;
+    boostOrders: {[boostType: string]: string};
+}
+
 export class IgorMission extends Mission {
 
     private igors: Agent[];
@@ -19,17 +32,7 @@ export class IgorMission extends Mission {
     private terminal: StructureTerminal;
     private storage: StructureStorage;
     private powerSpawn: PowerSpawn;
-    public memory: {
-        idlePosition: RoomPosition;
-        command: IgorCommand;
-        labCount: number;
-        reagentLabIds: string[];
-        productLabIds: string[];
-        lastCommandTick: number;
-        checkProcessTick: number;
-        labProcess: LabProcess;
-        boostOrders: {[boostType: string]: string}
-    };
+    public memory: IgorMemory;
 
     constructor(operation: Operation) {
         super(operation, "igor");
@@ -41,7 +44,7 @@ export class IgorMission extends Mission {
         this.findIgorIdlePosition();
     }
 
-    public refresh() {
+    public update() {
         this.labs = this.room.findStructures(STRUCTURE_LAB) as StructureLab[];
         this.terminal = this.room.terminal;
         this.storage = this.room.storage;
@@ -566,7 +569,7 @@ export class IgorMission extends Mission {
             if (labId) {
                 let lab = Game.getObjectById<StructureLab>(labId);
                 if (lab) {
-                    Viz.text(lab.pos, resourceType);
+                    Viz.text(lab.pos, resourceType, "green");
                 } else {
                     console.log("IGOR: lost a lab? removing boost order");
                     delete this.memory.boostOrders[resourceType];
@@ -578,7 +581,8 @@ export class IgorMission extends Mission {
     }
 
     private makeBoostOrder(resourceType: string) {
-        let labs = _.filter(this.productLabs, (l: StructureLab) => _.find(this.memory.boostOrders, x => x !== l.id));
+        let labs = _.filter(this.productLabs, (l: StructureLab) => !_.find(this.memory.boostOrders, x => x === l.id));
+        console.log(labs.length);
         if (labs.length === 0) { return; }
 
         let closestToSpawn = this.spawnGroup.spawns[0].pos.findClosestByRange(labs);

@@ -21,27 +21,32 @@ export abstract class Layout {
         this.data = data;
     }
 
-    public init(): boolean {
-        if (!this.data.flex) {
-            let generating = this.generateFlex();
-            if (generating) {
-                console.log(`LAYOUT: generating flex map in ${this.roomName}`);
-                return;
-            }
-        }
-
-        let flexMaps = empire.archiver.globalGet(LAYOUT_SEGMENTID);
-        if (!flexMaps) {
-            console.log(`ordering layout segment in ${this.roomName}`);
-            return false;
-        }
-
-        this.map = this.findMap(flexMaps[this.roomName]);
-        return true;
+    public init() {
     }
 
-    public refresh() {
+    public update() {
+        this.findMap();
         this.structureCache = {};
+    }
+
+    protected findMap() {
+        if (!this.map) {
+            if (!this.data.flex) {
+                let generating = this.generateFlex();
+                if (generating) {
+                    console.log(`LAYOUT: generating flex map in ${this.roomName}`);
+                    return;
+                }
+            }
+
+            let flexMaps = empire.archiver.globalGet(LAYOUT_SEGMENTID);
+            if (!flexMaps) {
+                console.log(`ordering layout segment in ${this.roomName}`);
+                return;
+            }
+
+            this.map = this.consolidateMaps(flexMaps[this.roomName]);
+        }
     }
 
     public findFixedMap(): PositionMap {
@@ -85,7 +90,7 @@ export abstract class Layout {
         return structureTypes;
     }
 
-    protected findMap(flexMap: FlexMap): PositionMap {
+    protected consolidateMaps(flexMap: FlexMap): PositionMap {
         let structureTypes = this.findStructureTypes();
         let map = {};
         for (let structureType of structureTypes) {

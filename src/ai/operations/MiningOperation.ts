@@ -54,14 +54,10 @@ export class MiningOperation extends Operation {
         MiningMission.Add(this, false);
 
         this.addMission(new RemoteBuildMission(this, true));
-
-        if (!this.flag.room.controller || this.memory.swapMining) {
-            this.addMission(new GeologyMission(this));
-        }
     }
 
-    public refresh() {
-        this.invaderGuru.refresh();
+    public update() {
+        this.invaderGuru.update();
     }
 
     public finalize() {

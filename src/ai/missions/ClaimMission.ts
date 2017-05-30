@@ -13,7 +13,7 @@ export class ClaimMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
         if (this.room) {
             this.controller = this.room.controller;
         }

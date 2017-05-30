@@ -1,9 +1,14 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Agent} from "../agents/Agent";
+
+interface PaverMemory extends MissionMemory {
+    potency: number;
+}
+
 export class PaverMission extends Mission {
 
     private pavers: Agent[];
-    private potency: number;
+    public memory: PaverMemory;
 
     constructor(operation, allowSpawn: boolean) {
         super(operation, "paver");
@@ -11,20 +16,10 @@ export class PaverMission extends Mission {
     }
 
     public init() {
-        if (!this.hasVision) { return; }
-
-        if (!this.memory.potency) {
-            let roads = this.room.findStructures(STRUCTURE_ROAD) as StructureRoad[];
-            let sum = 0;
-            for (let road of roads) {
-                sum += road.hitsMax;
-            }
-            this.memory.potency = Math.max(Math.ceil(sum / 500000), 1);
-        }
-        this.potency = this.memory.potency;
+        if (!this.state.hasVision) { return; }
     }
 
-    public refresh() {
+    public update() {
     }
 
     public roleCall() {
@@ -34,7 +29,8 @@ export class PaverMission extends Mission {
             if (this.spawnGroup.maxSpawnEnergy <= 550) {
                 return this.bodyRatio(1, 3, 1, 1);
             } else {
-                return this.workerBody(this.potency, 3 * this.potency, 2 * this.potency);
+                let potency = this.findPotency();
+                return this.workerBody(potency, 3 * potency, 2 * potency);
             }
         };
         this.pavers = this.headCount(this.name, body, max, {prespawn: 10} );
@@ -127,5 +123,18 @@ export class PaverMission extends Mission {
         } else {
             return false;
         }
+    }
+
+    private findPotency(): number {
+        if (!this.memory.potency) {
+            if (!this.room) { return; }
+            let roads = this.room.findStructures(STRUCTURE_ROAD) as StructureRoad[];
+            let sum = 0;
+            for (let road of roads) {
+                sum += road.hitsMax;
+            }
+            this.memory.potency = Math.max(Math.ceil(sum / 500000), 1);
+        }
+        return this.memory.potency;
     }
 }

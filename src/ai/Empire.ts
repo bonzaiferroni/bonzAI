@@ -10,20 +10,21 @@ import {Archiver} from "./Archiver";
 import {MemHelper} from "../helpers/MemHelper";
 import {Notifier} from "../notifier";
 import {Janitor} from "./Janitor";
+import {Diplomat} from "./Diplomat";
+import {TradeNetwork} from "./TradeNetwork";
 
 export class Empire {
 
     public spawnGroups: {[roomName: string]: SpawnGroup};
     public traveler: Traveler;
-    public diplomat: BonzaiDiplomat;
+    public diplomat: Diplomat;
     public map: WorldMap;
-    public network: BonzaiNetwork;
+    public network: TradeNetwork;
     public market: MarketTrader;
     public archiver: Archiver;
     public janitor: Janitor;
 
-    public static init(): Empire {
-        empire.init();
+    public static get(): Empire {
         global.root = empire;
         return empire;
     }
@@ -35,10 +36,10 @@ export class Empire {
     public init() {
         this.initMemory();
         this.traveler = traveler;
-        this.diplomat = new BonzaiDiplomat();
+        this.diplomat = new Diplomat();
         this.map = new WorldMap(this.diplomat);
         this.spawnGroups = this.map.init();
-        this.network = new BonzaiNetwork(this.map, this.diplomat);
+        this.network = new TradeNetwork(this.map);
         this.market = new MarketTrader(this.network);
         this.archiver = new Archiver();
         this.archiver.init();
@@ -52,9 +53,10 @@ export class Empire {
      */
 
     public refresh() {
-        this.map.refresh();
-        this.network.refresh();
-        this.archiver.refresh();
+
+        this.map.update();
+        this.network.update();
+        this.archiver.update();
         SpawnGroup.refresh(this.spawnGroups);
     }
 
@@ -117,3 +119,4 @@ export class Empire {
 }
 
 export let empire: Empire = new Empire();
+global["empire"] = empire;

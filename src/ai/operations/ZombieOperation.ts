@@ -24,7 +24,7 @@ export class ZombieOperation extends Operation {
         this.addMission(new ZombieMission(this, this.raidGuru));
     }
 
-    public refresh() {
+    public update() {
         this.raidGuru.refreshGuru(this.roomName, true);
     }
 

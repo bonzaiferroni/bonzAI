@@ -21,10 +21,10 @@ export abstract class Guru {
         this.memory = this.operation.memory[this.name];
     }
 
-    public refresh() {
+    public update() {
         this.flag = this.operation.flag;
-        this.room = Game.rooms[this.operation.roomName];
         this.memory = this.operation.memory[this.name];
+        this.room = Game.rooms[this.operation.roomName];
     }
 
     protected observeRoom(roomName: string): Room {

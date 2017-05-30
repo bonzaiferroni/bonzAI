@@ -294,12 +294,12 @@ export class Agent extends AbstractAgent {
 
             if (this.creep.spawning) { continue; }
 
-            let flag = Game.flags[requests[boost].flagName];
-            if (!flag) { continue; }
+            let lab = _(this.room.findStructures<StructureLab>(STRUCTURE_LAB))
+                .filter(x => x.mineralType === boost && x.mineralAmount >= IGOR_CAPACITY
+                && x.energy >= IGOR_CAPACITY)
+                .max(x => x.mineralAmount);
 
-            let lab = flag.pos.lookForStructure(STRUCTURE_LAB) as StructureLab;
-
-            if (lab.mineralType === boost && lab.mineralAmount >= IGOR_CAPACITY && lab.energy >= IGOR_CAPACITY) {
+            if (_.isObject(lab)) {
                 if (this.pos.isNearTo(lab)) {
                     lab.boostCreep(this.creep);
                 } else {

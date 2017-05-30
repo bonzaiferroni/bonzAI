@@ -1,4 +1,4 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Traveler} from "../Traveler";
 import {WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
@@ -8,47 +8,51 @@ import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
+
+export interface PathMemory extends MissionMemory {
+    distance: number;
+    roadRepairIds: string[];
+    pathCheck: number;
+}
+
 export class PathMission extends Mission {
     private startPos: RoomPosition;
     private endPos: RoomPosition;
     private rangeToEnd: number;
     private ignoreConstructionLimit: boolean;
-    private pathData: {
-        distance: number;
-        roadRepairIds: string[];
-        pathCheck: number;
-    };
     private paver: Agent;
+    public memory: PathMemory;
 
-    constructor(operation: Operation, name: string, details: {
-        start: {pos: RoomPosition};
-        end: {pos: RoomPosition};
-        rangeToEnd: number;
-        ignoreConstructionLimit?: boolean;
-    }) {
+    constructor(operation: Operation, name: string) {
         super(operation, name);
-        this.startPos = details.start.pos;
-        this.endPos = details.end.pos;
-        this.rangeToEnd = details.rangeToEnd;
-        this.ignoreConstructionLimit = details.ignoreConstructionLimit;
     }
 
     public init() {
-        if (!this.memory.pathData) { this.memory.pathData = {}; }
-        this.pathData = this.memory.pathData;
     }
 
-    public refresh() {
-        this.pathData = this.memory.pathData;
+    public updatePath(startPos: RoomPosition, endPos: RoomPosition, rangeToEnd: number) {
+        this.startPos = startPos;
+        this.endPos = endPos;
+        this.rangeToEnd = rangeToEnd;
+    }
+
+    public update() {
+        if (!this.startPos) { return; }
         this.spawnGroup = empire.getSpawnGroup(this.startPos.roomName);
         this.checkPath();
     }
 
+    public getPaverBody = () => {
+        return this.bodyRatio(1, 3, 2, 1, 5);
+    };
+
     public roleCall() {
-        if (!this.pathData.roadRepairIds) { return; }
-        if (!this.hasVision || (this.room.controller && this.room.controller.level === 1)) { return; }
-        let paverBody = () => { return this.bodyRatio(1, 3, 2, 1, 5); };
-        this.paver = this.spawnSharedAgent("paver", paverBody);
+        if (!this.memory.roadRepairIds) {
+            this.paver = undefined;
+            return;
+        }
+        if (!this.state.hasVision || (this.room.controller && this.room.controller.level === 1)) { return; }
+        this.paver = this.spawnSharedAgent("paver", this.getPaverBody);
     }
 
     public actions() {
@@ -62,7 +66,7 @@ export class PathMission extends Mission {
     public invalidateCache() {
     }
 
-    get distance(): number { return this.pathData.distance; }
+    public getdistance(): number { return this.memory.distance; }
 
     private checkPath() {
         if (Scheduler.delay(this.memory, "pathCheck", 1000)) { return; }
@@ -71,7 +75,7 @@ export class PathMission extends Mission {
             Notifier.log(`PAVER: path too long: ${this.startPos.roomName} to ${this.endPos.roomName}`);
             return;
         }
-        let path = this.findPavedPath(this.endPos, this.startPos, 1);
+        let path = this.findPavedPath(this.startPos, this.endPos);
         if (!path) {
             Notifier.log(`incomplete pavePath, please investigate (${this.operation.name}), start: ${
                 this.startPos}, finish: ${this.endPos}, mission: ${this.name}`);
@@ -88,19 +92,19 @@ export class PathMission extends Mission {
             }
         }  else {
             if (_.last(path).inRangeTo(this.startPos, 1)) {
-                this.pathData.distance = path.length;
+                this.memory.distance = path.length;
             }
         }
     }
 
-    protected findPavedPath(start: RoomPosition, finish: RoomPosition, rangeAllowance: number): RoomPosition[] {
+    protected findPavedPath(start: RoomPosition, finish: RoomPosition): RoomPosition[] {
         const ROAD_COST = 3;
         const PLAIN_COST = 4;
         const SWAMP_COST = 5;
         const AVOID_COST = 7;
 
         let maxDistance = Game.map.getRoomLinearDistance(start.roomName, finish.roomName);
-        let ret = PathFinder.search(start, [{pos: finish, range: rangeAllowance}], {
+        let ret = PathFinder.search(start, [{pos: finish, range: 1}], {
             plainCost: PLAIN_COST,
             swampCost: SWAMP_COST,
             maxOps: 12000,
@@ -177,7 +181,7 @@ export class PathMission extends Mission {
         let repairIds = [];
         let hitsToRepair = 0;
 
-        for (let i = this.rangeToEnd; i < path.length; i++) {
+        for (let i = 0; i < path.length - this.rangeToEnd; i++) {
             let position = path[i];
             if (!Game.rooms[position.roomName]) { return; }
             if (position.isNearExit(0)) { continue; }
@@ -187,9 +191,9 @@ export class PathMission extends Mission {
                 hitsToRepair += road.hitsMax - road.hits;
                 // TODO: calculate how much "a whole lot" should be based on paver repair rate
                 const A_WHOLE_LOT = 1000000;
-                if (!this.pathData.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20)) {
+                if (!this.memory.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20)) {
                     console.log(`PAVER: I'm being summoned in ${this.operation.name}`);
-                    this.pathData.roadRepairIds = repairIds;
+                    this.memory.roadRepairIds = repairIds;
                 }
                 continue;
             }
@@ -257,17 +261,20 @@ export class PathMission extends Mission {
     }
 
     private findRoadToRepair(): StructureRoad {
-        if (!this.pathData.roadRepairIds) { return; }
+        if (!this.memory.roadRepairIds) {
+            return;
+        }
 
-        let road = Game.getObjectById<StructureRoad>(this.pathData.roadRepairIds[0]);
+        let road = Game.getObjectById<StructureRoad>(this.memory.roadRepairIds[0]);
         if (road && road.hits < road.hitsMax) {
             return road;
         } else {
-            this.pathData.roadRepairIds.shift();
-            if (this.pathData.roadRepairIds.length > 0) {
+            this.memory.roadRepairIds.shift();
+            if (this.memory.roadRepairIds.length > 0) {
                 return this.findRoadToRepair();
             } else {
-                this.pathData.roadRepairIds = undefined;
+                // allows paver to be reused by another mission
+                delete this.memory.roadRepairIds;
             }
         }
     }

@@ -37,12 +37,12 @@ if (!config.user || !config.user.email || !config.user.password) {
 }
 
 if (!config.targets) {
-  gutil.log(gutil.colors.red('ERROR'), 'Invalid "config.json" file: cannot find build targets');
+  gutil.log(gutil.colors.red('ERROR'), 'Invalid "config.json" file: cannot find update targets');
   process.exit();
 }
 
 if (!config.defaultTarget || !config.targets[config.defaultTarget]) {
-  gutil.log(gutil.colors.red('ERROR'), 'Invalid "config.json" file: cannot find default build target');
+  gutil.log(gutil.colors.red('ERROR'), 'Invalid "config.json" file: cannot find default update target');
   process.exit();
 }
 
@@ -50,13 +50,13 @@ gutil.log('Successfully loaded', gutil.colors.magenta('config.json'));
 
 if (gutil.env.target) {
   if (!config.targets[gutil.env.target]) {
-    gutil.log(gutil.colors.red('ERROR'), 'Invalid build target "' + gutil.env.target + '"');
-    gutil.log('Valid build targets are:', '"' + Object.keys(config.targets).join('", "') + '"');
+    gutil.log(gutil.colors.red('ERROR'), 'Invalid update target "' + gutil.env.target + '"');
+    gutil.log('Valid update targets are:', '"' + Object.keys(config.targets).join('", "') + '"');
     process.exit();
   }
-  gutil.log('Using selected build target', gutil.colors.magenta(gutil.env.target));
+  gutil.log('Using selected update target', gutil.colors.magenta(gutil.env.target));
 } else {
-  gutil.log('Using default build target', gutil.colors.magenta(config.defaultTarget));
+  gutil.log('Using default update target', gutil.colors.magenta(config.defaultTarget));
 }
 
 const buildTarget = gutil.env.target || config.defaultTarget;
@@ -136,7 +136,7 @@ gulp.task('watchUpload', function () {
       gutil.log(gutil.colors.green('File ' + path + ' was ' + event + 'ed, running tasks...'));
     })
     .on('error', function () {
-      gutil.log(gutil.colors.green('Error during build tasks: aborting'));
+      gutil.log(gutil.colors.green('Error during update tasks: aborting'));
     });
 });
 
@@ -147,7 +147,7 @@ gulp.task('watchLocal', function () {
         gutil.log(gutil.colors.green('File ' + path + ' was ' + event + 'ed, running tasks...'));
       })
       .on('error', function () {
-        gutil.log(gutil.colors.green('Error during build tasks: aborting'));
+        gutil.log(gutil.colors.green('Error during update tasks: aborting'));
       });
 });
 

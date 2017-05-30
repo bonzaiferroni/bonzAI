@@ -1,4 +1,4 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {DefenseGuru} from "../DefenseGuru";
@@ -7,7 +7,22 @@ import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 
-const SANDBAG_THRESHOLD = 1000000;
+interface MasonMemory extends MissionMemory {
+    needMason: boolean;
+    sandbags: string;
+    hazmatsLastTick: number;
+    nukeData: {
+        hazmatPositions: {[serializedPos: number]: number }
+    };
+}
+
+interface MasonState extends MissionState {
+    nukes: Nuke[];
+    nukeRamparts: Rampart[];
+    claimedRamparts: Rampart[];
+    neededRepairRate: number;
+    scheduledDeliveries: Creep[];
+}
 
 export class MasonMission extends Mission {
 
@@ -17,23 +32,10 @@ export class MasonMission extends Mission {
     private hazmatCarts: Agent[];
     public defenseGuru: DefenseGuru;
 
-    private _sandbags: RoomPosition[];
-    private nukes: Nuke[];
-    private nukeRamparts: Rampart[];
-    private claimedRamparts: Rampart[];
-    private neededRepairRate: number;
-    private scheduledDeliveries: Creep[];
+    public memory: MasonMemory;
+    public state: MasonState;
 
     private protectTypes = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_NUKER];
-
-    public memory: {
-        needMason: boolean;
-        sandbags: string;
-        hazmatsLastTick: number;
-        nukeData: {
-            hazmatPositions: {[serializedPos: number]: number }
-        }
-    };
 
     constructor(operation: Operation, defenseGuru: DefenseGuru) {
         super(operation, "mason");
@@ -43,10 +45,10 @@ export class MasonMission extends Mission {
     public init() {
     }
 
-    public refresh() {
-        this.nukeRamparts = [];
-        this.claimedRamparts = [];
-        this.scheduledDeliveries = [];
+    public update() {
+        this.state.nukeRamparts = [];
+        this.state.claimedRamparts = [];
+        this.state.scheduledDeliveries = [];
         this.updateNukeData();
     }
 
@@ -71,7 +73,7 @@ export class MasonMission extends Mission {
     };
 
     public getCartBody = () => {
-        if (this.nukeRamparts.length > 0) {
+        if (this.state.nukeRamparts.length > 0) {
             return this.bodyRatio(0, 4, 2);
         } else {
             return this.workerBody(0, 4, 2);
@@ -84,9 +86,9 @@ export class MasonMission extends Mission {
 
     public getMaxHazmat = () => {
         if (this.room.hostiles.length > 0) { return 0; }
-        if (this.nukeRamparts.length > 0) {
+        if (this.state.nukeRamparts.length > 0) {
             const max = 9;
-            let needed = Math.ceil(this.neededRepairRate / 3000);
+            let needed = Math.ceil(this.state.neededRepairRate / 3000);
             if (needed > max) {
                 console.log(`being overwhelmed by nukes in ${this.room.name}`);
             }
@@ -150,8 +152,8 @@ export class MasonMission extends Mission {
             this.masonCartActions(cart, this.hazmats.concat(this.masons));
         }
 
-        if (this.nukeRamparts.length > 0 && this.defenseGuru.hostiles.length === 0) {
-            let lowestRampart = _(this.nukeRamparts)
+        if (this.state.nukeRamparts.length > 0 && this.defenseGuru.hostiles.length === 0) {
+            let lowestRampart = _(this.state.nukeRamparts)
                 .filter(x => !x.pos.lookForStructure(STRUCTURE_EXTENSION))
                 .sortBy(x => x.hits)
                 .head();
@@ -281,31 +283,6 @@ export class MasonMission extends Mission {
         }
     }
 
-    private sandbagActions(agent: Agent) {
-
-        if (agent.creep.ticksToLive > 400 &&
-            !agent.creep.body.find((p: BodyPartDefinition) => p.boost === RESOURCE_CATALYZED_LEMERGIUM_ACID)) {
-            if (this.room.terminal && this.room.terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ACID] > 1000) {
-                agent.resetPrep();
-            }
-        }
-
-        let construction = this.findConstruction(agent);
-        if (construction) {
-            agent.travelToAndBuild(construction);
-            return;
-        }
-
-        let emergencySandbag = this.getEmergencySandbag(agent);
-        if (emergencySandbag) {
-            if (agent.pos.inRangeTo(emergencySandbag, 3)) {
-                agent.creep.repair(emergencySandbag);
-            } else {
-                agent.travelTo(emergencySandbag);
-            }
-        }
-    }
-
     private masonCartActions(agent: Agent, refillTargets: Agent[]) {
 
         let roomCallback = (roomName: string, matrix: CostMatrix) => {
@@ -378,7 +355,7 @@ export class MasonMission extends Mission {
         if (cart.memory.masonId) {
             let mason = Game.getObjectById<Creep>(cart.memory.masonId);
             if (mason && mason.carry.energy < mason.carryCapacity / 2) {
-                this.scheduledDeliveries.push(mason);
+                this.state.scheduledDeliveries.push(mason);
                 return mason;
             } else {
                 cart.memory.masonId = undefined;
@@ -386,12 +363,12 @@ export class MasonMission extends Mission {
             }
         } else {
             let agent = _(agents)
-                .filter(a => !_.includes(this.scheduledDeliveries, a.creep) && a.memory.inPosition
+                .filter(a => !_.includes(this.state.scheduledDeliveries, a.creep) && a.memory.inPosition
                 && a.carry.energy < a.carryCapacity / 2)
                 .sortBy((a: Agent) => a.pos.getRangeTo(cart))
                 .head();
             if (agent) {
-                this.scheduledDeliveries.push(agent.creep);
+                this.state.scheduledDeliveries.push(agent.creep);
                 cart.memory.masonId = agent.id;
                 return agent.creep;
             } else {
@@ -411,74 +388,6 @@ export class MasonMission extends Mission {
             }
         }
         return this.memory.needMason;
-    }
-
-    get sandbags(): RoomPosition[] {
-        if (!this._sandbags) {
-            if (!this.memory.sandbags) {
-                let sandbags = this.findSandbags();
-                this.memory.sandbags = Guru.serializePositions(sandbags);
-            }
-            this._sandbags = Guru.deserializePositions(this.memory.sandbags, this.room.name);
-        }
-        return this._sandbags;
-    }
-
-    private getEmergencySandbag(agent: Agent): Structure {
-
-        let emergencyThreshold = SANDBAG_THRESHOLD / 10;
-
-        let nextConstruction: RoomPosition[] = [];
-        for (let sandbag of this.sandbags) {
-            let rampart = sandbag.lookForStructure(STRUCTURE_RAMPART);
-            if (rampart && rampart.hits < emergencyThreshold) {
-                return rampart;
-            }
-            if (!rampart) {
-                nextConstruction.push(sandbag);
-            }
-        }
-
-        if (this.room.find(FIND_CONSTRUCTION_SITES).length > 0) { return; }
-
-        let bestPosition = agent.pos.findClosestByRange(this.defenseGuru.hostiles)
-            .pos.findClosestByRange(nextConstruction);
-        if (bestPosition) {
-            bestPosition.createConstructionSite(STRUCTURE_RAMPART);
-        }
-    }
-
-    private findSandbags(): RoomPosition[] {
-
-        let leftBound = 50;
-        let rightBound = 0;
-        let topBound = 50;
-        let bottomBound = 0;
-        let wallRamparts = [];
-        for (let rampart of this.room.findStructures<Structure>(STRUCTURE_RAMPART)) {
-            if (rampart.pos.lookForStructure(STRUCTURE_ROAD)) { continue; }
-            if (rampart.pos.lookForStructure(STRUCTURE_EXTENSION)) { continue; }
-            wallRamparts.push(rampart);
-            if (rampart.pos.x < leftBound) { leftBound = rampart.pos.x; }
-            if (rampart.pos.x > rightBound) { rightBound = rampart.pos.x; }
-            if (rampart.pos.y < topBound) { topBound = rampart.pos.y; }
-            if (rampart.pos.y > bottomBound) { bottomBound = rampart.pos.y; }
-        }
-
-        console.log(leftBound, rightBound, topBound, bottomBound);
-
-        let sandbags = [];
-        for (let structure of this.room.find<Structure>(FIND_STRUCTURES)) {
-            if (structure.structureType === STRUCTURE_RAMPART) { continue; }
-            if (structure.pos.lookForStructure(STRUCTURE_RAMPART)) { continue; }
-            let nearbyRampart = structure.pos.findInRange(wallRamparts, 2)[0];
-            if (!nearbyRampart) { continue; }
-            if (structure.pos.x < leftBound || structure.pos.x > rightBound) { continue; }
-            if (structure.pos.y < topBound || structure.pos.y > bottomBound) { continue; }
-            sandbags.push(structure.pos);
-        }
-
-        return sandbags;
     }
 
     private getRampart(agent: Agent): Structure {
@@ -510,8 +419,8 @@ export class MasonMission extends Mission {
     }
 
     private updateNukeData() {
-        this.nukes = this.room.find<Nuke>(FIND_NUKES);
-        if (this.nukes.length === 0) {
+        this.state.nukes = this.room.find<Nuke>(FIND_NUKES);
+        if (this.state.nukes.length === 0) {
             delete this.memory.nukeData;
             return;
         } // with 27 rooms this only cost .1 cpu overhead total when no nukes
@@ -519,14 +428,14 @@ export class MasonMission extends Mission {
 
         for (let rampart of this.room.findStructures<Rampart>(STRUCTURE_RAMPART)) {
             // find ramparts in danger
-            let incomingDamage = this.incomingNukeDamage(rampart.pos, this.nukes);
+            let incomingDamage = this.incomingNukeDamage(rampart.pos, this.state.nukes);
             if (incomingDamage === 0) { continue; }
             const margin = 5000000;
             incomingDamage += margin;
             incomingDamage -= rampart.hits;
             if (incomingDamage === 0) { continue; }
             totalIncomingDamage += incomingDamage;
-            this.nukeRamparts.push(rampart);
+            this.state.nukeRamparts.push(rampart);
         }
 
         let flagName = `evac_${this.name}_evac`;
@@ -538,14 +447,14 @@ export class MasonMission extends Mission {
 
         // find needed repair rate
         let soonestLanding = Number.MAX_VALUE;
-        for (let nuke of this.nukes) {
+        for (let nuke of this.state.nukes) {
             if (nuke.timeToLand < soonestLanding) {
                 soonestLanding = nuke.timeToLand;
             }
         }
-        this.neededRepairRate = totalIncomingDamage / soonestLanding;
+        this.state.neededRepairRate = totalIncomingDamage / soonestLanding;
         if (Game.time % 10 === 0) {
-            console.log(`needed repair rate: ${this.neededRepairRate}`);
+            console.log(`needed repair rate: ${this.state.neededRepairRate}`);
         }
 
         // deal with nuke memory
@@ -568,7 +477,7 @@ export class MasonMission extends Mission {
                 if (structure.pos.lookForStructure(STRUCTURE_RAMPART)) { continue; }
                 if (structure.pos.lookFor(LOOK_CONSTRUCTION_SITES).length > 0
                     && structure.pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0].my) { continue; }
-                if (this.incomingNukeDamage(structure.pos, this.nukes) > 0) {
+                if (this.incomingNukeDamage(structure.pos, this.state.nukes) > 0) {
                     structure.pos.createConstructionSite(STRUCTURE_RAMPART);
                 }
             }
@@ -592,18 +501,18 @@ export class MasonMission extends Mission {
     private getRampartForHazmat(hazmat: Agent): Rampart {
         if (hazmat.memory.rampartId) {
             let rampart = Game.getObjectById<Rampart>(hazmat.memory.rampartId);
-            if (rampart && !_.includes(this.claimedRamparts, rampart)) {
-                this.claimedRamparts.push(rampart);
+            if (rampart && !_.includes(this.state.claimedRamparts, rampart)) {
+                this.state.claimedRamparts.push(rampart);
                 return rampart;
             } else {
                 delete hazmat.memory.rampartId;
                 return this.getRampartForHazmat(hazmat);
             }
         } else {
-            let ramparts = _.difference(this.nukeRamparts, this.claimedRamparts);
+            let ramparts = _.difference(this.state.nukeRamparts, this.state.claimedRamparts);
             if (ramparts.length === 0) { return; }
             hazmat.memory.rampartId = ramparts[0].id;
-            this.claimedRamparts.push(ramparts[0]);
+            this.state.claimedRamparts.push(ramparts[0]);
             return ramparts[0];
         }
     }

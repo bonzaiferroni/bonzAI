@@ -8,7 +8,7 @@ export class WreckerMission extends RaidMission {
 
     constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
                 allowSpawn: boolean) {
-        super(operation, name);
+        super(operation, name, raidData, spawnGroup, boostLevel, allowSpawn);
         this.specialistPart = WORK;
         this.specialistBoost = RESOURCE_CATALYZED_ZYNTHIUM_ACID;
         this.spawnCost = 11090;

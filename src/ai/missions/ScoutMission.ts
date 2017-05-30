@@ -10,11 +10,11 @@ export class ScoutMission extends Mission {
 
     public init() { }
 
-    public refresh() {
+    public update() {
     }
 
     public roleCall() {
-        let maxScouts = () => this.hasVision ? 0 : 1;
+        let maxScouts = () => this.state.hasVision ? 0 : 1;
         this.scouts = this.headCount(this.name, () => this.workerBody(0, 0, 1), maxScouts, {blindSpawn: true});
     }
 

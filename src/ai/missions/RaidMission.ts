@@ -1,6 +1,6 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {
-    RaidData, BoostLevel, RaidAction, RaidActionType, RaidMissionState, FleeType,
+    RaidData, BoostLevel, RaidAction, RaidActionType, FleeType,
     FleeAnalysis, FleeDanger,
 } from "../../interfaces";
 import {Operation} from "../operations/Operation";
@@ -17,6 +17,32 @@ import {Viz} from "../../helpers/Viz";
 import {Profiler} from "../../Profiler";
 import {FireflyMission} from "./FireflyMission";
 import {RAID_CREEP_MATRIX_COST} from "../../config/constants";
+
+interface RaidMemory extends MissionMemory {
+    healerLead: boolean;
+    spawned: boolean;
+    chessMode: boolean;
+    targetId: string;
+    cache: any;
+    altTargetIndex: number;
+    targetPathCheck: number;
+    lastFleeTick: number;
+}
+
+interface RaidState extends MissionState {
+    bothInRoom: boolean;
+    neitherInRoom: boolean;
+    atLeastOneInRoom: boolean;
+    bothOnExit: boolean;
+    neitherOnExit: boolean;
+    bothNearExit: boolean;
+    fatigued: boolean;
+    together: boolean;
+    inSameRoom: boolean;
+    oneInRoom: boolean;
+    agentInDanger: boolean;
+}
+
 export abstract class RaidMission extends Mission {
 
     public spawned: boolean;
@@ -32,45 +58,40 @@ export abstract class RaidMission extends Mission {
     protected healerBoosts: {[boostName: string]: boolean};
     protected attackerBoosts: {[boostName: string]: boolean};
     protected attackRange: number;
-    protected state: RaidMissionState;
     protected braveMode: boolean;
     protected raidWaypoints: Flag[];
 
-    public memory: {
-        healerLead: boolean;
-        spawned: boolean;
-        hc: {[roleName: string]: string}
-        chessMode: boolean;
-        targetId: string;
-        cache: any;
-        altTargetIndex: number;
-        targetPathCheck: number;
-        lastFleeTick: number;
+    public memory: RaidMemory;
+    public state: RaidState;
+
+    protected static tick: number;
+    protected static cache: {
+        altTargetExclude: {[targetId: string]: boolean};
     };
 
-    protected static cache: any;
-
-    constructor(operation: RaidOperation, name: string) {
+    constructor(operation: RaidOperation, name: string, raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
+                allowSpawn: boolean) {
         super(operation, name);
+        this.raidData = raidData;
+        this.spawnGroup = spawnGroup;
+        this.boostLevel = boostLevel;
         this.raidOperation = operation;
+        this.allowSpawn = allowSpawn;
     }
 
     public init() {
         if (!this.memory.cache) { this.memory.cache = {}; }
-        if (!RaidMission.cache) { RaidMission.cache = {}; }
     }
 
-    public refresh() {
+    public update() {
+        if (RaidMission.tick !== Game.time) {
+            RaidMission.tick = Game.time;
+            RaidMission.cache = {
+                altTargetExclude: {},
+            };
+        }
         this.raidWaypoints = this.findRaidWaypoints();
         this.updateBoosts();
-    }
-
-    public updateRaidData(raidData: RaidData, spawnGroup: SpawnGroup, boostLevel: number,
-                          allowSpawn: boolean) {
-        this.raidData = raidData;
-        this.spawnGroup = spawnGroup;
-        this.boostLevel = boostLevel;
-        this.allowSpawn = allowSpawn;
     }
 
     public roleCall() {
@@ -107,7 +128,7 @@ export abstract class RaidMission extends Mission {
         if (!prepared) { return; }
 
         // healing and attacking will be active from this point on
-        this.state = this.findState();
+        this.findState();
         this.healCreeps(this.healer);
 
         let attackingCreep  = this.attackCreeps(this.attacker);
@@ -283,7 +304,7 @@ export abstract class RaidMission extends Mission {
 
     protected finishActions(attackingCreep: boolean) {
         // TODO: add more interesting rating based on raid stats
-        let signText = this.operation.memory.signText ||
+        let signText = this.raidOperation.memory.signText ||
             "this room has been inspected by bonzAI and given the following rating: ouch+";
         let sign = this.raidData.attackRoom.controller.sign;
         if (!sign || sign.text !== signText) {
@@ -708,7 +729,7 @@ export abstract class RaidMission extends Mission {
                 .head();*/
         }
 
-        if (!target && !this.operation.memory.pretending && !attackingCreep
+        if (!target && !this.raidOperation.memory.pretending && !attackingCreep
             && attacker.room === this.raidData.attackRoom) {
             attacker.rangedMassAttack();
         }
@@ -895,7 +916,7 @@ export abstract class RaidMission extends Mission {
         }
 
         if (attackPosFlag && !healerPosFlag) {
-            if (!this.operation.memory.braveMode) {
+            if (!this.raidOperation.memory.braveMode) {
                 let fleeing = this.squadFlee();
                 if (fleeing) { return true; }
             }
@@ -1289,23 +1310,22 @@ export abstract class RaidMission extends Mission {
         this.squadTravel(this.attacker, this.healer, hostileAgent);
     }
 
-    private findState(): RaidMissionState {
-        return {
-            bothInRoom: this.attacker.room === this.raidData.attackRoom
-            && this.healer.room === this.raidData.attackRoom,
-            neitherInRoom: this.attacker.room !== this.raidData.attackRoom
-            && this.healer.room !== this.raidData.attackRoom,
-            atLeastOneInRoom: this.attacker.room === this.raidData.attackRoom
-            || this.healer.room === this.raidData.attackRoom,
-            fatigued: this.healer.fatigue > 0 || this.attacker.fatigue > 0,
-            together: this.healer.pos.isNearTo(this.attacker),
-            inSameRoom: this.healer.room === this.attacker.room,
-            oneInRoom: _.filter([this.healer, this.attacker], x => x.room === this.raidData.attackRoom).length === 1,
-            bothNearExit: this.healer.rangeToEdge === 1 && this.attacker.rangeToEdge === 1,
-            bothOnExit: this.healer.pos.isNearExit(0) && this.attacker.pos.isNearExit(0),
-            neitherOnExit: !this.healer.pos.isNearExit(0) && !this.attacker.pos.isNearExit(0),
-            agentInDanger: this.isInDanger(this.healer) || this.isInDanger(this.attacker),
-        };
+    private findState() {
+        this.state.bothInRoom = this.attacker.room === this.raidData.attackRoom
+            && this.healer.room === this.raidData.attackRoom;
+        this.state.neitherInRoom = this.attacker.room !== this.raidData.attackRoom
+            && this.healer.room !== this.raidData.attackRoom;
+        this.state.atLeastOneInRoom = this.attacker.room === this.raidData.attackRoom
+            || this.healer.room === this.raidData.attackRoom;
+        this.state.fatigued = this.healer.fatigue > 0 || this.attacker.fatigue > 0;
+        this.state.together = this.healer.pos.isNearTo(this.attacker);
+        this.state.inSameRoom = this.healer.room === this.attacker.room;
+        this.state.oneInRoom = _.filter([this.healer, this.attacker],
+                x => x.room === this.raidData.attackRoom).length === 1;
+        this.state.bothNearExit = this.healer.rangeToEdge === 1 && this.attacker.rangeToEdge === 1;
+        this.state.bothOnExit = this.healer.pos.isNearExit(0) && this.attacker.pos.isNearExit(0);
+        this.state.neitherOnExit = !this.healer.pos.isNearExit(0) && !this.attacker.pos.isNearExit(0);
+        this.state.agentInDanger = this.isInDanger(this.healer) || this.isInDanger(this.attacker);
     }
 
     private updateMatrixForSquad(nextPos: RoomPosition, leaderPos: RoomPosition, followerPos: RoomPosition) {

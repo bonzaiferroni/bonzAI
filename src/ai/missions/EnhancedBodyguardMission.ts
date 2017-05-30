@@ -23,7 +23,7 @@ export class EnhancedBodyguardMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
         if (!this.state.hasVision) { return; } // early
         this.hostiles = _.filter(this.room.hostiles, (hostile: Creep) => hostile.owner.username !== "Source Keeper");
 

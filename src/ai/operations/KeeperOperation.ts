@@ -40,19 +40,19 @@ export class KeeperOperation extends Operation {
         this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
         this.addMission(new LairMission(this, this.invaderGuru));
 
-        if (!this.hasVision) { return; } // early
+        if (!this.state.hasVision) { return; } // early
 
         MiningMission.Add(this, false);
 
         this.addMission(new RemoteBuildMission(this, true));
 
-        if (this.mineral.pos.lookFor(LOOK_FLAGS).length === 0) {
+        if (this.state.mineral.pos.lookFor(LOOK_FLAGS).length === 0) {
             this.addMission(new GeologyMission(this));
         }
     }
 
-    public refresh() {
-        this.invaderGuru.refresh();
+    public update() {
+        this.invaderGuru.update();
     }
 
     public finalize() {

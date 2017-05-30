@@ -14,7 +14,7 @@ declare module _ {
          * concat, join, pop, push, reverse, shift, slice, sort, splice, and unshift
          *
          * Chaining is supported in custom builds as long as the value method is implicitly or
-         * explicitly included in the build.
+         * explicitly included in the update.
          *
          * The chainable wrapper functions are:
          * after, assign, bind, bindAll, bindKey, chain, chunk, compact, compose, concat, countBy,
@@ -14823,7 +14823,7 @@ declare module _ {
          * delimiters. Data properties may be accessed as free variables in the template. If a setting object is
          * provided it takes precedence over _.templateSettings values.
          *
-         * Note: In the development build _.template utilizes
+         * Note: In the development update _.template utilizes
          * [sourceURLs](http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl) for easier
          * debugging.
          *

@@ -1,17 +1,23 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
 import {Agent} from "../agents/Agent";
 
+interface SurveyMemory extends MissionMemory {
+    surveyComplete: boolean;
+}
+
+interface SurveyState extends MissionState {
+    needsVision: string;
+    chosenRoom: {roomName: string, orderDemolition: boolean};
+}
+
 export class SurveyMission extends Mission {
 
     private surveyors: Agent[];
-    private needsVision: string;
-    private chosenRoom: {roomName: string, orderDemolition: boolean};
-    public memory: {
-        surveyComplete: boolean;
-    };
+    public state: SurveyState;
+    public memory: SurveyMemory;
 
     constructor(operation: Operation) {
         super(operation, "survey");
@@ -19,16 +25,14 @@ export class SurveyMission extends Mission {
 
     public init() { }
 
-    public refresh() {
-        this.chosenRoom = undefined;
-        this.needsVision = undefined;
+    public update() {
         if (this.memory.surveyComplete) { return; }
         let analyzer = new SurveyAnalyzer(this);
-        this.needsVision = analyzer.run();
+        this.state.needsVision = analyzer.run();
     }
 
     private maxSurveyors = () => {
-        if (this.needsVision && !this.room.findStructures(STRUCTURE_OBSERVER)[0] || this.chosenRoom) {
+        if (this.state.needsVision && !this.room.findStructures(STRUCTURE_OBSERVER)[0] || this.state.chosenRoom) {
             return 1;
         } else {
             return 0;
@@ -42,15 +46,15 @@ export class SurveyMission extends Mission {
     public actions() {
 
         for (let surveyor of this.surveyors) {
-            if (this.needsVision) {
+            if (this.state.needsVision) {
                 this.explorerActions(surveyor);
             }
         }
 
-        if (this.needsVision) {
+        if (this.state.needsVision) {
             let observer = this.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
             if (!observer) { return; }
-            observer.observeRoom(this.needsVision);
+            observer.observeRoom(this.state.needsVision);
         }
     }
 
@@ -61,8 +65,8 @@ export class SurveyMission extends Mission {
     }
 
     private explorerActions(explorer: Agent) {
-        if (this.needsVision) {
-            explorer.travelTo({pos: helper.pathablePosition(this.needsVision)});
+        if (this.state.needsVision) {
+            explorer.travelTo({pos: helper.pathablePosition(this.state.needsVision)});
         }
     }
 }

@@ -26,7 +26,7 @@ export class DemolishOperation extends Operation {
         this.addMission(new DemolishMission(this));
     }
 
-    public refresh() { }
+    public update() { }
 
     public finalize() {
     }

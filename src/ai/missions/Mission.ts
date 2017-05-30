@@ -37,9 +37,8 @@ export abstract class Mission {
     public name: string;
     public operation: Operation;
     public allowSpawn: boolean;
-    public distanceToSpawn: number;
     public state: MissionState;
-    protected refreshedObjects: number;
+    protected lastUpdated: number;
     protected cache: any;
     protected waypoints: Flag[];
     protected memory: MissionMemory;
@@ -51,13 +50,15 @@ export abstract class Mission {
         this.allowSpawn = allowSpawn;
     }
 
-    public updateState() {
+    public baseUpdate() {
+        this.lastUpdated = Game.time;
         this.flag = this.operation.flag;
         this.room = Game.rooms[this.operation.roomName];
-        this.refreshedObjects = Game.time;
+        this.spawnGroup = this.operation.spawnGroup;
+
+        // initialize memory to be used by this mission
         if (!this.operation.memory[this.name]) { this.operation.memory[this.name] = {}; }
         this.memory = this.operation.memory[this.name];
-        // initialize memory to be used by this mission
         if (!this.memory.hc) { this.memory.hc = {}; }
         this.cache = {
             spawnedThisTick: [],
@@ -75,14 +76,14 @@ export abstract class Mission {
     }
 
     /**
-     * Init Phase - Used to initialize values on global refresh ticks
+     * Init Phase - Used to initialize values on global update ticks
      */
 
     public static init(missions: MissionMap) {
         for (let missionName in missions) {
             let mission = missions[missionName];
             try {
-                mission.updateState();
+                mission.baseUpdate();
                 mission.init();
             } catch (e) {
                 Notifier.reportException(e, "init", missionName);
@@ -93,16 +94,18 @@ export abstract class Mission {
     protected abstract init();
 
     /**
-     * Refresh Phase - Used to initialize values for the following phases
+     * Update Phase - Used to initialize values for the following phases
      */
 
-    public static refresh(missions: MissionMap) {
+    public static update(missions: MissionMap) {
         for (let missionName in missions) {
             let mission = missions[missionName];
             try {
                 // Profiler.start("in_m." + missionName.substr(0, 3));
-                if (mission.refreshedObjects !== Game.time) { mission.updateState(); }
-                mission.refresh();
+                if (mission.lastUpdated !== Game.time) {
+                    mission.baseUpdate();
+                }
+                mission.update();
                 // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
                 Notifier.reportException(e, "init", missionName);
@@ -110,7 +113,7 @@ export abstract class Mission {
         }
     }
 
-    protected abstract refresh();
+    protected abstract update();
 
     /**
      * RoleCall Phase - Used to find creeps and spawn any extra that are needed
@@ -525,29 +528,28 @@ export abstract class Mission {
     }
 
     private prepAgent(agent: Agent, options: HeadCountOptions) {
-        if (!agent.memory.prep) {
-            if (options.disableNotify) {
-                this.disableNotify(agent);
-            }
+        if (agent.memory.prep) { return true; }
 
-            // accomodate legacy code
-            if (options.allowUnboosted !== undefined) {
-                agent.memory.allowUnboosted = options.allowUnboosted;
-            }
-            if (options.boosts !== undefined) {
-                agent.memory.boosts = options.boosts;
-            }
-
-            let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
-            if (!boosted) { return false; }
-            if (agent.creep.spawning) { return false; }
-            if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
-                agent.avoidSK(this.flag);
-                return;
-            }
-            agent.memory.prep = true;
+        if (options.disableNotify) {
+            this.disableNotify(agent);
         }
-        return true;
+
+        // accomodate legacy code
+        if (options.allowUnboosted !== undefined) {
+            agent.memory.allowUnboosted = options.allowUnboosted;
+        }
+        if (options.boosts !== undefined) {
+            agent.memory.boosts = options.boosts;
+        }
+
+        let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
+        if (!boosted) { return false; }
+        if (agent.creep.spawning) { return false; }
+        if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
+            agent.avoidSK(this.flag);
+            return;
+        }
+        agent.memory.prep = true;
     }
 
     protected findPartner(agent: Agent, partners: Agent[], tickDifference = 300): Agent {
@@ -571,7 +573,7 @@ export abstract class Mission {
     }
 
     protected findDistanceToSpawn(destination: RoomPosition): number {
-        if (!this.memory.distanceToSpawn) {
+        if (!this.memory.distanceToSpawn && this.spawnGroup) {
             let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
             if (roomLinearDistance <= OBSERVER_RANGE) {
                 let ret = empire.traveler.findTravelPath(this.spawnGroup, {pos: destination});

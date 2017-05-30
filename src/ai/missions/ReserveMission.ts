@@ -1,20 +1,23 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {ARTROOMS} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
+
+interface ReserveMemory extends MissionMemory {
+    wallCheck: boolean;
+    needBulldozer: boolean;
+}
+
 export class ReserveMission extends Mission {
 
     private reservers: Agent[];
     private bulldozers: Agent[];
     private controller: StructureController;
 
-    public memory: {
-        wallCheck: boolean;
-        needBulldozer: boolean;
-    };
+    public memory: ReserveMemory;
 
     constructor(operation: Operation) {
         super(operation, "claimer");
@@ -28,10 +31,9 @@ export class ReserveMission extends Mission {
     public init() {
     }
 
-    public refresh() {
-        if (!this.hasVision) { return; }
+    public update() {
+        if (!this.state.hasVision) { return; }
         this.controller = this.room.controller;
-
         if (this.memory.needBulldozer === undefined) {
             this.memory.needBulldozer = this.checkBulldozer();
         }

@@ -1,18 +1,21 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {MINERALS_RAW, RESERVE_AMOUNT} from "../TradeNetwork";
 import {MINERAL_STORAGE_TARGET} from "../../config/constants";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {Scheduler} from "../../Scheduler";
+
+interface TerminalNetworkMemory extends MissionMemory {
+    nextOverstockCheck: number;
+    nextSellOverstock: number;
+}
+
 export class TerminalNetworkMission extends Mission {
 
     private terminal: StructureTerminal;
     private storage: StructureStorage;
-    public memory: {
-        nextOverstockCheck: number;
-        nextSellOverstock: number;
-    };
+    public memory: TerminalNetworkMemory;
 
     constructor(operation: Operation) {
         super(operation, "network");
@@ -20,7 +23,7 @@ export class TerminalNetworkMission extends Mission {
 
     public init() {}
 
-    public refresh() {
+    public update() {
         this.terminal = this.room.terminal;
         this.storage = this.room.storage;
     }

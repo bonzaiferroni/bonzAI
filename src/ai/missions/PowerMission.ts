@@ -1,4 +1,4 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {BankData} from "../../interfaces";
 import {helper} from "../../helpers/helper";
@@ -7,18 +7,20 @@ import {WorldMap} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 
+interface PowerMemory extends MissionMemory {
+    currentBank: BankData;
+    scanIndex: number;
+    scanData: {[roomName: string]: number};
+    nextClyde: number;
+}
+
 export class PowerMission extends Mission {
 
     private clydes: Agent[];
     private bonnies: Agent[];
     private carts: Agent[];
 
-    public memory: {
-        currentBank: BankData;
-        scanIndex: number;
-        scanData: {[roomName: string]: number}
-        nextClyde: number;
-    };
+    public memory: PowerMemory;
 
     constructor(operation: Operation) {
         super(operation, "power");
@@ -27,7 +29,7 @@ export class PowerMission extends Mission {
     public init() {
     }
 
-    public refresh() {
+    public update() {
         let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
         if (!observer) { return; }
 

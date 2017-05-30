@@ -14,7 +14,7 @@ export class GuardOperation extends Operation {
         this.addMission(new GuardMission(this));
     }
 
-    public refresh() {
+    public update() {
     }
 
     public finalize() {
