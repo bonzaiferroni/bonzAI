@@ -29,7 +29,7 @@ export class SpawnGroup {
         this.manageSpawnLog();
         this.availableSpawnCount = this.getSpawnAvailability();
         this.isAvailable = this.availableSpawnCount > 0;
-        this.currentSpawnEnergy = this.room.energyAvailable;
+        this.currentSpawnEnergy = _.min([this.room.energyAvailable, this.room.energyCapacityAvailable]);
         this.maxSpawnEnergy = this.room.energyCapacityAvailable;
         this.pos = _.head(this.spawns).pos;
     }
@@ -42,7 +42,7 @@ export class SpawnGroup {
             if (this.currentSpawnEnergy < reservation.currentEnergy) return ERR_NOT_ENOUGH_RESOURCES;
         }
         for (let spawn of this.spawns) {
-            if (spawn.spawning == null) {
+            if (spawn.spawning == null && spawn.isActive() === true) {
                 outcome = spawn.createCreep(build, name, memory);
                 if (Memory.playerConfig.muteSpawn) break; // early
 
