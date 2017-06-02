@@ -61,6 +61,10 @@ export class SpawnGroup {
                 else if (outcome !== ERR_NAME_EXISTS && outcome !== ERR_RCL_NOT_ENOUGH) {
                     console.log("SPAWN:", this.room.name, "had error spawning " + name + ", outcome: " + outcome);
                 }
+                else if (outcome === ERR_RCL_NOT_ENOUGH) {
+                    console.log("SPAWN:", this.room.name, "downgraded, skipping" + spawn.name);
+                    continue;
+                }
                 break;
             }
         }
