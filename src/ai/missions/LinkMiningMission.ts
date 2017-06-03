@@ -136,7 +136,7 @@ export class LinkMiningMission extends Mission {
             return;
         }
 
-        let ret = empire.traveler.findTravelPath(this.room.storage, this.source);
+        let ret = empire.traveler.findTravelPath(this.room.storage.pos, this.source.pos);
         if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.room.name}`); }
         let minerPos = _.last(ret.path);
         let position = this.findValidLinkPos(minerPos, ret.path);

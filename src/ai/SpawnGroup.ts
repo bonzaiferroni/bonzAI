@@ -46,10 +46,10 @@ export class SpawnGroup {
         this.pos = _.head(spawns).pos;
     }
 
-    public static refresh(spawnGroups: {[roomName: string]: SpawnGroup}) {
+    public static update(spawnGroups: {[roomName: string]: SpawnGroup}) {
         for (let roomName in spawnGroups) {
             let spawnGroup = spawnGroups[roomName];
-            let invalid = spawnGroup.refresh();
+            let invalid = spawnGroup.update();
             if (invalid) {
                 delete spawnGroups[roomName];
             }
@@ -60,7 +60,7 @@ export class SpawnGroup {
      * @returns invalid {boolean}
      */
 
-    public refresh(): boolean {
+    public update(): boolean {
         this.room = Game.rooms[this.roomName];
         if (!this.room) { return true; } // lost vision since it was instantiated
         this.initMemory();

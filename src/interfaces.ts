@@ -157,7 +157,7 @@ export interface Coord {
     y: number;
 }
 
-export enum BoostLevel { Training, Unboosted, Boosted, SuperTough, RCL7 }
+export enum BoostLevel { Training, Unboosted, Standard, SuperTough, RCL7, AntiRepair }
 
 export interface SeedSelection {
     seedType: string;

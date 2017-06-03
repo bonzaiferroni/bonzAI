@@ -34,6 +34,7 @@ export class TerminalNetworkMission extends Mission {
     public actions() {
         this.sellOverstock();
         this.checkOverstock();
+        // empire.network.registerRoom(this.room);
     }
 
     public finalize() {

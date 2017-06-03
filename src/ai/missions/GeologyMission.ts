@@ -133,6 +133,8 @@ export class GeologyMission extends Mission {
     }
 
     public invalidateCache() {
+        // temporarily
+        this.memory.transportAnalysis = undefined;
         if (Math.random() < .01) {
             this.memory.transportAnalysis = undefined;
             this.memory.distanceToSpawn = undefined;
@@ -273,7 +275,7 @@ export class GeologyMission extends Mission {
 
         if (this.state.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) { return; }
 
-        let ret = empire.traveler.findTravelPath(this.state.mineral, this.state.store);
+        let ret = empire.traveler.findTravelPath(this.state.mineral.pos, this.state.store.pos);
         if (ret.incomplete) {
             console.log(`MINER: bad path for finding container position ${this.flag.pos.roomName}`);
             return;
@@ -342,6 +344,7 @@ export class GeologyMission extends Mission {
 
         let hasLoad = repairer.hasLoad();
         if (!hasLoad) {
+            if (this.name === "oslo4_repairer_48") { console.log("ey!")}
             repairer.procureEnergy(this.state.container);
             return;
         }
@@ -377,8 +380,10 @@ export class GeologyMission extends Mission {
     }
 
     private findIfActive() {
-        return this.state.mineral.mineralAmount > 0 || this.state.mineral.ticksToRegeneration < 1000
+        let mineralReady = this.state.mineral.mineralAmount > 0 || this.state.mineral.ticksToRegeneration < 1000
             || this.state.mineral.ticksToRegeneration > MINERAL_REGEN_TIME - 1000;
+        if (!mineralReady) { return false; }
+        return !this.room.controller || this.room.controller.level >= 7;
     }
 
     private buildExtractor() {

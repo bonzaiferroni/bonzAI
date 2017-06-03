@@ -101,8 +101,9 @@ export class RaidOperation extends Operation {
             let missionClass = this.squadTypes[config.type];
             let mission = new missionClass(this, name, this.raidData, spawnGroup, config.boostLevel,
                 allowSpawn) as RaidMission;
-            // this is bad form, need to update RaidMission to handle the new update phase
-            this.addMissionLate(mission);
+
+            mission.baseInit();
+            missions[name] = mission;
         }
 
         this.missions = missions as any;
@@ -191,7 +192,7 @@ export class RaidOperation extends Operation {
         let globalConfigComplete = this.initGlobalConfig();
         if (!globalConfigComplete) { return; }
 
-        // baseUpdate squadConfig
+        // initState squadConfig
         for (let i = 0; i < this.memory.maxSquads; i++) {
             let name = this.squadNames[i];
             if (!this.memory.squadConfig[name]) { this.memory.squadConfig[name] = {
@@ -569,7 +570,7 @@ export class RaidOperation extends Operation {
             return false;
         }
 
-        let ret = empire.traveler.findTravelPath(this.spawnGroup, destination, {ignoreStructures: true});
+        let ret = empire.traveler.findTravelPath(this.spawnGroup.pos, destination.pos, {ignoreStructures: true});
         if (ret.incomplete) {
             console.log(`RAID: ${this.name} automation incomplete, incomplete path to attackRoom`);
             return false;
@@ -585,8 +586,12 @@ export class RaidOperation extends Operation {
                     position = ret.path[j];
                     if (position.isNearExit(1)) { continue; }
                     if (position.roomName !== attackRoom.name) {
-                        this.placeRaidFlag(position, `${this.name}_fallback_${index}`, COLOR_GREY);
-                        break;
+                        let moving = this.placeRaidFlag(position, `${this.name}_fallback_${index}`, COLOR_GREY);
+                        if (moving) {
+                            return;
+                        } else {
+                            break;
+                        }
                     }
                 }
                 break;
@@ -647,19 +652,23 @@ export class RaidOperation extends Operation {
         return true;
     }
 
-    public placeRaidFlag(pos: RoomPosition, name: string, color = COLOR_WHITE) {
+    public placeRaidFlag(pos: RoomPosition, name: string, color = COLOR_WHITE): boolean {
         let flag = Game.flags[name];
         if (flag) {
+            if (flag.pos.inRangeTo(pos, 0)) {
+                return false;
+            }
             console.log(`RAID: moving flag to position: ${name}`);
             flag.setPosition(pos);
-            return;
+            return true;
         }
         let room = Game.rooms[pos.roomName];
         if (room) {
             pos.createFlag(name, color);
-            return;
+            return false;
         } else {
             this.flag.pos.createFlag(name, color);
+            return true;
         }
     }
 
@@ -801,7 +810,7 @@ export class RaidOperation extends Operation {
     }
 
     private generateStructureMatrix(attackRoom: Room): CostMatrix {
-        let matrix = empire.traveler.getStructureMatrix(attackRoom).clone();
+        let matrix = empire.traveler.getStructureMatrix(attackRoom, true).clone();
 
         // this is expensive but only needs to happen once per room per raid
         for (let tower of attackRoom.findStructures<StructureTower>(STRUCTURE_TOWER)) {
@@ -833,5 +842,12 @@ export class RaidOperation extends Operation {
             }
         }
         return nextNuke;
+    }
+
+    public resetTargets() {
+        for (let missionName in this.raidMissions) {
+            let memory = this.memory[missionName];
+            delete memory.targetId;
+        }
     }
 }

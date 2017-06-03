@@ -59,7 +59,7 @@ export class ControllerOperation extends Operation {
 
         this.defenseGuru = new DefenseGuru(this);
         this.defenseGuru.init();
-        this.layout = LayoutFactory.Instantiate(this.room.name);
+        this.layout = LayoutFactory.Instantiate(this.roomName);
         this.layout.init();
         this.builder = new LayoutBuilder(this.layout, this.roomName);
         this.builder.init();

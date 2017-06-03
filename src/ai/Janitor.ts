@@ -21,6 +21,7 @@ export class Janitor {
     public actions() {
         this.clearErrantConstruction();
         this.scavangeResources();
+        this.garbageCollection();
     }
 
     private clearErrantConstruction() {

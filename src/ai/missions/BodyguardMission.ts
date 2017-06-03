@@ -23,13 +23,7 @@ export class BodyguardMission extends Mission {
     }
 
     protected init() {
-        let unit = this.configBody({
-            tough: 1,
-            move: 5,
-            attack: 3,
-            heal: 1,
-        });
-        this.potency = Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
+        this.potency = this.findPotency();
     }
 
     public update() {
@@ -38,11 +32,15 @@ export class BodyguardMission extends Mission {
     }
 
     private getBody = () => {
+        if (!this.potency) {
+            this.potency = this.findPotency();
+        }
+
         return this.configBody({
             tough: this.potency,
-            move: this.potency * 5,
+            move: this.potency * 6,
             attack: this.potency * 3,
-            heal: this.potency,
+            heal: this.potency * 2,
         });
     };
 
@@ -114,5 +112,15 @@ export class BodyguardMission extends Mission {
         if (!attacking && defender.hits < defender.hitsMax) {
             defender.heal(defender);
         }
+    }
+
+    private findPotency() {
+        let unit = this.configBody({
+            tough: 1,
+            move: 6,
+            attack: 3,
+            heal: 2,
+        });
+        return Math.min(this.spawnGroup.maxUnits(unit, 1), 3);
     }
 }

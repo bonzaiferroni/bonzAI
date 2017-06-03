@@ -17,7 +17,7 @@ export class LayoutBuilder {
 
     private levelRestriction = {
         [STRUCTURE_ROAD]: 4,
-        [STRUCTURE_RAMPART]: 8,
+        [STRUCTURE_RAMPART]: 5,
     };
 
     private buildPriority = [STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_TOWER, STRUCTURE_LINK,
@@ -35,7 +35,7 @@ export class LayoutBuilder {
 
     public update() {
         this.room = Game.rooms[this.roomName];
-        if (!this.room) { return; }
+        if (!this.room || !this.layout.map) { return; }
         this.memory = this.room.memory.builder;
         if (Game.time < this.memory.nextCheck) { return; }
 
@@ -68,6 +68,7 @@ export class LayoutBuilder {
                     console.log(`BUILDER: placed ${buildType} in ${this.room.name}`);
                     return;
                 }
+                console.log(buildType, outcome); // added this
 
                 let errantStructure = _(lookStructures)
                     .filter(x => x.structureType !== STRUCTURE_ROAD && x.structureType !== STRUCTURE_RAMPART)

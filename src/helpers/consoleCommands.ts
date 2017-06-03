@@ -158,6 +158,9 @@ export var consoleCommands = {
                         delete missionMemory.pathData.paveTick;
                         paveTick++;
                     }
+                    if (missionName === "repair") {
+                        delete flagMemory[missionName];
+                    }
                 }
             } else {
                 flagCount++;
@@ -215,18 +218,17 @@ export var consoleCommands = {
             if (amount >= 100) {
                 if (resourceType !== RESOURCE_ENERGY) {
                     outcome = originTerminal.send(resourceType, amount, destination);
-                    break;
+                    return outcome;
                 } else if (Object.keys(originTerminal.store).length === 1 ) {
                     let distance = Game.map.getRoomLinearDistance(origin, destination, true);
                     let stored = originTerminal.store.energy;
                     let amountSendable = Math.floor(stored / (1 + 0.1 * distance));
                     console.log("sending", amountSendable, "out of", stored);
                     outcome = originTerminal.send(RESOURCE_ENERGY, amountSendable, destination);
+                    return outcome;
                 }
             }
-
         }
-        return outcome;
     },
 
     /**
@@ -356,56 +358,51 @@ export var consoleCommands = {
         return `all flags consistent`;
     },
 
-    test(from: string, to: string) {
-        let fromPos = helper.pathablePosition(from);
-        let toPos = helper.pathablePosition(to);
-        let consideredRooms = {};
-        let firstCPU = Game.cpu.getUsed();
-        let ret = PathFinder.search(fromPos, toPos, {
-            maxOps: 20000,
-            roomCallback: (roomName) => consideredRooms[roomName] = true,
-        });
-        firstCPU = Game.cpu.getUsed() - firstCPU;
-        let consideredRooms2 = {};
-        let secondCPU = Game.cpu.getUsed();
-        let range = Game.map.getRoomLinearDistance(from, to);
-        let ret2 = PathFinder.search(fromPos, toPos, {
-            maxOps: 20000,
-            roomCallback: (roomName) => {
-                if (Game.map.getRoomLinearDistance(roomName, to) > range) {
-                    return false;
-                }
-                consideredRooms2[roomName] = true;
-            },
-        });
-        secondCPU = Game.cpu.getUsed() - secondCPU;
-        return `First path:\n` +
-            `considered ${Object.keys(consideredRooms)}\n` +
-            `searched ${Object.keys(consideredRooms).length} rooms\n` +
-            `opsUsed ${ret.ops}\n` +
-            `incomplete ${ret.incomplete}\n` +
-            `path length ${ret.path.length}\n` +
-            `cpu: ${firstCPU}` + `Second path:\n` +
-            `considered ${Object.keys(consideredRooms2)}\n` +
-            `searched ${Object.keys(consideredRooms2).length} rooms\n` +
-            `opsUsed ${ret2.ops}\n` +
-            `incomplete ${ret2.incomplete}\n` +
-            `path length ${ret2.path.length}\n` +
-            `cpu: ${secondCPU}`;
-    },
-
     testCPU() {
-        let iterations = 1000;
-        let cpu = Game.cpu.getUsed();
-        for (let i = 0; i < iterations; i++) {
-            // nothing
+        let obj1 = {
+            _trav: {
+                stuck: 0,
+                cpu: 133,
+                last: { x: 17, y: 29 },
+                dest: { x: 18, y: 31, roomName: "E22S24" },
+                path: "42640344898844894894",
+            },
+        };
+
+        let obj2 = {
+            _trav: {
+                state: [17, 29, 0, 133, 18, 31, "E22S24"],
+                path: "42640344898844894894",
+            },
+        };
+
+        // this object would require further parsing to use
+        let obj3 = {
+            _trav: {
+                state: "17_29_0_133_18_31_E22S24",
+                path: "42640344898844894894",
+            },
+        };
+
+        let testObjects = [obj1, obj2, obj3];
+
+        let testNumber = 1;
+        for (let testObj of testObjects) {
+            let fakeMemory = {
+                creeps: {},
+            };
+
+            for (let creepName in Game.creeps) {
+                fakeMemory.creeps[creepName] = testObj;
+            }
+
+            let cpu = Game.cpu.getUsed();
+            let str = JSON.stringify(fakeMemory);
+            JSON.parse(str);
+            cpu = Game.cpu.getUsed() - cpu;
+            console.log(`test: ${testNumber}, creepCount: ${Object.keys(fakeMemory.creeps).length}, result: ${cpu}`);
+            testNumber++;
         }
-        let baseline = Game.cpu.getUsed() - cpu;
-        cpu = Game.cpu.getUsed();
-        for (let i = 0; i < iterations; i++) {
-            Game.map.getRoomLinearDistance("W25S25", "E25S25");
-        }
-        return `cpu: ${Game.cpu.getUsed() - cpu - baseline} ${Game.cpu.getUsed() - cpu} ${baseline}`;
     },
 
     resetPathCPU() {
@@ -522,4 +519,5 @@ export var consoleCommands = {
             new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: "orange", opacity: opacity});
         }
     },
+
 };

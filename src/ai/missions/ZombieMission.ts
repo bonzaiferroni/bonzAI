@@ -149,7 +149,7 @@ export class ZombieMission extends Mission {
         };
 
         return agent.travelTo(destination, {
-            ignoreStuck: demolishing,
+            stuckValue: demolishing ? 1500 : undefined,
             returnData: returnData,
             roomCallback: roomCallback,
         });

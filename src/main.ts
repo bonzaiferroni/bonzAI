@@ -22,6 +22,7 @@ try {
 
     // scan flags for operations and instantiate
     empire.init();
+    empire.update();
     Operation.init(operations);
 
     // report cpu
@@ -53,8 +54,8 @@ module.exports.loop = function () {
         TimeoutTracker.log("init"); // TODO: change to "update" once you get comparison data
         global.cc = consoleCommands;
 
-        empire.refresh();
-    } catch (e) { console.log("error baseUpdate phase:\n", e.stack); }
+        empire.update();
+    } catch (e) { console.log("error initState phase:\n", e.stack); }
 
     Profiler.start("init");
     Operation.update(operations);

@@ -91,7 +91,7 @@ export class PathMission extends Mission {
                 newConstructionPos.createConstructionSite(STRUCTURE_ROAD);
             }
         }  else {
-            if (_.last(path).inRangeTo(this.startPos, 1)) {
+            if (_.last(path).inRangeTo(this.endPos, 1)) {
                 this.memory.distance = path.length;
             }
         }
@@ -235,7 +235,7 @@ export class PathMission extends Mission {
         if (!road) {
             console.log(`this is ${this.operation.name} paver, checking out with ${paver.ticksToLive} ticks to live`);
             delete Memory.creeps[paver.name];
-            paver.idleOffRoad(this.room.controller);
+            paver.idleOffRoad(this.flag);
             return;
         }
 

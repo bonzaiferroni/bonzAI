@@ -12,7 +12,13 @@ export abstract class Layout {
     protected rotation: number;
     protected tempMap: {[controllerLevel: number]: PositionMap };
     protected data: LayoutData;
-    protected structureCache: {[structureType: string]: Structure[]};
+    protected structureCache: {
+        tick: number,
+        ids: {[structureType: string]: string[]},
+        objects: {[structureType: string]: Structure[]}
+    } = {
+        ids: {},
+    } as any;
 
     constructor(roomName: string, data: LayoutData) {
         this.roomName = roomName;
@@ -26,7 +32,6 @@ export abstract class Layout {
 
     public update() {
         this.findMap();
-        this.structureCache = {};
     }
 
     protected findMap() {
@@ -61,20 +66,41 @@ export abstract class Layout {
         return map;
     }
 
-    public findStructures<T extends Structure>(structureType: string): T[] {
-        if (this.structureCache[structureType]) { return this.structureCache[structureType] as any; }
-
-        let structures = [];
+    public findStructures<T extends Structure>(structureType: string, useCache = true): T[] {
         let room = Game.rooms[this.roomName];
-        let positions = this.map[structureType];
-        if (!positions && !room) { return []; }
-        for (let position of positions) {
-            let structure = position.lookForStructure(structureType);
-            if (!structure) { continue; }
-            structures.push(structure);
+        if (!room || !this.map) { return; }
+
+        if (Game.time !== this.structureCache.tick) {
+            this.structureCache.tick = Game.time;
+            this.structureCache.objects = {};
         }
 
-        this.structureCache[structureType] = structures;
+        if (this.structureCache.objects[structureType]) {
+            return this.structureCache.objects[structureType] as any;
+        } else {
+            this.structureCache.objects[structureType] = [];
+        }
+
+        let structures: T[] = [];
+        if (this.structureCache.ids[structureType] && useCache) {
+            for (let id of this.structureCache.ids[structureType]) {
+                let obj = Game.getObjectById<T>(id);
+                if (!obj) { continue; }
+                structures.push(obj);
+            }
+        } else {
+            this.structureCache.ids[structureType] = [];
+            let positions = this.map[structureType];
+            if (!positions) { return; }
+            for (let position of positions) {
+                let structure = position.lookForStructure(structureType) as T;
+                if (!structure) { continue; }
+                structures.push(structure);
+            }
+            this.structureCache.ids[structureType] = _.map(structures, x => x.id);
+        }
+
+        this.structureCache.objects[structureType] = structures;
         return structures;
     }
 

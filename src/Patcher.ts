@@ -10,6 +10,7 @@ export class Patcher {
         if (this.memSegmentInit(Memory.version)) { return true; }
         if (this.quadAndFlexToControl(Memory.version)) { return true; }
         if (this.patchLayoutEnumToString(Memory.version)) { return true; }
+        if (this.patchRoomOccupied(Memory.version)) { return true; }
 
         Memory.version = CURRENT_VERSION;
         console.log(`PATCHER: updated to bonzAI v${CURRENT_VERSION}`);
@@ -139,6 +140,18 @@ export class Patcher {
             }
         }
     }
+
+    private static patchRoomOccupied(version: number) {
+        if (version >= 3.5) { return false; }
+
+        for (let roomName in Memory.rooms) {
+            let memory = Memory.rooms[roomName];
+            if (memory["occupied"]) {
+                memory.occ = 1;
+            }
+            delete memory["occupied"];
+        }
+    }
 }
 
-export const CURRENT_VERSION = 3.1;
+export const CURRENT_VERSION = 3.5;

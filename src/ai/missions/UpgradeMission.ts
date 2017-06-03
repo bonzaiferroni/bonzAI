@@ -234,7 +234,7 @@ export class UpgradeMission extends Mission {
     }
 
     private findBatteryPosition(spawn: StructureSpawn): RoomPosition {
-        let ret = empire.traveler.findTravelPath(spawn, this.room.controller);
+        let ret = empire.traveler.findTravelPath(spawn.pos, this.room.controller.pos);
         let positionsInRange = this.room.controller.pos.findInRange(ret.path, 3);
         positionsInRange = _.sortBy(positionsInRange, (pos: RoomPosition) => pos.getRangeTo(spawn.pos));
 

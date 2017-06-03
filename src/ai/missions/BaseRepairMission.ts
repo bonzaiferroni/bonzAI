@@ -3,6 +3,12 @@ import {ControllerOperation} from "../operations/ControllerOperation";
 import {Layout} from "../layouts/Layout";
 import {Scheduler} from "../../Scheduler";
 
+interface BaseRepairMemory extends MissionMemory {
+    roadIds: string[];
+    rampId: string;
+    rampThreshold: number;
+}
+
 export class BaseRepairMission extends Mission {
 
     private layout: Layout;
@@ -16,13 +22,8 @@ export class BaseRepairMission extends Mission {
     }
 
     protected init() {
-        if (!this.memory.rampartOrders) { this.memory.rampartOrders = {}; }
-        if (!this.memory.roadOrders) { this.memory.roadOrders = {}; }
-        this.repairMax = TOWER_REPAIR_MAX_RAMPART;
-        if (this.room.controller.level < 8) {
-            this.repairMax = 200000;
-        }
-        this.initRampartMemory();
+        if (!this.memory.roadIds) { this.memory.roadIds = []; }
+        this.towerSearch = _.memoize(this.towerSearch);
     }
 
     public update() {
@@ -36,9 +37,7 @@ export class BaseRepairMission extends Mission {
     public actions() {
         if (this.room.hostiles.length > 0) { return; }
 
-        for (let tower of this. towers) {
-            this.towerActions(tower);
-        }
+        this.towerActions();
     }
 
     public finalize() {
@@ -47,100 +46,94 @@ export class BaseRepairMission extends Mission {
     public invalidateCache() {
     }
 
-    private towerActions(tower: StructureTower) {
-        if (tower.energy < tower.energyCapacity * .6
-            && this.spawnGroup.currentSpawnEnergy < this.spawnGroup.maxSpawnEnergy) {
-            return;
-        }
-
-        if (this.memory.roadOrders[tower.id]) {
-            let target = Game.getObjectById<Structure>(this.memory.roadOrders[tower.id]);
-            if (target && target.hits < target.hitsMax) {
-                tower.repair(target);
-                return;
-            } else {
-                delete this.memory.roadOrders[tower.id];
-            }
-        }
-
-        if (this.memory.rampartOrders[tower.id]) {
-            let target = Game.getObjectById<Structure>(this.memory.rampartOrders[tower.id]);
-            if (target && target.hits < this.repairMax) {
-                // tower.repair(target);
-                return;
-            } else {
-                delete this.memory.rampartOrders[tower.id];
+    private towerActions() {
+        let structure = this.getNextRepair();
+        if (structure) {
+            let towers = this.findTowersByRange(structure.pos);
+            for (let tower of towers) {
+                if (!tower) { continue; }
+                tower.repair(structure);
             }
         }
     }
 
     private findRepairTargets() {
-        if (!this.layout) { return; }
-        if (Game.time % 2 === 0) {
-            this.findRamparts();
-        } else {
-            this.findRoads();
-        }
+        if (!this.layout || !this.layout.map) { return; }
+        this.findRamparts();
+        this.findRoads();
     }
 
     private findRamparts() {
-        let rampartPositions = this.layout.map[STRUCTURE_RAMPART];
-        if (rampartPositions.length === 0 || this.towers.length === 0) { return; }
-        if (this.memory.rampartIndex >= rampartPositions.length) {
-            this.memory.rampartIndex = 0;
-            this.memory.hitsThreshold = _.round(this.memory.minHits * 1.5);
-            this.memory.minHits = TOWER_REPAIR_MAX_RAMPART;
-        }
-        let position = rampartPositions[this.memory.rampartIndex++];
-        let rampart = position.lookForStructure(STRUCTURE_RAMPART);
-        if (!rampart) { return; }
-        if (rampart.hits < this.memory.minHits) {
-            this.memory.minHits = rampart.hits;
-        }
-        if (rampart.hits > this.memory.hitsThreshold) { return; }
-        let towers = rampart.pos.findInRange(this.towers, 5);
-        if (!towers) {
-            towers = [rampart.pos.findClosestByRange(this.towers)];
+        if (Scheduler.delay(this.memory, "findRamps", 100)) { return; }
+
+        let lowest = _(this.layout.findStructures<StructureRampart>(STRUCTURE_RAMPART))
+            .filter(x => x.hits < RAMPART_MAX_REPAIR)
+            .min(x => x.hits);
+        if (!_.isObject(lowest)) {
+            console.log(`REPAIR: no ramparts under threshold in ${this.roomName}`);
+            delete this.memory.rampId;
+            return;
         }
 
-        towers.forEach(x => this.memory.rampartOrders[x.id] = rampart.id);
-    }
-
-    private initRampartMemory() {
-        if (this.memory.rampartIndex !== undefined) { return; }
-        this.memory.rampartIndex = 0;
-        this.memory.minHits = TOWER_REPAIR_MAX_RAMPART;
-        this.memory.hitsThreshold = 100000;
+        this.memory.rampId = lowest.id;
     }
 
     private findRoads() {
-        if (!this.layout.map) { return; }
-        let roadPositions = this.layout.map[STRUCTURE_ROAD];
-        if (roadPositions.length === 0 || this.towers.length === 0) { return; }
-        if (this.memory.roadIndex === undefined || this.memory.roadIndex >= roadPositions.length) {
-            this.memory.roadIndex = 0;
+        if (Scheduler.delay(this.memory, "findRoads", 1000)) { return; }
+
+        let roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
+            .filter(x => x.hits < x.hitsMax * .5)
+            .value();
+        if (!roads || roads.length === 0) {
+            console.log(`REPAIR: no roads need repair in ${this.roomName}`);
+            return;
         }
 
-        let position = roadPositions[this.memory.roadIndex++];
-        let road = position.lookForStructure(STRUCTURE_ROAD);
-        if (!road || road.hits > road.hitsMax - 2000) { return; }
-        let towers = road.pos.findInRange(this.towers, 5);
-        if (!towers) {
-            towers = [road.pos.findClosestByRange(this.towers)];
+        this.memory.roadIds = _.map(roads, x => x.id);
+    }
+
+    private getNextRepair(): Structure {
+        if (this.memory.roadIds.length > 0) {
+            for (let id of this.memory.roadIds) {
+                let structure = Game.getObjectById<Structure>(id);
+                if (structure && structure.hits < structure.hitsMax) {
+                    return structure;
+                } else {
+                    this.memory.roadIds = _.remove(this.memory.roadIds, id);
+                }
+            }
         }
 
-        towers.forEach(x => this.memory.roadOrders[x.id] = road.id);
+        if (this.memory.rampId) {
+            let rampart = Game.getObjectById<StructureRoad>(this.memory.rampId);
+            if (rampart) {
+                return rampart;
+            } else {
+                delete this.memory.rampId;
+            }
+        }
+    }
+
+    private findTowersByRange(pos: RoomPosition): StructureTower[] {
+        let ids = this.towerSearch(pos.x, pos.y);
+        if (ids) {
+            return _.map(ids, x => Game.getObjectById<StructureTower>(x));
+        }
+    }
+
+    private towerSearch(x: number, y: number): string[] {
+        let position = new RoomPosition(x, y, this.roomName);
+        /*let inRange = position.findInRange<StructureTower>(this.towers, 5);
+        if (inRange.length > 0) {
+            return _.map(inRange, tower => tower.id);
+        }*/
+
+        let closest = position.findClosestByRange(this.towers);
+        if (closest) {
+            return [closest.id];
+        }
     }
 }
 
 export const TOWER_REPAIR_IDEAL = 5;
-export const TOWER_REPAIR_MAX_RAMPART = 50000000;
-
-interface BaseRepairMemory extends MissionMemory {
-    roadOrders: {[towerId: string]: string};
-    roadIndex: number;
-    rampartOrders: {[towerId: string]: string};
-    rampartIndex: number;
-    hitsThreshold: number;
-    minHits: number;
-}
+export const RAMPART_MAX_REPAIR = 40000000;

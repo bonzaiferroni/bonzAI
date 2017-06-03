@@ -399,7 +399,7 @@ export class IgorMission extends Mission {
             // so that they don't all activate on the same tick and make bucket sad
             if (Game.time % 10 !== i) { continue; }
             let lab = this.productLabs[i];
-            if (lab.pos.lookFor(LOOK_FLAGS).length > 0) { continue; }
+            if (_.find(this.memory.boostOrders, x => x === lab.id)) { continue; }
             if (!lab.mineralType || lab.mineralType === this.labProcess.currentShortage.mineralType) {
                 let outcome = lab.runReaction(this.reagentLabs[0], this.reagentLabs[1]);
                 if (outcome === OK) {
@@ -559,7 +559,7 @@ export class IgorMission extends Mission {
             }
 
             if (request.requesterIds.length === 0) {
-                console.log(`IGOR: removing boost flag in ${this.room.name}: ${resourceType}`);
+                console.log(`IGOR: removing boost order in ${this.room.name}: ${resourceType}`);
                 delete this.memory.boostOrders[resourceType];
                 delete requests[resourceType];
                 continue;
@@ -569,7 +569,7 @@ export class IgorMission extends Mission {
             if (labId) {
                 let lab = Game.getObjectById<StructureLab>(labId);
                 if (lab) {
-                    Viz.text(lab.pos, resourceType, "green");
+                    Viz.text(lab.pos, resourceType, "black");
                 } else {
                     console.log("IGOR: lost a lab? removing boost order");
                     delete this.memory.boostOrders[resourceType];
@@ -582,7 +582,6 @@ export class IgorMission extends Mission {
 
     private makeBoostOrder(resourceType: string) {
         let labs = _.filter(this.productLabs, (l: StructureLab) => !_.find(this.memory.boostOrders, x => x === l.id));
-        console.log(labs.length);
         if (labs.length === 0) { return; }
 
         let closestToSpawn = this.spawnGroup.spawns[0].pos.findClosestByRange(labs);

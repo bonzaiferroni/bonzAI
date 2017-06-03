@@ -32,6 +32,7 @@ export interface MissionMemory {
 export abstract class Mission {
 
     public flag: Flag;
+    public roomName: string;
     public room: Room;
     public spawnGroup: SpawnGroup;
     public name: string;
@@ -46,11 +47,12 @@ export abstract class Mission {
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.operation = operation;
         this.name = name;
+        this.roomName = operation.roomName;
         this.spawnGroup = operation.spawnGroup;
         this.allowSpawn = allowSpawn;
     }
 
-    public baseUpdate() {
+    public initState() {
         this.lastUpdated = Game.time;
         this.flag = this.operation.flag;
         this.room = Game.rooms[this.operation.roomName];
@@ -79,15 +81,12 @@ export abstract class Mission {
      * Init Phase - Used to initialize values on global update ticks
      */
 
-    public static init(missions: MissionMap) {
-        for (let missionName in missions) {
-            let mission = missions[missionName];
-            try {
-                mission.baseUpdate();
-                mission.init();
-            } catch (e) {
-                Notifier.reportException(e, "init", missionName);
-            }
+    public baseInit() {
+        try {
+            this.initState();
+            this.init();
+        } catch (e) {
+            Notifier.reportException(e, "init", this.name);
         }
     }
 
@@ -100,15 +99,14 @@ export abstract class Mission {
     public static update(missions: MissionMap) {
         for (let missionName in missions) {
             let mission = missions[missionName];
+
             try {
                 // Profiler.start("in_m." + missionName.substr(0, 3));
-                if (mission.lastUpdated !== Game.time) {
-                    mission.baseUpdate();
-                }
+                mission.initState();
                 mission.update();
                 // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
-                Notifier.reportException(e, "init", missionName);
+                Notifier.reportException(e, "update", this.name);
             }
         }
     }
@@ -576,7 +574,7 @@ export abstract class Mission {
         if (!this.memory.distanceToSpawn && this.spawnGroup) {
             let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
             if (roomLinearDistance <= OBSERVER_RANGE) {
-                let ret = empire.traveler.findTravelPath(this.spawnGroup, {pos: destination});
+                let ret = empire.traveler.findTravelPath(this.spawnGroup.pos, destination);
                 if (ret.incomplete) {
                     console.log(`SPAWN: error finding distance in ${this.operation.name} for object at ${destination}`);
                     console.log(`fallback to linearRoomDistance`);

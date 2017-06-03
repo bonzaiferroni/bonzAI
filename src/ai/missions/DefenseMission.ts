@@ -19,6 +19,7 @@ interface DefenseMemory extends MissionMemory {
     hitCount: number;
     healerTargetIndex: number;
     towerDrainDelay: number;
+    lastProgress: number;
 }
 
 interface DefenseState extends MissionState {
@@ -389,6 +390,10 @@ export class DefenseMission extends Mission {
         let lowestFriendly = _(this.room.find<Creep>(FIND_MY_CREEPS))
             .filter(x => x.hits < x.hitsMax)
             .min(x => x.hits);
+
+        let attackMode = !this.state.playerThreat || this.state.assistTarget || this.state.vulnerableCreep
+            || !this.memory.lastProgress || Game.time < this.memory.lastProgress + 25;
+
         for (let i = 0; i < towers.length; i++) {
             let target = targets[i % targets.length];
             let tower = towers[i];
@@ -412,10 +417,10 @@ export class DefenseMission extends Mission {
             }
 
             // the rest attack
-            if (!this.state.playerThreat || this.state.assistTarget || this.state.vulnerableCreep) {
+            if (attackMode) {
                 tower.attack(target);
             } else {
-                if (lowestFriendly instanceof Object && lowestFriendly.hits < lowestFriendly.hitsMax - healedAmount) {
+                if (_.isObject(lowestFriendly) && lowestFriendly.hits < lowestFriendly.hitsMax - healedAmount) {
                     healedAmount += 300;
                     tower.heal(lowestFriendly);
                 } else {
@@ -455,9 +460,7 @@ export class DefenseMission extends Mission {
             let wallCount = this.room.findStructures(STRUCTURE_WALL)
                 .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
             if (this.memory.wallCount && wallCount < this.memory.wallCount) {
-                if (this.room.controller.level === 8) {
-                    this.room.controller.activateSafeMode();
-                }
+                this.room.controller.activateSafeMode();
             }
             this.memory.wallCount = wallCount;
         } else {
@@ -637,12 +640,18 @@ export class DefenseMission extends Mission {
                     targets = [this.state.assistTarget];
                     target = this.state.assistTarget;
                 }
-                if (target.hits >= this.memory.targetHits && this.memory.hitCount === 0) {
-                    this.memory.targetIds = undefined;
-                    this.memory.targetHits = undefined;
-                    this.memory.hitCount = undefined;
-                    return this.reiniTargeting();
+
+                if (this.memory.hitCount === 0) {
+                    if (target.hits >= this.memory.targetHits) {
+                        this.memory.targetIds = undefined;
+                        this.memory.targetHits = undefined;
+                        this.memory.hitCount = undefined;
+                        return this.reiniTargeting();
+                    } else {
+                        this.memory.lastProgress = Game.time;
+                    }
                 }
+
                 if (!this.memory.hitCount) { this.memory.hitCount = 2; }
                 this.memory.hitCount--;
                 this.memory.targetHits = target.hits;

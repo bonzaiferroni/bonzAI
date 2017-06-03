@@ -86,4 +86,4 @@ export class Notifier {
     }
 }
 
-global.Notifier = Notifier;
+global.notifier = Notifier;

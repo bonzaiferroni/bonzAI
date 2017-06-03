@@ -363,7 +363,7 @@ export class PowerMission extends Mission {
         let possibleRoomNames = this.findAlleysInRange(5);
         for (let roomName of possibleRoomNames) {
             let position = helper.pathablePosition(roomName);
-            let ret = empire.traveler.findTravelPath(spawn, {pos: position});
+            let ret = empire.traveler.findTravelPath(spawn.pos, position);
             if (ret.incomplete) {
                 Notifier.log(`POWER: incomplete path generating scanData (${this.operation.name}, room: ${roomName})`);
                 continue;

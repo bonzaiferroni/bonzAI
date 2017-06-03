@@ -31,16 +31,18 @@ export class FireflyMission extends RaidMission {
     }
 
     protected attackerBody = (): string[] => {
-        if (this.boostLevel === BoostLevel.Training) {
-            return this.configBody({ [TOUGH]: 1, [MOVE]: 2, [RANGED_ATTACK]: 1 });
-        } else if (this.boostLevel === BoostLevel.Unboosted) {
-            return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [RANGED_ATTACK]: 20 });
-        } else if (this.boostLevel === BoostLevel.SuperTough) {
-            return this.configBody({ [TOUGH]: 16, [MOVE]: 10, [RANGED_ATTACK]: 20, [HEAL]: 4 });
-        } else if (this.boostLevel === BoostLevel.RCL7) {
-            return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [RANGED_ATTACK]: 20 });
+        let boostMap = {
+            [BoostLevel.Training]: this.configBody({ [TOUGH]: 1, [MOVE]: 2, [RANGED_ATTACK]: 1 }),
+            [BoostLevel.Unboosted]: this.configBody({ [TOUGH]: 5, [MOVE]: 25, [RANGED_ATTACK]: 20 }),
+            [BoostLevel.Standard]: this.configBody({ [TOUGH]: 12, [MOVE]: 10, [RANGED_ATTACK]: 28}),
+            [BoostLevel.SuperTough]: this.configBody({ [TOUGH]: 16, [MOVE]: 10, [RANGED_ATTACK]: 20, [HEAL]: 4 }),
+            [BoostLevel.RCL7]: this.configBody({ [TOUGH]: 12, [MOVE]: 8, [RANGED_ATTACK]: 20 }),
+        };
+
+        if (boostMap[this.boostLevel]) {
+            return boostMap[this.boostLevel];
         } else {
-            return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [RANGED_ATTACK]: 28});
+            return boostMap[BoostLevel.Standard];
         }
     };
 

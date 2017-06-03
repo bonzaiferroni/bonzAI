@@ -5,20 +5,37 @@ import {RoomHelper} from "./ai/RoomHelper";
 import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
+import {Traveler} from "./ai/Traveler";
+import {OldTraveler} from "./ai/oldTraveler/Traveler";
+import {Profiler} from "./Profiler";
 
 export var sandBox = {
     run: function() {
-        let claimerFlag = Game.flags["claimerFlag"];
-        if (claimerFlag) {
-            let claimer = Game.creeps["claimer"];
-            if (!claimer) {
-                empire.spawnFromClosest(claimer.pos, [CLAIM, MOVE], "claimer");
+
+
+        let travFlag = Game.flags["travFlag"];
+        if (travFlag) {
+
+            let newTraveler = new Traveler();
+            let oldTraveler = new OldTraveler();
+
+            let newTravelerCreep = Game.creeps["newTraveler"];
+            if (!newTravelerCreep) {
+                empire.spawnFromClosest(travFlag.pos, [MOVE], "newTraveler");
             }
-            if (claimer.pos.inRangeTo(claimerFlag, 0)) {
-                claimer.claimController(claimer.room.controller);
-                console.log("### claimer waiting");
-            } else {
-                empire.traveler.travelTo(claimer, claimerFlag);
+            let oldTravelerCreep = Game.creeps["oldTraveler"];
+            if (!oldTravelerCreep) {
+                empire.spawnFromClosest(travFlag.pos, [MOVE], "oldTraveler");
+            }
+
+            if (newTravelerCreep && oldTravelerCreep) {
+                Profiler.start("test.newTrav", false);
+                newTraveler.travelTo(newTravelerCreep, travFlag, {range: 1});
+                Profiler.end("test.newTrav");
+
+                Profiler.start("test.oldTrav", false);
+                oldTraveler.travelTo(oldTravelerCreep, travFlag, {range: 1});
+                Profiler.end("test.oldTrav");
             }
         }
 

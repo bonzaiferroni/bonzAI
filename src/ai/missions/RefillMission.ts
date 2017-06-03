@@ -95,7 +95,7 @@ export class RefillMission extends Mission {
             if (cart.carry.energy < cart.carryCapacity * .8) {
                 cart.memory.hasLoad = false;
             } else {
-                cart.idleOffRoad(cart.room.controller);
+                cart.idleOffRoad();
             }
             return;
         }

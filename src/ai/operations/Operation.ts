@@ -42,7 +42,7 @@ export abstract class Operation {
     private mineralId: string;
 
     public state: OperationState;
-    private lastUpdated: number;
+    private stateTick: number;
     private bypass: boolean;
 
     private static priorityOrder = [
@@ -70,13 +70,14 @@ export abstract class Operation {
         this.pos = flag.pos;
     }
 
-    protected baseUpdate() {
+    protected initState() {
+        if (this.stateTick === Game.time) { return; }
+        this.stateTick = Game.time;
+
         this.flag = Game.flags[this.flagName];
         if (!this.flag) { return; } // flag must have been pulled
         this.room = Game.rooms[this.roomName];
-        this.lastUpdated = Game.time;
         this.bypass = false;
-
         this.memory = this.flag.memory;
         if (!this.memory.spawnData) { this.memory.spawnData = {} as any; }
 
@@ -104,7 +105,7 @@ export abstract class Operation {
     }
 
     /**
-     * Global Phase - Runs on init baseUpdate ticks - initialize operation variables and instantiate missions
+     * Global Phase - Runs on init initState ticks - initialize operation variables and instantiate missions
      */
 
     public static init(priorityMap: OperationPriorityMap) {
@@ -113,30 +114,30 @@ export abstract class Operation {
             let operations = priorityMap[priority];
             if (!operations) { continue; }
             for (let opName in operations) {
+
+                // init operation
                 let operation = operations[opName];
-                try {
-                    operation.baseUpdate();
-                    operation.init();
-                    Mission.init(operation.missions);
-                } catch (e) {
-                    Notifier.reportException(e, "init", opName);
-                    operation.bypass = true;
-                }
+                operation.baseInit();
             }
         }
     }
 
-    protected abstract init();
-
-    // this is sort of a hack so that operation flags that are added after global update can still be used
-    public selfInit() {
+    public baseInit() {
         try {
-            this.baseUpdate();
+            this.initState();
             this.init();
+
+            // init missions
+            for (let missionName in this.missions) {
+                let mission = this.missions[missionName];
+                mission.baseInit();
+            }
         } catch (e) {
-            Notifier.reportException(e, "selfInit", this.name);
+            Notifier.reportException(e, "init", this.name);
         }
     }
+
+    protected abstract init();
 
     /**
      * Init Phase - Runs every tick - initialize operation variables and instantiate missions
@@ -151,9 +152,7 @@ export abstract class Operation {
             for (let opName in operations) {
                 let operation = operations[opName];
                 try {
-                    if (operation.lastUpdated !== Game.time) {
-                        operation.baseUpdate();
-                    }
+                    operation.initState();
 
                     if (!operation.flag) {
                         // flag must have been pulled
@@ -162,9 +161,11 @@ export abstract class Operation {
                     }
 
                     operation.update();
+
                     Mission.update(operation.missions);
+
                 } catch (e) {
-                    Notifier.reportException(e, "init", opName);
+                    Notifier.reportException(e, "update", opName);
                     operation.bypass = true;
                 }
             }
@@ -235,7 +236,7 @@ export abstract class Operation {
         }
     }
 
-    public abstract finalize();
+    protected abstract finalize();
 
     /**
      * Invalidate Cache Phase - Occurs every-so-often (see constants.ts) to give you an efficient means of invalidating
@@ -261,7 +262,7 @@ export abstract class Operation {
             }
         }
     }
-    public abstract invalidateCache();
+    protected abstract invalidateCache();
 
     /**
      * Add mission to operation.missions hash
@@ -278,9 +279,7 @@ export abstract class Operation {
      * @param mission
      */
     public addMissionLate(mission: Mission) {
-        Mission.init({
-            [mission.name]: mission,
-        });
+        mission.baseInit();
         this.missions[mission.name] = mission;
     }
 

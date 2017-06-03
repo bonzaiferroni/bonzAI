@@ -161,8 +161,21 @@ export class TradeNetwork {
             roomName} status: ${status} -- outcome: ${outcome}`);
     }
 
+    public registerRoom(room: Room) {
+
+        if (!room.storage || !room.terminal) { return; }
+
+        this.terminals.push(room.terminal);
+        this.storages.push(room.storage);
+
+        if (TradeNetwork.canTrade(room)) {
+            this.analyzeResources(room);
+        }
+    }
+
     private registerMyRooms() {
         for (let roomName in this.map.controlledRooms) {
+            if (roomName === "W29S87") { continue; } // added this
             let room = this.map.controlledRooms[roomName];
             if (room.terminal && room.terminal.my && room.controller.level >= 6) {
                 this.terminals.push(room.terminal);
@@ -352,7 +365,7 @@ export class TradeNetwork {
                     Memory.traders[username][item.resourceType] = 0;
                 }
                 Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
-                if (item.recipient.username === this.terminals[0].owner.username) { continue; }
+                if (!this.terminals[0] || item.recipient.username === this.terminals[0].owner.username) { continue; }
                 consoleReport(item);
             } else {
                 break;

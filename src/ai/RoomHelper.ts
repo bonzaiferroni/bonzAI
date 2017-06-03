@@ -38,7 +38,7 @@ export class RoomHelper {
             }
 
             let distance;
-            let ret = empire.traveler.findTravelPath(origin, dest,
+            let ret = empire.traveler.findTravelPath(origin.pos, dest.pos,
                 {maxOps: options.opsLimit, useFindRoute: options.byRoute});
             if (ret.incomplete) { continue; }
             distance = ret.path.length;

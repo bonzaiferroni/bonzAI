@@ -422,7 +422,7 @@ export class MiningMission extends Mission {
                 return;
             }
 
-            this.pathMission.updatePath(startingPosition.pos, container.pos, 1);
+            this.pathMission.updatePath(startingPosition.pos, container.pos, 0);
             let distance = this.pathMission.getdistance();
             if (distance) {
                 this.memory.distanceToStorage = distance;

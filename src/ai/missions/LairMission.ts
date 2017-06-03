@@ -236,8 +236,8 @@ export class LairMission extends Mission {
                 let indexB = permutation[(i + 1) % permutation.length];
                 let key = _.sortBy([indexA, indexB]).join("");
                 if (!distanceBetweenLairAB[key]) {
-                    distanceBetweenLairAB[key] = traveler.findTravelPath(keeperLairs[indexA],
-                        keeperLairs[indexB]).path.length;
+                    distanceBetweenLairAB[key] = traveler.findTravelPath( keeperLairs[indexA].pos,
+                        keeperLairs[indexB].pos).path.length;
                 }
 
                 sum += distanceBetweenLairAB[key];

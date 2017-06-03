@@ -27,6 +27,7 @@ interface RaidMemory extends MissionMemory {
     altTargetIndex: number;
     targetPathCheck: number;
     lastFleeTick: number;
+    altTarget: boolean;
 }
 
 interface RaidState extends MissionState {
@@ -136,7 +137,7 @@ export abstract class RaidMission extends Mission {
         if ((!attackingCreep && !attackingStructure)
             || this.state.agentInDanger
             || this instanceof FireflyMission) {
-            this.attacker.creep.cancelOrder("dismantle");
+            // this.attacker.creep.cancelOrder("dismantle");
             this.attacker.creep.cancelOrder("attack");
             this.healCreeps(this.attacker);
         }
@@ -228,7 +229,9 @@ export abstract class RaidMission extends Mission {
         }
 
         if (this.state.inSameRoom && (!this.state.together || this.state.fatigued)) {
-            this.attacker.travelTo(this.healer);
+
+            let outcome = this.attacker.travelTo(this.healer);
+            console.log(this.attacker.name, outcome);
             return true;
         }
 
@@ -238,7 +241,8 @@ export abstract class RaidMission extends Mission {
             return true;
         }
 
-        if (this.state.bothInRoom && this.healer.rangeToEdge === 1 && this.attacker.pos.isNearExit(0)) {
+        if (this.state.bothInRoom && this.healer.rangeToEdge === 1 && this.attacker.pos.isNearExit(0) &&
+            this.state.together) {
             let healerPos = this.healer.pos.openAdjacentSpots()[0];
             if (healerPos) {
                 this.healer.travelTo(healerPos);
@@ -337,7 +341,8 @@ export abstract class RaidMission extends Mission {
             };
         }
 
-        if (leader.room && follower.room === this.raidData.attackRoom) {
+        if (leader.room && follower.room === this.raidData.attackRoom
+            && destination.pos.roomName === this.raidData.attackRoom.name) {
             if (!leader.pos.isNearExit(0)) {
                 // creeps repath every other tick (on average) in room
                 options.repath = 1;
@@ -353,7 +358,7 @@ export abstract class RaidMission extends Mission {
         }
 
         options.returnData = { nextPos: undefined };
-        Agent.squadTravel(leader, follower, destination, options);
+        let outcome = Agent.squadTravel(leader, follower, destination, options);
         let nextPos = options.returnData.nextPos;
         this.updateMatrixForSquad(nextPos, leader.pos, follower.pos);
     }
@@ -615,31 +620,37 @@ export abstract class RaidMission extends Mission {
     }
 
     protected healerBody = (): string[] => {
-        if (this.boostLevel === BoostLevel.Training) {
-            return this.configBody({ [TOUGH]: 1, [MOVE]: 2, [HEAL]: 1 });
-        } else if (this.boostLevel === BoostLevel.Unboosted) {
-            return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [HEAL]: 20 });
-        } else if (this.boostLevel === BoostLevel.SuperTough) {
-            return this.configBody({ [TOUGH]: 16, [MOVE]: 10, [HEAL]: 24 });
-        } else if (this.boostLevel === BoostLevel.RCL7) {
-            return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [HEAL]: 20 });
-        } else { // this.boostLevel === BoostLevel.Boosted (this is recommended)
-            return this.configBody({ [TOUGH]: 10, [MOVE]: 10, [HEAL]: 30 });
+        let boostMap = {
+            [BoostLevel.Training]: this.configBody({ [TOUGH]: 1, [MOVE]: 2, [HEAL]: 1 }),
+            [BoostLevel.Unboosted]: this.configBody({ [TOUGH]: 5, [MOVE]: 25, [HEAL]: 20 }),
+            [BoostLevel.Standard]: this.configBody({ [TOUGH]: 10, [MOVE]: 10, [HEAL]: 30 }),
+            [BoostLevel.SuperTough]: this.configBody({ [TOUGH]: 16, [MOVE]: 10, [HEAL]: 24 }),
+            [BoostLevel.RCL7]: this.configBody({ [TOUGH]: 12, [MOVE]: 8, [HEAL]: 20 }),
+        };
+
+        if (boostMap[this.boostLevel]) {
+            return boostMap[this.boostLevel];
+        } else {
+            return boostMap[BoostLevel.Standard];
         }
     };
 
     protected attackerBody = (): string[] => {
-        if (this.boostLevel === BoostLevel.Training) {
-            return this.configBody({ [TOUGH]: 1, [MOVE]: 3, [this.specialistPart]: 1, [RANGED_ATTACK]: 1 });
-        } else if (this.boostLevel === BoostLevel.Unboosted) {
-            return this.configBody({ [TOUGH]: 5, [MOVE]: 25, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 });
-        } else if (this.boostLevel === BoostLevel.SuperTough) {
-            return this.configBody({ [TOUGH]: 16, [MOVE]: 10, [this.specialistPart]: 18, [RANGED_ATTACK]: 1,
-                [HEAL]: 5 });
-        } else if (this.boostLevel === BoostLevel.RCL7) {
-            return this.configBody({ [TOUGH]: 12, [MOVE]: 8, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 });
-        } else { // this.boostLevel === BoostLevel.Boosted (this is recommended)
-            return this.configBody({ [TOUGH]: 12, [MOVE]: 10, [this.specialistPart]: 27, [RANGED_ATTACK]: 1 });
+
+        let boostMap = {
+            [BoostLevel.Training]: this.configBody({ [TOUGH]: 1, [MOVE]: 3, [this.specialistPart]: 1, [RANGED_ATTACK]: 1 }),
+            [BoostLevel.Unboosted]: this.configBody({ [TOUGH]: 5, [MOVE]: 25, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 }),
+            [BoostLevel.Standard]: this.configBody({ [TOUGH]: 12, [MOVE]: 10, [this.specialistPart]: 27, [RANGED_ATTACK]: 1 }),
+            [BoostLevel.SuperTough]: this.configBody({ [TOUGH]: 16, [MOVE]: 10, [this.specialistPart]: 18, [RANGED_ATTACK]: 1,
+                [HEAL]: 5 }),
+            [BoostLevel.RCL7]: this.configBody({ [TOUGH]: 12, [MOVE]: 8, [this.specialistPart]: 19, [RANGED_ATTACK]: 1 }),
+            [BoostLevel.AntiRepair]: this.configBody({ [TOUGH]: 12, [MOVE]: 10, [this.specialistPart]: 24, [RANGED_ATTACK]: 4 }),
+        };
+
+        if (boostMap[this.boostLevel]) {
+            return boostMap[this.boostLevel];
+        } else {
+            return boostMap[BoostLevel.Standard];
         }
     };
 
@@ -704,7 +715,7 @@ export abstract class RaidMission extends Mission {
             attacker.rangedAttack(closest);
         }
 
-        if (range === 1 && attacker.partCount(ATTACK)) {
+        if (range === 1 && attacker.partCount(ATTACK) > 1) {
             let hostileAgent = new HostileAgent(closest);
             if (hostileAgent.getPotential(ATTACK) * 2 < attacker.shield
                 || attacker.hits === attacker.hitsMax) {
@@ -738,13 +749,13 @@ export abstract class RaidMission extends Mission {
             return;
         }
 
-        attacker.dismantle(target);
+        let dismantleOutcome = attacker.dismantle(target);
         if (!attackingCreep) {
             let range = attacker.pos.getRangeTo(target);
             if (range === 1) {
-                attacker.attack(target);
+                let attackOutcome = attacker.attack(target);
                 attacker.rangedMassAttack();
-                return true;
+                return dismantleOutcome === OK || attackOutcome === OK;
             } else if (range <= 3) {
                 attacker.rangedAttack(target);
             } else if (attacker.room === this.raidData.attackRoom) {
@@ -807,17 +818,30 @@ export abstract class RaidMission extends Mission {
     private findMissionTarget() {
         if (this.memory.targetId) {
             let target = Game.getObjectById<{pos: RoomPosition, id: string}>(this.memory.targetId);
-            if (target && Game.time < this.memory.targetPathCheck) {
+            if (target && Game.time < this.memory.targetPathCheck &&
+                (this.memory.altTarget || _.includes(this.raidData.targetStructures, target))) {
                 return target;
             } else {
                 delete this.memory.targetId;
                 return this.findMissionTarget();
             }
         } else {
-            let bestTarget = _(this.raidData.targetStructures)
+            let bestTargets = _(this.raidData.targetStructures)
                 .sortBy(x => x.pos.getRangeTo(this.attacker))
-                .find(x => this.hasValidPath(this.attacker, x));
+                .value();
+
+            let bestTarget: Structure;
+            for (let target of bestTargets) {
+                let validPath = this.hasValidPath(this.attacker, target);
+                if (validPath) {
+                    bestTarget = target;
+                    break;
+                }
+            }
+
+            this.memory.altTarget = false;
             if (!bestTarget) {
+                this.memory.altTarget = true;
                 bestTarget = this.findAlternateTarget();
             }
 
@@ -855,7 +879,7 @@ export abstract class RaidMission extends Mission {
         if (!origin || !destination) { return; }
         let options: TravelToOptions = {maxOps: maxOps, maxRooms: 1 };
         options.range = this.attackRange;
-        let ret = empire.traveler.findTravelPath(origin, destination, options);
+        let ret = empire.traveler.findTravelPath(origin.pos, destination.pos, options);
         return !ret.incomplete;
     }
 
@@ -1349,5 +1373,15 @@ export abstract class RaidMission extends Mission {
             newCost = position.terrainCost();
         }
         this.raidData.raidMatrix.set(position.x, position.y, newCost);
+    }
+
+    // to be used with the console, eg opName.missions.alfa.headHunt(id)
+    public headHunt(id: string) {
+        let creep = Game.getObjectById<Creep>(id);
+        if (!creep) { return "couldn't find that creep"; }
+        this.setSpecialAction({
+            type: RaidActionType.Headhunter,
+            id: creep.id,
+        });
     }
 }

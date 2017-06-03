@@ -828,12 +828,13 @@ export class Agent extends AbstractAgent {
     public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
                               options?: TravelToOptions): number {
 
+        let outcome;
         if (leader.room !== follower.room) {
             if (leader.pos.isNearExit(0)) {
-                leader.travelTo(target, options);
+                outcome = leader.travelTo(target, options);
             }
             follower.travelTo(leader);
-            return;
+            return outcome;
         }
 
         let range = leader.pos.getRangeTo(follower);
@@ -845,9 +846,10 @@ export class Agent extends AbstractAgent {
             }
             // attacker stands still
         } else if (follower.fatigue === 0) {
-            leader.travelTo(target, options);
+            outcome = leader.travelTo(target, options);
             follower.move(follower.pos.getDirectionTo(leader));
         }
+        return outcome;
     }
 
     public capacityAvailable(container: Creep|StructureContainer|StructureTerminal|StructureStorage) {

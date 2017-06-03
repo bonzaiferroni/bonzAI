@@ -52,6 +52,7 @@ export class KeeperOperation extends Operation {
     }
 
     public update() {
+        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
         this.invaderGuru.update();
     }
 

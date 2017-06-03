@@ -23,6 +23,7 @@ export class Empire {
     public market: MarketTrader;
     public archiver: Archiver;
     public janitor: Janitor;
+    private updateTick: number;
 
     public static get(): Empire {
         global.root = empire;
@@ -52,12 +53,15 @@ export class Empire {
      * Occurs during tick, before operation phases
      */
 
-    public refresh() {
+    public update() {
+        if (this.updateTick === Game.time) { return; }
+        this.updateTick = Game.time;
 
+        this.diplomat.update();
         this.map.update();
         this.network.update();
         this.archiver.update();
-        SpawnGroup.refresh(this.spawnGroups);
+        SpawnGroup.update(this.spawnGroups);
     }
 
     /**
@@ -69,6 +73,7 @@ export class Empire {
         this.network.actions();
         this.market.actions();
         this.archiver.finalize();
+        this.janitor.actions();
         SpawnGroup.finalize(this.spawnGroups);
     }
 

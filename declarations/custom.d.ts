@@ -56,7 +56,7 @@ interface Room {
 
 interface RoomMemory {
     owner: string;
-    occupied: boolean;
+    occ: number;
     srcPos: string;
     level: number;
     nextTrade: number;

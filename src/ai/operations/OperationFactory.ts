@@ -8,6 +8,9 @@ import {GuardOperation} from "./GuardOperation";
 import {SwapOperation} from "./SwapOperation";
 import {Operation, OperationMap, OperationPriorityMap} from "./Operation";
 import {empire} from "../Empire";
+import {TransportOperation} from "./TransportOperation";
+import {ZombieOperation} from "./ZombieOperation";
+import {DemolishOperation} from "./DemolishOperation";
 
 export class OperationFactory {
 
@@ -16,12 +19,9 @@ export class OperationFactory {
     private static classes = {
         // conquest: ConquestOperation,
         // fort: FortOperation,
-        // tran: TransportOperation,
-        // demolish: DemolishOperation,
-        // quad: QuadOperation,
-        // auto: AutoOperation,
-        // flex: FlexOperation,
-        // zombie: ZombieOperation,
+        tran: TransportOperation,
+        zombie: ZombieOperation,
+        demolish: DemolishOperation,
         mining: MiningOperation,
         keeper: KeeperOperation,
         control: ControllerOperation,
@@ -64,7 +64,7 @@ export class OperationFactory {
                 let operation = this.checkFlag(flag);
                 if (!operation) { continue; }
                 this.addToMap(operation);
-                operation.selfInit();
+                operation.baseInit();
             }
         }
     }
@@ -84,7 +84,7 @@ export class OperationFactory {
         let priority = operation.priority;
         if (!this.map[priority]) { this.map[priority] = {}; }
 
-        if (global.hasOwnProperty(operation.name)) {
+        if (global.hasOwnProperty(operation.name) && this.map[priority][operation.name]) {
             console.log(`operation with name ${operation.name} already exists (type: ${
                 this.map[priority][operation.name].type}), please use a different name`);
         }
