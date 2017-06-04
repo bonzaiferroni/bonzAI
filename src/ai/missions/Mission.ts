@@ -560,12 +560,16 @@ export abstract class Mission {
                 this.findPartner(agent, partners, tickDifference);
             }
         } else {
-            let partner = _(partners)
-                .filter(x => !x.memory.partner && Math.abs(agent.ticksToLive - x.ticksToLive) <= tickDifference)
-                .min(x => Math.abs(agent.ticksToLive - x.ticksToLive));
-            if (partner && partner instanceof Agent) {
+            let partner = _.find(partners, x => x.memory.partner === agent.name);
+            if (!partner) {
+                partner = _(partners)
+                    .filter(x => !x.memory.partner && Math.abs(agent.ticksToLive - x.ticksToLive) <= tickDifference)
+                    .min(x => Math.abs(agent.ticksToLive - x.ticksToLive));
+            }
+            if (_.isObject(partner)) {
                 agent.memory.partner = partner.name;
                 partner.memory.partner = agent.name;
+                return partner;
             }
         }
     }

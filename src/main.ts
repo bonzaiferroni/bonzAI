@@ -98,7 +98,6 @@ module.exports.loop = function () {
         Profiler.start("postOperations");
         empire.actions();
         sandBox.run();
-        Viz.maintain();
         Profiler.end("postOperations");
         Profiler.finalize();
         GrafanaStats.run(empire);

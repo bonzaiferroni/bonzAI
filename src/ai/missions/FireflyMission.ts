@@ -22,12 +22,12 @@ export class FireflyMission extends RaidMission {
         };
     }
 
-    protected clearActions(attackingCreep: boolean) {
+    protected clearActions() {
 
         let fleeing = this.squadFlee();
         if (fleeing) { return; }
 
-        super.clearActions(attackingCreep);
+        super.clearActions();
     }
 
     protected attackerBody = (): string[] => {

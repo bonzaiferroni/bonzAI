@@ -110,15 +110,12 @@ export abstract class Layout {
 
     protected findStructureTypes(): string[] {
         let structureTypes = Object.keys(CONSTRUCTION_COST);
-        if (this.data.turtle) {
-            structureTypes.push("turtle");
-        }
         return structureTypes;
     }
 
     protected consolidateMaps(flexMap: FlexMap): PositionMap {
         let structureTypes = this.findStructureTypes();
-        let map = {};
+        let map: PositionMap = {};
         for (let structureType of structureTypes) {
             let positions = [];
             let fixedPositions = this.fixedPositions(structureType);
@@ -135,6 +132,14 @@ export abstract class Layout {
             }
             map[structureType] = positions;
         }
+
+        if (this.data.turtle) {
+            let turtlePositions = this.fixedPositions("turtle");
+            if (turtlePositions) {
+                map[STRUCTURE_RAMPART] = map[STRUCTURE_RAMPART].concat(turtlePositions);
+            }
+        }
+
         return map;
     }
 

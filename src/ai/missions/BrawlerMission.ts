@@ -22,11 +22,11 @@ export class BrawlerMission extends RaidMission {
         this.braveMode = true;
     }
 
-    protected clearActions(attackingCreep: boolean) {
+    protected clearActions() {
         let fleeing = this.squadFlee();
         if (fleeing) { return; }
 
-        return super.clearActions(attackingCreep);
+        return super.clearActions();
     }
 
     protected getHeadhunterAction(hostileAgents: HostileAgent[]): RaidAction {

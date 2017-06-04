@@ -57,7 +57,9 @@ export class MiningOperation extends Operation {
     }
 
     public update() {
-        this.invaderGuru.update();
+        if (this.invaderGuru) {
+            this.invaderGuru.update();
+        }
     }
 
     public finalize() {

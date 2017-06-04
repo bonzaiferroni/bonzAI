@@ -21,18 +21,17 @@ export class EnhancedBodyguardMission extends Mission {
     }
 
     public init() {
-    }
-
-    public update() {
-        if (!this.state.hasVision) { return; } // early
-        this.hostiles = _.filter(this.room.hostiles, (hostile: Creep) => hostile.owner.username !== "Source Keeper");
-
         if (!this.spawnGroup.room.terminal) { return; }
         if (this.memory.allowUnboosted === undefined) {
             let store = this.spawnGroup.room.terminal.store;
             this.memory.allowUnboosted = store[RESOURCE_CATALYZED_UTRIUM_ACID] >= 1000
                 && store[RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE] >= 1000;
         }
+    }
+
+    public update() {
+        if (!this.state.hasVision) { return; } // early
+        this.hostiles = _.filter(this.room.hostiles, (hostile: Creep) => hostile.owner.username !== "Source Keeper");
 
         for (let id in this.memory.ticksToLive) {
             let creep = Game.getObjectById(id);
@@ -134,21 +133,24 @@ export class EnhancedBodyguardMission extends Mission {
             if (attacker.room.name !== this.spawnGroup.pos.roomName || attacker.pos.isNearExit(0)) {
                 attacker.travelTo(this.spawnGroup);
             } else {
-                attacker.idleOffRoad(this.flag.room.controller);
+                attacker.idleOffRoad(this.spawnGroup.room.controller);
             }
             return;
         }
 
+        if (!this.room) {
+            // Agent.squadTravel(attacker, healer, this.flag);
+            // return;
+        }
+
         // missionRoom is safe
         if (!this.hostiles || this.hostiles.length === 0) {
-            healer.memory.mindControl = false;
             attacker.idleNear(this.flag);
             return;
         }
 
         let attacking = false;
         let rangeAttacking = false;
-        healer.memory.mindControl = true;
         let msg = "";
         let target = attacker.pos.findClosestByRange(_.filter(this.hostiles,
             (c: Creep) => c.partCount(HEAL) > 0)) as Creep;
@@ -241,6 +243,7 @@ export class EnhancedBodyguardMission extends Mission {
     }
 
     private healerActions(healer: Agent) {
+
         if (!this.hostiles || this.hostiles.length === 0) {
             if (healer.hits < healer.hitsMax) {
                 healer.heal(healer);
@@ -252,10 +255,6 @@ export class EnhancedBodyguardMission extends Mission {
 
         // hostiles in missionRoom
         let attacker = this.findPartner(healer, this.squadAttackers, 1500);
-        if (!attacker) {
-            healer.memory.partner = undefined;
-        }
-
         if (!attacker || attacker.spawning) {
             if (healer.hits < healer.hitsMax) {
                 healer.heal(healer);

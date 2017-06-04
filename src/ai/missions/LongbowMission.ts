@@ -79,8 +79,8 @@ export class LongbowMission extends FireflyMission {
         super.actions();
         if (!this.squire) { return; }
 
-        let attackingCreep = this.attackCreeps(this.squire);
-        let attackingStructure = this.attackStructure(this.squire, attackingCreep);
+        this.attackCreeps(this.squire);
+        this.attackStructure(this.squire);
 
         if (!this.squire.memory.entryReady) {
             if (this.squire.pos.inRangeTo(this.raidData.fallbackFlag, 5) && !this.squire.pos.isNearExit(0)) {

@@ -2445,6 +2445,7 @@ declare class RoomVisual {
     rect(pos: RoomPosition, width: number, height: number, style?: RoomVisualStyle);
     rect(x: number, y: number, width: number, height: number, style?: RoomVisualStyle);
     circle(pos: RoomPosition, style?: RoomVisualCircleStyle);
+    poly(points: {x: number, y: number}[], style?: RoomVisualPolyStyle )
     getSize(): number;
 }
 
@@ -2484,6 +2485,14 @@ interface RoomVisualShapeStyle {
 
 interface RoomVisualCircleStyle {
     radius?: number;
+    fill?: string;
+    opacity?: number;
+    stroke?: string;
+    strokeWidth?: number;
+    lineStyle?: string;
+}
+
+interface RoomVisualPolyStyle {
     fill?: string;
     opacity?: number;
     stroke?: string;

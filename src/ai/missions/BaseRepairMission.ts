@@ -82,12 +82,14 @@ export class BaseRepairMission extends Mission {
         if (Scheduler.delay(this.memory, "findRoads", 1000)) { return; }
 
         let roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
-            .filter(x => x.hits < x.hitsMax * .5)
+            .filter(x => x.hits < x.hitsMax * .8)
             .value();
         if (!roads || roads.length === 0) {
             console.log(`REPAIR: no roads need repair in ${this.roomName}`);
             return;
         }
+
+        console.log(`found ${roads.length} to repair`);
 
         this.memory.roadIds = _.map(roads, x => x.id);
     }
@@ -123,10 +125,12 @@ export class BaseRepairMission extends Mission {
 
     private towerSearch(x: number, y: number): string[] {
         let position = new RoomPosition(x, y, this.roomName);
-        /*let inRange = position.findInRange<StructureTower>(this.towers, 5);
-        if (inRange.length > 0) {
-            return _.map(inRange, tower => tower.id);
-        }*/
+        if (this.room.memory.layout && this.room.memory.layout.turtle) {
+            let inRange = position.findInRange<StructureTower>(this.towers, 5);
+            if (inRange.length > 0) {
+                return _.map(inRange, tower => tower.id);
+            }
+        }
 
         let closest = position.findClosestByRange(this.towers);
         if (closest) {

@@ -322,7 +322,7 @@ export class UpgradeMission extends Mission {
             return this.memory.max;
         }
 
-        let max = Math.min(Math.floor(totalPotency / potencyPerCreep), 5);
+        let max = Math.min(Math.ceil(totalPotency / potencyPerCreep), 5);
         if (this.findUpgraderPositions()) {
             max = Math.min(this.findUpgraderPositions().length, max);
         }
@@ -365,7 +365,7 @@ export class UpgradeMission extends Mission {
             }
         }
 
-        // update less upgraders while builders are active
+        // less upgraders while builders are active
         if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 &&
             (!this.room.storage || this.room.storage.store.energy < 50000)) {
             return 1;
@@ -380,7 +380,8 @@ export class UpgradeMission extends Mission {
             let cooldown = this.state.battery.pos.getRangeTo(this.room.storage) + 3;
             let linkCount = this.room.storage.pos.findInRange(
                 this.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length;
-            return Math.min(Math.floor(((LINK_CAPACITY * .97) * linkCount) / cooldown), storageCapacity);
+            let maxTransferable = Math.floor(((LINK_CAPACITY * .97) * linkCount) / cooldown);
+            return Math.min(maxTransferable, storageCapacity);
         } else if (this.state.battery instanceof StructureContainer) {
             if (this.room.storage) { return storageCapacity; }
             return this.room.find(FIND_SOURCES).length * 10;

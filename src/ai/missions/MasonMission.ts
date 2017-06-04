@@ -53,20 +53,19 @@ export class MasonMission extends Mission {
     }
 
     public maxMasons = () => {
-        if (this.defenseGuru.hostiles.length > 0) {
-            return 1;
-        }
-        return this.needMason ? Math.ceil(this.room.storage.store.energy / 500000) : 0;
+        if (this.roomName === "E2S12") { return 1; }
+        return 0;
     };
 
     public getMasonBody = () => {
         if (this.defenseGuru.hostiles.length) {
             return this.workerBody(24, 14, 12);
         }
-        return this.workerBody(16, 8, 12);
+        return this.workerBody(12, 8, 10); // temporarily lower, previous numbers 16, 8, 12
     };
 
     public maxCarts = () => {
+        if (this.roomName === "E2S12") { return 1; }
         if (this.needMason && this.defenseGuru.hostiles.length > 0) {
             return 1;
         }
@@ -102,9 +101,7 @@ export class MasonMission extends Mission {
     };
 
     public masonBoost(): string[] {
-        if (this.room.hostiles.length > 0) {
-            return [RESOURCE_CATALYZED_LEMERGIUM_ACID];
-        }
+        return [RESOURCE_CATALYZED_LEMERGIUM_ACID];
     }
 
     public getHazmatBody = () => {

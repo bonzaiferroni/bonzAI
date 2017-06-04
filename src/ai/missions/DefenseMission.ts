@@ -117,6 +117,9 @@ export class DefenseMission extends Mission {
             this.spawnGroup = this.operation.remoteSpawn.spawnGroup;
         }
 
+        this.defenders = this.headCount("defender", this.defenderBody, this.getMaxDefenders,
+            {prespawn: 1, memory: memory});
+
         this.squadHealers = this.headCount("healer", this.squadHealerBody, this.getMaxSquadHealers, {
             allowUnboosted: false,
             skipMoveToRoom: true,
@@ -138,8 +141,6 @@ export class DefenseMission extends Mission {
             ] },
         });
 
-        this.defenders = this.headCount("defender", this.defenderBody, this.getMaxDefenders,
-            {prespawn: 1, memory: memory});
     }
 
     public actions() {
@@ -168,6 +169,7 @@ export class DefenseMission extends Mission {
     }
 
     public invalidateCache() {
+        this.memory.lastProgress = undefined;
     }
 
     private healerActions(healer: Agent) {
@@ -250,8 +252,12 @@ export class DefenseMission extends Mission {
         }
 
         if (!target) {
-            attacker.idleOffRoad(this.flag);
-            healer.idleOffRoad(this.flag);
+            if (attacker.room !== this.room || attacker.pos.isNearExit(3)) {
+                Agent.squadTravel(attacker, healer, this.flag);
+            } else {
+                attacker.idleOffRoad(this.flag);
+                healer.idleOffRoad(this.flag);
+            }
             return;
         }
 
@@ -328,7 +334,7 @@ export class DefenseMission extends Mission {
             return;
         }
 
-        if (this.state.enemySquads.length === 0) {
+        if (!this.state.enemySquads || this.state.enemySquads.length === 0) {
             defender.idleOffRoad();
             defender.say("none :(");
             return; // early
@@ -460,7 +466,9 @@ export class DefenseMission extends Mission {
             let wallCount = this.room.findStructures(STRUCTURE_WALL)
                 .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
             if (this.memory.wallCount && wallCount < this.memory.wallCount) {
-                this.room.controller.activateSafeMode();
+                if (this.room.controller.level >= 6) {
+                    this.room.controller.activateSafeMode();
+                }
             }
             this.memory.wallCount = wallCount;
         } else {
@@ -523,6 +531,7 @@ export class DefenseMission extends Mission {
             if (Game.time % 10 === 5) {
                 console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " +
                     this.flag.pos.roomName);
+                console.log("\\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/");
             }
 
             this.state.hostileHealers = [];

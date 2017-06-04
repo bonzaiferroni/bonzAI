@@ -13,8 +13,10 @@ import {empire} from "../Empire";
 import {HostileAgent} from "../agents/HostileAgent";
 import {Traveler, traveler} from "../Traveler";
 import {Notifier} from "../../notifier";
+import {Viz} from "../../helpers/Viz";
 
 interface RaidMemory extends OperationMemory {
+    squadsPresentLastTick: number;
     manual: boolean;
     squadCount: number;
     squadConfig: {[squadName: string]: SquadConfig };
@@ -43,6 +45,7 @@ interface RaidMemory extends OperationMemory {
     nextNuke: number;
     braveMode: boolean;
     cache: any;
+    gather: number;
 }
 
 /**
@@ -131,6 +134,7 @@ export class RaidOperation extends Operation {
         }
 
         this.memory.squadCount = Math.max(this.memory.maxSquads, spawnCount);
+        this.memory.squadsPresentLastTick = this.raidData.squadsPresent;
 
         this.updateWaveCompleteStatus(spawnCount);
         this.updateBugout();
@@ -236,6 +240,7 @@ export class RaidOperation extends Operation {
             fallback: this.memory.fallback,
             raidMatrix: matrix,
             nextNuke: this.findNextNuke(attackFlag.room),
+            squadsPresent: 0,
         };
 
         return raidData;
@@ -440,6 +445,7 @@ export class RaidOperation extends Operation {
                 flag.remove();
                 continue;
             }
+            Viz.animatedPos(structure.pos, "Chartreuse ");
             manualTargets.push(structure);
         }
 
@@ -463,8 +469,10 @@ export class RaidOperation extends Operation {
                 let flag = structure.pos.lookFor<Flag>(LOOK_FLAGS)[0];
                 if (flag && flag.name.indexOf("exclude") >= 0) { continue; }
                 if (structure.pos.lookForStructure(STRUCTURE_RAMPART)) {
+                    Viz.animatedPos(structure.pos, "Gold ");
                     ramparted.push(structure);
                 } else {
+                    Viz.animatedPos(structure.pos, "Aqua ");
                     nonRamparted.push(structure);
                 }
             }
@@ -814,7 +822,7 @@ export class RaidOperation extends Operation {
 
         // this is expensive but only needs to happen once per room per raid
         for (let tower of attackRoom.findStructures<StructureTower>(STRUCTURE_TOWER)) {
-            helper.blockOffPosition(matrix, tower, 10, 3, true);
+            helper.blockOffPosition(matrix, tower, 10, 1, true);
         }
 
         return matrix;

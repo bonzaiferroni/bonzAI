@@ -102,6 +102,7 @@ interface LayoutData {
     anchor: Vector2;
     rotation: number;
     flex?: boolean;
+    turtle?: boolean;
 }
 type Vector2 = {x: number, y: number}
 

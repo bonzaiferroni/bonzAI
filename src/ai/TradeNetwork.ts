@@ -175,8 +175,8 @@ export class TradeNetwork {
 
     private registerMyRooms() {
         for (let roomName in this.map.controlledRooms) {
-            if (roomName === "W29S87") { continue; } // added this
             let room = this.map.controlledRooms[roomName];
+            if (room.hostiles.length > 0) { continue; }
             if (room.terminal && room.terminal.my && room.controller.level >= 6) {
                 this.terminals.push(room.terminal);
             }
@@ -250,7 +250,7 @@ export class TradeNetwork {
                 for (let surplus of surplusTerminals) {
                     let distance = Game.map.getRoomLinearDistance(shortage.room.name, surplus.room.name);
                     if (distance > bestDistance) { continue; }
-                    if (distance > this.acceptableDistance(resourceType, surplus)) { continue; }
+                    if (!shortage.my && distance > this.acceptableDistance(resourceType, surplus)) { continue; }
                     bestDistance = distance;
                     bestSurplus = surplus;
                 }
@@ -278,8 +278,6 @@ export class TradeNetwork {
     }
 
     private acceptableDistance(resourceType: string, surplus: StructureTerminal): number {
-        return Number.MAX_VALUE; // trade distance temporarily disabled
-        /*
         if (IGNORE_TRADE_DISTANCE[resourceType]) {
             return Number.MAX_VALUE;
         } else if (resourceType === RESOURCE_ENERGY) {
@@ -295,7 +293,6 @@ export class TradeNetwork {
                 return TRADE_DISTANCE;
             }
         }
-        */
     }
 
     private sendResource(localTerminal: StructureTerminal, resourceType: string, amount: number,
@@ -313,9 +310,8 @@ export class TradeNetwork {
     }
 
     public static canTrade(room: Room) {
-        // partner trading temporarily disabled for screeps warfare championships
         return room.controller && room.controller.level >= 6 && room.storage && room.terminal
-            && (!room.controller.sign || room.controller.sign.text !== "noTrade") && room.controller.my;
+            && (!room.controller.sign || room.controller.sign.text !== "noTrade");
     }
 
     public reportTransactions() {

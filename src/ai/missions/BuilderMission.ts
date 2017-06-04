@@ -72,6 +72,7 @@ export class BuilderMission extends Mission {
     };
 
     private builderBody = () => {
+
         let potency = this.findBuilderPotency();
         if (this.spawnGroup.maxSpawnEnergy < 550) {
             return this.bodyRatio(1, 3, .5, 1, potency);

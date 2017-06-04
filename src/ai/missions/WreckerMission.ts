@@ -21,34 +21,11 @@ export class WreckerMission extends RaidMission {
         };
     }
 
-    protected attackCreeps(attacker: Agent): boolean {
-
-        let creepTargets = _(attacker.pos.findInRange(attacker.room.hostiles, 3))
-            .filter((c: Creep) => _.filter(c.pos.lookFor(LOOK_STRUCTURES),
-                (s: Structure) => s.structureType === STRUCTURE_RAMPART).length === 0)
-            .sortBy("hits")
-            .value();
-
-        if (creepTargets.length === 0) {
-            return false;
-        }
-
-        let closest = attacker.pos.findClosestByRange(creepTargets);
-        let range = attacker.pos.getRangeTo(closest);
-
-        if (range === 1 || attacker.massAttackDamage() >= 10) {
-            attacker.rangedMassAttack();
-        } else {
-            attacker.rangedAttack(closest);
-        }
-        return false;
-    }
-
-    protected clearActions(attackingCreep: boolean) {
+    protected clearActions() {
         let fleeing = this.squadFlee();
         if (fleeing) { return; }
 
-        super.clearActions(attackingCreep);
+        super.clearActions();
     }
 
 }

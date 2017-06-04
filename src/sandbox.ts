@@ -8,10 +8,14 @@ import {helper} from "./helpers/helper";
 import {Traveler} from "./ai/Traveler";
 import {OldTraveler} from "./ai/oldTraveler/Traveler";
 import {Profiler} from "./Profiler";
+import {Viz} from "./helpers/Viz";
 
 export var sandBox = {
     run: function() {
 
+
+        let pos = Game.spawns["Spawn1"].pos;
+        Viz.animatedPos(pos, "aqua", .5, 1, 10);
 
         let travFlag = Game.flags["travFlag"];
         if (travFlag) {

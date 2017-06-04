@@ -81,6 +81,7 @@ export interface BoostRequests {
 }
 
 export interface RaidData {
+    squadsPresent: number;
     raidAgents: Agent[];
     injuredCreeps: {[creepName: string]: number};
     fallback: boolean;

@@ -335,6 +335,12 @@ export abstract class Operation {
         }
     }
 
+    public getRemoteSpawn() {
+        if (this.remoteSpawn && this.remoteSpawn.spawnGroup) {
+            return this.remoteSpawn.spawnGroup;
+        }
+    }
+
     public findOperationWaypoints() {
         this.waypoints = [];
         for (let i = 0; i < 100; i++) {

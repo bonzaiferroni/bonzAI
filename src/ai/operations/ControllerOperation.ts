@@ -119,9 +119,9 @@ export class ControllerOperation extends Operation {
             // mine minerals
             this.addMission(new GeologyMission(this));
             // scout and place harvest flags
-            this.addMission(new SurveyMission(this));
+            // this.addMission(new SurveyMission(this));
             // repair walls
-            // this.addMission(new MasonMission(this, defenseGuru));
+            this.addMission(new MasonMission(this, this.defenseGuru));
             this.addMission(new BaseRepairMission(this));
         }
 
@@ -194,7 +194,7 @@ export class ControllerOperation extends Operation {
                     } else if (structureType === STRUCTURE_RAMPART) {
                         color = "green";
                     }
-                    Viz.colorPos(position, color, .5, maintain);
+                    Viz.colorPos(position, color, .5);
                 }
             }
         }

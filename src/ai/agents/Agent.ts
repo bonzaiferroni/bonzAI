@@ -1089,8 +1089,8 @@ export class Agent extends AbstractAgent {
         }
     }
 
-    public massAttackDamage(): number {
-        let hostiles = this.pos.findInRange(this.room.hostiles, 3);
+    public massAttackDamage(targets: {pos: RoomPosition}[]): number {
+        let hostiles = this.pos.findInRange(targets, 3);
         let totalDamage = 0;
         let rangeMap = {
             [1]: 10,

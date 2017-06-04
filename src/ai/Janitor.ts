@@ -1,6 +1,7 @@
 import {Scheduler} from "../Scheduler";
 import {Notifier} from "../notifier";
 import {helper} from "../helpers/helper";
+import {Viz} from "../helpers/Viz";
 export class Janitor {
 
     private memory: {
@@ -59,7 +60,6 @@ export class Janitor {
             let resources = room.find(FIND_DROPPED_RESOURCES) as Resource[];
             for (let resource of resources) {
                 if (resource.amount < 10) { continue; }
-
                 let creep = resource.pos.lookFor(LOOK_CREEPS)[0] as Creep;
                 if (creep && creep.my && creep.memory.scavanger === resource.resourceType
                     && (!creep.carry[resource.resourceType] ||
