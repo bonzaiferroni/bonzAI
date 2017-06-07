@@ -82,6 +82,8 @@ export class ControllerOperation extends Operation {
         }
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
+
+
         if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
             if (this.remoteSpawn && this.remoteSpawn.spawnGroup
                 && this.remoteSpawn.spawnGroup.room.controller.level === 8) {
@@ -130,7 +132,6 @@ export class ControllerOperation extends Operation {
             this.addMission(new BaseRepairMission(this));
         }
 
-
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
@@ -159,6 +160,8 @@ export class ControllerOperation extends Operation {
             type: type,
             flex: false,
         };
+
+        console.log("attemping to move layout, globals will need to be refreshed before a change is made");
     }
 
     public nuke(x: number, y: number, roomName: string): string {

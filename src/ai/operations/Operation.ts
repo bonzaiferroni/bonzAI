@@ -9,6 +9,7 @@ import {Scheduler} from "../../Scheduler";
 import {Profiler} from "../../Profiler";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
+import {PowerMission} from "../missions/PowerMission";
 
 export interface OperationState {
     hasVision: boolean;
@@ -282,6 +283,10 @@ export abstract class Operation {
     public addMissionLate(mission: Mission) {
         mission.baseInit();
         this.missions[mission.name] = mission;
+    }
+
+    public removeMission(mission: Mission) {
+        delete this.missions[mission.name];
     }
 
     public initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0) {

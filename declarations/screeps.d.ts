@@ -2444,6 +2444,7 @@ declare class RoomVisual {
     text(text: string, pos: RoomPosition, style?: RoomVisualTextStyle);
     rect(pos: RoomPosition, width: number, height: number, style?: RoomVisualStyle);
     rect(x: number, y: number, width: number, height: number, style?: RoomVisualStyle);
+    circle(x: number, y: number, style?: RoomVisualCircleStyle);
     circle(pos: RoomPosition, style?: RoomVisualCircleStyle);
     poly(points: {x: number, y: number}[], style?: RoomVisualPolyStyle )
     getSize(): number;

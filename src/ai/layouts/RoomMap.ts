@@ -64,4 +64,12 @@ export class RoomMap<T> {
         }
         return positions;
     }
+
+    public visualize(roomName: string) {
+        for (let x in this.map) {
+            for (let y in this.map[x]) {
+                new RoomVisual(roomName).text("x", Number.parseInt(x), Number.parseInt(y), {color: "white"});
+            }
+        }
+    }
 }

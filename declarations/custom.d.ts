@@ -17,6 +17,7 @@ interface Memory {
         muteSpawn: boolean;
         creditReserveAmount: number;
         powerMinimum: number;
+        saverMode: boolean;
     };
     profiler: {[identifier: string]: ProfilerData };
     notifier: {
@@ -73,11 +74,13 @@ interface RoomMemory {
     };
     layout: LayoutData;
     finder: LayoutFinderData;
+    observation: Observation;
 }
 
 interface LayoutFinderData {
     sourcePositions: RoomPosition[];
     controllerPos: RoomPosition;
+    mineralPos: RoomPosition;
     obstacleMap?: any;
     progress?: LayoutFinderProgress;
     validLayouts?: {[typeName: string]: ValidLayoutData[] };

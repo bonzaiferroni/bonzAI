@@ -21,6 +21,9 @@ export class RemoteBuildMission extends Mission {
     }
 
     public init() {
+        if (!this.allowSpawn) {
+            this.operation.removeMission(this);
+        }
     }
 
     public update() {

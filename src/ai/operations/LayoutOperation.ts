@@ -11,6 +11,7 @@ interface LayoutOperationMemory extends OperationMemory {
         checkedRooms: string[],
         sourcePositions: RoomPosition[],
         controllerPosition: RoomPosition,
+        mineralPos: RoomPosition,
     };
 }
 
@@ -46,6 +47,7 @@ export class LayoutOperation extends Operation {
             this.flag.pos.createFlag(newFlagName, COLOR_GREY);
             this.flag.remove();
             console.log(`finished finding layout in ${this.flag.pos.roomName}, removing operation flag`);
+            console.log(`may be some delay due to how flags work in rooms without vision, you can do this manually`);
             return;
         }
         if (!this.memory.data) {
@@ -55,6 +57,7 @@ export class LayoutOperation extends Operation {
                 checkedRooms: [],
                 sourcePositions: [],
                 controllerPosition: undefined,
+                mineralPos: undefined,
             };
         }
 
@@ -82,6 +85,7 @@ export class LayoutOperation extends Operation {
         finder.init({
             sourcePositions: this.memory.data.sourcePositions,
             controllerPos: this.memory.data.controllerPosition,
+            mineralPos: this.memory.data.mineralPos,
         });
         finder.run();
     }
@@ -111,7 +115,6 @@ export class LayoutOperation extends Operation {
             let a = helper.pathablePosition(this.flag.pos.roomName);
             let b = helper.pathablePosition(x);
             let ret = PathFinder.search(a, b);
-            console.log(ret);
             return !ret.incomplete;
         }).value();
     }
@@ -124,7 +127,7 @@ export class LayoutOperation extends Operation {
             if (room) {
                 this.memory.data.checkedRooms.push(roomName);
                 let sources = room.find<Source>(FIND_SOURCES);
-                this.memory.data.sourcePositions.concat(_.map(sources, x => x.pos));
+                this.memory.data.sourcePositions = this.memory.data.sourcePositions.concat(_.map(sources, x => x.pos));
                 if (roomName === this.flag.pos.roomName) {
                     if (!room.controller) {
                         console.log(`FINDER: unable to find layout in ${room.name}, no controller`);
@@ -133,6 +136,7 @@ export class LayoutOperation extends Operation {
                     }
 
                     this.memory.data.controllerPosition = room.controller.pos;
+                    this.memory.data.mineralPos = room.find<Source>(FIND_MINERALS)[0].pos;
                 }
             } else {
                 let observing = this.observeRoom(roomName);
@@ -150,7 +154,7 @@ export class LayoutOperation extends Operation {
                 .filter(x => x.structureType === STRUCTURE_OBSERVER)
                 .head() as StructureObserver;
             if (!observer) { continue; }
-            observer.observeRoom(roomName);
+            observer.observeRoom(roomName, "layout", true);
             console.log(`FINDER: ordering observer vision in ${roomName}`);
             return true;
         }

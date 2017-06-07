@@ -14,7 +14,7 @@ export class LayoutFinder {
     private controllerPos: RoomPosition;
     private obstacleMap: RoomMap<number>;
     private progress: LayoutFinderProgress;
-    private layoutTypes = [LAYOUT_MINI, LAYOUT_QUAD, LAYOUT_FLEX];
+    private layoutTypes = [LAYOUT_QUAD, LAYOUT_FLEX];
     private validLayouts: {[typeName: string]: ValidLayoutData[]};
     private currentRadius: number;
 
@@ -53,6 +53,7 @@ export class LayoutFinder {
             Memory.rooms[this.roomName].finder = {
                 sourcePositions: data.sourcePositions,
                 controllerPos: data.controllerPos,
+                mineralPos: data.mineralPos,
                 obstacleMap: obstacleMap,
                 validLayouts: {},
                 progress: {
@@ -79,19 +80,24 @@ export class LayoutFinder {
             return;
         }
         let sourcePositions = _(room.find<Source>(FIND_SOURCES)).map(x => x.pos).value();
+        let mineralPosition = room.find<Source>(FIND_MINERALS)[0].pos;
         return {
             sourcePositions: sourcePositions,
             controllerPos: room.controller.pos,
+            mineralPos: mineralPosition,
         };
     }
 
     private findObstacleMap(data: LayoutFinderData): RoomMap<number> {
         let obstacles = [];
         for (let pos of data.sourcePositions) {
+            if (pos.roomName !== this.roomName) { continue; }
             let block = this.findPositionBlock(pos, 2);
             obstacles = obstacles.concat(block);
         }
         let block = this.findPositionBlock(data.controllerPos, 3);
+        obstacles = obstacles.concat(block);
+        block = this.findPositionBlock(data.mineralPos, 2);
         obstacles = obstacles.concat(block);
         let walls = this.findWallObstacles();
         obstacles = obstacles.concat(walls);
@@ -182,7 +188,7 @@ export class LayoutFinder {
 
         this.currentRadius = layout.fixedMap.radius;
         if (!progress.anchor) {
-            progress.anchor = {x: this.currentRadius, y: this.currentRadius };
+            progress.anchor = {x: this.currentRadius + 2, y: this.currentRadius + 2 };
         }
 
         let obstacle = this.obstacleMap.findAnyInRange(progress.anchor, layout.fixedMap.radius, layout.fixedMap.taper);
@@ -215,6 +221,7 @@ export class LayoutFinder {
 
         if (!this.validLayouts[type]) { this.validLayouts[type] = []; }
         this.validLayouts[type].push(validLayout);
+        console.log("found valid", JSON.stringify(validLayout.data));
         this.incrementProgress(progress);
     }
 
@@ -232,12 +239,12 @@ export class LayoutFinder {
             progress.anchor.x++;
         }
 
-        if (progress.anchor.x > 49 - this.currentRadius) {
-            progress.anchor.x = this.currentRadius;
+        if (progress.anchor.x > 49 - this.currentRadius - 2) {
+            progress.anchor.x = this.currentRadius + 2;
             progress.anchor.y++;
         }
 
-        if (progress.anchor.y > 49 - this.currentRadius) {
+        if (progress.anchor.y > 49 - this.currentRadius - 2) {
             progress.typeIndex++;
 
             let type = this.layoutTypes[progress.typeIndex];
@@ -281,7 +288,7 @@ export class LayoutFinder {
             for (let position of positions) {
                 let obstacle = this.obstacleMap.get(position.x, position.y);
                 if (obstacle) {
-                    new RoomVisual(this.roomName).text("x", position, {color: "red"});
+                    new RoomVisual(this.roomName).text("x", position, {color: "white"});
                     return true;
                 }
 
@@ -305,6 +312,7 @@ export class LayoutFinder {
         let bestLayout = this.chooseAmongValidLayouts();
         if (bestLayout) {
             console.log(`FINDER: found layout in ${this.roomName}`);
+            console.log(JSON.stringify(bestLayout));
             Memory.rooms[this.roomName].layout = bestLayout.data;
         } else {
             console.log(`FINDER: unable to find auto-layout for ${this.roomName}`);
@@ -321,7 +329,6 @@ export class LayoutFinder {
     }
 
     private chooseAmongValidLayouts(): ValidLayoutData {
-
 
         for (let type in this.validLayouts) {
             let validLayouts = this.validLayouts[type];
@@ -353,6 +360,7 @@ export class LayoutFinder {
 export interface LayoutFinderData {
     sourcePositions: RoomPosition[];
     controllerPos: RoomPosition;
+    mineralPos: RoomPosition;
     obstacleMap?: RoomMap<number>;
     progress?: LayoutFinderProgress;
     validLayouts?: {[typeName: string]: ValidLayoutData[] };

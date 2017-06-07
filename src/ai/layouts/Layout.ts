@@ -32,6 +32,7 @@ export abstract class Layout {
     }
 
     public update() {
+        this.data = Memory.rooms[this.roomName].layout;
         this.findMap();
     }
 

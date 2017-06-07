@@ -49,9 +49,9 @@ export function initPrototypes() {
         if (override) {
             return makeObservation({roomName: roomName, purpose: purpose});
         } else {
-            if (!this.room.memory.obsQueue) { this.room.memory.obsQueue = []; };
+            if (!this.room.memory.obsQueue) { this.room.memory.obsQueue = []; }
             let queue = this.room.memory.obsQueue as Observation[];
-            if (!_.find(queue, (item) => item.purpose === purpose)) {
+            if (!_.find(queue, (item) => item.roomName === roomName)) {
                 queue.push({purpose: purpose, roomName: roomName});
             }
             if (!this.alreadyObserved) {

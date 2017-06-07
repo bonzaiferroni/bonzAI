@@ -141,6 +141,9 @@ export class LinkNetworkMission extends Mission {
 
             if (conduit.pos.inRangeTo(position, 0)) {
                 conduit.memory.inPosition = true;
+                // check for road here
+                let road = position.lookForStructure(STRUCTURE_ROAD);
+                if (road) { road.destroy(); }
             } else {
                 conduit.moveItOrLoseIt(position, "conduit");
             }

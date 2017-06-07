@@ -9,6 +9,7 @@ import {empire} from "../Empire";
 import {Traveler, TravelToOptions} from "../Traveler";
 
 interface PowerMemory extends MissionMemory {
+    disabled: boolean;
     currentBank: BankData;
     scanIndex: number;
     scanData: {[roomName: string]: number};
@@ -28,6 +29,9 @@ export class PowerMission extends Mission {
     }
 
     public init() {
+        if (this.memory.disabled) {
+            this.operation.removeMission(this);
+        }
     }
 
     public update() {

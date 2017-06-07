@@ -42,6 +42,7 @@ export class UpgradeMission extends Mission {
 
     public memory: UpgradeMemory;
     public state: UpgradeState;
+    public saverMode: boolean;
 
     /**
      * Controller upgrading. Will look for a suitable controller battery (StructureContainer, StructureStorage,
@@ -65,9 +66,19 @@ export class UpgradeMission extends Mission {
             this.batteryId = battery.id;
         }
 
+        if (Memory.playerConfig.saverMode && this.room.controller.level === 8) {
+            this.saverMode = true;
+            if (this.room.controller.ticksToDowngrade > 100000) {
+                this.operation.removeMission(this);
+            }
+        } else {
+
+            this.pathMission = new PathMission(this.operation, this.name + "Path");
+            this.operation.addMissionLate(this.pathMission);
+        }
+
         this.upgraderPositions = this.findUpgraderPositions();
-        this.pathMission = new PathMission(this.operation, this.name + "Path");
-        this.operation.addMissionLate(this.pathMission);
+
     }
 
     public update() {
@@ -79,7 +90,6 @@ export class UpgradeMission extends Mission {
     }
 
     private linkUpgraderBody = () => {
-
         if (this.memory.max !== undefined) {
             return this.workerBody(30, 4, 15);
         }
@@ -356,12 +366,10 @@ export class UpgradeMission extends Mission {
 
         if (this.room.controller.level === 8) {
             // cpu saving mechanism
-            if (this.room.controller.ticksToDowngrade > 100000 && !empire.underCPULimit()) {
-                return 0;
-            }
-            if (this.room.storage && this.room.storage.store.energy > NEED_ENERGY_THRESHOLD) {
+            if (this.saverMode) {
                 return 1;
-                // return 15;
+            } else if (this.room.storage && this.room.storage.store.energy > NEED_ENERGY_THRESHOLD) {
+                return 15;
             } else {
                 return 1;
             }
@@ -461,7 +469,6 @@ export class UpgradeMission extends Mission {
 
     protected findDistanceToSpawn(): number {
         if (this.spawnGroup.room !== this.room) {
-            console.log(`UPGRADER: remote spawning in ${this.room}`);
             this.state.remoteSpawning = true;
             return Game.map.getRoomLinearDistance(this.spawnGroup.room.name, this.room.name) * 50;
         } else {
