@@ -137,6 +137,9 @@ export class ControllerOperation extends Operation {
     public update() {
         this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
         this.initRemoteSpawn(8, 8);
+        if (!this.spawnGroup && this.remoteSpawn) {
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
+        }
 
         this.defenseGuru.update();
         this.layout.update();
