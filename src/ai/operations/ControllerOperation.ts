@@ -170,7 +170,7 @@ export class ControllerOperation extends Operation {
     }
 
     public showLayout(type = "all", maintain = true): string {
-        if (!this.layout) {
+        if (!this.layout || !this.layout.map) {
             return "No layout defined";
         }
 
