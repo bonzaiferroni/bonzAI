@@ -57,6 +57,7 @@ export class ControllerOperation extends Operation {
 
     public init() {
 
+        this.initRemoteSpawn(8, 8);
         this.defenseGuru = new DefenseGuru(this);
         this.defenseGuru.init();
         this.layout = LayoutFactory.Instantiate(this.roomName);
