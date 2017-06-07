@@ -113,6 +113,10 @@ export class ControllerOperation extends Operation {
         let buildMission = new BuilderMission(this, this.defenseGuru);
         this.addMission(buildMission);
 
+        // upgrader controller
+        let boostUpgraders = this.flag.room.controller.level < 8;
+        this.addMission(new UpgradeMission(this, boostUpgraders));
+
         if (this.flag.room.storage) {
             // use link array near storage to fire energy at controller link (pre-rcl8)
             this.addMission(new LinkNetworkMission(this));
@@ -125,9 +129,6 @@ export class ControllerOperation extends Operation {
             this.addMission(new BaseRepairMission(this));
         }
 
-        // upgrader controller
-        let boostUpgraders = this.flag.room.controller.level < 8;
-        this.addMission(new UpgradeMission(this, boostUpgraders));
 
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }

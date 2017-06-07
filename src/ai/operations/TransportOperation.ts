@@ -15,7 +15,6 @@ export class TransportOperation extends Operation {
 
     public init() {
         this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
-        this.findOperationWaypoints();
 
         let max = this.memory.max !== undefined ? this.memory.max : 1;
         this.addMission(new TransportMission(this, max, undefined, undefined, this.memory.resourceType,

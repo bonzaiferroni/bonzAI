@@ -93,7 +93,7 @@ export class RaidGuru extends Guru {
         let bestExit;
         let ret = PathFinder.search(this.spawnGroup.pos, {pos: spawns[0].pos, range: 1}, {
             roomCallback: (roomName: string): CostMatrix | boolean => {
-                if (roomName !== this.room.name && Traveler.checkOccupied(roomName)) { return false; }
+                if (roomName !== this.room.name && Traveler.checkAvoid(roomName)) { return false; }
                 let room = Game.rooms[roomName];
                 if (room) { return room.defaultMatrix; }
             },
@@ -107,7 +107,7 @@ export class RaidGuru extends Guru {
             let exitData = Game.map.describeExits(this.room.name);
             for (let direction in exitData) {
                 let roomName = exitData[direction];
-                let allowedRooms = empire.traveler.findRoute(this.spawnGroup.pos.roomName, roomName);
+                let allowedRooms = Traveler.findRoute(this.spawnGroup.pos.roomName, roomName);
                 if (allowedRooms && Object.keys(allowedRooms).length <= 8) {
                     allowedExits[direction] = true;
                 }

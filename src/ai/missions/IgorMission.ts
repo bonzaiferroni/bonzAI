@@ -146,10 +146,14 @@ export class IgorMission extends Mission {
                         this.memory.command = undefined;
                     }
                 }
-                igor.withdraw(origin, command.resourceType, command.amount);
+                let outcome = igor.withdraw(origin, command.resourceType, command.amount);
                 let destination = Game.getObjectById<Structure>(command.destination);
                 if (!igor.pos.isNearTo(destination)) {
                     igor.travelTo(destination);
+                }
+                if (outcome !== OK) {
+                    console.log(`IGOR: bad command: ${outcome}, clearing order`);
+                    this.memory.command = undefined;
                 }
             } else {
                 igor.travelTo(origin);

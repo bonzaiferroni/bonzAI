@@ -14,6 +14,7 @@ export abstract class Layout {
     protected data: LayoutData;
     protected structureCache: {
         tick: number,
+        idTick: number;
         ids: {[structureType: string]: string[]},
         objects: {[structureType: string]: Structure[]}
     } = {

@@ -203,7 +203,8 @@ export abstract class Operation {
             for (let opName in operations) {
                 let operation = operations[opName];
                 if (operation.bypass) { continue; }
-                if (operation.priority > OperationPriority.High && Game.cpu.getUsed() > 320) {
+                // this avoids timeouts due to GC events and other spikes. Set this number lower to be more conservative
+                if (operation.priority > OperationPriority.High && Game.cpu.getUsed() > 450) {
                     operation.bypass = true;
                     Tick.cache.bypassCount++;
                     continue;

@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
+import {Traveler} from "../Traveler";
 export class LinkMiningMission extends Mission {
 
     private linkMiners: Agent[];
@@ -136,7 +137,7 @@ export class LinkMiningMission extends Mission {
             return;
         }
 
-        let ret = empire.traveler.findTravelPath(this.room.storage.pos, this.source.pos);
+        let ret = Traveler.findTravelPath(this.room.storage.pos, this.source.pos);
         if (ret.incomplete) { console.log(`LINKMINER: Path to source incomplete ${this.room.name}`); }
         let minerPos = _.last(ret.path);
         let position = this.findValidLinkPos(minerPos, ret.path);

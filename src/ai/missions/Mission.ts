@@ -578,7 +578,7 @@ export abstract class Mission {
         if (!this.memory.distanceToSpawn && this.spawnGroup) {
             let roomLinearDistance = Game.map.getRoomLinearDistance(this.spawnGroup.pos.roomName, destination.roomName);
             if (roomLinearDistance <= OBSERVER_RANGE) {
-                let ret = empire.traveler.findTravelPath(this.spawnGroup.pos, destination);
+                let ret = Traveler.findTravelPath(this.spawnGroup.pos, destination);
                 if (ret.incomplete) {
                     console.log(`SPAWN: error finding distance in ${this.operation.name} for object at ${destination}`);
                     console.log(`fallback to linearRoomDistance`);

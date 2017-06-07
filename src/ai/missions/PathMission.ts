@@ -116,7 +116,7 @@ export class PathMission extends Mission {
                 }
 
                 // disqualify enemy rooms
-                if (Traveler.checkOccupied(roomName)) {
+                if (Traveler.checkAvoid(roomName)) {
                     return false;
                 }
 

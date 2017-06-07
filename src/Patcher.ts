@@ -142,16 +142,21 @@ export class Patcher {
     }
 
     private static patchRoomOccupied(version: number) {
-        if (version >= 3.5) { return false; }
+        if (version >= 3.6) { return false; }
 
+        let count = 0;
         for (let roomName in Memory.rooms) {
             let memory = Memory.rooms[roomName];
-            if (memory["occupied"]) {
-                memory.occ = 1;
+            if (memory["occupied"] || memory["occ"]) {
+                memory.avoid = 1;
+                count++;
             }
             delete memory["occupied"];
+            delete memory["occ"];
         }
+
+        console.log(`updated ${count} room memory objects to use "avoid" rather than "occupied"`);
     }
 }
 
-export const CURRENT_VERSION = 3.5;
+export const CURRENT_VERSION = 3.6;

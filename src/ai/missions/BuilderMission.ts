@@ -91,6 +91,7 @@ export class BuilderMission extends Mission {
 
     public roleCall() {
 
+        // console.log(this.maxBuilders(), this.roomName)
         let builderMemory;
         if (this.activateBoost) {
             builderMemory = {

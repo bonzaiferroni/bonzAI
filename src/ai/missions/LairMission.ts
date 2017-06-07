@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {helper} from "../../helpers/helper";
-import {traveler} from "../Traveler";
+import {Traveler} from "../Traveler";
 import {HostileAgent} from "../agents/HostileAgent";
 import {Scheduler} from "../../Scheduler";
 
@@ -236,7 +236,7 @@ export class LairMission extends Mission {
                 let indexB = permutation[(i + 1) % permutation.length];
                 let key = _.sortBy([indexA, indexB]).join("");
                 if (!distanceBetweenLairAB[key]) {
-                    distanceBetweenLairAB[key] = traveler.findTravelPath( keeperLairs[indexA].pos,
+                    distanceBetweenLairAB[key] = Traveler.findTravelPath( keeperLairs[indexA].pos,
                         keeperLairs[indexB].pos).path.length;
                 }
 

@@ -73,7 +73,7 @@ export class Agent extends AbstractAgent {
 
     public travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
-        return empire.traveler.travelTo(this.creep, destination, options);
+        return Traveler.travelTo(this.creep, destination, options);
     }
 
     public isFull(margin = 0): boolean {
@@ -301,7 +301,10 @@ export class Agent extends AbstractAgent {
 
             if (_.isObject(lab)) {
                 if (this.pos.isNearTo(lab)) {
-                    lab.boostCreep(this.creep);
+                    let outcome = lab.boostCreep(this.creep);
+                    if (outcome === ERR_RCL_NOT_ENOUGH) {
+                        return true;
+                    }
                 } else {
                     this.travelTo(lab);
                     return false;
@@ -445,9 +448,9 @@ export class Agent extends AbstractAgent {
                 flee: true,
                 maxRooms: confineToRoom ? 1 : undefined,
                 roomCallback: (roomName: string): CostMatrix|boolean => {
-                    if (Traveler.checkOccupied(roomName)) { return false; }
-                    if (roomName === this.room.name) { return empire.traveler.getCreepMatrix(this.room); }
-                    if (Game.rooms[roomName]) { return empire.traveler.getStructureMatrix(Game.rooms[roomName]); }
+                    if (Traveler.checkAvoid(roomName)) { return false; }
+                    if (roomName === this.room.name) { return Traveler.getCreepMatrix(this.room); }
+                    if (Game.rooms[roomName]) { return Traveler.getStructureMatrix(Game.rooms[roomName]); }
                 },
             });
 
@@ -473,9 +476,9 @@ export class Agent extends AbstractAgent {
         let ret = PathFinder.search(this.pos, avoidance, {
             flee: true,
             roomCallback: (roomName: string): CostMatrix|boolean => {
-                if (Traveler.checkOccupied(roomName)) { return false; }
-                if (roomName === this.room.name) { return empire.traveler.getCreepMatrix(this.room); }
-                if (Game.rooms[roomName]) { return empire.traveler.getStructureMatrix(Game.rooms[roomName]); }
+                if (Traveler.checkAvoid(roomName)) { return false; }
+                if (roomName === this.room.name) { return Traveler.getCreepMatrix(this.room); }
+                if (Game.rooms[roomName]) { return Traveler.getStructureMatrix(Game.rooms[roomName]); }
             },
         });
 
@@ -931,7 +934,7 @@ export class Agent extends AbstractAgent {
 
     public pushyTravelTo(destination: {pos: RoomPosition}, exclusion?: string, options: TravelToOptions = {}) {
         if (this.isStuck()) {
-            options.returnData = {nextPos: undefined };
+            options.returnData = {};
             this.travelTo(destination, options);
             if (options.returnData.nextPos) {
                 let creep = options.returnData.nextPos.lookFor<Creep>(LOOK_CREEPS)[0];

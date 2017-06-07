@@ -6,6 +6,7 @@ import {Notifier} from "../../notifier";
 import {PathMission} from "./PathMission";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {empire} from "../Empire";
+import {Traveler} from "../Traveler";
 
 interface MiningState extends MissionState {
     container: StructureContainer;
@@ -342,7 +343,7 @@ export class MiningMission extends Mission {
                 let room = Game.rooms[roomName];
                 if (!room) { return; }
 
-                let matrix = empire.traveler.getStructureMatrix(room);
+                let matrix = Traveler.getStructureMatrix(room);
 
                 return matrix;
             },

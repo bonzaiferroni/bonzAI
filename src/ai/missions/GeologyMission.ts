@@ -6,6 +6,7 @@ import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
+import {Traveler} from "../Traveler";
 
 interface GeologyMemory extends MissionMemory {
     distanceToStorage: number;
@@ -275,7 +276,7 @@ export class GeologyMission extends Mission {
 
         if (this.state.mineral.pos.findInRange(FIND_CONSTRUCTION_SITES, 1).length > 0) { return; }
 
-        let ret = empire.traveler.findTravelPath(this.state.mineral.pos, this.state.store.pos);
+        let ret = Traveler.findTravelPath(this.state.mineral.pos, this.state.store.pos);
         if (ret.incomplete) {
             console.log(`MINER: bad path for finding container position ${this.flag.pos.roomName}`);
             return;

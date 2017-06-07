@@ -6,6 +6,7 @@ import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
 import {Tick} from "../Tick";
+import {Traveler, TravelState, TravelToOptions} from "../ai/Traveler";
 
 export var consoleCommands = {
 
@@ -195,9 +196,14 @@ export var consoleCommands = {
 
     findResource(resourceType: string) {
         for (let terminal of empire.network.terminals) {
+            let amount = 0;
             if (terminal.store[resourceType]) {
-                console.log(terminal.room.name, terminal.store[resourceType]);
+                amount += terminal.store[resourceType];
             }
+            if (terminal.room.storage && terminal.room.storage.store[resourceType]) {
+                amount += terminal.room.storage.store[resourceType];
+            }
+            console.log(terminal.room.name, amount);
         }
     },
 
@@ -359,50 +365,34 @@ export var consoleCommands = {
     },
 
     testCPU() {
-        let obj1 = {
-            _trav: {
-                stuck: 0,
-                cpu: 133,
-                last: { x: 17, y: 29 },
-                dest: { x: 18, y: 31, roomName: "E22S24" },
-                path: "42640344898844894894",
-            },
-        };
+        let hardPath1 = Game.flags["hardPath1"];
+        let hardPath2 = Game.flags["hardPath2"];
+        if (hardPath1 && hardPath2) {
+            // let oldTraveler = new OldTraveler();
+            let roomDistance = Game.map.getRoomLinearDistance(hardPath1.pos.roomName, hardPath2.pos.roomName);
+            console.log(`testing ${hardPath1.pos} to ${hardPath2.pos}, room distance: ${roomDistance}`);
+            let cpu1 = Game.cpu.getUsed();
+            let retN = Traveler.findTravelPath(hardPath1.pos, hardPath2.pos, {ensurePath: true});
+            cpu1 = Game.cpu.getUsed() - cpu1;
+            let cpu2 = Game.cpu.getUsed();
+            // let retO = oldTraveler.findTravelPath(hardPath1, hardPath2);
+            cpu2 = Game.cpu.getUsed() - cpu2;
 
-        let obj2 = {
-            _trav: {
-                state: [17, 29, 0, 133, 18, 31, "E22S24"],
-                path: "42640344898844894894",
-            },
-        };
-
-        // this object would require further parsing to use
-        let obj3 = {
-            _trav: {
-                state: "17_29_0_133_18_31_E22S24",
-                path: "42640344898844894894",
-            },
-        };
-
-        let testObjects = [obj1, obj2, obj3];
-
-        let testNumber = 1;
-        for (let testObj of testObjects) {
-            let fakeMemory = {
-                creeps: {},
-            };
-
-            for (let creepName in Game.creeps) {
-                fakeMemory.creeps[creepName] = testObj;
-            }
-
-            let cpu = Game.cpu.getUsed();
-            let str = JSON.stringify(fakeMemory);
-            JSON.parse(str);
-            cpu = Game.cpu.getUsed() - cpu;
-            console.log(`test: ${testNumber}, creepCount: ${Object.keys(fakeMemory.creeps).length}, result: ${cpu}`);
-            testNumber++;
+            console.log(`test: new, cpu: ${cpu1}, incomplete: ${retN.incomplete}, path length: ${retN.path.length}`);
+            // console.log(`test: old, cpu: ${cpu2}, incomplete: ${retO.incomplete}, path length: ${retO.path.length}`);
         }
+
+        /* output
+         [2:11:09 PM]TRAVELER: path failed without findroute, trying with options.useFindRoute = true
+         [2:11:09 PM]from: [room E7S8 pos 27,14], destination: [room E5S6 pos 36,30]
+         [2:11:09 PM]TRAVELER: second attempt was  successful
+         [2:11:09 PM]test: new, cpu: 15.518756000000053, incomplete = false
+         [2:11:09 PM]test: old, cpu: 9.348324999999988, incomplete = true
+         */
+    },
+
+    test() {
+        Traveler.patchMemory();
     },
 
     resetPathCPU() {

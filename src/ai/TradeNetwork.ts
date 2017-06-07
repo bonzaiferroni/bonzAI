@@ -245,7 +245,7 @@ export class TradeNetwork {
             let surplusTerminals = this.surpluses[resourceType];
             if (!surplusTerminals) { continue; }
             for (let shortage of shortageTerminals) {
-                let bestSurplus;
+                let bestSurplus: StructureTerminal;
                 let bestDistance = Number.MAX_VALUE;
                 for (let surplus of surplusTerminals) {
                     let distance = Game.map.getRoomLinearDistance(shortage.room.name, surplus.room.name);
@@ -311,7 +311,7 @@ export class TradeNetwork {
 
     public static canTrade(room: Room) {
         return room.controller && room.controller.level >= 6 && room.storage && room.terminal
-            && (!room.controller.sign || room.controller.sign.text !== "noTrade");
+            && (!room.controller.sign || room.controller.sign.text !== "noTrade") && room.controller.my;
     }
 
     public reportTransactions() {

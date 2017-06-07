@@ -133,8 +133,10 @@ export class SpawnGroup {
                             SpawnGroup.calculateBodyCost(build), "current:", this.currentSpawnEnergy, "max",
                             this.maxSpawnEnergy);
                     }
-                } else if (outcome !== ERR_NAME_EXISTS && outcome !== ERR_RCL_NOT_ENOUGH) {
+                } else if (outcome !== ERR_NAME_EXISTS) {
                     console.log("SPAWN:", this.room.name, "had error spawning " + name + ", outcome: " + outcome);
+                } else if (outcome === ERR_RCL_NOT_ENOUGH) {
+                    continue;
                 }
                 break;
             }

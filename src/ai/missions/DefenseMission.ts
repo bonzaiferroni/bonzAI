@@ -75,8 +75,14 @@ export class DefenseMission extends Mission {
         return this.state.playerThreat ? Math.max(this.state.enemySquads.length, 1) : 0;
     };
     private getMaxRefillers = () => this.state.playerThreat || this.room.find(FIND_NUKES).length > 0 ? 1 : 0;
-    private getMaxSquadAttackers = () => this.state.playerThreat ? 1 : 0;
-    private getMaxSquadHealers = () => this.state.playerThreat ? 1 : 0;
+    private getMaxSquadAttackers = () => {
+        // if (this.roomName === "E2S12") { return 1; }
+        return this.state.playerThreat ? 1 : 0;
+    }
+    private getMaxSquadHealers = () => {
+        // if (this.roomName === "E2S12") { return 1; }
+        return this.state.playerThreat ? 1 : 0;
+    }
 
     private squadAttackerBody = () => {
         return this.configBody({[TOUGH]: 12, [MOVE]: 10, [ATTACK]: 27, [RANGED_ATTACK]: 1});

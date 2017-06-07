@@ -11,6 +11,7 @@ import {empire} from "../Empire";
 import {TransportOperation} from "./TransportOperation";
 import {ZombieOperation} from "./ZombieOperation";
 import {DemolishOperation} from "./DemolishOperation";
+import {RemoteUpgradeOperation} from "./RemoteUpgradeOperation";
 
 export class OperationFactory {
 
@@ -30,6 +31,7 @@ export class OperationFactory {
         layout: LayoutOperation,
         guard: GuardOperation,
         swap: SwapOperation,
+        upg: RemoteUpgradeOperation,
     };
 
     private static scannedFlags: {[flagName: string]: boolean } = {};

@@ -145,9 +145,6 @@ export class GuardMission extends Mission {
         if (guard.room.controller && guard.room.controller.owner
             && !empire.diplomat.allies[guard.room.controller.owner.username]) {
             let structureTarget = guard.pos.findClosestByRange(FIND_HOSTILE_SPAWNS) as Structure;
-            if (!structureTarget) {
-                structureTarget = guard.room.findStructures(STRUCTURE_TOWER)[0] as StructureTower;
-            }
             if (structureTarget) {
                 if (!guard.pos.inRangeTo(structureTarget, 3)) {
                     guard.travelTo(structureTarget);

@@ -5,14 +5,12 @@ import {RoomHelper} from "./ai/RoomHelper";
 import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
-import {Traveler} from "./ai/Traveler";
-import {OldTraveler} from "./ai/oldTraveler/Traveler";
+import {Traveler, TravelToReturnData} from "./ai/Traveler";
 import {Profiler} from "./Profiler";
 import {Viz} from "./helpers/Viz";
 
 export var sandBox = {
     run: function() {
-
 
         let pos = Game.spawns["Spawn1"].pos;
         Viz.animatedPos(pos, "aqua", .5, 1, 10);
@@ -20,8 +18,6 @@ export var sandBox = {
         let travFlag = Game.flags["travFlag"];
         if (travFlag) {
 
-            let newTraveler = new Traveler();
-            let oldTraveler = new OldTraveler();
 
             let newTravelerCreep = Game.creeps["newTraveler"];
             if (!newTravelerCreep) {
@@ -32,14 +28,48 @@ export var sandBox = {
                 empire.spawnFromClosest(travFlag.pos, [MOVE], "oldTraveler");
             }
 
-            if (newTravelerCreep && oldTravelerCreep) {
-                Profiler.start("test.newTrav", false);
-                newTraveler.travelTo(newTravelerCreep, travFlag, {range: 1});
+            let newTravelerTest = () => {
+                Profiler.start("test.newTrav", true);
+                newTravelerCreep.travelTo(travFlag, {range: 1, preferHighway: true});
                 Profiler.end("test.newTrav");
+            };
 
-                Profiler.start("test.oldTrav", false);
-                oldTraveler.travelTo(oldTravelerCreep, travFlag, {range: 1});
+            let oldTravelerTest = () => {
+                Profiler.start("test.oldTrav", true);
+                // oldTraveler.travelTo(oldTravelerCreep, travFlag, {range: 1, preferHighway: true});
                 Profiler.end("test.oldTrav");
+            };
+
+            let tests = [newTravelerTest, oldTravelerTest];
+            if (Math.random() > .5) {
+                // eliminate order effects
+                tests = [oldTravelerTest, newTravelerTest];
+            }
+
+            if (newTravelerCreep && oldTravelerCreep) {
+                for (let test of tests) {
+                    test();
+                }
+            }
+        }
+
+        let destination = Game.flags["obstacleFlag"];
+        if (destination) {
+            let creep = Game.creeps["obstacle"];
+            if (creep) {
+                let data = {} as TravelToReturnData;
+                creep.travelTo(destination, {returnData: data});
+                if (data.path) { creep.say(`${data.path.length} more!`); }
+            } else {
+                empire.spawnFromClosest(destination.pos, [MOVE], "obstacle");
+            }
+
+            let destFlag = Game.flags["destFlag"];
+            if (destFlag && Game.time % 5 === 0) {
+                let cpu = Game.cpu.getUsed();
+                let route = Traveler.findRoute(destination.pos.roomName, destFlag.pos.roomName, {highwayBias: 2.5});
+                console.log(JSON.stringify(route));
+                console.log(Game.cpu.getUsed() - cpu);
             }
         }
 

@@ -67,8 +67,10 @@ export class LayoutBuilder {
                 if (outcome === OK) {
                     console.log(`BUILDER: placed ${buildType} in ${this.room.name}`);
                     return;
+                } else if (buildType) {
+                    // temporarily disable structure removal, it is buggy
+                    continue;
                 }
-                console.log(buildType, outcome); // added this
 
                 let errantStructure = _(lookStructures)
                     .filter(x => x.structureType !== STRUCTURE_ROAD && x.structureType !== STRUCTURE_RAMPART)
@@ -106,6 +108,10 @@ export class LayoutBuilder {
         }
 
         this.memory.nextCheck = Game.time + 100 + Math.floor(Math.random() * 10);
+    }
+
+    public recheck() {
+        this.memory.nextCheck = Game.time;
     }
 
     private demolishStructure(structure: Structure) {
@@ -149,7 +155,7 @@ export class LayoutBuilder {
     }
 
     private checkHostiles() {
-        return this.room.find(FIND_HOSTILE_CREEPS).length > 0;
+        return this.room.hostiles.length > 0;
     }
 
     private checkMaxConstruction(): boolean {

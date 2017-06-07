@@ -19,7 +19,6 @@ export class BrawlerMission extends RaidMission {
             [RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE]: true,
             [RESOURCE_CATALYZED_GHODIUM_ALKALIDE]: true,
         };
-        this.braveMode = true;
     }
 
     protected clearActions() {

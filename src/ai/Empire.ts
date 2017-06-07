@@ -1,6 +1,6 @@
 import {SpawnGroup} from "./SpawnGroup";
 import {Profiler} from "../Profiler";
-import {Traveler, traveler} from "./Traveler";
+import {Traveler} from "./Traveler";
 import {WorldMap} from "./WorldMap";
 import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
@@ -16,7 +16,6 @@ import {TradeNetwork} from "./TradeNetwork";
 export class Empire {
 
     public spawnGroups: {[roomName: string]: SpawnGroup};
-    public traveler: Traveler;
     public diplomat: Diplomat;
     public map: WorldMap;
     public network: TradeNetwork;
@@ -36,7 +35,6 @@ export class Empire {
 
     public init() {
         this.initMemory();
-        this.traveler = traveler;
         this.diplomat = new Diplomat();
         this.map = new WorldMap(this.diplomat);
         this.spawnGroups = this.map.init();

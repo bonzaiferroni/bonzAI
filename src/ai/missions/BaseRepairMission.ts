@@ -2,6 +2,7 @@ import {Mission, MissionMemory} from "./Mission";
 import {ControllerOperation} from "../operations/ControllerOperation";
 import {Layout} from "../layouts/Layout";
 import {Scheduler} from "../../Scheduler";
+import {Viz} from "../../helpers/Viz";
 
 interface BaseRepairMemory extends MissionMemory {
     roadIds: string[];
@@ -81,13 +82,20 @@ export class BaseRepairMission extends Mission {
     private findRoads() {
         if (Scheduler.delay(this.memory, "findRoads", 1000)) { return; }
 
-        let roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
-            .filter(x => x.hits < x.hitsMax * .8)
-            .value();
+        let roads: StructureRoad[];
+        if (this.operation.name === "port0") {
+            roads = _(this.room.findStructures<StructureRoad>(STRUCTURE_ROAD)).filter(x => x.hits < x.hitsMax * .8).value();
+        } else {
+            roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
+                .filter(x => x.hits < x.hitsMax * .8)
+                .value();
+        }
         if (!roads || roads.length === 0) {
             console.log(`REPAIR: no roads need repair in ${this.roomName}`);
             return;
         }
+
+        roads.forEach(x => Viz.animatedPos(x.pos, "cyan"));
 
         console.log(`found ${roads.length} to repair`);
 
@@ -101,7 +109,7 @@ export class BaseRepairMission extends Mission {
                 if (structure && structure.hits < structure.hitsMax) {
                     return structure;
                 } else {
-                    this.memory.roadIds = _.remove(this.memory.roadIds, id);
+                    _.pull(this.memory.roadIds, id);
                 }
             }
         }

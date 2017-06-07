@@ -6,6 +6,7 @@ import {Notifier} from "../../notifier";
 import {WorldMap} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
+import {Traveler, TravelToOptions} from "../Traveler";
 
 interface PowerMemory extends MissionMemory {
     currentBank: BankData;
@@ -236,9 +237,22 @@ export class PowerMission extends Mission {
     }
 
     private powerCartActions(cart: Agent, order: number) {
+
+        let options: TravelToOptions = {
+            preferHighway: true,
+        };
+
         if (!cart.carry.power) {
             if (this.memory.currentBank && this.memory.currentBank.finishing) {
-                this.powerCartApproachBank(cart, order);
+                let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
+
+                if (cart.pos.roomName !== bankPos.roomName || cart.pos.isNearExit(1)) {
+                    options.ignoreRoads = true;
+                    cart.travelTo(bankPos, options);
+                } else {
+                    this.approachBank(cart, bankPos, order);
+                }
+
                 return;
             } else {
                 let power = cart.room.find(FIND_DROPPED_RESOURCES,
@@ -262,38 +276,33 @@ export class PowerMission extends Mission {
             cart.transfer(this.room.storage, RESOURCE_POWER);
         } else {
             // traveling to storage
-            cart.travelTo(this.room.storage);
+            cart.travelTo(this.room.storage, options);
         }
     }
 
-    private powerCartApproachBank(cart: Agent, order: number) {
-        let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
-        if (cart.room.name !== bankPos.roomName || cart.pos.isNearExit(0)) {
-            // traveling from spawn
-            cart.travelTo({pos: bankPos}, {ignoreRoads: true});
+    private approachBank(cart: Agent, bankPos: RoomPosition, order: number) {
+
+        if (cart.memory.inPosition) {
+            cart.memory.inPosition = Game.time % 25 !== 0;
         } else {
-            if (cart.memory.inPosition) {
-                cart.memory.inPosition = Game.time % 25 !== 0;
-            } else {
-                if (bankPos.openAdjacentSpots().length > 0) {
-                    if (cart.pos.isNearTo(bankPos)) {
-                        cart.memory.inPosition = true;
-                    } else {
-                        cart.travelTo({pos: bankPos} );
-                    }
-                } else if (order > 0) {
-                    let lastCart = this.carts[order - 1];
-                    if (cart.pos.isNearTo(lastCart)) {
-                        cart.memory.inPosition = true;
-                    } else {
-                        cart.travelTo(lastCart );
-                    }
+            if (bankPos.openAdjacentSpots().length > 0) {
+                if (cart.pos.isNearTo(bankPos)) {
+                    cart.memory.inPosition = true;
                 } else {
-                    if (cart.pos.isNearTo(this.clydes[0])) {
-                        cart.memory.inPosition = true;
-                    } else {
-                        cart.travelTo(this.clydes[0] );
-                    }
+                    cart.travelTo({pos: bankPos} );
+                }
+            } else if (order > 0) {
+                let lastCart = this.carts[order - 1];
+                if (cart.pos.isNearTo(lastCart)) {
+                    cart.memory.inPosition = true;
+                } else {
+                    cart.travelTo(lastCart );
+                }
+            } else {
+                if (cart.pos.isNearTo(this.clydes[0])) {
+                    cart.memory.inPosition = true;
+                } else {
+                    cart.travelTo(this.clydes[0] );
                 }
             }
         }
@@ -363,7 +372,7 @@ export class PowerMission extends Mission {
         let possibleRoomNames = this.findAlleysInRange(5);
         for (let roomName of possibleRoomNames) {
             let position = helper.pathablePosition(roomName);
-            let ret = empire.traveler.findTravelPath(spawn.pos, position);
+            let ret = Traveler.findTravelPath(spawn.pos, position);
             if (ret.incomplete) {
                 Notifier.log(`POWER: incomplete path generating scanData (${this.operation.name}, room: ${roomName})`);
                 continue;

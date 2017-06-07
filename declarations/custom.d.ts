@@ -56,7 +56,7 @@ interface Room {
 
 interface RoomMemory {
     owner: string;
-    occ: number;
+    avoid: number;
     srcPos: string;
     level: number;
     nextTrade: number;
@@ -132,6 +132,7 @@ interface RoomObject {
 interface Creep {
     partCount(partType: string): number;
     blindMoveTo(destination: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
+    travelTo(destination: {pos: RoomPosition}|RoomPosition, ops?: any);
     hitsTemp: number;
 }
 

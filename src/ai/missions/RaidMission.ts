@@ -12,7 +12,7 @@ import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {RaidOperation} from "../operations/RaidOperation";
 import {HostileAgent} from "../agents/HostileAgent";
-import {traveler, TravelToOptions} from "../Traveler";
+import {Traveler, TravelToOptions} from "../Traveler";
 import {Viz} from "../../helpers/Viz";
 import {Profiler} from "../../Profiler";
 import {FireflyMission} from "./FireflyMission";
@@ -102,9 +102,12 @@ export abstract class RaidMission extends Mission {
 
     public roleCall() {
         let max = () => !this.memory.spawned ? 1 : 0;
-        let reservation = { spawns: 2, currentEnergy: undefined };
-        if (this.spawnGroup.maxSpawnEnergy >= this.spawnCost) {
-            reservation.currentEnergy = this.spawnCost;
+        let reservation;
+        if (!this.raidOperation.memory.freespawn) {
+            reservation = { spawns: 2, currentEnergy: undefined };
+            if (this.spawnGroup.maxSpawnEnergy >= this.spawnCost) {
+                reservation.currentEnergy = this.spawnCost;
+            }
         }
 
         this.attacker = _.head(this.headCount(this.name + "Attacker", this.attackerBody, max, {
@@ -147,6 +150,7 @@ export abstract class RaidMission extends Mission {
             return;
         }
 
+
         /* --------FALLBACK-------- */
         let manualPositioning = this.manualPositioning();
         if (manualPositioning) {
@@ -158,6 +162,8 @@ export abstract class RaidMission extends Mission {
         let gather = this.raidOperation.memory.gather;
         let squadsPresent = this.raidOperation.memory.squadsPresentLastTick;
         if (this.raidData.fallback || (gather && squadsPresent < gather)) {
+            let fleeing = this.squadFlee();
+            if (fleeing) { return; }
             this.squadTravel(this.attacker, this.healer, this.raidData.fallbackFlag);
             return;
         }
@@ -529,7 +535,7 @@ export abstract class RaidMission extends Mission {
                 if (roomName === this.raidData.attackFlag.pos.roomName) {
                     return this.raidData.raidMatrix;
                 } else {
-                    return traveler.getStructureMatrix(room);
+                    return Traveler.getStructureMatrix(room);
                 }
             },
         });
@@ -885,7 +891,7 @@ export abstract class RaidMission extends Mission {
         if (!origin || !destination) { return; }
         let options: TravelToOptions = {maxOps: maxOps, maxRooms: 1 };
         options.range = this.attackRange;
-        let ret = empire.traveler.findTravelPath(origin.pos, destination.pos, options);
+        let ret = Traveler.findTravelPath(origin.pos, destination.pos, options);
         return !ret.incomplete;
     }
 

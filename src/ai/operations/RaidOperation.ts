@@ -11,7 +11,7 @@ import {helper} from "../../helpers/helper";
 import {WorldMap} from "../WorldMap";
 import {empire} from "../Empire";
 import {HostileAgent} from "../agents/HostileAgent";
-import {Traveler, traveler} from "../Traveler";
+import {Traveler} from "../Traveler";
 import {Notifier} from "../../notifier";
 import {Viz} from "../../helpers/Viz";
 
@@ -46,6 +46,7 @@ interface RaidMemory extends OperationMemory {
     braveMode: boolean;
     cache: any;
     gather: number;
+    freespawn: boolean;
 }
 
 /**
@@ -578,7 +579,7 @@ export class RaidOperation extends Operation {
             return false;
         }
 
-        let ret = empire.traveler.findTravelPath(this.spawnGroup.pos, destination.pos, {ignoreStructures: true});
+        let ret = Traveler.findTravelPath(this.spawnGroup.pos, destination.pos, {ignoreStructures: true});
         if (ret.incomplete) {
             console.log(`RAID: ${this.name} automation incomplete, incomplete path to attackRoom`);
             return false;
@@ -818,7 +819,7 @@ export class RaidOperation extends Operation {
     }
 
     private generateStructureMatrix(attackRoom: Room): CostMatrix {
-        let matrix = empire.traveler.getStructureMatrix(attackRoom, true).clone();
+        let matrix = Traveler.getStructureMatrix(attackRoom, true).clone();
 
         // this is expensive but only needs to happen once per room per raid
         for (let tower of attackRoom.findStructures<StructureTower>(STRUCTURE_TOWER)) {

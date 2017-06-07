@@ -95,11 +95,11 @@ export class SurveyAnalyzer {
         for (let roomName of adjacentRoomNames) {
 
             let noSafePath = false;
-            let roomsInPath = empire.traveler.findRoute(this.room.name, roomName,
-                { allowHostile: true, restrictDistance: 1 });
+            let roomsInPath = Traveler.findRoute(this.room.name, roomName,
+                { allowHostile: true, restrictDistance: 1, useFindRoute: true });
             if (roomsInPath) {
                 for (let roomName in roomsInPath) {
-                    if (Traveler.checkOccupied(roomName)) {
+                    if (Traveler.checkAvoid(roomName)) {
                         noSafePath = true;
                     }
                 }

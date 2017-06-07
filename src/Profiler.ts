@@ -6,8 +6,9 @@ export class Profiler {
     }
 
     public static end(identifier: string) {
+        let endCpu = Game.cpu.getUsed();
         let profile = Memory.profiler[identifier];
-        let cpu = Game.cpu.getUsed() - profile.cpu;
+        let cpu = endCpu - profile.cpu;
         profile.total += cpu;
         profile.count++;
         if (profile.highest < cpu) {

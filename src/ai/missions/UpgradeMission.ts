@@ -9,6 +9,7 @@ import {empire} from "../Empire";
 import {RoomHelper} from "../RoomHelper";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Profiler} from "../../Profiler";
+import {Traveler} from "../Traveler";
 
 interface UpgradeMemory extends MissionMemory {
     batteryPosition: RoomPosition;
@@ -234,7 +235,7 @@ export class UpgradeMission extends Mission {
     }
 
     private findBatteryPosition(spawn: StructureSpawn): RoomPosition {
-        let ret = empire.traveler.findTravelPath(spawn.pos, this.room.controller.pos);
+        let ret = Traveler.findTravelPath(spawn.pos, this.room.controller.pos);
         let positionsInRange = this.room.controller.pos.findInRange(ret.path, 3);
         positionsInRange = _.sortBy(positionsInRange, (pos: RoomPosition) => pos.getRangeTo(spawn.pos));
 
@@ -359,7 +360,8 @@ export class UpgradeMission extends Mission {
                 return 0;
             }
             if (this.room.storage && this.room.storage.store.energy > NEED_ENERGY_THRESHOLD) {
-                return 15;
+                return 1;
+                // return 15;
             } else {
                 return 1;
             }
@@ -453,7 +455,7 @@ export class UpgradeMission extends Mission {
             startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
         }
         if (startingPosition) {
-            this.pathMission.updatePath(startingPosition.pos, this.state.battery.pos, 1);
+            this.pathMission.updatePath(startingPosition.pos, this.state.battery.pos, 0);
         }
     }
 

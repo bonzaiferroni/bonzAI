@@ -116,9 +116,9 @@ export class WorldMap {
                 room.memory.owner = room.controller.owner.username;
             }
             if (room.controller.owner && !room.controller.my) {
-                room.memory.occ = 1;
-            } else if (room.memory.occ) {
-                delete room.memory.occ;
+                room.memory.avoid = 1;
+            } else if (room.memory.avoid) {
+                delete room.memory.avoid;
             }
         }
     }

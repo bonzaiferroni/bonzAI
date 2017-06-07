@@ -2,6 +2,7 @@ import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLE
 import {Agent} from "../ai/agents/Agent";
 import {empire} from "../ai/Empire";
 import {Tick} from "../Tick";
+import {Traveler} from "../ai/Traveler";
 
 export function initRoomPrototype() {
     Object.defineProperty(Room.prototype, "hostiles", {
@@ -104,7 +105,7 @@ export function initRoomPrototype() {
 
     Object.defineProperty(Room.prototype, "defaultMatrix", {
         get: function myProperty() {
-            return empire.traveler.getStructureMatrix(this);
+            return Traveler.getStructureMatrix(this);
         },
     });
 

@@ -1,4 +1,5 @@
 import {empire} from "./Empire";
+import {Traveler} from "./Traveler";
 export interface FindClosestOptions {
     linearDistanceLimit?: number;
     opsLimit?: number;
@@ -38,7 +39,7 @@ export class RoomHelper {
             }
 
             let distance;
-            let ret = empire.traveler.findTravelPath(origin.pos, dest.pos,
+            let ret = Traveler.findTravelPath(origin.pos, dest.pos,
                 {maxOps: options.opsLimit, useFindRoute: options.byRoute});
             if (ret.incomplete) { continue; }
             distance = ret.path.length;

@@ -5,6 +5,7 @@ import {helper} from "../../helpers/helper";
 import {ARTROOMS} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
+import {Traveler} from "../Traveler";
 
 interface ReserveMemory extends MissionMemory {
     wallCheck: boolean;
@@ -106,13 +107,13 @@ export class ReserveMission extends Mission {
     }
 
     private checkBulldozer(): boolean {
-        let ret = empire.traveler.findTravelPath(this.spawnGroup.pos, this.room.controller.pos);
+        let ret = Traveler.findTravelPath(this.spawnGroup.pos, this.room.controller.pos);
         if (!ret.incomplete) {
             console.log(`RESERVER: No bulldozer necessary in ${this.operation.name}`);
             return false;
         }
 
-        let ignoredStructures = empire.traveler.findTravelPath(this.spawnGroup.pos, this.room.controller.pos,
+        let ignoredStructures = Traveler.findTravelPath(this.spawnGroup.pos, this.room.controller.pos,
             {range: 1, ignoreStructures: true});
         if (ignoredStructures.incomplete) {
             Notifier.log(`RESERVER: bad bulldozer path in ${this.operation.name}, please investigate.`);
