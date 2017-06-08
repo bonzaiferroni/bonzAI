@@ -12,6 +12,7 @@ import {TransportOperation} from "./TransportOperation";
 import {ZombieOperation} from "./ZombieOperation";
 import {DemolishOperation} from "./DemolishOperation";
 import {RemoteUpgradeOperation} from "./RemoteUpgradeOperation";
+import {submodules} from "../../submodules";
 
 export class OperationFactory {
 
@@ -93,5 +94,11 @@ export class OperationFactory {
 
         global[operation.name] = operation;
         this.map[priority][operation.name] = operation;
+    }
+
+    public static addSubmodules() {
+        for (let opName in submodules) {
+            this.classes[opName] = submodules;
+        }
     }
 }
