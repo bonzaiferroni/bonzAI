@@ -85,11 +85,6 @@ export class BaseRepairMission extends Mission {
         let roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
             .filter(x => x.hits < x.hitsMax * .8)
             .value();
-        if (this.operation.name === "front1") {
-            roads = _(this.room.findStructures<StructureRoad>(STRUCTURE_ROAD))
-                .filter(x => x.hits < x.hitsMax * .8)
-                .value();
-        }
         if (!roads || roads.length === 0) {
             console.log(`REPAIR: no roads need repair in ${this.roomName}`);
             return;

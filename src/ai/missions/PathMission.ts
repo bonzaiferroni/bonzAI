@@ -35,6 +35,7 @@ export class PathMission extends Mission {
         this.startPos = startPos;
         this.endPos = endPos;
         this.rangeToEnd = rangeToEnd;
+        this.repairLevel = repairLevel;
     }
 
     public update() {

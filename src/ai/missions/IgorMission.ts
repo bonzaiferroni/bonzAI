@@ -42,10 +42,6 @@ export class IgorMission extends Mission {
         if (!this.memory.boostOrders) { this.memory.boostOrders = {}; }
         if (!this.room.memory.boostRequests) { this.room.memory.boostRequests = {}; }
         this.findIgorIdlePosition();
-
-        if (this.spawnGroup.maxSpawnEnergy < 1500) {
-            this.operation.removeMission(this);
-        }
     }
 
     public update() {
@@ -67,7 +63,7 @@ export class IgorMission extends Mission {
     }
 
     public roleCall() {
-        this.igors = this.headCount("igor", () => this.workerBody(0, 20, 10), () => 1, {
+        this.igors = this.headCount("igor", () => this.bodyRatio(0, 2, 1, 1, 10), () => 1, {
             prespawn: 50,
             memory: { idlePosition: this.memory.idlePosition },
         });

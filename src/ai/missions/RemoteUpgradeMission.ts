@@ -14,6 +14,7 @@ interface RemoteUpgradeState extends MissionState {
 
 interface RemoteUpgradeMemory extends MissionMemory {
     distance: number;
+    localSource: boolean;
 }
 
 export class RemoteUpgradeMission extends Mission {
@@ -44,18 +45,25 @@ export class RemoteUpgradeMission extends Mission {
             return;
         }
 
+        // use the storage in spawning room or in local room
+        this.state.energySource = this.room.storage;
+        let localRoomReady = this.state.target.room.storage && this.state.target.room.storage.store.energy >= 100000;
+        if (this.memory.localSource || localRoomReady) {
+            if (!this.memory.localSource) {
+                this.memory.localSource = true;
+                this.memory.distance = undefined;
+            }
+            this.state.energySource = this.state.target.room.storage;
+        }
+
         // figure out the distance for prespawn purposes
         if (!this.memory.distance) {
-            this.memory.distance = Traveler.findTravelPath(this.room.storage, this.state.target, {
+            this.memory.distance = Traveler.findTravelPath(this.state.energySource, this.state.target, {
                 offRoad: true,
             }).path.length;
         }
 
-        // use the storage in spawning room or in local room
-        this.state.energySource = this.room.storage;
-        if (this.state.target.room.storage && this.state.target.room.storage.store.energy >= 100000) {
-            this.state.energySource = this.state.target.room.storage;
-        }
+        // find container or build one
         this.state.container = this.state.target.pos.lookForStructure<StructureContainer>(STRUCTURE_CONTAINER);
         if (this.state.container) {
             if (!this.positions) {
