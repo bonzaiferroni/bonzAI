@@ -1,3 +1,2 @@
-export function addModules() {
-    return { };
-}
+export let submodules: {[opName: string]: any} = {
+};
