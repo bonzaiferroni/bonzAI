@@ -5,3 +5,4 @@
 Gruntfile.js
 /.idea
 config.json
+/src/ai/submodules
