@@ -1,7 +1,6 @@
 import {MiningOperation} from "./MiningOperation";
 import {KeeperOperation} from "./KeeperOperation";
 import {ControllerOperation} from "./ControllerOperation";
-import {RaidOperation} from "../../submodules/RaidOperation/RaidOperation";
 import {EvacOperation} from "./EvacOperation";
 import {LayoutOperation} from "./LayoutOperation";
 import {GuardOperation} from "./GuardOperation";
@@ -27,7 +26,6 @@ export class OperationFactory {
         mining: MiningOperation,
         keeper: KeeperOperation,
         control: ControllerOperation,
-        raid: RaidOperation,
         evac: EvacOperation,
         layout: LayoutOperation,
         guard: GuardOperation,
@@ -42,6 +40,8 @@ export class OperationFactory {
      */
 
     public static getOperations(): OperationPriorityMap {
+
+        this.addSubmodules();
 
         // gather flag data, instantiate operations
         for (let flagName in Game.flags) {
@@ -96,9 +96,9 @@ export class OperationFactory {
         this.map[priority][operation.name] = operation;
     }
 
-    public static addSubmodules() {
+    private static addSubmodules() {
         for (let opName in submodules) {
-            this.classes[opName] = submodules;
+            this.classes[opName] = submodules[opName];
         }
     }
 }
