@@ -43,7 +43,7 @@ export class FortOperation extends Operation {
 
             // refill spawning energy - will spawn small spawnCart if needed
             let structures = this.flag.room.findStructures(STRUCTURE_EXTENSION)
-                .concat(this.flag.room.find(FIND_MY_SPAWNS)) as Structure[];
+                .concat(this.flag.room.find<StructureSpawn>(FIND_MY_SPAWNS)) as Structure[];
             this.addMission(new RefillMission(this));
 
             this.addMission(new DefenseMission(this));

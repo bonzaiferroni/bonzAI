@@ -21,12 +21,12 @@ export class Janitor {
 
     public actions() {
         this.clearErrantConstruction();
-        this.scavangeResources();
+        this.scavengeResources();
         this.garbageCollection();
     }
 
     private clearErrantConstruction() {
-        if (Scheduler.delay(Memory.empire, "checkStraySites", 1000)) { return; }
+        if (Scheduler.delay(this.memory, "checkStraySites", 100)) { return; }
 
         let removeErrantStatus = {};
         let addErrantStatus = {};
@@ -54,14 +54,14 @@ export class Janitor {
         }
     }
 
-    private scavangeResources() {
+    private scavengeResources() {
         for (let roomName in Game.rooms) {
             let room = Game.rooms[roomName];
             let resources = room.find(FIND_DROPPED_RESOURCES) as Resource[];
             for (let resource of resources) {
-                if (resource.amount < 10) { continue; }
+                if (resource.amount < 50) { continue; }
                 let creep = resource.pos.lookFor(LOOK_CREEPS)[0] as Creep;
-                if (creep && creep.my && creep.memory.scavanger === resource.resourceType
+                if (creep && creep.my && creep.memory.scavenger === resource.resourceType
                     && (!creep.carry[resource.resourceType] ||
                     creep.carry[resource.resourceType] < creep.carryCapacity)) {
                     let outcome = creep.pickup(resource);

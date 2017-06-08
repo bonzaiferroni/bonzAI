@@ -129,8 +129,9 @@ export class ControllerOperation extends Operation {
             // this.addMission(new SurveyMission(this));
             // repair walls
             this.addMission(new MasonMission(this, this.defenseGuru));
-            this.addMission(new BaseRepairMission(this));
         }
+
+        this.addMission(new BaseRepairMission(this));
 
         // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }

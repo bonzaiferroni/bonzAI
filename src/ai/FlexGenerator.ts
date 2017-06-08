@@ -286,26 +286,26 @@ export class FlexGenerator {
         return structurePositions;
     }
 
-    private checkValidRoadCoord(xDelta: number, yDelta: number): boolean {
-        // creates the 5-cluster pattern for extensions/roads that you can see in my rooms
-        let combinedDeviance = Math.abs(xDelta) + Math.abs(yDelta);
-        if (combinedDeviance % 2 !== 0 ) {
-            return false;
-        } else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
-            let pos = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
+private checkValidRoadCoord(xDelta: number, yDelta: number): boolean {
+    // creates the 5-cluster pattern for extensions/roads that you can see in my rooms
+    let combinedDeviance = Math.abs(xDelta) + Math.abs(yDelta);
+    if (combinedDeviance % 2 !== 0 ) {
+        return false;
+    } else if (xDelta % 2 === 0 && combinedDeviance % 4 !== 0) {
+        let pos = helper.coordToPosition({x: xDelta, y: yDelta}, this.centerPosition);
 
-            // check narrow passage due to natural walls
-            for (let direction = 2; direction <= 8; direction += 2) {
-                if (pos.getPositionAtDirection(direction).lookFor(LOOK_TERRAIN)[0] === "wall") {
-                    return true;
-                }
+        // check narrow passage due to natural walls
+        for (let direction = 2; direction <= 8; direction += 2) {
+            if (pos.getPositionAtDirection(direction).lookFor(LOOK_TERRAIN)[0] === "wall") {
+                return true;
             }
-
-            return false;
-        } else {
-            return true;
         }
+
+        return false;
+    } else {
+        return true;
     }
+}
 
     private removeStragglingRoads() {
         let roadPositions = this.flexMap.getPositions(STRUCTURE_ROAD, this.roomName);

@@ -60,7 +60,7 @@ export class EmergencyMinerMission extends Mission {
         }
 
         miner.memory.donatesEnergy = true;
-        miner.memory.scavanger = RESOURCE_ENERGY;
+        miner.memory.scavenger = RESOURCE_ENERGY;
         if (miner.carry.energy < miner.carryCapacity) {
             miner.harvest(closest);
         } else {

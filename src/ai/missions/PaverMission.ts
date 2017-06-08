@@ -60,7 +60,7 @@ export class PaverMission extends Mission {
         }
 
         // I'm in the missionRoom
-        paver.memory.scavanger = RESOURCE_ENERGY;
+        paver.memory.scavenger = RESOURCE_ENERGY;
         let hasLoad = paver.hasLoad();
         if (!hasLoad) {
             paver.procureEnergy();

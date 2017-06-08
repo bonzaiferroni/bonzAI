@@ -59,6 +59,7 @@ export class Empire {
         this.map.update();
         this.network.update();
         this.archiver.update();
+        this.janitor.update();
         SpawnGroup.update(this.spawnGroups);
     }
 

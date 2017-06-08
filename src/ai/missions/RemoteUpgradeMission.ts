@@ -1,73 +1,145 @@
-import {Mission, MissionMemory} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {empire} from "../Empire";
 import {Agent} from "../agents/Agent";
-import {Traveler} from "../Traveler";
-import {helper} from "../../helpers/helper";
+import {Traveler, TravelToReturnData} from "../Traveler";
+import {PathMission} from "./PathMission";
+
+interface RemoteUpgradeState extends MissionState {
+    inboundEnergy: number;
+    site: ConstructionSite;
+    container: StructureContainer;
+    target: Flag;
+    energySource: StoreStructure;
+}
 
 interface RemoteUpgradeMemory extends MissionMemory {
+    distance: number;
 }
 
 export class RemoteUpgradeMission extends Mission {
-    private target: Flag;
-    private distance: number;
+
+    private builders: Agent[];
     private carts: Agent[];
+    private positions: RoomPosition[];
     private upgraders: Agent[];
 
+    public state: RemoteUpgradeState;
     public memory: RemoteUpgradeMemory;
+    public pathMission: PathMission;
 
     constructor(operation: Operation) {
         super(operation, "remUpgrade");
     }
 
     protected init() {
+        if (!this.state.hasVision) {
+            this.operation.removeMission(this);
+            return;
+        }
     }
 
     protected update() {
-        this.target = Game.flags[`${this.operation.name}_target`];
-        if (this.target && this.distance === undefined) {
-            let ret = Traveler.findTravelPath(this.flag.pos, this.target.pos);
-            if (!ret.incomplete) {
-                this.distance = ret.path.length;
+        this.state.target = Game.flags[`${this.operation.name}_target`];
+        if (!this.state.target) {
+            return;
+        }
+
+        if (!this.memory.distance) {
+            this.memory.distance = Traveler.findTravelPath(this.room.storage, this.state.target, {
+                offRoad: true,
+            }).path.length;
+        }
+
+        this.state.energySource = this.room.terminal;
+        if (this.state.target.room.terminal) {
+            this.state.energySource = this.state.target.room.storage;
+        }
+        this.state.container = this.state.target.pos.lookForStructure<StructureContainer>(STRUCTURE_CONTAINER);
+        if (this.state.container) {
+            if (!this.positions) {
+                this.positions = _(this.state.container.pos.openAdjacentSpots(true))
+                    .filter(x => !x.lookForStructure(STRUCTURE_ROAD))
+                    .value();
+                this.positions = this.positions.concat([ this.state.container.pos]);
+            }
+            if (this.pathMission) {
+                this.pathMission.updatePath(this.state.energySource.pos, this.state.container.pos, 0, .4);
+            } else {
+                this.pathMission = new PathMission(this.operation, this.name + "Path");
+                this.operation.addMissionLate(this.pathMission);
+            }
+        } else {
+            this.state.site = this.state.target.pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
+            if (!this.state.site) {
+                this.state.target.pos.createConstructionSite(STRUCTURE_CONTAINER);
             }
         }
     }
 
-    protected cartBody = () => {
-        return this.workerBody(0, 16, 8);
+    protected getMaxBuilders = () => {
+        if (this.state.site) {
+            return 1;
+        } else {
+            return 0;
+        }
+    };
+
+    protected getBuilderBody = () => {
+        return this.bodyRatio(1, 3.5, .5);
     };
 
     protected getMaxCarts = () => {
-        return this.roleCount("upgrade");
+        if (this.state.container) {
+            let upgCount = this.roleCount("upgrader");
+            let analysis = this.cacheTransportAnalysis(this.memory.distance, upgCount * 31);
+            return analysis.cartsNeeded;
+        } else {
+            return 1;
+        }
     };
 
-    protected upgraderBody = () => {
-        return this.workerBody(16, 16, 16);
+    protected getUpgraderBody = () => {
+        return this.workerBody(30, 4, 16);
     };
 
     protected getMaxUpgraders = () => {
-        if (!this.target || !this.target.room || this.target.room.controller.level === 8) { return 0; }
-        return 8;
+        if (!this.positions) { return 0; }
+        return this.positions.length;
     };
 
     protected roleCall() {
-        this.carts = this.headCount("cart", this.cartBody, this.getMaxCarts, {
-            prespawn: this.distance,
+        this.carts = this.headCount("cart", this.standardCartBody, this.getMaxCarts, {
+            memory: { scavenger: RESOURCE_ENERGY },
+            prespawn: 1,
         });
 
-        this.upgraders = this.headCount("upgrade", this.upgraderBody, this.getMaxUpgraders, {
-            prespawn: this.distance,
-            memory: { boosts: [RESOURCE_CATALYZED_GHODIUM_ACID] },
+        this.builders = this.headCount("builder", this.getBuilderBody, this.getMaxBuilders, {
+            boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
+            allowUnboosted: true,
+        });
+
+        this.upgraders = this.headCount("upgrader", this.getUpgraderBody, this.getMaxUpgraders, {
+            prespawn: 50,
+            boosts: [RESOURCE_CATALYZED_GHODIUM_ACID],
+            allowUnboosted: true,
         });
     }
 
     protected actions() {
+        for (let builder of this.builders) {
+            this.builderActions(builder);
+        }
+
+        if (this.state.container) {
+            this.carts = _.sortBy(this.carts, x => x.pos.getRangeTo(this.state.container));
+        }
         for (let cart of this.carts) {
             this.cartActions(cart);
         }
 
+        let order = 0;
         for (let upgrader of this.upgraders) {
-            this.upgraderActions(upgrader);
+            this.upgraderActions(upgrader, order++);
         }
     }
 
@@ -75,87 +147,152 @@ export class RemoteUpgradeMission extends Mission {
     }
 
     protected invalidateCache() {
+        delete this.memory.distance;
+    }
+
+    private builderActions(builder: Agent) {
+        if (!this.state.site) {
+            this.swapRole(builder, "builder", "upgrader");
+            return;
+        }
+
+        let data: TravelToReturnData = {};
+        let options = {
+            offRoad: true,
+            stuckValue: Number.MAX_VALUE,
+            returnData: data,
+        };
+
+        if (builder.pos.isNearExit(0)) {
+            builder.travelTo(this.state.site, options);
+            return;
+        }
+
+        let road = builder.pos.lookForStructure(STRUCTURE_ROAD);
+        if (!road) {
+            let site = builder.pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
+            if (site) {
+                builder.build(site);
+            } else {
+                builder.pos.createConstructionSite(STRUCTURE_ROAD);
+            }
+            return;
+        }
+
+        if (road.hits < road.hitsMax) {
+            builder.repair(road);
+            return;
+        }
+
+        if (builder.pos.isNearTo(this.state.site)) {
+            builder.build(this.state.site);
+        } else {
+            builder.travelTo(this.state.site, options);
+            if (data.nextPos) {
+                let creep = data.nextPos.lookFor<Creep>(LOOK_CREEPS)[0];
+                if (creep) {
+                    builder.say("trade ya");
+                    creep.move(creep.pos.getDirectionTo(builder));
+                }
+            }
+        }
     }
 
     private cartActions(cart: Agent) {
-        let movingToRoom = this.moveToRoom(cart, this.target);
-        if (movingToRoom) { return; }
-
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            cart.procureEnergy(this.target);
-            return;
-        }
-
-        let partner = this.findPartner(cart, this.upgraders);
-        if (!partner || partner.room !== this.target.room) {
-            partner = _(this.target.room.controller.pos.findInRange(this.upgraders, 3)).min(x => x.carry.energy);
-            if (!_.isObject(partner)) {
-                if (cart.pos.inRangeTo(this.target.room.controller, 6)) {
-                    cart.idleOffRoad(this.target.room.controller);
-                } else {
-                    cart.travelTo(this.target.room.controller, {range: 4});
+            let outcome = cart.retrieve(this.state.energySource, RESOURCE_ENERGY);
+            if (outcome === OK) {
+                if (this.state.container) {
+                    cart.travelTo(this.state.container);
                 }
-                return;
             }
-        }
-
-        let callback = (roomName: string, matrix: CostMatrix) => {
-            if (roomName === this.target.pos.roomName) {
-                let clone = matrix.clone();
-                let links = this.target.room.findStructures<StructureLink>(STRUCTURE_LINK);
-                let link = this.target.room.controller.pos.findClosestByRange(links);
-                helper.blockOffPosition(clone, link, 1, 0xff);
-                return clone;
-            }
-        };
-
-        if (partner.carry.energy > partner.carryCapacity * .8) {
-            cart.idleOffRoad(partner);
             return;
         }
 
-        if (cart.isNearTo(partner)) {
-            cart.transfer(partner.creep, RESOURCE_ENERGY);
-        } else {
-            cart.travelTo(partner, {roomCallback: callback});
+        if (this.state.container) {
+
+            let range = cart.pos.getRangeTo(this.state.container);
+            if (range > 6) {
+                cart.travelTo(this.state.container);
+                return;
+            }
+
+            if (this.state.inboundEnergy === undefined) {
+                this.state.inboundEnergy = this.state.container.store.energy;
+            }
+
+            if (cart.carry.energy === cart.carryCapacity && this.state.inboundEnergy > 1200) {
+                cart.idleNear(this.state.container, 5);
+                return;
+            }
+
+            this.state.inboundEnergy += cart.carry.energy;
+        }
+
+        let destination: Creep|StoreStructure = this.state.container;
+        if (!destination && this.builders.length > 0) {
+            destination = this.builders[0].creep;
+        }
+
+        if (!destination) {
+            cart.idleOffRoad();
+            return;
+        }
+
+        let outcome = cart.deliver(destination, RESOURCE_ENERGY);
+        if (outcome === OK) {
+            let dropOff = Agent.normalizeStore(destination);
+            let spaceAvailable = dropOff.storeCapacity - dropOff.store.energy;
+            if (cart.carry.energy < spaceAvailable) {
+                if (cart.ticksToLive < this.memory.distance * 2 + 50) {
+                    cart.suicide();
+                    return;
+                }
+                cart.travelTo(this.state.energySource);
+            }
         }
     }
 
-    private upgraderActions(upgrader: Agent) {
-        let movingToRoom = this.moveToRoom(upgrader, this.target);
-        if (movingToRoom) { return; }
-
-        let cartPartner = this.findPartner(upgrader, this.carts);
-        if (!cartPartner || cartPartner.room !== this.target.room) {
-            let hasLoad = upgrader.hasLoad();
-            if (!hasLoad) {
-                upgrader.procureEnergy();
+    private upgraderActions(upgrader: Agent, order: number) {
+        if (!upgrader.memory.hasLoad && upgrader.room === this.room) {
+            upgrader.travelTo(this.room.storage);
+            let outcome = upgrader.withdraw(this.room.storage, RESOURCE_ENERGY, 100);
+            if (outcome === OK) {
+                upgrader.memory.hasLoad = true;
+            } else {
                 return;
             }
         }
 
-        let callback = (roomName: string, matrix: CostMatrix) => {
-            if (roomName === this.target.pos.roomName) {
-                let clone = matrix.clone();
-                let links = this.target.room.findStructures<StructureLink>(STRUCTURE_LINK);
-                let link = this.target.room.controller.pos.findClosestByRange(links);
-                helper.blockOffPosition(clone, link, 1, 0xff);
-                return clone;
-            }
-        };
-
-        if (upgrader.pos.inRangeTo(upgrader.room.controller, 3)) {
-            upgrader.upgradeController(upgrader.room.controller);
-        } else {
-            upgrader.travelTo(upgrader.room.controller, {range: 3, roomCallback: callback});
+        if (!this.positions || !this.state.target) {
+            upgrader.idleOffRoad();
+            return;
         }
-    }
 
-    private moveToRoom(agent: Agent, flag: Flag): boolean {
-        if (agent.room !== flag.room || agent.pos.isNearExit(1)) {
-            agent.travelTo(flag);
-            return true;
+        let position = this.positions[order];
+        if (!position || !this.state.container) {
+            upgrader.idleNear(this.state.target, 3);
+            return;
+        }
+
+        if (upgrader.isAt(position)) {
+            if (upgrader.carry.energy < 120) {
+                upgrader.withdraw(this.state.container, RESOURCE_ENERGY);
+            }
+
+            if (this.state.container.hits < this.state.container.hitsMax * .8) {
+                upgrader.repair(this.state.container);
+            } else {
+                upgrader.upgradeController(upgrader.room.controller);
+            }
+        } else {
+            let road = upgrader.pos.lookForStructure<StructureRoad>(STRUCTURE_ROAD);
+            if (road && road.hits < road.hitsMax * .6) {
+                upgrader.repair(road);
+            }
+
+            upgrader.moveItOrLoseIt(position, "upgrader", false, {stuckValue: 4});
         }
     }
 }

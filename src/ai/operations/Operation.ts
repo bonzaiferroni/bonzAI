@@ -12,13 +12,13 @@ import {Tick} from "../../Tick";
 import {PowerMission} from "../missions/PowerMission";
 
 export interface OperationState {
-    hasVision: boolean;
-    sources: Source[];
-    mineral: Mineral;
+    hasVision?: boolean;
+    sources?: Source[];
+    mineral?: Mineral;
 }
 
 export interface OperationMemory {
-    spawnData: {
+    spawnData?: {
         spawnRooms: { distance: number, roomName: string }[];
         nextSpawnCheck: number;
     };
@@ -289,7 +289,7 @@ export abstract class Operation {
         delete this.missions[mission.name];
     }
 
-    public initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0) {
+    public initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0, ignoreAvailability = false) {
 
         let flag = Game.flags[`${this.name}_spawn`];
         if (flag) {

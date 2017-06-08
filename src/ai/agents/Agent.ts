@@ -1,7 +1,7 @@
 import {Mission} from "../missions/Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {TravelToOptions, Traveler, TravelData} from "../Traveler";
+import {TravelToOptions, Traveler, TravelData, TravelState, TravelToReturnData} from "../Traveler";
 import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {Notifier} from "../../notifier";
@@ -18,6 +18,22 @@ export class Agent extends AbstractAgent {
     public outcome: number;
     public spawning: boolean;
     public name: string;
+    public travData: TravelToReturnData;
+    /* public memory: {
+        [propName: string]: any;
+        hasLoad?: boolean;
+        idlePosition?: RoomPosition;
+        hostileCount?: number;
+        _flee?: FleeData;
+        _trav?: TravelData;
+        prep?: boolean;
+        remCreepId?: string;
+        batteryId?: string;
+        waypointsCovered?: boolean;
+        waypointIndex?: number;
+        portalCrossing?: boolean;
+    };*/
+    public memory: any;
 
     constructor(creep: Creep, mission: Mission) {
         super(creep);
@@ -189,9 +205,11 @@ export class Agent extends AbstractAgent {
                     swampDirection = relDirection;
                     continue;
                 }
+                delete this.memory._trav;
                 return this.creep.move(relDirection);
             }
             if (swampDirection && allowSwamp) {
+                delete this.memory._trav;
                 return this.creep.move(swampDirection);
             }
         }
@@ -360,8 +378,8 @@ export class Agent extends AbstractAgent {
     }
 
     public resetTravelPath() {
-        if (!this.memory._travel) { return; }
-        delete this.memory._travel.path;
+        if (!this.memory._trav) { return; }
+        delete this.memory._trav.path;
     }
 
     public resetPrep() {
@@ -497,11 +515,11 @@ export class Agent extends AbstractAgent {
      * @param lethal - will suicide the occupying creep
      * @returns {number}
      */
-    public moveItOrLoseIt(position: RoomPosition, name?: string, lethal = true): number {
+    public moveItOrLoseIt(position: RoomPosition, name?: string, lethal = true, options?: TravelToOptions): number {
         if (this.creep.fatigue > 0) { return OK; }
         let range = this.pos.getRangeTo(position);
         if (range === 0) { return OK; }
-        if (range > 1) { return this.travelTo(position) as number; }
+        if (range > 1) { return this.travelTo(position, options); }
 
         // take care of creep that might be in the way
         let occupier = _.head(position.lookFor<Creep>(LOOK_CREEPS));
@@ -742,11 +760,9 @@ export class Agent extends AbstractAgent {
                     this.idleOffRoad();
                 }
             } else {
-                if (this.memory._travel && this.memory._travel.dest) {
-                    let destPos = this.memory._travel.dest;
-                    let dest = new RoomPosition(destPos.x, destPos.y, destPos.roomName);
+                if (this.travData && this.travData.state) {
                     // travel toward wherever you were going last tick
-                    this.idleOffRoad({pos: dest}, true);
+                    this.idleOffRoad({pos: this.travData.state.destination}, true);
                 } else {
                     this.idleOffRoad();
                 }
@@ -779,11 +795,8 @@ export class Agent extends AbstractAgent {
     }
 
     public nextPositionInPath(): RoomPosition {
-        if (this.memory._travel && this.memory._travel.path && this.memory._travel.path.length > 0) {
-            let position = this.pos.getPositionAtDirection(parseInt(this.memory._travel.path[0], 10));
-            if (!position.isNearExit(0)) {
-                return position;
-            }
+        if (this.travData && this.travData.nextPos && !this.travData.nextPos.isNearExit(0)) {
+            return this.travData.nextPos;
         }
     }
 
@@ -802,8 +815,10 @@ export class Agent extends AbstractAgent {
         let find = () => {
             let battery: StoreStructure|Creep = _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
                 .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
-                .filter(x => x.store.energy >= minEnergy).min(x => x.pos.getRangeTo(this));
-            if (!battery || !(battery instanceof Object)) {
+                .filter(x => x.store.energy >= minEnergy)
+                .filter(x => !this.room.controller || !x.pos.inRangeTo(this.room.controller, 3))
+                .min(x => x.pos.getRangeTo(this));
+            if (!_.isObject(battery)) {
                 battery = _(this.room.find<Creep>(FIND_MY_CREEPS))
                     .filter(x => x.memory.donatesEnergy && x.carry.energy >= 50)
                     .filter(x => x.memory.donating === undefined || Game.time > x.memory.donating)
@@ -929,7 +944,7 @@ export class Agent extends AbstractAgent {
     }
 
     public isStuck() {
-        return this.memory._travel && this.memory._travel.stuck >= 2;
+        return this.travData && this.travData.state && this.travData.state.stuckCount >= 2;
     }
 
     public pushyTravelTo(destination: {pos: RoomPosition}, exclusion?: string, options: TravelToOptions = {}) {
@@ -1198,6 +1213,10 @@ export class Agent extends AbstractAgent {
             Viz.colorPos(fleebusterPos, "yellow");
             return direction;
         }
+    }
+
+    public isAt(position: RoomPosition): boolean {
+        return this.pos.x === position.x && this.pos.y === position.y && this.pos.roomName === position.roomName;
     }
 }
 

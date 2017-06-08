@@ -114,7 +114,7 @@ export class MiningMission extends Mission {
         this.miners = this.headCount(this.name, this.getMinerBody, this.getMaxMiners,
             {prespawn: prespawn});
 
-        let memory = { scavanger: RESOURCE_ENERGY };
+        let memory = { scavenger: RESOURCE_ENERGY };
         this.minerCarts = this.headCount(this.name + "cart", this.getCartBody, this.getMaxCarts,
             {prespawn: this.analysis.distance, memory: memory});
     }

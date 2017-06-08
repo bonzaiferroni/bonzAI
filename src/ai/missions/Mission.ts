@@ -12,21 +12,22 @@ import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 
 export interface MissionState {
-    hasVision: boolean;
-    sources: Source[];
-    spawnedThisTick: string[];
-    mineral: Mineral;
+    hasVision?: boolean;
+    sources?: Source[];
+    spawnedThisTick?: string[];
+    mineral?: Mineral;
 }
 
 export interface MissionMemory {
-    hc: {[roleName: string]: string[]};
-    activateBoost: boolean;
-    max: number;
-    distanceToSpawn: number;
-    transportAnalysis: TransportAnalysis;
-    storageId: string;
-    nextStorageCheck: number;
-    prespawn: number;
+    [propName: string]: any;
+    hc?: {[roleName: string]: string[]};
+    activateBoost?: boolean;
+    max?: number;
+    distanceToSpawn?: number;
+    transportAnalysis?: TransportAnalysis;
+    storageId?: string;
+    nextStorageCheck?: number;
+    prespawn?: number;
 }
 
 export abstract class Mission {
@@ -56,7 +57,6 @@ export abstract class Mission {
         this.lastUpdated = Game.time;
         this.flag = this.operation.flag;
         this.room = Game.rooms[this.operation.roomName];
-        this.spawnGroup = this.operation.spawnGroup;
 
         // initialize memory to be used by this mission
         if (!this.operation.memory[this.name]) { this.operation.memory[this.name] = {}; }
@@ -266,15 +266,11 @@ export abstract class Mission {
             }
         }
 
-        let spawnGroup = this.spawnGroup;
-        if (options.altSpawnGroup) {
-            spawnGroup = options.altSpawnGroup;
-        }
-
-        let allowSpawn = spawnGroup.isAvailable && this.allowSpawn && (this.state.hasVision || options.blindSpawn);
+        let allowSpawn = this.spawnGroup.isAvailable && this.allowSpawn && (this.state.hasVision || options.blindSpawn);
         if (allowSpawn && count < getMax()) {
             let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
-            let outcome = spawnGroup.spawn(getBody(), creepName, options.memory, options.reservation);
+            let body = getBody();
+            let outcome = this.spawnGroup.spawn(body, creepName, options.memory, options.reservation);
             if (_.isString(outcome)) {
                 this.cache.spawnedThisTick.push(roleName);
                 creepNames.push(creepName);
@@ -292,6 +288,13 @@ export abstract class Mission {
         if (!this.memory.hc || !this.memory.hc[roleName]) { return 0; }
         if (!filter) { return this.memory.hc[roleName].length; }
         return _.filter(this.memory.hc[roleName] as string[], x => filter(Game.creeps[x])).length;
+    }
+
+    protected swapRole(agent: Agent, fromRole: string, toRole: string) {
+        console.log(`MISSION: ${agent.name} changed from ${fromRole} to ${toRole}`);
+        _.pull(this.memory.hc[fromRole], agent.name);
+        if (!this.memory.hc[toRole]) { this.memory.hc[toRole] = []; }
+        this.memory.hc[toRole].push(agent.name);
     }
 
     protected spawnSharedAgent(roleName: string, getBody: () => string[]): Agent {
@@ -528,19 +531,21 @@ export abstract class Mission {
     private prepAgent(agent: Agent, options: HeadCountOptions) {
         if (agent.memory.prep) { return true; }
 
+
         if (options.disableNotify) {
             this.disableNotify(agent);
         }
 
         // accomodate legacy code
-        if (options.allowUnboosted !== undefined) {
-            agent.memory.allowUnboosted = options.allowUnboosted;
-        }
-        if (options.boosts !== undefined) {
-            agent.memory.boosts = options.boosts;
+        if (options.boosts === undefined) {
+            options.boosts = agent.memory.boosts;
         }
 
-        let boosted = agent.seekBoost(agent.memory.boosts, agent.memory.allowUnboosted);
+        if (options.allowUnboosted === undefined) {
+            options.allowUnboosted = agent.memory.allowUnboosted;
+        }
+
+        let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
         if (!boosted) { return false; }
         if (agent.creep.spawning) { return false; }
         if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
@@ -636,7 +641,7 @@ export abstract class Mission {
         }
     }
 
-    private findHurtCreep(defender: Agent) {
+    protected findHurtCreep(defender: Agent) {
         if (!this.room) { return; }
 
         if (defender.memory.healId) {
@@ -658,6 +663,10 @@ export abstract class Mission {
                 return hurtCreep;
             }
         }
+    }
+
+    protected standardCartBody = () => {
+        return this.bodyRatio(0, 2, 1);
     }
 }
 

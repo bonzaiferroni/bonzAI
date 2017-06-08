@@ -31,7 +31,7 @@ export class OperationFactory {
         layout: LayoutOperation,
         guard: GuardOperation,
         swap: SwapOperation,
-        upg: RemoteUpgradeOperation,
+        rupg: RemoteUpgradeOperation,
     };
 
     private static scannedFlags: {[flagName: string]: boolean } = {};

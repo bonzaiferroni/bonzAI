@@ -39,7 +39,7 @@ interface Memory {
 
 interface Room {
     basicMatrix: CostMatrix;
-    findStructures<T>(structureType: string): T[];
+    findStructures<T extends Structure>(structureType: string): T[];
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
     fleeObjects: (Creep|Structure)[];
@@ -76,6 +76,8 @@ interface RoomMemory {
     finder: LayoutFinderData;
     observation: Observation;
 }
+
+type StoreStructure = StructureTerminal|StructureContainer|StructureStorage;
 
 interface LayoutFinderData {
     sourcePositions: RoomPosition[];
@@ -123,13 +125,14 @@ interface RoomPosition {
     getPositionAtDirection(direction: number, range?: number): RoomPosition;
     isPassible(ignoreCreeps?: boolean): boolean;
     lookForStructure(structureType: string): Structure;
+    lookForStructure<T extends Structure>(structureType: string): T;
     isNearExit(range: number): boolean;
     getRangeToClosest(positions: {pos: RoomPosition}[] | RoomPosition[]): number;
     terrainCost(): number;
 }
 
 interface RoomObject {
-    findMemoStructure<T>(structureType: string, range: number, immediate?: boolean): T;
+    findMemoStructure<T extends Structure>(structureType: string, range: number, immediate?: boolean): T;
 }
 
 interface Creep {

@@ -66,7 +66,6 @@ export interface HeadCountOptions {
     skipMoveToRoom?: boolean;
     boosts?: string[];
     allowUnboosted?: boolean;
-    altSpawnGroup?: SpawnGroup;
 }
 
 export interface SpawnReservation {

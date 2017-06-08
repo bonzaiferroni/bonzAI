@@ -22,6 +22,7 @@ export class PathMission extends Mission {
     private ignoreConstructionLimit: boolean;
     private paver: Agent;
     public memory: PathMemory;
+    private repairLevel: number;
 
     constructor(operation: Operation, name: string) {
         super(operation, name);
@@ -30,7 +31,7 @@ export class PathMission extends Mission {
     public init() {
     }
 
-    public updatePath(startPos: RoomPosition, endPos: RoomPosition, rangeToEnd: number) {
+    public updatePath(startPos: RoomPosition, endPos: RoomPosition, rangeToEnd: number, repairLevel = .2) {
         this.startPos = startPos;
         this.endPos = endPos;
         this.rangeToEnd = rangeToEnd;
@@ -191,7 +192,7 @@ export class PathMission extends Mission {
                 hitsToRepair += road.hitsMax - road.hits;
                 // TODO: calculate how much "a whole lot" should be based on paver repair rate
                 const A_WHOLE_LOT = 1000000;
-                if (!this.memory.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * .20)) {
+                if (!this.memory.roadRepairIds && (hitsToRepair > A_WHOLE_LOT || road.hits < road.hitsMax * this.repairLevel)) {
                     console.log(`PAVER: I'm being summoned in ${this.operation.name}`);
                     this.memory.roadRepairIds = repairIds;
                 }

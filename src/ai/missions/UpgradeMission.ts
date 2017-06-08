@@ -70,6 +70,7 @@ export class UpgradeMission extends Mission {
             this.saverMode = true;
             if (this.room.controller.ticksToDowngrade > 100000) {
                 this.operation.removeMission(this);
+                return;
             }
         } else {
 
@@ -90,6 +91,8 @@ export class UpgradeMission extends Mission {
     }
 
     private linkUpgraderBody = () => {
+        if (this.saverMode) { return this.workerBody(1, 1, 1); }
+
         if (this.memory.max !== undefined) {
             return this.workerBody(30, 4, 15);
         }
@@ -211,7 +214,18 @@ export class UpgradeMission extends Mission {
     }
 
     private findControllerBattery() {
-        let battery = this.getBattery();
+        if (!this.memory.batteryPosition) {
+            let spawn = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            if (!spawn) { return; }
+            this.memory.batteryPosition = this.findBatteryPosition(spawn);
+            if (!this.memory.batteryPosition) { return; }
+        }
+
+        let position = helper.deserializeRoomPosition(this.memory.batteryPosition);
+
+        let battery = _(position.lookFor<Structure>(LOOK_STRUCTURES)
+            .filter(x => x instanceof StructureContainer || x instanceof StructureLink))
+            .head();
 
         if (battery instanceof StructureContainer && this.room.controller.level >= 5) {
             battery.destroy();
@@ -225,17 +239,11 @@ export class UpgradeMission extends Mission {
 
         if (!battery) {
             if (this.room.hostiles.length > 0) { return; }
-            let spawn = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
-            if (!spawn) { return; }
-            if (!this.memory.batteryPosition) {
-                this.memory.batteryPosition = this.findBatteryPosition(spawn);
-                if (!this.memory.batteryPosition) { return; }
-            }
             let structureType = STRUCTURE_LINK;
             if (this.room.controller.level < 5) {
                 structureType = STRUCTURE_CONTAINER;
             }
-            let position = helper.deserializeRoomPosition(this.memory.batteryPosition);
+
             if (position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0) { return; }
             let outcome = position.createConstructionSite(structureType);
             console.log(`UPGRADE: placing battery in ${this.operation.name}, outcome: ${outcome}, ${position}`);
@@ -245,6 +253,20 @@ export class UpgradeMission extends Mission {
     }
 
     private findBatteryPosition(spawn: StructureSpawn): RoomPosition {
+
+        let controllerPos = this.room.controller.pos;
+        let currentBattery = controllerPos.findInRange(this.room.findStructures<Structure>(STRUCTURE_LINK), 3)[0];
+        if (currentBattery) {
+            return currentBattery.pos;
+        }
+
+        currentBattery = _(controllerPos.findInRange(this.room.findStructures<Structure>(STRUCTURE_CONTAINER), 3))
+            .filter(x => !x.pos.lookFor(LOOK_FLAGS)[0])
+            .head();
+        if (currentBattery) {
+            return currentBattery.pos;
+        }
+
         let ret = Traveler.findTravelPath(spawn.pos, this.room.controller.pos);
         let positionsInRange = this.room.controller.pos.findInRange(ret.path, 3);
         positionsInRange = _.sortBy(positionsInRange, (pos: RoomPosition) => pos.getRangeTo(spawn.pos));
@@ -273,6 +295,11 @@ export class UpgradeMission extends Mission {
 
     private batterySupplyCartActions(cart: Agent) {
         let controllerBattery = this.state.battery as StructureContainer;
+        if (!controllerBattery) {
+            cart.idleOffRoad();
+            return;
+        }
+
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
             cart.procureEnergy(controllerBattery);

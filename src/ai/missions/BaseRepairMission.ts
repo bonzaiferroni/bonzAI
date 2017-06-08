@@ -82,11 +82,11 @@ export class BaseRepairMission extends Mission {
     private findRoads() {
         if (Scheduler.delay(this.memory, "findRoads", 1000)) { return; }
 
-        let roads: StructureRoad[];
-        if (this.operation.name === "port0") {
-            roads = _(this.room.findStructures<StructureRoad>(STRUCTURE_ROAD)).filter(x => x.hits < x.hitsMax * .8).value();
-        } else {
-            roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
+        let roads = _(this.layout.findStructures<StructureRoad>(STRUCTURE_ROAD))
+            .filter(x => x.hits < x.hitsMax * .8)
+            .value();
+        if (this.operation.name === "front1") {
+            roads = _(this.room.findStructures<StructureRoad>(STRUCTURE_ROAD))
                 .filter(x => x.hits < x.hitsMax * .8)
                 .value();
         }
@@ -103,6 +103,14 @@ export class BaseRepairMission extends Mission {
     }
 
     private getNextRepair(): Structure {
+        let flag = Game.flags[`${this.operation.name}_repair`];
+        if (flag) {
+            let structure = _(flag.pos.lookFor<Structure>(LOOK_STRUCTURES)).filter(x => x.hits < x.hitsMax).head();
+            if (structure) {
+                return structure;
+            }
+        }
+
         if (this.memory.roadIds.length > 0) {
             for (let id of this.memory.roadIds) {
                 let structure = Game.getObjectById<Structure>(id);

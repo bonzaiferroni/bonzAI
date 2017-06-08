@@ -1,8 +1,14 @@
 import {Operation} from "./Operation";
-import {RemoteUpgradeMission} from "../missions/RemoteUpgradeMission";
+import {VeryRemoteUpgradeMission} from "../missions/VeryRemoteUpgradeMission";
 import {OperationPriority} from "../../config/constants";
 import {empire} from "../Empire";
+import {RemoteUpgradeMission} from "../missions/RemoteUpgradeMission";
+
 export class RemoteUpgradeOperation extends Operation {
+
+    public memory: {
+        very: boolean;
+    };
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
@@ -11,7 +17,11 @@ export class RemoteUpgradeOperation extends Operation {
 
     protected init() {
         this.spawnGroup = empire.getSpawnGroup(this.roomName);
-        this.addMission(new RemoteUpgradeMission(this));
+        if (this.memory.very) {
+            this.addMission(new VeryRemoteUpgradeMission(this));
+        } else {
+            this.addMission(new RemoteUpgradeMission(this));
+        }
     }
 
     protected update() {

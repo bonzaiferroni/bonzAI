@@ -392,7 +392,15 @@ export var consoleCommands = {
     },
 
     test() {
-        Traveler.patchMemory();
+        let count = 0;
+        for (let roomName in empire.spawnGroups) {
+            let room = Game.rooms[roomName];
+            let sites = room.controller.pos.findInRange<ConstructionSite>(FIND_CONSTRUCTION_SITES, 3);
+            for (let site of sites) {
+                count++;
+                site.remove();
+            }
+        }
     },
 
     resetPathCPU() {

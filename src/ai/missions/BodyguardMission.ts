@@ -36,6 +36,11 @@ export class BodyguardMission extends Mission {
             this.potency = this.findPotency();
         }
 
+        if (this.potency === 0 && this.operation.remoteSpawn) {
+            this.spawnGroup = this.operation.remoteSpawn.spawnGroup;
+            this.potency = this.findPotency();
+        }
+
         return this.configBody({
             tough: this.potency,
             move: this.potency * 6,

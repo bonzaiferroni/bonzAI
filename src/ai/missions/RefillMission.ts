@@ -57,7 +57,7 @@ export class RefillMission extends Mission {
             return this.bodyRatio(0, 2, 1, 1, 16);
         };
 
-        let memory = { scavanger: RESOURCE_ENERGY };
+        let memory = { scavenger: RESOURCE_ENERGY };
         this.carts = this.headCount("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
         this.memory.cartsLastTick = this.carts.length;
     }

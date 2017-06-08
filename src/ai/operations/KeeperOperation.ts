@@ -35,12 +35,12 @@ export class KeeperOperation extends Operation {
         }
 
         this.addMission(new ScoutMission(this));
+        if (!this.state.hasVision) { return; } // early
+
         this.invaderGuru = new InvaderGuru(this);
         this.invaderGuru.init();
         this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
         this.addMission(new LairMission(this, this.invaderGuru));
-
-        if (!this.state.hasVision) { return; } // early
 
         MiningMission.Add(this, false);
 

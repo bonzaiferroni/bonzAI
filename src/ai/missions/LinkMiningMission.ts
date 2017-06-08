@@ -76,7 +76,7 @@ export class LinkMiningMission extends Mission {
         }
 
         miner.memory.donatesEnergy = true;
-        miner.memory.scavanger = RESOURCE_ENERGY;
+        miner.memory.scavenger = RESOURCE_ENERGY;
         miner.harvest(this.source);
         if (miner.carry.energy === miner.carryCapacity) {
             miner.transfer(this.link, RESOURCE_ENERGY);

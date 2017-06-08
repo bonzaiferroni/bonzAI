@@ -318,7 +318,7 @@ export class MasonMission extends Mission {
             if (!agent.pos.lookForStructure(STRUCTURE_RAMPART)) {
                 agent.fleeHostiles(4);
             }
-            // agent.idleOffRoad();
+            agent.idleOffRoad();
             return;
         }
 
