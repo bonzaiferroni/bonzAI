@@ -44,14 +44,16 @@ export class RemoteUpgradeMission extends Mission {
             return;
         }
 
+        // figure out the distance for prespawn purposes
         if (!this.memory.distance) {
             this.memory.distance = Traveler.findTravelPath(this.room.storage, this.state.target, {
                 offRoad: true,
             }).path.length;
         }
 
-        this.state.energySource = this.room.terminal;
-        if (this.state.target.room.terminal) {
+        // use the storage in spawning room or in local room
+        this.state.energySource = this.room.storage;
+        if (this.state.target.room.storage && this.state.target.room.storage.store.energy >= 100000) {
             this.state.energySource = this.state.target.room.storage;
         }
         this.state.container = this.state.target.pos.lookForStructure<StructureContainer>(STRUCTURE_CONTAINER);

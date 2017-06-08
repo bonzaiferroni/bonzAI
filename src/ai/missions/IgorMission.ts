@@ -42,6 +42,10 @@ export class IgorMission extends Mission {
         if (!this.memory.boostOrders) { this.memory.boostOrders = {}; }
         if (!this.room.memory.boostRequests) { this.room.memory.boostRequests = {}; }
         this.findIgorIdlePosition();
+
+        if (this.spawnGroup.maxSpawnEnergy < 1500) {
+            this.operation.removeMission(this);
+        }
     }
 
     public update() {

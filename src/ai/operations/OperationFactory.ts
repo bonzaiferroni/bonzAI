@@ -97,8 +97,8 @@ export class OperationFactory {
     }
 
     private static addSubmodules() {
-        for (let opName in submodules) {
-            this.classes[opName] = submodules[opName];
+        for (let opType in submodules) {
+            this.classes[opType] = submodules[opType];
         }
     }
 }
