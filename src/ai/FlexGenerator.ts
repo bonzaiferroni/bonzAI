@@ -256,7 +256,6 @@ export class FlexGenerator {
             }
         }
 
-
         for (let rampartPos of validWallPositions) {
             this.addRampart(rampartPos);
             for (let insidePos of this.insidePositions) {
