@@ -114,7 +114,9 @@ export class RemoteUpgradeMission extends Mission {
     };
 
     protected getMaxUpgraders = () => {
-        if (!this.positions) { return 0; }
+        let hostilesPresent = this.state.target && this.state.target.room && this.state.target.room.hostiles.length > 0;
+        let leveledUp = this.state.target && this.state.target.room && this.state.target.room.controller.level === 8;
+        if (!this.positions || hostilesPresent || leveledUp) { return 0; }
         return this.positions.length;
     };
 
@@ -229,11 +231,11 @@ export class RemoteUpgradeMission extends Mission {
                     if (roomName !== this.state.target.pos.roomName) { return; }
                     let link = cart.room.controller.pos.findInRange(
                         cart.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
-                        if (link) {
-                            matrix = matrix.clone();
-                            helper.blockOffPosition(matrix, link, 2);
-                            return matrix;
-                        }
+                    if (link) {
+                        matrix = matrix.clone();
+                        helper.blockOffPosition(matrix, link, 2);
+                        return matrix;
+                    }
                 }});
                 return;
             }

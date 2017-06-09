@@ -219,7 +219,11 @@ export class BuilderMission extends Mission {
             supplyPotency = this.room.find(FIND_SOURCES).length * 2;
         }
 
-        return Math.min(supplyPotency, progressPotency);
+        if (this.room.controller.level === 8) {
+            return Math.min(supplyPotency, progressPotency);
+        } else {
+            return supplyPotency;
+        }
     }
 
     private builderCartActions(cart: Agent) {
