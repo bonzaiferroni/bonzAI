@@ -47,8 +47,11 @@ export class BuilderMission extends Mission {
             let remoteGroup = this.operation.remoteSpawn.spawnGroup;
             if (remoteGroup && remoteGroup.room.controller.level >= this.room.controller.level) {
                 this.spawnGroup = remoteGroup;
-                this.boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID];
             }
+        }
+
+        if (this.room && this.room.controller.level < 8) {
+            this.boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID];
         }
     }
 
@@ -195,7 +198,11 @@ export class BuilderMission extends Mission {
     private findBuilderPotency() {
         let progress = 0;
         for (let site of this.sites) {
-            progress += site.progressTotal - site.progress;
+            if (site.structureType === STRUCTURE_RAMPART) {
+                progress += 1000;
+            } else {
+                progress += site.progressTotal - site.progress;
+            }
         }
 
         let desiredCompletionTime = progress / 500;
@@ -211,6 +218,7 @@ export class BuilderMission extends Mission {
         } else {
             supplyPotency = this.room.find(FIND_SOURCES).length * 2;
         }
+
         return Math.min(supplyPotency, progressPotency);
     }
 

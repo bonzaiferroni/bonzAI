@@ -631,8 +631,8 @@ export class Traveler {
     }
 }
 
-type Coord = {x: number, y: number};
-type HasPos = {pos: RoomPosition}
+export type Coord = {x: number, y: number};
+export type HasPos = {pos: RoomPosition}
 
 export interface TravelData {
     state: any[];

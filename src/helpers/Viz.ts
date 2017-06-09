@@ -19,7 +19,7 @@ export class Viz {
         new RoomVisual(pos.roomName).text(text, pos.x, pos.y + .1, {color: color, font: font});
     }
 
-    public static animatedPos(pos: RoomPosition, color: string, opacity = .5, radius = .5, frames = 6) {
+    public static animatedPos(pos: RoomPosition, color = "cyan", opacity = .5, radius = .5, frames = 6) {
         frames = Math.max(frames, 1);
 
         let angle = (Game.time % frames * 90 / frames) * (Math.PI / 180);

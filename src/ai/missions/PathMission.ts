@@ -143,14 +143,12 @@ export class PathMission extends Mission {
                 // avoid container/link adjacency
                 let sources = room.find<Source>(FIND_SOURCES);
                 for (let source of sources) {
-                    let structure = source.findMemoStructure<Structure>(STRUCTURE_CONTAINER, 1);
-                    if (!structure) {
-                        structure = source.findMemoStructure<Structure>(STRUCTURE_LINK, 1);
-                    }
+                    helper.blockOffPosition(matrix, source, 2, AVOID_COST);
+                }
 
-                    if (structure) {
-                        helper.blockOffPosition(matrix, structure, 1, AVOID_COST);
-                    }
+                let mineral = room.find<Mineral>(FIND_MINERALS)[0];
+                if (mineral) {
+                    helper.blockOffPosition(matrix, mineral, 2, AVOID_COST);
                 }
 
                 // add construction sites too

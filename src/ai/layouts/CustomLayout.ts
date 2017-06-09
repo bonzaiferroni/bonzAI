@@ -3,12 +3,14 @@ import {BuildingPlannerData} from "../../interfaces";
 import {empire} from "../Empire";
 
 export class CustomLayout extends Layout {
-    public uploadFlex(data: BuildingPlannerData) {
+    public upload(json: string, exclude: string[]) {
+        let data: BuildingPlannerData = JSON.parse(json);
         if (!data) { return; }
 
         let count = 0;
         let flexMap: PositionMap = {};
         for (let structureType of this.findStructureTypes()) {
+            if (_.includes(exclude, structureType)) { continue; }
             let structPositions = [];
             let map = data.buildings[structureType];
             if (!map) {

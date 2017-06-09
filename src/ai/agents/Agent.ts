@@ -1,7 +1,7 @@
 import {Mission} from "../missions/Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {TravelToOptions, Traveler, TravelData, TravelState, TravelToReturnData} from "../Traveler";
+import {TravelToOptions, Traveler, TravelData, TravelState, TravelToReturnData, HasPos} from "../Traveler";
 import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {Notifier} from "../../notifier";
@@ -1217,6 +1217,12 @@ export class Agent extends AbstractAgent {
 
     public isAt(position: RoomPosition): boolean {
         return this.pos.x === position.x && this.pos.y === position.y && this.pos.roomName === position.roomName;
+    }
+
+    public moveToward(myExit: RoomPosition|HasPos): number {
+        let pos = Traveler.normalizePos(myExit);
+        let direction = this.pos.getDirectionTo(pos);
+        return this.move(direction);
     }
 }
 
