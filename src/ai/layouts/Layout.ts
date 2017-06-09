@@ -219,6 +219,16 @@ export abstract class Layout {
         this.data.flex = true;
         return false;
     }
+
+    public static serializePositionMap(flexMap: PositionMap) {
+        let serializedMap = {};
+        for (let structureType in flexMap) {
+            let positions = flexMap[structureType];
+            if (!positions) { continue; }
+            serializedMap[structureType] = MemHelper.serializeIntPositions(positions);
+        }
+        return serializedMap;
+    }
 }
 
 export type Vector2 = {x: number, y: number}

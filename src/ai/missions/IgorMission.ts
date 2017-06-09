@@ -32,6 +32,7 @@ export class IgorMission extends Mission {
     private terminal: StructureTerminal;
     private storage: StructureStorage;
     private powerSpawn: PowerSpawn;
+    private igorPosition: RoomPosition;
     public memory: IgorMemory;
 
     constructor(operation: Operation) {
@@ -41,7 +42,7 @@ export class IgorMission extends Mission {
     public init() {
         if (!this.memory.boostOrders) { this.memory.boostOrders = {}; }
         if (!this.room.memory.boostRequests) { this.room.memory.boostRequests = {}; }
-        this.findIgorIdlePosition();
+        this.igorPosition = this.findIgorIdlePosition();
     }
 
     public update() {
@@ -129,8 +130,8 @@ export class IgorMission extends Mission {
                 }
                 return;
             }
-            if (this.memory.idlePosition) {
-                igor.moveItOrLoseIt(helper.deserializeRoomPosition(this.memory.idlePosition));
+            if (this.igorPosition) {
+                igor.moveItOrLoseIt(this.igorPosition);
             } else {
                 igor.idleOffRoad(this.room.controller);
             }
@@ -152,9 +153,12 @@ export class IgorMission extends Mission {
                     igor.travelTo(destination);
                 }
                 if (outcome !== OK) {
-                    console.log(`IGOR: bad command: ${outcome}, clearing order`);
+                    console.log(`IGOR: bad command: ${outcome}, clearing order ${this.roomName}, ${
+                        command.resourceType}, ${origin.pos} => ${destination.pos}`);
                     this.memory.command = undefined;
                 }
+            } else if (origin === this.room.storage && this.igorPosition) {
+                igor.travelTo(this.igorPosition);
             } else {
                 igor.travelTo(origin);
             }
@@ -167,6 +171,8 @@ export class IgorMission extends Mission {
             if (outcome === OK && command.reduceLoad && this.labProcess) {
                 this.labProcess.reagentLoads[command.resourceType] -= command.amount; }
             this.memory.command = undefined;
+        } else if (destination === this.room.storage && this.igorPosition) {
+            igor.travelTo(this.igorPosition);
         } else {
             igor.travelTo(destination);
         }
@@ -185,16 +191,16 @@ export class IgorMission extends Mission {
         command = this.checkBoostOrders();
         if (command) { return command; }
 
+        // take energy out of terminal
+        if (energyInTerminal > 30000 + IGOR_CAPACITY) {
+            return {origin: terminal.id, destination: storage.id, resourceType: RESOURCE_ENERGY};
+        }
+
         command = this.checkReagentLabs();
         if (command) { return command; }
 
         command = this.checkProductLabs();
         if (command) { return command; }
-
-        // take energy out of terminal
-        if (energyInTerminal > 30000 + IGOR_CAPACITY) {
-            return {origin: terminal.id, destination: storage.id, resourceType: RESOURCE_ENERGY};
-        }
 
         // load terminal
         if (energyInStorage > 50000 && energyInTerminal < 30000) {
@@ -606,6 +612,7 @@ export class IgorMission extends Mission {
                 console.log(`IGOR: terminal placement unoptimal (${this.operation.name})`);
             }
         }
+        return helper.deserializeRoomPosition(this.memory.idlePosition);
     }
 
     private optimalIgorPos(): RoomPosition {

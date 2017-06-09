@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Traveler, TravelToReturnData} from "../Traveler";
 import {PathMission} from "./PathMission";
+import {helper} from "../../helpers/helper";
 
 interface RemoteUpgradeState extends MissionState {
     inboundEnergy: number;
@@ -224,7 +225,16 @@ export class RemoteUpgradeMission extends Mission {
 
             let range = cart.pos.getRangeTo(this.state.container);
             if (range > 6) {
-                cart.travelTo(this.state.container);
+                cart.travelTo(this.state.container, { roomCallback: (roomName, matrix) => {
+                    if (roomName !== this.state.target.pos.roomName) { return; }
+                    let link = cart.room.controller.pos.findInRange(
+                        cart.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
+                        if (link) {
+                            matrix = matrix.clone();
+                            helper.blockOffPosition(matrix, link, 2);
+                            return matrix;
+                        }
+                }});
                 return;
             }
 

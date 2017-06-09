@@ -34,15 +34,10 @@ export class FlexLayout extends Layout {
         }
 
         let fixedStructures = this.findFixedMap();
-        let map = new FlexGenerator(this.roomName, this.anchor, fixedStructures);
-        let flexMap = map.generate();
+        let generator = new FlexGenerator(this.roomName, this.anchor, fixedStructures);
+        let flexMap = generator.generate();
         LayoutDisplay.showMap(flexMap);
-        let serializedMap = {};
-        for (let structureType in flexMap) {
-            let positions = flexMap[structureType];
-            if (!positions) { continue; }
-            serializedMap[structureType] = MemHelper.serializeIntPositions(positions);
-        }
+        let serializedMap = Layout.serializePositionMap(flexMap);
         empire.archiver.set(LAYOUT_SEGMENTID, this.roomName, serializedMap);
         this.data.flex = true;
         console.log(`generated and saved flex layout in ${this.roomName}`);

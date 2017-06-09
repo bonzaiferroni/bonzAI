@@ -53,6 +53,13 @@ export class GeologyMission extends Mission {
             this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
         }
 
+        let dormant = this.state.mineral.ticksToRegeneration > 20000 && this.roleCount("geologyCart") === 0;
+        if (this.spawnGroup.maxSpawnEnergy < 5000 || dormant) {
+            console.log(`GEO: checking out in ${this.roomName}`);
+            this.operation.removeMission(this);
+            return;
+        }
+
         // init path
         this.pathMission = new PathMission(this.operation, this.name + "Path");
         this.operation.addMissionLate(this.pathMission);
@@ -345,7 +352,6 @@ export class GeologyMission extends Mission {
 
         let hasLoad = repairer.hasLoad();
         if (!hasLoad) {
-            if (this.name === "oslo4_repairer_48") { console.log("ey!")}
             repairer.procureEnergy(this.state.container);
             return;
         }
@@ -373,7 +379,7 @@ export class GeologyMission extends Mission {
         if (!this.state.store) { return; }
         let endPos = this.state.mineral.pos;
         if (this.state.container) { endPos = this.state.container.pos; }
-        this.pathMission.updatePath(this.state.store.pos, endPos, 2);
+        this.pathMission.updatePath(this.state.store.pos, endPos, 1, .4);
         let distance = this.pathMission.getdistance();
         if (distance) {
             this.memory.distanceToStorage = distance;
