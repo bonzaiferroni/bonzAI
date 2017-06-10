@@ -12,64 +12,16 @@ import {Viz} from "./helpers/Viz";
 export var sandBox = {
     run: function() {
 
-        let pos = Game.spawns["Spawn1"].pos;
-        Viz.animatedPos(pos, "aqua", .5, 1, 10);
-
-        let travFlag = Game.flags["travFlag"];
-        if (travFlag) {
-
-
-            let newTravelerCreep = Game.creeps["newTraveler"];
-            if (!newTravelerCreep) {
-                empire.spawnFromClosest(travFlag.pos, [MOVE], "newTraveler");
-            }
-            let oldTravelerCreep = Game.creeps["oldTraveler"];
-            if (!oldTravelerCreep) {
-                empire.spawnFromClosest(travFlag.pos, [MOVE], "oldTraveler");
-            }
-
-            let newTravelerTest = () => {
-                Profiler.start("test.newTrav", true);
-                newTravelerCreep.travelTo(travFlag, {range: 1, preferHighway: true});
-                Profiler.end("test.newTrav");
-            };
-
-            let oldTravelerTest = () => {
-                Profiler.start("test.oldTrav", true);
-                // oldTraveler.travelTo(oldTravelerCreep, travFlag, {range: 1, preferHighway: true});
-                Profiler.end("test.oldTrav");
-            };
-
-            let tests = [newTravelerTest, oldTravelerTest];
-            if (Math.random() > .5) {
-                // eliminate order effects
-                tests = [oldTravelerTest, newTravelerTest];
-            }
-
-            if (newTravelerCreep && oldTravelerCreep) {
-                for (let test of tests) {
-                    test();
-                }
-            }
-        }
-
-        let destination = Game.flags["obstacleFlag"];
-        if (destination) {
-            let creep = Game.creeps["obstacle"];
+        let claimerFlag = Game.flags["claimerFlag"];
+        if (claimerFlag) {
+            let creep = Game.creeps["claimer"];
             if (creep) {
                 let data = {} as TravelToReturnData;
-                creep.travelTo(destination, {returnData: data});
+                creep.travelTo(claimerFlag, {returnData: data});
                 if (data.path) { creep.say(`${data.path.length} more!`); }
+                creep.claimController(creep.room.controller);
             } else {
-                empire.spawnFromClosest(destination.pos, [MOVE], "obstacle");
-            }
-
-            let destFlag = Game.flags["destFlag"];
-            if (destFlag && Game.time % 5 === 0) {
-                let cpu = Game.cpu.getUsed();
-                let route = Traveler.findRoute(destination.pos.roomName, destFlag.pos.roomName, {highwayBias: 2.5});
-                console.log(JSON.stringify(route));
-                console.log(Game.cpu.getUsed() - cpu);
+                empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE], "claimer");
             }
         }
 

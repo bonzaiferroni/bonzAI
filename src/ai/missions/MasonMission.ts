@@ -53,30 +53,20 @@ export class MasonMission extends Mission {
     }
 
     public maxMasons = () => {
-        if (this.roomName === "E2S12") { return 1; }
+        if (this.room.memory.layout.turtle) { return 4; }
         return 0;
     };
 
     public getMasonBody = () => {
-        if (this.defenseGuru.hostiles.length) {
-            return this.workerBody(24, 14, 12);
-        }
-        return this.workerBody(12, 8, 10); // temporarily lower, previous numbers 16, 8, 12
+        return this.bodyRatio(8, 8, 4, 1, 2);
     };
 
     public maxCarts = () => {
-        if (this.roomName === "E2S12") { return 1; }
-        if (this.needMason && this.defenseGuru.hostiles.length > 0) {
-            return 1;
-        }
+        return this.roleCount("mason") / 4;
     };
 
     public getCartBody = () => {
-        if (this.state.nukeRamparts.length > 0) {
-            return this.bodyRatio(0, 4, 2);
-        } else {
-            return this.workerBody(0, 4, 2);
-        }
+        return this.bodyRatio(0, 2, 1, 1, 16);
     };
 
     public getHazmatCartBody = () => {
@@ -111,17 +101,16 @@ export class MasonMission extends Mission {
     public roleCall() {
         this.masons = this.headCount("mason", this.getMasonBody, this.maxMasons, {
             prespawn: 1,
-            memory: { boosts: this.masonBoost() },
+            boosts: this.masonBoost(),
+            allowUnboosted: true,
         });
         this.carts = this.headCount("masonCart", this.getCartBody, this.maxCarts);
         this.hazmatCarts = this.headCount("hazmatCart", this.getHazmatCartBody, this.maxHazmatCarts, {
             prespawn: 1,
         });
         this.hazmats = this.headCount("hazmat", this.getHazmatBody, this.getMaxHazmat, {
-            memory: {
-                boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
-                allowUnboosted: true,
-            },
+            boosts: [RESOURCE_CATALYZED_LEMERGIUM_ACID],
+            allowUnboosted: true,
             prespawn: 1,
         });
         this.memory.hazmatsLastTick = this.roleCount("hazmat");
@@ -230,14 +219,18 @@ export class MasonMission extends Mission {
         }
 
         agent.memory.inPosition = true;
-        agent.creep.repair(rampart);
+        let repOutcome = agent.creep.repair(rampart);
+        if (repOutcome === ERR_NOT_IN_RANGE) {
+            rampart = agent.pos.findClosestByRange(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART));
+            agent.creep.repair(rampart);
+        }
 
         let stolen = false;
         if (!agent.isFull(200)) {
             stolen = agent.stealNearby(STRUCTURE_EXTENSION) === OK;
         }
 
-        if (agent.isFull(300) || stolen) {
+        if (agent.isFull(300) || stolen || this.carts.length > 0) {
             agent.idleNear(rampart, 3, true);
             return;
         } else {
@@ -351,7 +344,7 @@ export class MasonMission extends Mission {
     private findLowest(cart: Agent, agents: Agent[]): Creep {
         if (cart.memory.masonId) {
             let mason = Game.getObjectById<Creep>(cart.memory.masonId);
-            if (mason && mason.carry.energy < mason.carryCapacity / 2) {
+            if (mason && mason.carry.energy < mason.carryCapacity * .8) {
                 this.state.scheduledDeliveries.push(mason);
                 return mason;
             } else {

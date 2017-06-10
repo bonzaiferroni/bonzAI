@@ -117,6 +117,7 @@ export class RemoteUpgradeMission extends Mission {
         let hostilesPresent = this.state.target && this.state.target.room && this.state.target.room.hostiles.length > 0;
         let leveledUp = this.state.target && this.state.target.room && this.state.target.room.controller.level === 8;
         if (!this.positions || hostilesPresent || leveledUp) { return 0; }
+        if (this.memory.max !== undefined ) { return this.memory.max; }
         return this.positions.length;
     };
 
@@ -229,7 +230,7 @@ export class RemoteUpgradeMission extends Mission {
             if (range > 6) {
                 cart.travelTo(this.state.container, { roomCallback: (roomName, matrix) => {
                     if (roomName !== this.state.target.pos.roomName) { return; }
-                    let link = cart.room.controller.pos.findInRange(
+                    let link = this.state.target.room.controller.pos.findInRange(
                         cart.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
                     if (link) {
                         matrix = matrix.clone();

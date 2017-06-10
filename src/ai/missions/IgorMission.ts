@@ -150,7 +150,11 @@ export class IgorMission extends Mission {
                 let outcome = igor.withdraw(origin, command.resourceType, command.amount);
                 let destination = Game.getObjectById<Structure>(command.destination);
                 if (!igor.pos.isNearTo(destination)) {
-                    igor.travelTo(destination);
+                    if (destination === this.room.storage && this.igorPosition) {
+                        igor.moveItOrLoseIt(this.igorPosition);
+                    } else {
+                        igor.travelTo(destination);
+                    }
                 }
                 if (outcome !== OK) {
                     console.log(`IGOR: bad command: ${outcome}, clearing order ${this.roomName}, ${
@@ -158,7 +162,7 @@ export class IgorMission extends Mission {
                     this.memory.command = undefined;
                 }
             } else if (origin === this.room.storage && this.igorPosition) {
-                igor.travelTo(this.igorPosition);
+                igor.moveItOrLoseIt(this.igorPosition);
             } else {
                 igor.travelTo(origin);
             }
@@ -172,7 +176,7 @@ export class IgorMission extends Mission {
                 this.labProcess.reagentLoads[command.resourceType] -= command.amount; }
             this.memory.command = undefined;
         } else if (destination === this.room.storage && this.igorPosition) {
-            igor.travelTo(this.igorPosition);
+            igor.moveItOrLoseIt(this.igorPosition);
         } else {
             igor.travelTo(destination);
         }
