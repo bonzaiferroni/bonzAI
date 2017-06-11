@@ -101,7 +101,7 @@ export class Agent extends AbstractAgent {
         return this.build(site);
     }
 
-    public retrieve(target: Creep|Structure, resourceType: string, options?: TravelToOptions, amount?: number): number {
+    public retrieve(target: Creep|Structure, resourceType?: string, options?: TravelToOptions, amount?: number): number {
         if (this.pos.isNearTo(target)) {
             this.withdraw(target, resourceType, amount);
         } else {

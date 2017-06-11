@@ -217,14 +217,33 @@ export class MiningMission extends Mission {
                 return;
             }
 
-            let outcome = cart.retrieve(this.state.container, RESOURCE_ENERGY);
-            if (outcome === OK && cart.carryCapacity > 0) {
+            let outcome;
+            if (cart.pos.isNearTo(this.state.container)) {
+                for (let resourceType in this.state.container.store) {
+                    let amount = this.state.container.store[resourceType];
+                    if (amount === 0) { continue; }
+                    outcome = cart.withdraw(this.state.container, resourceType);
+                }
+            } else {
+                cart.travelTo(this.state.container);
+            }
+
+            if (outcome === OK) {
                 cart.travelTo(this.state.storage);
             }
             return;
         }
 
-        let outcome = cart.deliver(this.state.storage, RESOURCE_ENERGY);
+        let outcome;
+        if (cart.pos.isNearTo(this.state.storage)) {
+            for (let resourceType in cart.carry) {
+                let amount = cart.carry[resourceType];
+                if (amount === 0) { continue; }
+                outcome = cart.transfer(this.state.storage, resourceType);
+            }
+        } else {
+            cart.travelTo(this.state.storage);
+        }
         if (outcome === OK) {
             if (cart.creep.ticksToLive < this.analysis.distance * 2) {
                 cart.creep.suicide();

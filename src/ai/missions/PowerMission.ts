@@ -188,6 +188,11 @@ export class PowerMission extends Mission {
 
         let bankPos = helper.deserializeRoomPosition(this.memory.currentBank.pos);
 
+        if (clyde.pos.roomName === bankPos.roomName) {
+            let powerStruggle = this.powerStruggle(clyde, bonnie, bankPos);
+            if (powerStruggle) { return; }
+        }
+
         if (clyde.pos.isNearTo(bankPos)) {
             clyde.memory.inPosition = true;
             let bank = bankPos.lookForStructure(STRUCTURE_POWER_BANK);
@@ -238,6 +243,46 @@ export class PowerMission extends Mission {
         } else {
             bonnie.travelTo(clyde);
         }
+    }
+
+    private powerStruggle(clyde: Agent, bonnie: Agent, bankPos: RoomPosition) {
+        let hostiles = bankPos.findInRange(clyde.room.hostiles, 10);
+        if (hostiles.length === 0) {
+            return false;
+        }
+        if (Game.time % 4 === 0 ) { console.log(`POWER: power struggle in ${clyde.pos.roomName} /o/  \\o\\`); }
+
+        // healing
+        let outcome;
+        if (clyde.hits < clyde.hitsMax) {
+            if (bonnie.pos.isNearTo(clyde)) {
+                outcome = bonnie.heal(clyde);
+            } else {
+                outcome = bonnie.rangedHeal(clyde);
+            }
+        }
+        if (outcome !== OK && bonnie.hits < bonnie.hitsMax) {
+            bonnie.heal(bonnie);
+        }
+
+        // targeting
+        let targets = _.filter(hostiles, x => x.partCount(HEAL) > 0);
+        if (targets.length === 0) {
+            targets = _.filter(hostiles, x => x.partCount(ATTACK) > 0);
+        }
+        if (targets.length === 0) {
+            targets = hostiles;
+        }
+
+        let target = clyde.pos.findClosestByRange(targets);
+        if (!target) {
+            return false;
+        }
+
+        // attack and move
+        Agent.squadTravel(clyde, bonnie, target);
+        clyde.attack(target);
+        return true;
     }
 
     private powerCartActions(cart: Agent, order: number) {

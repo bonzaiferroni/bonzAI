@@ -53,16 +53,16 @@ export class MasonMission extends Mission {
     }
 
     public maxMasons = () => {
-        if (this.room.memory.layout.turtle) { return 4; }
+        if (this.room.memory.layout.turtle) { return 2; }
         return 0;
     };
 
     public getMasonBody = () => {
-        return this.bodyRatio(8, 8, 4, 1, 2);
+        return this.bodyRatio(2, 2, 1, 1, 10);
     };
 
     public maxCarts = () => {
-        return this.roleCount("mason") / 4;
+        return this.roleCount("mason") / 2;
     };
 
     public getCartBody = () => {
@@ -221,8 +221,8 @@ export class MasonMission extends Mission {
         agent.memory.inPosition = true;
         let repOutcome = agent.creep.repair(rampart);
         if (repOutcome === ERR_NOT_IN_RANGE) {
-            rampart = agent.pos.findClosestByRange(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART));
-            agent.creep.repair(rampart);
+            let other = agent.pos.findClosestByRange(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART));
+            agent.creep.repair(other);
         }
 
         let stolen = false;
@@ -382,16 +382,9 @@ export class MasonMission extends Mission {
 
     private getRampart(agent: Agent): Structure {
         let findRampart = () => {
-            let lowestHits = 100000;
-            let lowestRampart = _(this.room.findStructures<Structure>(STRUCTURE_RAMPART)).sortBy("hits").head();
-            if (lowestRampart) {
-                lowestHits = lowestRampart.hits;
-            }
             let myRampart = _(this.room.findStructures<Structure>(STRUCTURE_RAMPART))
-                .filter((s: Structure) => s.hits < lowestHits + 100000)
-                .sortBy((s: Structure) => agent.pos.getRangeTo(s))
-                .head();
-            if (myRampart) { return myRampart; }
+                .min(x => x.hits);
+            if (_.isObject(myRampart)) { return myRampart; }
         };
         let forgetRampart = (s: Structure) => agent.creep.ticksToLive % 500 === 0;
         return agent.rememberStructure(findRampart, forgetRampart, "rampartId") as Structure;

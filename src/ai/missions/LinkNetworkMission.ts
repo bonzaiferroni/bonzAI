@@ -33,6 +33,7 @@ export class LinkNetworkMission extends Mission {
     }
 
     public init() {
+        if (this.spawnGroup.maxSpawnEnergy < 600) { this.operation.removeMission(this); }
     }
 
     public update() {

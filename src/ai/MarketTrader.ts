@@ -231,13 +231,13 @@ export const RESOURCE_VALUE = {
 };
 
 export const PRODUCT_PRICE = {
-    XUH2O: 1,
-    XLHO2: 1,
-    XKHO2: 1,
-    XZHO2: 1,
-    XZH2O: 1,
-    XLH2O: 1,
+    XUH2O: 1.5,
+    XLHO2: 1.5,
+    XKHO2: 1.5,
+    XZHO2: 1.5,
+    XZH2O: 1.5,
+    XLH2O: 1.5,
     XGH2O: 2,
     XGHO2: 2,
-    G: .6,
+    G: 1,
 };

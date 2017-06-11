@@ -137,7 +137,7 @@ export class BaseRepairMission extends Mission {
     private towerSearch(x: number, y: number): string[] {
         let position = new RoomPosition(x, y, this.roomName);
         if (this.room.memory.layout && this.room.memory.layout.turtle) {
-            let inRange = position.findInRange<StructureTower>(this.towers, 5);
+            let inRange = position.findInRange<StructureTower>(this.towers, 8);
             if (inRange.length > 0) {
                 return _.map(inRange, tower => tower.id);
             }
