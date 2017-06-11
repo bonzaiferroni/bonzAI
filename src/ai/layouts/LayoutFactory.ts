@@ -30,6 +30,7 @@ export class LayoutFactory {
                     rotation: 0,
                     type: LAYOUT_CUSTOM,
                 };
+                Memory.rooms[roomName].layout = data;
             }
         }
         let layoutClass = LayoutFactory.layoutClasses[data.type];

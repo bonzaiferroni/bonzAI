@@ -3,9 +3,12 @@ import {BuildingPlannerData} from "../../interfaces";
 import {empire} from "../Empire";
 
 export class CustomLayout extends Layout {
-    public upload(json: string, exclude: string[]) {
-        let data: BuildingPlannerData = JSON.parse(json);
-        if (!data) { return; }
+    public upload(exclude: string[]) {
+        if (!Memory.temp.customLayout) {
+            return;
+        }
+
+        let data: BuildingPlannerData = JSON.parse(Memory.temp.customLayout);
 
         let count = 0;
         let flexMap: PositionMap = {};
