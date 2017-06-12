@@ -62,7 +62,7 @@ export class MasonMission extends Mission {
     };
 
     public maxCarts = () => {
-        return this.roleCount("mason") / 2;
+        return this.maxMasons() / 2;
     };
 
     public getCartBody = () => {
