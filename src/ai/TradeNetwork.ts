@@ -311,7 +311,8 @@ export class TradeNetwork {
 
     public static canTrade(room: Room) {
         return room.controller && room.controller.level >= 6 && room.storage && room.terminal
-            && (!room.controller.sign || room.controller.sign.text !== "noTrade") && room.controller.my;
+            && (!room.controller.sign || room.controller.sign.text !== "noTrade") &&
+            (Memory.playerConfig.partnerTrade || room.controller.my);
     }
 
     public reportTransactions() {

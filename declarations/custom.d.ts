@@ -18,6 +18,7 @@ interface Memory {
         creditReserveAmount: number;
         powerMinimum: number;
         saverMode: boolean;
+        partnerTrade: boolean;
     };
     profiler: {[identifier: string]: ProfilerData };
     notifier: {
