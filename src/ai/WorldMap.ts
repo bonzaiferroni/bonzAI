@@ -81,6 +81,7 @@ export class WorldMap {
 
 
     private updateMemory(room: Room) {
+       
         if (room.controller) {
             room.memory.level = room.controller.level;
             if (room.controller.owner) {
@@ -92,6 +93,9 @@ export class WorldMap {
             else if (room.memory.occupied) {
                 delete room.memory.occupied;
             }
+            
+            // uncomment to enable travel through ally rooms
+            // if (this.diplomat.allies[room.controller.owner]) { delete room.memory.occupied; }
         }
     }
 
