@@ -88,14 +88,16 @@ export class WorldMap {
                 room.memory.owner = room.controller.owner.username;
             }
             if (room.controller.owner && !room.controller.my) {
+                // uncomment to enable travel through ally rooms
+                /* if (this.diplomat.allies[room.controller.owner.username]) { 
+                    delete room.memory.occupied; 
+                    return; 
+                }*/
                 room.memory.occupied = true;
             }
             else if (room.memory.occupied) {
                 delete room.memory.occupied;
             }
-            
-            // uncomment to enable travel through ally rooms
-            // if (this.diplomat.allies[room.controller.owner]) { delete room.memory.occupied; }
         }
     }
 
