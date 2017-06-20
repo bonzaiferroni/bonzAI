@@ -54,6 +54,15 @@ export class Archiver {
     // call this at end of tick
     public static finalize() {
         for (let segmentId in this.writeSegments) {
+            if (!this.memory.activeSegments[segmentId]) {
+                this.memory.activeSegments[segmentId] = true;
+                let activeSegments = _.map(Object.keys(this.memory.activeSegments), x => Number.parseInt(x));
+                if (activeSegments.length > 10) {
+                    console.log("ARCHIVER: warning, too many active memory segments being used");
+                    console.log(activeSegments);
+                }
+                RawMemory.setActiveSegments(activeSegments);
+            }
             let str = JSON.stringify(this.segments[segmentId]);
             RawMemory.segments[segmentId] = str;
             this.memory.lastUpdated[segmentId] = Game.time;
