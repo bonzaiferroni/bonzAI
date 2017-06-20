@@ -35,6 +35,7 @@ export class CustomLayout extends Layout {
 
         let serializedMap = Layout.serializePositionMap(flexMap);
         Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, serializedMap);
+        Archiver.finalize();
         console.log(`LAYOUT: Saved ${count} structure positions in ${this.roomName}`);
     }
 
@@ -62,6 +63,7 @@ export class CustomLayout extends Layout {
 
         let serializedMap = Layout.serializePositionMap(flexMap);
         Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, serializedMap);
+        Archiver.finalize();
         console.log(`LAYOUT: Saved ${count} structure positions in ${this.roomName}, ${
             flagCount} were excluded due to a flag covering the position`);
     }

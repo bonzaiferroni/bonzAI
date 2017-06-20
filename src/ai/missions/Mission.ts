@@ -266,7 +266,7 @@ export abstract class Mission {
                         creepArray.push(creep);
                         return creepArray;
                     } else if (!options.freelance.urgent) {
-                        console.log(`waiting to hire ${creep} in ${this.operation.name}`);
+                        console.log(`waiting to hire ${creep} in ${this.operation.name}}`);
                         return creepArray;
                     }
                 }
@@ -348,7 +348,10 @@ export abstract class Mission {
     }
 
     protected updateFreelanceStatus(roleName: string, agent: Agent, status: FreelanceStatus) {
+        let ticket = Memory.freelance[roleName][agent.name];
+        if (ticket.status === status) { return; }
         let employerName = `${this.operation.name}_${this.name}`;
+        if (ticket.employer !== employerName) { return; }
         Memory.freelance[roleName][agent.name] = {status: status, employer: employerName};
     }
 

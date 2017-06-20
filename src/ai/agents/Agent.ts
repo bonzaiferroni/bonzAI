@@ -480,7 +480,6 @@ export class Agent extends AbstractAgent {
                 },
             });
 
-            if (this.name === "gaol7_decoy_1") { console.log(JSON.stringify(ret))}
             if (ret.path.length === 0) { return true; }
 
             fleeData.path = Traveler.serializePath(this.pos, ret.path, "purple");
@@ -886,7 +885,6 @@ export class Agent extends AbstractAgent {
         return _.sum(this.carry) <= norm.storeCapacity - _.sum(norm.store);
     }
 
-
     public standardAgentHealing(agents: Agent[]): number {
         return this.standardHealing(_.map(agents, x => x.creep));
     }
@@ -1255,7 +1253,6 @@ export class Agent extends AbstractAgent {
             flee: true,
         });
 
-        console.log(`fleebust in ${this.room.name}`);
         if (ret.path.length > 0) {
             let fleePos = ret.path[0];
             if (fleePos.getRangeTo(this) <= currentRange) {

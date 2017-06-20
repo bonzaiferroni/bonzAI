@@ -60,6 +60,7 @@ export class Archiver {
                 if (activeSegments.length > 10) {
                     console.log("ARCHIVER: warning, too many active memory segments being used");
                     console.log(activeSegments);
+                    // TODO: trim active segments usage to only the most recent
                 }
                 RawMemory.setActiveSegments(activeSegments);
             }

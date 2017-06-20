@@ -218,7 +218,7 @@ export class PathMission extends Mission {
     protected paverActions(paver: Agent) {
         let road = this.findRoadToRepair();
         if (!road) {
-            if (Game.time % 5 === 0) { console.log(paver.name, "waiting to be hired", paver.ticksToLive); }
+            if (Game.time % 5 === 0) { console.log(paver.name, "waiting to be hired", paver.ticksToLive, this.name, this.operation.name); }
             this.updateFreelanceStatus("paver", paver, FreelanceStatus.Available);
             let fleeing = paver.fleeHostiles();
             if (fleeing) { return; }
