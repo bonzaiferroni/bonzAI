@@ -189,7 +189,6 @@ export class LinkNetworkMission extends Mission {
         if (!this.state.controllerLink) { return; }
 
         let longestDistance = this.findLongestDistance(this.state.controllerLink, this.state.storageLinks);
-        if (this.operation.name === "tlbt0") { console.log(Math.ceil(longestDistance / this.state.storageLinks.length)); }
         if (Game.time % (Math.ceil(longestDistance / this.state.storageLinks.length)) === 0) {
 
             // figure out which one needs to fire
@@ -200,7 +199,6 @@ export class LinkNetworkMission extends Mission {
             let linkToFire = this.state.storageLinks[this.memory.linkFiringIndex++];
             if (linkToFire) {
                 let outcome = linkToFire.transferEnergy(this.state.controllerLink);
-                if (this.operation.name === "tlbt0") { console.log(linkToFire.pos, outcome, Game.time); }
             } else {
                 console.log("should never see this message related to alternating link firing");
             }

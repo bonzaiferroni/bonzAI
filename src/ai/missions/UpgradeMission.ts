@@ -153,7 +153,7 @@ export class UpgradeMission extends Mission {
     private getMax = (): number => {
         if (!this.state.battery || this.room.hostiles.length > 0) { return 0; }
         if (!this.room.storage && !this.remoteSpawning
-            && this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 2) { return 0; }
+            && this.room.find(FIND_MY_CONSTRUCTION_SITES).length >= 5) { return 0; }
 
         let potency = this.getPotency();
         let potencyPerCreep = this.potencyPerCreep();
@@ -180,7 +180,7 @@ export class UpgradeMission extends Mission {
         if (invalidSpawnRoom) {
             return 0;
         }
-        return 4;
+        return 8;
     };
 
     private influxCartBody = () => {
