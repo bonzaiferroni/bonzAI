@@ -224,7 +224,7 @@ export class LinkNetworkMission extends Mission {
         }
 
         if (Game.time % 40 === 0) {
-            if (this.state.controllerLink.energy < 400) {
+            if (this.state.controllerLink.energy < 600) {
                 firstLink.transferEnergy(this.state.controllerLink);
             } else {
                 firstLink.transferEnergy(storageLink);
