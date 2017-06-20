@@ -36,6 +36,11 @@ interface Memory {
     viz: {[tick: number]: any };
     version: number;
     flagCount: number;
+    archiver: any;
+    freelance: {[roleName: string]: {[creepName: string]: {
+        status: number;
+        employer: string;
+    }} };
 }
 
 interface Room {
@@ -76,9 +81,11 @@ interface RoomMemory {
     layout: LayoutData;
     finder: LayoutFinderData;
     observation: Observation;
+    manual: boolean;
 }
 
 type StoreStructure = StructureTerminal|StructureContainer|StructureStorage;
+type EnergyStructure = StructureSpawn|StructureExtension|StructureLab;
 
 interface LayoutFinderData {
     sourcePositions: RoomPosition[];
@@ -137,9 +144,7 @@ interface RoomObject {
 }
 
 interface Creep {
-    partCount(partType: string): number;
     blindMoveTo(destination: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
-    travelTo(destination: {pos: RoomPosition}|RoomPosition, ops?: any);
     hitsTemp: number;
 }
 

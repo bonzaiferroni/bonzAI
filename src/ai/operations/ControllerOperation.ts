@@ -53,6 +53,9 @@ export class ControllerOperation extends Operation {
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.OwnedRoom;
+        if (flag.room && flag.room.controller.level < 6) {
+            this.priority = OperationPriority.VeryHigh;
+        }
     }
 
     public init() {
@@ -117,8 +120,7 @@ export class ControllerOperation extends Operation {
         this.addMission(buildMission);
 
         // upgrader controller
-        let boostUpgraders = this.flag.room.controller.level < 8;
-        this.addMission(new UpgradeMission(this, boostUpgraders));
+        this.addMission(new UpgradeMission(this));
 
         if (this.flag.room.storage) {
             // use link array near storage to fire energy at controller link (pre-rcl8)
@@ -162,6 +164,7 @@ export class ControllerOperation extends Operation {
             flex: false,
         };
 
+        if (this.layout) { this.layout.wipeFlex(); }
         console.log("attemping to move layout, globals will need to be refreshed before a change is made");
     }
 

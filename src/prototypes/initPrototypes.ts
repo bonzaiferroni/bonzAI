@@ -78,6 +78,7 @@ export function initPrototypes() {
             }
             return this._observation;
         },
+        configurable: true,
     });
 
     StructureTerminal.prototype._send = StructureTerminal.prototype.send;
@@ -100,16 +101,6 @@ export function initPrototypes() {
         } else {
             return ERR_BUSY;
         }
-    };
-
-    Creep.prototype.partCount = function(partType: string): number {
-        let count = 0;
-        for (let part of this.body) {
-            if (part.type === partType) {
-                count++;
-            }
-        }
-        return count;
     };
 
     /**

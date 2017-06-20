@@ -3,9 +3,10 @@ import {Operation} from "../operations/Operation";
 import {HostileAgent} from "../agents/HostileAgent";
 export class InvaderGuru extends Guru {
 
-    public invaders: HostileAgent[] = [];
+    public invaders: HostileAgent[];
     public invadersPresent: boolean;
     public hasVision = false;
+    public invaderProbable: boolean;
 
     public memory: {
         invaderProbable: boolean
@@ -33,21 +34,24 @@ export class InvaderGuru extends Guru {
 
     public update() {
         super.update();
-        if (!this.room) { return; }
+        if (!this.room) {
+            this.hasVision = false;
+            return;
+        }
         this.hasVision = true;
+        this.invaders = [];
         for (let creep of _.filter(this.room.hostiles, c => c.owner.username === "Invader")) {
             this.invaders.push(new HostileAgent(creep));
         }
 
         this.trackEnergyTillInvader();
         this.invadersPresent = this.invaders.length > 0;
+        this.invaderProbable = this.memory.invaderProbable;
     }
 
     /**
      * Tracks energy harvested and pre-spawns a defender when an invader becomes likely
      */
-
-    get invaderProbable(): boolean { return this.memory.invaderProbable; }
 
     private trackEnergyTillInvader() {
         let memory = this.memory.invaderTrack;

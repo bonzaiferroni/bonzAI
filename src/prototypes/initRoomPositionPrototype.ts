@@ -184,8 +184,8 @@ export function initRoomPositionPrototype() {
      * @returns {Structure}
      */
     RoomPosition.prototype.lookForStructure = function(structureType: string): Structure {
-        let structures = this.lookFor(LOOK_STRUCTURES);
-        return _.find(structures, {structureType: structureType}) as Structure;
+        let structures = this.lookFor(LOOK_STRUCTURES) as Structure[];
+        return _.find(structures, x => x.structureType === structureType);
     };
 
     /**

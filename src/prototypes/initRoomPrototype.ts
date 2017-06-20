@@ -21,6 +21,7 @@ export function initRoomPrototype() {
             }
             return Tick.cache.hostiles[this.name];
         },
+        configurable: true,
     });
 
     // deprecated
@@ -34,6 +35,7 @@ export function initRoomPrototype() {
             }
             return Tick.cache.hostilesAndLairs[this.name];
         },
+        configurable: true,
     });
 
     Object.defineProperty(Room.prototype, "roomType", {
@@ -65,6 +67,7 @@ export function initRoomPrototype() {
             }
             return this.memory.roomType;
         },
+        configurable: true,
     });
 
     Object.defineProperty(Room.prototype, "structures", {
@@ -75,6 +78,7 @@ export function initRoomPrototype() {
             }
             return Tick.cache.structures[this.name] || [];
         },
+        configurable: true,
     });
 
     /**
@@ -101,12 +105,14 @@ export function initRoomPrototype() {
             }
             return this.memory.coordinates;
         },
+        configurable: true,
     });
 
     Object.defineProperty(Room.prototype, "defaultMatrix", {
         get: function myProperty() {
             return Traveler.getStructureMatrix(this);
         },
+        configurable: true,
     });
 
     Object.defineProperty(Room.prototype, "fleeObjects", {
@@ -131,6 +137,7 @@ export function initRoomPrototype() {
 
             return Tick.cache.fleeObjects[this.name];
         },
+        configurable: true,
     });
 
     Object.defineProperty(Room.prototype, "lairThreats", {
@@ -141,5 +148,6 @@ export function initRoomPrototype() {
             }
             return Tick.cache.lairThreats[this.name];
         },
+        configurable: true,
     });
 }

@@ -53,7 +53,7 @@ export class GeologyMission extends Mission {
             this.analysis = this.cacheTransportAnalysis(this.memory.distanceToStorage, LOADAMOUNT_MINERAL);
         }
 
-        let dormant = this.state.mineral.ticksToRegeneration > 20000 && this.roleCount("geologyCart") === 0;
+        let dormant = this.state.mineral.ticksToRegeneration > 30000 && this.roleCount("geologyCart") === 0;
         if (this.spawnGroup.maxSpawnEnergy < 5000 || dormant) {
             console.log(`GEO: checking out in ${this.roomName}`);
             this.operation.removeMission(this);

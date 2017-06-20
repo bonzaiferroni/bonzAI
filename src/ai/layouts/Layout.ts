@@ -2,15 +2,17 @@ import {BuildingPlannerData} from "../../interfaces";
 import {MemHelper} from "../../helpers/MemHelper";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {empire} from "../Empire";
+import {Archiver} from "../Archiver";
 
 export abstract class Layout {
 
     public map: PositionMap;
     public fixedMap: BuildingPlannerData;
+    protected hasFlex: boolean;
     protected roomName: string;
     protected anchor: Vector2;
     protected rotation: number;
-    protected tempMap: {[controllerLevel: number]: PositionMap };
+    protected tempMap: {[controllerLevel: number]: {[structureType: string]: Coord[] } };
     protected data: LayoutData;
     protected structureCache: {
         tick: number,
@@ -37,7 +39,12 @@ export abstract class Layout {
     }
 
     protected findMap() {
-        if (!this.map) {
+        if (this.map) {
+            return;
+        }
+
+        let flexMap: FlexMap;
+        if (this.hasFlex) {
             if (!this.data.flex) {
                 let generating = this.generateFlex();
                 if (generating) {
@@ -46,14 +53,14 @@ export abstract class Layout {
                 }
             }
 
-            let flexMaps = empire.archiver.globalGet(LAYOUT_SEGMENTID);
-            if (!flexMaps) {
+            flexMap = Archiver.getSegmentProperty<FlexMap>(LAYOUT_SEGMENTID, this.roomName);
+            if (!flexMap) {
                 console.log(`ordering layout segment in ${this.roomName}`);
                 return;
             }
-
-            this.map = this.consolidateMaps(flexMaps[this.roomName]);
         }
+
+        this.map = this.consolidateMaps(flexMap);
     }
 
     public findFixedMap(): PositionMap {
@@ -172,31 +179,18 @@ export abstract class Layout {
             return;
         }
 
-        let deltas = {
-            x: structureVector.x - this.fixedMap.pivot.x,
-            y: structureVector.y - this.fixedMap.pivot.y,
-        };
-
-        deltas = this.rotateDeltas(deltas, this.rotation);
-        let x = this.anchor.x + deltas.x;
-        let y = this.anchor.y + deltas.y;
-        return new RoomPosition(x, y, this.roomName);
+        return this.coordToPosition(structureVector);
     }
 
     protected fixedPositions(structureType: string): RoomPosition[] {
         if (!this.fixedMap) { return; }
 
-        let structPositions = [];
         let map = this.fixedMap.buildings[structureType];
         if (!map) {
             return;
         }
 
-        for (let i = 0; i < map.pos.length; i ++) {
-            let position = this.fixedPosition(structureType, i);
-            structPositions.push(position);
-        }
-        return structPositions;
+        return this.coordsToPositions(map.pos);
     }
 
     protected flexPositions(structureType: string, flexMap: FlexMap): RoomPosition[] {
@@ -211,13 +205,20 @@ export abstract class Layout {
     protected tempPositions(structureType: string): RoomPosition[] {
         if (!this.tempMap) { return; }
         let room = Game.rooms[this.roomName];
-        if (!room || !room.controller || !this.tempMap[room.controller.level]) { return; }
-        return this.tempMap[room.controller.level][structureType];
+        if (!room || !this.tempMap[room.controller.level] || !this.tempMap[room.controller.level][structureType]) {
+            return;
+        }
+        let coords = this.tempMap[room.controller.level][structureType];
+        return this.coordsToPositions(coords);
     }
 
     protected generateFlex() {
         this.data.flex = true;
         return false;
+    }
+
+    public wipeFlex() {
+        Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, undefined);
     }
 
     public static serializePositionMap(flexMap: PositionMap) {
@@ -228,6 +229,27 @@ export abstract class Layout {
             serializedMap[structureType] = MemHelper.serializeIntPositions(positions);
         }
         return serializedMap;
+    }
+
+    private coordToPosition(structureVector: { x: number; y: number }) {
+        let deltas = {
+            x: structureVector.x - this.fixedMap.pivot.x,
+            y: structureVector.y - this.fixedMap.pivot.y,
+        };
+
+        deltas = this.rotateDeltas(deltas, this.rotation);
+        let x = this.anchor.x + deltas.x;
+        let y = this.anchor.y + deltas.y;
+        return new RoomPosition(x, y, this.roomName);
+    }
+
+    private coordsToPositions(coords: Vector2[]): RoomPosition[] {
+        let positions = [];
+        for (let coord of coords) {
+            let position = this.coordToPosition(coord);
+            positions.push(position);
+        }
+        return positions;
     }
 }
 

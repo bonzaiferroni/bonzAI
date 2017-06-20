@@ -6,7 +6,8 @@ import {Notifier} from "../../notifier";
 import {WorldMap} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
-import {Traveler, TravelToOptions} from "../Traveler";
+import {Traveler} from "../Traveler";
+import {CreepHelper} from "../../helpers/CreepHelper";
 
 interface PowerMemory extends MissionMemory {
     disabled: boolean;
@@ -174,7 +175,7 @@ export class PowerMission extends Mission {
             clyde.suicide();
             return;
         }
-        if (!bonnie || (!clyde.pos.isNearTo(bonnie) && !clyde.pos.isNearExit(1))) {
+        if (!bonnie) {
             clyde.idleOffRoad(this.flag);
             return;
         }
@@ -196,6 +197,9 @@ export class PowerMission extends Mission {
         if (clyde.pos.isNearTo(bankPos)) {
             clyde.memory.inPosition = true;
             let bank = bankPos.lookForStructure(STRUCTURE_POWER_BANK);
+            if (!bank) {
+                return;
+            }
             if (bank) {
                 if (bank.hits > 600 || clyde.ticksToLive < 5) {
                     clyde.attack(bank);
@@ -209,13 +213,8 @@ export class PowerMission extends Mission {
                     clyde.attack(bank);
                 }
             }
-        } else if (bonnie.fatigue === 0) {
-            if (this.memory.currentBank.assisting === undefined) {
-                // traveling from spawn
-                clyde.travelTo({pos: bankPos}, {ignoreRoads: true});
-            } else {
-                clyde.travelTo({pos: bankPos}, {ignoreCreeps: false});
-            }
+        } else {
+            Agent.squadTravel(clyde, bonnie, bankPos, {ignoreRoads: true } );
         }
     }
 
@@ -234,24 +233,6 @@ export class PowerMission extends Mission {
             return;
         }
 
-        if (bonnie.pos.isNearTo(clyde)) {
-            if (clyde.memory.inPosition) {
-                bonnie.heal(clyde);
-            } else {
-                bonnie.move(bonnie.pos.getDirectionTo(clyde));
-            }
-        } else {
-            bonnie.travelTo(clyde);
-        }
-    }
-
-    private powerStruggle(clyde: Agent, bonnie: Agent, bankPos: RoomPosition) {
-        let hostiles = bankPos.findInRange(clyde.room.hostiles, 10);
-        if (hostiles.length === 0) {
-            return false;
-        }
-        if (Game.time % 4 === 0 ) { console.log(`POWER: power struggle in ${clyde.pos.roomName} /o/  \\o\\`); }
-
         // healing
         let outcome;
         if (clyde.hits < clyde.hitsMax) {
@@ -264,11 +245,27 @@ export class PowerMission extends Mission {
         if (outcome !== OK && bonnie.hits < bonnie.hitsMax) {
             bonnie.heal(bonnie);
         }
+    }
+
+    private powerStruggle(clyde: Agent, bonnie: Agent, bankPos: RoomPosition) {
+        let hostiles = bankPos.findInRange(clyde.room.hostiles, 10);
+        if (hostiles.length === 0) {
+            return false;
+        }
+
+        let bank = bankPos.lookForStructure(STRUCTURE_POWER_BANK);
+        if (!bank || (bank.hits > 100000  && bonnie.hits === bonnie.hitsMax)) {
+            return false;
+        }
+
+        if (Game.time % 4 === 0 ) { console.log(`POWER: power struggle in ${clyde.pos.roomName} /o/  \\o\\`); }
+
+        clyde.standardMelee();
 
         // targeting
-        let targets = _.filter(hostiles, x => x.partCount(HEAL) > 0);
+        let targets = _.filter(hostiles, x => CreepHelper.partCount(x, HEAL) > 0);
         if (targets.length === 0) {
-            targets = _.filter(hostiles, x => x.partCount(ATTACK) > 0);
+            targets = _.filter(hostiles, x => CreepHelper.partCount(x, ATTACK) > 0);
         }
         if (targets.length === 0) {
             targets = hostiles;
@@ -281,7 +278,6 @@ export class PowerMission extends Mission {
 
         // attack and move
         Agent.squadTravel(clyde, bonnie, target);
-        clyde.attack(target);
         return true;
     }
 
@@ -366,7 +362,7 @@ export class PowerMission extends Mission {
         if (!bank) { return; }
 
         let allyClyde = bank.room.find(FIND_HOSTILE_CREEPS, {
-            filter: (c: Creep) => c.partCount(ATTACK) === 20 && empire.diplomat.allies[c.owner.username] &&
+            filter: (c: Creep) => CreepHelper.partCount(c, ATTACK) === 20 && empire.diplomat.allies[c.owner.username] &&
             !c.pos.isNearExit(1),
         })[0] as Creep;
 

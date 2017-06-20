@@ -14,7 +14,6 @@ export class BaseRepairMission extends Mission {
 
     private layout: Layout;
     private towers: StructureTower[];
-    private repairMax: number;
     public memory: BaseRepairMemory;
 
     constructor(operation: ControllerOperation) {
@@ -23,6 +22,12 @@ export class BaseRepairMission extends Mission {
     }
 
     protected init() {
+
+        if (this.room.findStructures(STRUCTURE_TOWER).length === 0) {
+            this.operation.removeMission(this);
+            return;
+        }
+
         if (!this.memory.roadIds) { this.memory.roadIds = []; }
         this.towerSearch = _.memoize(this.towerSearch);
     }
@@ -67,8 +72,12 @@ export class BaseRepairMission extends Mission {
     private findRamparts() {
         if (Scheduler.delay(this.memory, "findRamps", 100)) { return; }
 
+        let maxHits = RAMPART_MAX_REPAIR;
+        if (!this.room.terminal) {
+            maxHits = 100000;
+        }
         let lowest = _(this.layout.findStructures<StructureRampart>(STRUCTURE_RAMPART))
-            .filter(x => x.hits < RAMPART_MAX_REPAIR)
+            .filter(x => x.hits < maxHits)
             .min(x => x.hits);
         if (!_.isObject(lowest)) {
             console.log(`REPAIR: no ramparts under threshold in ${this.roomName}`);

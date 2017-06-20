@@ -48,7 +48,7 @@ export class ClaimMission extends Mission {
         if (!waypointsCovered) { return; }
 
         if (!this.controller) {
-            claimer.idleOffRoad();
+            claimer.travelTo(this.flag);
             return; // early
         }
 

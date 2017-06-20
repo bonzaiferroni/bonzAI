@@ -1,4 +1,4 @@
-import {Mission, MissionMemory} from "./Mission";
+import {FreelanceStatus, Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Traveler} from "../Traveler";
 import {WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
@@ -20,7 +20,7 @@ export class PathMission extends Mission {
     private endPos: RoomPosition;
     private rangeToEnd: number;
     private ignoreConstructionLimit: boolean;
-    private paver: Agent;
+    private pavers: Agent[];
     public memory: PathMemory;
     private repairLevel: number;
 
@@ -40,26 +40,37 @@ export class PathMission extends Mission {
 
     public update() {
         if (!this.startPos) { return; }
-        this.spawnGroup = empire.getSpawnGroup(this.startPos.roomName);
         this.checkPath();
     }
 
     public getPaverBody = () => {
+        if (this.spawnGroup.maxSpawnEnergy < 350) {
+            return this.workerBody(1, 2, 1);
+        }
         return this.bodyRatio(1, 3, 2, 1, 5);
     };
 
-    public roleCall() {
-        if (!this.memory.roadRepairIds) {
-            this.paver = undefined;
-            return;
+    public getMaxPavers = () => {
+        if (!this.memory.roadRepairIds || !this.state.hasVision) {
+            return 0;
+        } else {
+            return 1;
         }
-        if (!this.state.hasVision || (this.room.controller && this.room.controller.level === 1)) { return; }
-        this.paver = this.spawnSharedAgent("paver", this.getPaverBody);
+    };
+
+    public roleCall() {
+        this.pavers = this.headCount("paver", this.getPaverBody, this.getMaxPavers, {
+            freelance: {
+                roomName: this.roomName,
+                urgent: false,
+            },
+        });
     }
 
     public actions() {
-        if (!this.paver) { return; }
-        this.paverActions(this.paver);
+        for (let paver of this.pavers) {
+            this.paverActions(paver);
+        }
     }
 
     public finalize() {
@@ -133,23 +144,24 @@ export class PathMission extends Mission {
                 }
 
                 let matrix = new PathFinder.CostMatrix();
-                Traveler.addStructuresToMatrix(room, matrix, ROAD_COST);
 
                 // avoid controller
                 if (room.controller) {
-                    helper.blockOffPosition(matrix, room.controller, 3, AVOID_COST);
+                    helper.blockOffPosition(matrix, room.controller, 3, AVOID_COST, true);
                 }
 
                 // avoid container/link adjacency
                 let sources = room.find<Source>(FIND_SOURCES);
                 for (let source of sources) {
-                    helper.blockOffPosition(matrix, source, 2, AVOID_COST);
+                    helper.blockOffPosition(matrix, source, 2, AVOID_COST, true);
                 }
 
                 let mineral = room.find<Mineral>(FIND_MINERALS)[0];
                 if (mineral) {
-                    helper.blockOffPosition(matrix, mineral, 2, AVOID_COST);
+                    helper.blockOffPosition(matrix, mineral, 2, AVOID_COST, true);
                 }
+
+                Traveler.addStructuresToMatrix(room, matrix, ROAD_COST);
 
                 // add construction sites too
                 let constructionSites = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
@@ -204,6 +216,21 @@ export class PathMission extends Mission {
     }
 
     protected paverActions(paver: Agent) {
+        let road = this.findRoadToRepair();
+        if (!road) {
+            if (Game.time % 5 === 0) { console.log(paver.name, "waiting to be hired", paver.ticksToLive); }
+            this.updateFreelanceStatus("paver", paver, FreelanceStatus.Available);
+            let fleeing = paver.fleeHostiles();
+            if (fleeing) { return; }
+            paver.idleOffRoad(this.flag);
+            return;
+        } else {
+            this.updateFreelanceStatus("paver", paver, FreelanceStatus.Busy);
+        }
+
+        let fleeing = paver.fleeHostiles();
+        if (fleeing) { return; }
+
         // paver, healthyself
         if (paver.hits < paver.hitsMax) {
             if (paver.room.hostiles.length === 0 && !paver.pos.isNearExit(0)) {
@@ -213,29 +240,11 @@ export class PathMission extends Mission {
                     return;
                 }
             }
-            let healersInRoom = _.filter(paver.room.find<Creep>(FIND_MY_CREEPS), c => c.getActiveBodyparts(HEAL));
-            if (healersInRoom.length > 0) {
-                paver.idleOffRoad();
-                return;
-            }
-            if (paver.getActiveBodyparts(WORK) === 0) {
-                paver.travelTo(this.spawnGroup);
-                return;
-            }
         }
 
         let hasLoad = paver.hasLoad();
         if (!hasLoad) {
             paver.procureEnergy(this.findRoadToRepair());
-            return;
-        }
-
-        let road = this.findRoadToRepair();
-
-        if (!road) {
-            console.log(`this is ${this.operation.name} paver, checking out with ${paver.ticksToLive} ticks to live`);
-            delete Memory.creeps[paver.name];
-            paver.idleOffRoad(this.flag);
             return;
         }
 

@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Notifier} from "../../notifier";
 import {RaidGuru} from "./RaidGuru";
 import {Agent} from "../agents/Agent";
+import {Traveler} from "../Traveler";
 
 enum ZombieStatus { Attack, Upgrade, Hold, Complete }
 
@@ -12,6 +13,7 @@ export class ZombieMission extends Mission {
     private guru: RaidGuru;
 
     public memory: any;
+    private distance: number;
 
     constructor(operation: Operation, raidGuru: RaidGuru) {
         super(operation, "zombie");
@@ -22,6 +24,9 @@ export class ZombieMission extends Mission {
 
     public update() {
         this.guru.refreshGuru(this.flag.pos.roomName, true);
+        if (!this.distance) {
+            this.distance = Traveler.findTravelPath(this.flag, this.spawnGroup).path.length;
+        }
     }
 
     public roleCall() {
@@ -68,7 +73,6 @@ export class ZombieMission extends Mission {
 
         if (!zombie.memory.reachedFallback) {
             if (zombie.isNearTo(this.guru.fallbackPos) && this.isFullHealth(zombie)) {
-                this.registerPrespawn(zombie);
                 zombie.memory.reachedFallback = true;
             }
             zombie.travelTo({pos: this.guru.fallbackPos});

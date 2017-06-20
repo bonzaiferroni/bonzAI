@@ -10,6 +10,7 @@ import {Traveler} from "../Traveler";
 interface ReserveMemory extends MissionMemory {
     wallCheck: boolean;
     needBulldozer: boolean;
+    hardPath: boolean;
 }
 
 export class ReserveMission extends Mission {
@@ -40,15 +41,33 @@ export class ReserveMission extends Mission {
         }
     }
 
-    public roleCall() {
-        let needReserver = () => !this.controller.my && (!this.controller.reservation ||
-            this.controller.reservation.ticksToEnd < 3000) ? 1 : 0;
+    private maxReservers = () => {
+        let noNeed = this.controller.my || (this.controller.reservation && this.controller.reservation.ticksToEnd > 3000);
+        if (noNeed) { return 0; }
+        if (this.spawnGroup.maxSpawnEnergy < 650) {
+            return 0;
+        }
+        if (this.spawnGroup.maxSpawnEnergy < 1300) {
+            return 2;
+        }
+        return 1;
+    };
+
+    private reserverBody = (): string[] => {
+        if (this.spawnGroup.maxSpawnEnergy < 1300) {
+            return this.configBody({ claim: 1, move: 1 });
+        }
         let potency = this.spawnGroup.room.controller.level === 8 ? 5 : 2;
-        let reserverBody = () => this.configBody({
-            claim: potency,
-            move: potency,
-        });
-        this.reservers = this.headCount("claimer", reserverBody, needReserver);
+        let claimCount = potency;
+        let moveCount = claimCount;
+        if (potency > 2 && this.memory.hardPath) {
+            moveCount = claimCount * 5;
+        }
+        return this.configBody({ claim: claimCount, move: moveCount });
+    };
+
+    public roleCall() {
+        this.reservers = this.headCount("claimer", this.reserverBody, this.maxReservers);
         this.bulldozers = this.headCount("dozer", () => this.bodyRatio(4, 0, 1, 1),
             () => this.memory.needBulldozer ? 1 : 0);
     }
@@ -67,20 +86,34 @@ export class ReserveMission extends Mission {
     }
 
     public invalidateCache() {
+        if (Math.random() < .1) { this.memory.hardPath = undefined; }
     }
 
     private reserverActions(reserver: Agent) {
+
+        let fleeing = reserver.fleeHostiles();
+        if (fleeing) { return; }
+
         if (!this.controller) {
             reserver.travelTo(this.flag);
             return; // early
         }
 
         if (reserver.pos.isNearTo(this.controller)) {
+            if (reserver.memory.fatigued >= 5) {
+                this.memory.hardPath = true;
+            }
             reserver.reserveController(this.controller);
             if (!this.memory.wallCheck) {
                 this.memory.wallCheck = this.destroyWalls(reserver, this.room);
             }
         } else {
+            if (!reserver.memory.fatigued === undefined) {
+                reserver.memory.fatigued = 0;
+            }
+            if (reserver.fatigue > 0) {
+                reserver.memory.fatigued++;
+            }
             reserver.travelTo(this.controller);
         }
     }

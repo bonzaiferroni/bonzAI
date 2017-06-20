@@ -1,6 +1,7 @@
 import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
+import {CreepHelper} from "../../helpers/CreepHelper";
 export class EmergencyMinerMission extends Mission {
 
     private emergencyMiners: Agent[];
@@ -30,7 +31,7 @@ export class EmergencyMinerMission extends Mission {
         }
 
         let getMaxMiners = () => {
-            if (!this.memory.lastTick || Game.time > this.memory.lastTick + 100) {
+            if (!this.memory.lastTick || Game.time > this.memory.lastTick + 50) {
                 if (Game.time % 10 === 0) {
                     console.log("ATTN: Backup miner being spawned in", this.operation.name);
                 }
@@ -38,7 +39,7 @@ export class EmergencyMinerMission extends Mission {
             }
         };
 
-        this.emergencyMiners = this.headCount("emergencyMiner", () => this.workerBody(2, 1, 1), getMaxMiners);
+        this.emergencyMiners = this.headCount("emergencyMiner", () => this.workerBody(1, 1, 1), getMaxMiners);
     }
 
     public actions() {
@@ -53,29 +54,26 @@ export class EmergencyMinerMission extends Mission {
     }
 
     private minerActions(miner: Agent) {
-        let closest = miner.pos.findClosestByRange(FIND_SOURCES) as Source;
-        if (!miner.pos.isNearTo(closest)) {
-            miner.travelTo(closest);
+        miner.memory.scavenger = RESOURCE_ENERGY;
+        miner.memory.donatesEnergy = true;
+        let best = _(this.state.sources)
+            .min(x => (3 - x.pos.openAdjacentSpots(true).length) * 10 + x.pos.getRangeTo(miner));
+
+        if (!_.isObject(best)) {
+            miner.idleOffRoad();
             return;
         }
 
-        miner.memory.donatesEnergy = true;
-        miner.memory.scavenger = RESOURCE_ENERGY;
-        if (miner.carry.energy < miner.carryCapacity) {
-            miner.harvest(closest);
+        if (miner.pos.isNearTo(best)) {
+            miner.harvest(best);
         } else {
-            let site = miner.pos.findInRange<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, 3)[0];
-            if (site) {
-                miner.build(site);
-            } else {
-                miner.harvest(closest);
-            }
+            miner.travelTo(best);
         }
     }
 
     private findMinersBySources() {
         for (let source of this.room.find<Source>(FIND_SOURCES)) {
-            if (source.pos.findInRange(FIND_MY_CREEPS, 1, (c: Creep) => c.partCount(WORK) > 0).length > 0) {
+            if (source.pos.findInRange(FIND_MY_CREEPS, 1, (c: Creep) => CreepHelper.partCount(c, WORK) > 0).length > 0) {
                 return true;
             }
         }

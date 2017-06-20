@@ -74,7 +74,12 @@ export class TerminalNetworkMission extends Mission {
             mostStockedResource = resourceType;
         }
 
-        let leastStockedTerminal = _.sortBy(empire.network.terminals, (t: StructureTerminal) => _.sum(t.store))[0];
+        let leastStockedTerminal = _(empire.network.terminals)
+            .filter(x => !x.room.controller.sign || x.room.controller.sign.text !== "noTrade")
+            .min(x => _.sum(x.store));
+        if (!_.isObject(leastStockedTerminal)) {
+            return;
+        }
         this.terminal.send(mostStockedResource, RESERVE_AMOUNT, leastStockedTerminal.room.name);
         console.log("NETWORK: balancing terminal capacity, sending", RESERVE_AMOUNT, mostStockedResource,
             "from", this.room.name, "to", leastStockedTerminal.room.name);

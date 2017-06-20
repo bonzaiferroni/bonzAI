@@ -27,6 +27,7 @@ export interface TransportAnalysis {
     cartsNeeded: number;
     carryCount: number;
     moveCount: number;
+    maxSpawnEnergy: number;
 }
 
 export interface IgorCommand {
@@ -66,6 +67,12 @@ export interface HeadCountOptions {
     skipMoveToRoom?: boolean;
     boosts?: string[];
     allowUnboosted?: boolean;
+    forceSpawn?: boolean;
+    deathCallback?: (roleName: string, earlyDeath: boolean) => void;
+    freelance?: {
+        roomName: string,
+        urgent: boolean,
+    };
 }
 
 export interface SpawnReservation {
@@ -92,6 +99,7 @@ export interface RaidData {
     targetStructures: Structure[];
     raidMatrix: CostMatrix;
     nextNuke: number;
+    creepAttacks: {[id: string]: number };
 }
 
 export interface FleeAnalysis {

@@ -396,7 +396,7 @@ export class Traveler {
                 }
 
                 let parsed;
-                if (options.highwayBias) {
+                if (options.preferHighway) {
                     parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName) as any;
                     let isHighway = (parsed[1] % 10 === 0) || (parsed[2] % 10 === 0);
                     if (isHighway) {
@@ -419,6 +419,7 @@ export class Traveler {
                 return highwayBias;
             },
         });
+
         if (!_.isArray(ret)) {
             console.log(`couldn't findRoute to ${destination}`);
             return;
@@ -493,7 +494,7 @@ export class Traveler {
         let impassibleStructures: Structure[] = [];
         for (let structure of room.find<Structure>(FIND_STRUCTURES)) {
             if (structure instanceof StructureRampart) {
-                if (!structure.my) {
+                if (!structure.my && !structure.isPublic) {
                     impassibleStructures.push(structure);
                 }
             } else if (structure instanceof StructureRoad) {
@@ -629,54 +630,6 @@ export class Traveler {
 
         return stuck;
     }
-}
-
-export type Coord = {x: number, y: number};
-export type HasPos = {pos: RoomPosition}
-
-export interface TravelData {
-    state: any[];
-    path: string;
-}
-
-export interface TravelState {
-    stuckCount: number;
-    lastCoord: Coord;
-    destination: RoomPosition;
-    cpu: number;
-}
-
-export interface TravelToOptions {
-    ignoreRoads?: boolean;
-    ignoreCreeps?: boolean;
-    ignoreStructures?: boolean;
-    preferHighway?: boolean;
-    highwayBias?: number;
-    allowHostile?: boolean;
-    allowSK?: boolean;
-    range?: number;
-    obstacles?: {pos: RoomPosition}[];
-    roomCallback?: (roomName: string, matrix: CostMatrix) => CostMatrix | boolean;
-    routeCallback?: (roomName: string) => number;
-    returnData?: TravelToReturnData;
-    restrictDistance?: number;
-    useFindRoute?: boolean;
-    maxOps?: number;
-    movingTarget?: boolean;
-    freshMatrix?: boolean;
-    offRoad?: boolean;
-    stuckValue?: number;
-    maxRooms?: number;
-    repath?: number;
-    route?: {[roomName: string]: boolean};
-    ensurePath?: boolean;
-}
-
-export interface TravelToReturnData {
-    nextPos?: RoomPosition;
-    pathfinderReturn?: PathfinderReturn;
-    state?: TravelState;
-    path?: string;
 }
 
 interface PathfinderReturn {

@@ -110,6 +110,8 @@ export class WorldMap {
     }
 
     private updateMemory(room: Room) {
+        if (room.memory.manual) { return; }
+
         if (room.controller) {
             room.memory.level = room.controller.level;
             if (room.controller.owner) {

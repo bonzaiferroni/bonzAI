@@ -1,7 +1,7 @@
 import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
-import {Traveler, TravelToReturnData} from "../Traveler";
+import {Traveler} from "../Traveler";
 import {PathMission} from "./PathMission";
 import {helper} from "../../helpers/helper";
 

@@ -6,12 +6,12 @@ import {MarketTrader} from "./MarketTrader";
 import {BonzaiDiplomat} from "./BonzaiDiplomat";
 import {BonzaiNetwork} from "./BonzaiNetwork";
 import {Scheduler} from "../Scheduler";
-import {Archiver} from "./Archiver";
 import {MemHelper} from "../helpers/MemHelper";
 import {Notifier} from "../notifier";
 import {Janitor} from "./Janitor";
 import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
+import {Archiver} from "./Archiver";
 
 export class Empire {
 
@@ -20,7 +20,6 @@ export class Empire {
     public map: WorldMap;
     public network: TradeNetwork;
     public market: MarketTrader;
-    public archiver: Archiver;
     public janitor: Janitor;
     private updateTick: number;
 
@@ -40,11 +39,10 @@ export class Empire {
         this.spawnGroups = this.map.init();
         this.network = new TradeNetwork(this.map);
         this.market = new MarketTrader(this.network);
-        this.archiver = new Archiver();
-        this.archiver.init();
         this.janitor = new Janitor();
         this.janitor.init();
         SpawnGroup.init(this.spawnGroups);
+        Archiver.init();
     }
 
     /**
@@ -58,9 +56,9 @@ export class Empire {
         this.diplomat.update();
         this.map.update();
         this.network.update();
-        this.archiver.update();
         this.janitor.update();
         SpawnGroup.update(this.spawnGroups);
+        Archiver.update();
     }
 
     /**
@@ -71,9 +69,9 @@ export class Empire {
         this.map.actions();
         this.network.actions();
         this.market.actions();
-        this.archiver.finalize();
         this.janitor.actions();
         SpawnGroup.finalize(this.spawnGroups);
+        Archiver.finalize();
     }
 
     public underCPULimit() {
@@ -118,6 +116,7 @@ export class Empire {
             },
             hostileMemory: {},
             empire: {},
+            freelance: {},
         });
     }
 }

@@ -59,9 +59,9 @@ export class Janitor {
             let room = Game.rooms[roomName];
             let resources = room.find(FIND_DROPPED_RESOURCES) as Resource[];
             for (let resource of resources) {
-                if (resource.amount < 50) { continue; }
+                if (resource.amount < 10) { continue; }
                 let creep = resource.pos.lookFor(LOOK_CREEPS)[0] as Creep;
-                if (creep && creep.my && creep.memory.scavenger === resource.resourceType
+                if (creep && creep.my && creep.memory.scavenger === resource.resourceType && creep.hits === creep.hitsMax
                     && (!creep.carry[resource.resourceType] ||
                     creep.carry[resource.resourceType] < creep.carryCapacity)) {
                     let outcome = creep.pickup(resource);

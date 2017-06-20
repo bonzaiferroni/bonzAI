@@ -4,7 +4,7 @@ import {Mission, MissionMemory, MissionState} from "../missions/Mission";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
-import {TravelToOptions} from "../Traveler";
+import {CreepHelper} from "../../helpers/CreepHelper";
 export class EnhancedBodyguardMission extends Mission {
 
     private squadAttackers: Agent[];
@@ -95,9 +95,9 @@ export class EnhancedBodyguardMission extends Mission {
         }
 
         this.squadAttackers = this.headCount("lee", this.squadAttackerBody, this.getMaxSquads,
-            {prespawn: 50, memory: attackerMemory, skipMoveToRoom: true});
+            {prespawn: 100, memory: attackerMemory, skipMoveToRoom: true});
         this.squadHealers = this.headCount("roy", this.squadHealerBody, this.getMaxSquads,
-            {prespawn: 50, memory: healerMemory, skipMoveToRoom: true});
+            {prespawn: 100, memory: healerMemory, skipMoveToRoom: true});
     }
 
     public actions() {
@@ -153,7 +153,7 @@ export class EnhancedBodyguardMission extends Mission {
         let rangeAttacking = false;
         let msg = "";
         let target = attacker.pos.findClosestByRange(_.filter(this.hostiles,
-            (c: Creep) => c.partCount(HEAL) > 0)) as Creep;
+            (c: Creep) => CreepHelper.partCount(c, HEAL) > 0)) as Creep;
         if (!target) {
             target = attacker.pos.findClosestByRange(this.hostiles) as Creep;
         }

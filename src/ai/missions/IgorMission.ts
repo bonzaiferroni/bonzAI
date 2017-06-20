@@ -606,7 +606,7 @@ export class IgorMission extends Mission {
     }
 
     private findIgorIdlePosition() {
-        if (!this.memory.idlePosition && !Scheduler.delay(this.memory, "igorPos", 1000)) {
+        if (!this.memory.idlePosition || !Scheduler.delay(this.memory, "igorPos", 1000)) {
             this.memory.idlePosition = this.optimalIgorPos();
             if (!this.memory.idlePosition) {
                 this.memory.idlePosition = this.fuzzyIgorPos();

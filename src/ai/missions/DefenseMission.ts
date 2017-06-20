@@ -4,6 +4,7 @@ import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
 import {Scheduler} from "../../Scheduler";
 import {helper} from "../../helpers/helper";
+import {CreepHelper} from "../../helpers/CreepHelper";
 
 interface DefenseMemory extends MissionMemory {
     idlePosition: RoomPosition;
@@ -543,7 +544,7 @@ export class DefenseMission extends Mission {
             this.state.hostileHealers = [];
             this.state.hostileAttackers = [];
             for (let creep of this.room.hostiles) {
-                if (creep.partCount(HEAL) > 12) {
+                if (CreepHelper.partCount(creep, HEAL) > 12) {
                     this.state.hostileHealers.push(creep);
                 } else {
                     this.state.hostileAttackers.push(creep);

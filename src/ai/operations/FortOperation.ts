@@ -79,8 +79,7 @@ export class FortOperation extends Operation {
             }
 
             // upgrader controller
-            let boostUpgraders = this.flag.room.controller.level < 8;
-            this.addMission(new UpgradeMission(this, boostUpgraders));
+            this.addMission(new UpgradeMission(this));
 
             // pave all roads in the missionRoom
             this.addMission(new PaverMission(this, true));

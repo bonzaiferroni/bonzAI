@@ -55,9 +55,9 @@ export var helper = {
                 let currentCost = costs.get(x, y);
                 if (currentCost === 0) {
                     if (terrain === "plain") {
-                        currentCost += 1;
+                        currentCost += 2;
                     } else {
-                        currentCost += 5;
+                        currentCost += 10;
                     }
                 }
                 if (currentCost >= 0xff) { continue; }
@@ -117,20 +117,31 @@ export var helper = {
     },
 
     blockOffExits(matrix: CostMatrix, cost = 0xff, range = 0, roomName?: string): CostMatrix {
-        for (let x = range; x < 50 - range; x += 49 - range * 2) {
-            for (let y = range; y < 50 - range; y++) {
-                if (roomName) {
+        if (roomName && cost < 0xff) {
+            // adjust based on terrain
+            for (let x = range; x < 50 - range; x += 49 - range * 2) {
+                for (let y = range; y < 50 - range; y++) {
                     let terrain = Game.map.getTerrainAt(x, y, roomName);
                     if (terrain !== "wall") { matrix.set(x, y, cost); }
-                } else { matrix.set(x, y, 0xff); }
+                }
             }
-        }
-        for (let x = range; x < 50 - range; x++) {
-            for (let y = range; y < 50 - range; y += 49 - range * 2) {
-                if (roomName) {
+            for (let x = range; x < 50 - range; x++) {
+                for (let y = range; y < 50 - range; y += 49 - range * 2) {
                     let terrain = Game.map.getTerrainAt(x, y, roomName);
                     if (terrain !== "wall") { matrix.set(x, y, cost); }
-                } else { matrix.set(x, y, 0xff); }
+                }
+            }
+        } else {
+            // make impassable
+            for (let x = range; x < 50 - range; x += 49 - range * 2) {
+                for (let y = range; y < 50 - range; y++) {
+                    matrix.set(x, y, 0xff);
+                }
+            }
+            for (let x = range; x < 50 - range; x++) {
+                for (let y = range; y < 50 - range; y += 49 - range * 2) {
+                    matrix.set(x, y, 0xff);
+                }
             }
         }
         return matrix;

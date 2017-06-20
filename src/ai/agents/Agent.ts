@@ -1,7 +1,7 @@
 import {Mission} from "../missions/Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {TravelToOptions, Traveler, TravelData, TravelState, TravelToReturnData, HasPos} from "../Traveler";
+import {Traveler} from "../Traveler";
 import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {Notifier} from "../../notifier";
@@ -10,6 +10,7 @@ import {AbstractAgent} from "./AbstractAgent";
 import {RESERVE_AMOUNT} from "../TradeNetwork";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Viz} from "../../helpers/Viz";
+import {CreepHelper} from "../../helpers/CreepHelper";
 
 export class Agent extends AbstractAgent {
 
@@ -85,7 +86,7 @@ export class Agent extends AbstractAgent {
             return this.creep.withdraw(target, resourceType, amount);
         }
     }
-    public partCount(partType: string) { return this.creep.partCount(partType); }
+    public partCount(partType: string) { return CreepHelper.partCount(this.creep, partType); }
 
     public travelTo(destination: {pos: RoomPosition} | RoomPosition, options?: TravelToOptions): number {
         if (destination instanceof RoomPosition) { destination = {pos: destination}; }
@@ -215,21 +216,21 @@ export class Agent extends AbstractAgent {
         }
 
         if (cachePos) {
-            return this.travelTo(this.cacheIdlePosition(place, acceptableRange)) as number;
+            return this.travelTo(this.cacheIdlePosition(place, acceptableRange));
         }
 
         if (range <= 1) {
             let position = this.findIdlePosition(place, acceptableRange);
             if (!position) { return; }
-            return this.travelTo({pos: position}) as number;
+            return this.travelTo({pos: position});
         }
 
         return this.travelTo(place) as number;
     }
 
     private cacheIdlePosition(place: {pos: RoomPosition}, acceptableRange: number): RoomPosition {
-        if (this.memory.idlePosition) {
-            let position = helper.deserializeRoomPosition(this.memory.idlePosition);
+        if (this.memory.idlePos) {
+            let position = MemHelper.deserializeIntPosition(this.memory.idlePos, this.room.name);
             let range = position.getRangeTo(place);
             if (range === 0) {
                 return position;
@@ -237,16 +238,15 @@ export class Agent extends AbstractAgent {
             if (range <= acceptableRange && position.isPassible()) {
                 return position;
             } else {
-                this.memory.idlePosition = undefined;
+                this.memory.idlePos = undefined;
                 return this.cacheIdlePosition(place, acceptableRange);
             }
         } else {
             let position = this.findIdlePosition(place, acceptableRange);
             if (position) {
-                this.memory.idlePosition = position;
+                this.memory.idlePos = MemHelper.serializeIntPosition(this.memory.idlePos);
                 return position;
             } else {
-                this.memory.idlePosition = place.pos;
                 console.log(`AGENT: no idlepos within range ${acceptableRange} near ${place.pos}`);
                 return place.pos;
             }
@@ -386,13 +386,17 @@ export class Agent extends AbstractAgent {
         this.memory.prep = false;
     }
 
-    public fleeHostiles(fleeRange = 6): boolean {
-        let value = this.fleeByPath(this.room.fleeObjects, fleeRange, 2, false);
+    public fleeHostiles(fleeRange = 6, fleeDelay = 2, confineToRoom = false, peekaboo = false): boolean {
+        let value = this.fleeByPath(this.room.fleeObjects, fleeRange, fleeDelay, confineToRoom, peekaboo);
         return value;
     }
 
+    public clearFleeData() {
+        delete this.memory._flee;
+    }
+
     public fleeByPath(fleeObjects: {pos: RoomPosition}[], fleeRange: number, fleeDelay: number,
-                      confineToRoom = false): boolean {
+                      confineToRoom = false, peekaboo = false): boolean {
 
         let closest = this.pos.findClosestByRange(fleeObjects);
         let rangeToClosest = 50;
@@ -405,7 +409,7 @@ export class Agent extends AbstractAgent {
 
             let fleeData = this.memory._flee;
 
-            if (this.pos.isNearExit(0)) {
+            if (this.pos.isNearExit(0) && !peekaboo) {
                 this.moveOffExit();
                 return true;
             }
@@ -432,6 +436,10 @@ export class Agent extends AbstractAgent {
 
         let fleeData = this.memory._flee as FleeData;
         fleeData.delay = fleeDelay;
+
+        if (peekaboo && this.pos.isNearExit(0)) {
+            return true;
+        }
 
         if (fleeData.nextPos) {
             let position = helper.deserializeRoomPosition(fleeData.nextPos);
@@ -460,7 +468,7 @@ export class Agent extends AbstractAgent {
         }
 
         if (!fleeData.path) {
-            let avoidance = _.map(fleeObjects, obj => { return {pos: obj.pos, range: 10 }; });
+            let avoidance = _.map(fleeObjects, obj => { return {pos: obj.pos, range: Math.max(fleeRange, 10) }; });
 
             let ret = PathFinder.search(this.pos, avoidance, {
                 flee: true,
@@ -472,9 +480,10 @@ export class Agent extends AbstractAgent {
                 },
             });
 
+            if (this.name === "gaol7_decoy_1") { console.log(JSON.stringify(ret))}
             if (ret.path.length === 0) { return true; }
 
-            fleeData.path = Traveler.serializePath(this.pos, ret.path);
+            fleeData.path = Traveler.serializePath(this.pos, ret.path, "purple");
         }
 
         let nextDirection = parseInt(fleeData.path[0], 10);
@@ -816,18 +825,20 @@ export class Agent extends AbstractAgent {
             let battery: StoreStructure|Creep = _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
                 .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
                 .filter(x => x.store.energy >= minEnergy)
-                .filter(x => !this.room.controller || !x.pos.inRangeTo(this.room.controller, 3))
-                .min(x => x.pos.getRangeTo(this));
+                // don't draw from a controller battery
+                .filter(x => !(x instanceof StructureContainer) || !x.room.controller ||
+                    x.pos.getRangeTo(x.room.controller) > 3 || x.pos.findInRange(FIND_SOURCES, 1).length > 0)
+                .min(x => x.pos.getRangeTo(this) * 100 - x.store.energy);
             if (!_.isObject(battery)) {
                 battery = _(this.room.find<Creep>(FIND_MY_CREEPS))
                     .filter(x => x.memory.donatesEnergy && x.carry.energy >= 50)
                     .filter(x => x.memory.donating === undefined || Game.time > x.memory.donating)
-                    .min(x => x.pos.getRangeTo(this));
-                if (battery && battery instanceof Object) {
+                    .min(x => x.pos.getRangeTo(this) * 100 - x.carry.energy);
+                if (_.isObject(battery)) {
                     battery.memory.donating = Game.time + 20;
                 }
             }
-            if (battery instanceof Object) {
+            if (_.isObject(battery)) {
                 return battery;
             }
         };
@@ -840,10 +851,10 @@ export class Agent extends AbstractAgent {
             }
         };
 
-        return MemHelper.findObject<StoreStructure|Creep>(this, "battery", find, validate);
+        return MemHelper.findObject<StoreStructure|Creep>(this, "batteryId", find, validate);
     }
 
-    public static squadTravel(leader: Agent, follower: Agent, target: {pos: RoomPosition},
+    public static squadTravel(leader: Agent, follower: Agent, target: HasPos|RoomPosition,
                               options?: TravelToOptions): number {
 
         let outcome;
@@ -875,60 +886,103 @@ export class Agent extends AbstractAgent {
         return _.sum(this.carry) <= norm.storeCapacity - _.sum(norm.store);
     }
 
-    public standardHealing(agents: Agent[]): boolean {
-        let hurtAgents = _(this.pos.findInRange(agents, 3))
-            .filter(agent => agent.hits < agent.hitsMax)
-            .sortBy(agent => agent.hits - agent.hitsMax)
-            .value();
-        if (hurtAgents.length > 0) {
 
-            let healPotential = this.getActiveBodyparts(HEAL) * 12;
-            if (_.find(this.creep.body, part => part.boost)) { healPotential *= 4; }
+    public standardAgentHealing(agents: Agent[]): number {
+        return this.standardHealing(_.map(agents, x => x.creep));
+    }
 
-            let mostHurt = _.head(hurtAgents);
-            if (mostHurt.pos.isNearTo(this)) {
-                this.heal(mostHurt);
-                return true;
-            }
+    public standardHealing(creeps?: Creep[]): number {
+        if (!creeps) {
+            creeps = this.room.find<Creep>(FIND_MY_CREEPS);
+        }
+        let bestHealTarget = _(this.pos.findInRange(creeps, 3))
+            .filter(x => {
+                if (!x.hitsTemp) {
+                    x.hitsTemp = x.hits;
+                }
+                return x.hitsTemp < x.hitsMax;
+            })
+            .max(x => {
+                let healScore = x.hitsMax - x.hitsTemp;
+                if (x.pos.getRangeTo(this) > 1) { healScore -= 2000; }
+                if (CreepHelper.partCount(x, HEAL) > 2) { healScore += 1000; }
+                return healScore;
+            });
 
-            let nearbyAndHurt = _.filter(this.pos.findInRange(hurtAgents, 1),
-                agent => agent.hits < agent.hitsMax - healPotential);
-            if (nearbyAndHurt.length > 0) {
-                this.heal(_.head(nearbyAndHurt));
-                return true;
-            }
+        if (!_.isObject(bestHealTarget)) {
+            return ERR_NOT_IN_RANGE;
+        }
 
-            this.rangedHeal(_.head(hurtAgents));
-            return true;
+        let outcome;
+        let range = this.pos.getRangeTo(bestHealTarget);
+        if (range <= 1) {
+            outcome = this.heal(bestHealTarget);
         } else {
-            return false;
+            outcome = this.rangedHeal(bestHealTarget);
         }
+        if (outcome === OK) {
+            bestHealTarget.hitsTemp += this.expectedHealingAtRange(range);
+        }
+        return outcome;
     }
 
-    public standardRangedAttack(): Creep {
-        let hostilesInRange = _(this.pos.findInRange<Creep>(FIND_HOSTILE_CREEPS, 3))
-            .sortBy(creep => creep.hits - creep.hitsMax)
+    public standardRangedAttack(hostiles?: Creep[]): number {
+        if (!hostiles) {
+            hostiles = this.room.hostiles;
+        }
+        let hostilesInRange = _(this.pos.findInRange<Creep>(hostiles, 3))
+            .filter(x => !x.pos.lookForStructure(STRUCTURE_RAMPART))
+            .sortBy(creep => {
+                if (!creep.hitsTemp) { creep.hitsTemp = creep.hits; }
+                return creep.hitsTemp - creep.hitsMax;
+            })
             .value();
-        if (hostilesInRange.length > 0) {
-            if (hostilesInRange.length > 2 || this.pos.findClosestByRange(hostilesInRange).pos.isNearTo(this)) {
-                this.rangedMassAttack();
-                return hostilesInRange[0];
-            } else {
-                this.rangedAttack(hostilesInRange[0]);
-                return hostilesInRange[0];
+        if (hostilesInRange.length === 0) {
+            if (this.pos.findInRange(hostiles, 3).length > 0) {
+                console.log(`AGENT: error in standard ranged attack ${this.room.name}`);
             }
+            return ERR_NOT_IN_RANGE;
+        }
+
+        let closest = this.pos.findClosestByRange(hostilesInRange);
+        if (this.pos.isNearTo(closest) || this.massAttackDamage() >= 10) {
+            let outcome = this.rangedMassAttack();
+            this.say(`1 ${outcome} ${closest.hits}`);
+            for (let hostile of hostilesInRange) {
+                hostile.hitsTemp -= this.expectedMassDamage(hostile);
+            }
+        } else {
+            let outcome = this.rangedAttack(hostilesInRange[0]);
+            this.say(`2 ${outcome} ${closest.hits}`);
+            hostilesInRange[0].hitsTemp -= this.getPotential(RANGED_ATTACK);
         }
     }
 
-    public standardMelee(damageThreshold = 0): Creep {
-        if (this.hits < damageThreshold) { return; }
-        let hostilesInRange = _(this.pos.findInRange<Creep>(FIND_HOSTILE_CREEPS, 1))
-            .sortBy(creep => creep.hits - creep.hitsMax)
-            .value();
-        if (hostilesInRange.length > 0) {
-            this.attack(hostilesInRange[0]);
-            return hostilesInRange[0];
+    public standardMelee(hostiles?: Creep[], damageThreshold = 0): number {
+        if (!hostiles) {
+            hostiles = this.room.hostiles;
         }
+
+        if (this.hits < damageThreshold) {
+            return ERR_BUSY;
+        }
+
+        let bestTarget = _(this.pos.findInRange<Creep>(hostiles, 1))
+            .max(x => {
+                if (!x.hitsTemp) {
+                    x.hitsTemp = x.hits;
+                }
+                return x.hitsMax - x.hitsTemp + CreepHelper.partCount(x, HEAL) - CreepHelper.partCount(x, ATTACK);
+            });
+        if (!_.isObject(bestTarget)) {
+            return ERR_NOT_IN_RANGE;
+        }
+        let outcome = this.attack(bestTarget);
+        if (outcome === OK) {
+            let potential = this.getPotential(ATTACK);
+            bestTarget.hitsTemp -= potential;
+        }
+        return outcome;
     }
 
     private arrivedAtPosition(position: RoomPosition) {
@@ -1107,7 +1161,12 @@ export class Agent extends AbstractAgent {
         }
     }
 
-    public massAttackDamage(targets: {pos: RoomPosition}[]): number {
+    public massAttackDamage(targets?: {pos: RoomPosition}[]): number {
+
+        if (!targets) {
+            targets = this.room.hostiles;
+        }
+
         let hostiles = this.pos.findInRange(targets, 3);
         let totalDamage = 0;
         let rangeMap = {
@@ -1223,6 +1282,15 @@ export class Agent extends AbstractAgent {
         let pos = Traveler.normalizePos(myExit);
         let direction = this.pos.getDirectionTo(pos);
         return this.move(direction);
+    }
+
+    public findClosestContainer(room: Room, emptyOnly = false): StoreStructure {
+        if (this.room !== room) { return room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)[0]; }
+        let containers = this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER);
+        if (emptyOnly) {
+            containers = _.filter(containers, x => _.sum(x.store) < x.storeCapacity);
+        }
+        return this.pos.findClosestByRange(containers);
     }
 }
 

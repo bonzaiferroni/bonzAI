@@ -11,12 +11,10 @@ interface EnergyStructure extends Structure {
 }
 
 interface RefillMemory extends MissionMemory {
-    cartsLastTick: number;
     max: number;
 }
 
 interface RefillState extends MissionState {
-    emergencyMode: boolean;
     empties: EnergyStructure[];
 }
 
@@ -42,13 +40,15 @@ export class RefillMission extends Mission {
     }
 
     public update() {
-        this.state.emergencyMode = this.memory.cartsLastTick === 0;
     }
 
-    public roleCall() {
+    private maxCarts = () => {
+        if (this.room.storage || this.room.controller.level < 3) { return 1; }
+        return 2;
+    };
 
-        let max = () => this.room.storage ? 1 : 2;
-        let emergencyMax = () => this.state.emergencyMode ? 1 : 0;
+    public roleCall() {
+        let emergencyMax = () => this.roleCount("spawnCart") === 0 && this.room.controller.level > 1 ? 1 : 0;
 
         let emergencyBody = () => { return this.workerBody(0, 4, 2); };
         this.emergencyCarts = this.headCount("emergency_" + this.name, emergencyBody, emergencyMax);
@@ -58,8 +58,11 @@ export class RefillMission extends Mission {
         };
 
         let memory = { scavenger: RESOURCE_ENERGY };
-        this.carts = this.headCount("spawnCart", cartBody, max, {prespawn: 50, memory: memory});
-        this.memory.cartsLastTick = this.carts.length;
+        this.carts = this.headCount("spawnCart", cartBody, this.maxCarts, {
+            prespawn: 50,
+            memory: memory,
+            forceSpawn: this.room.controller.level >= 4,
+        });
     }
 
     public actions() {
@@ -95,7 +98,7 @@ export class RefillMission extends Mission {
             if (cart.carry.energy < cart.carryCapacity * .8) {
                 cart.memory.hasLoad = false;
             } else {
-                cart.idleOffRoad();
+                cart.idleNear(this.room.storage || this.room.findStructures<StructureSpawn>(STRUCTURE_SPAWN)[0], 3);
             }
             return;
         }

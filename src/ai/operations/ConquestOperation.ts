@@ -67,7 +67,7 @@ export class ConquestOperation extends Operation {
         this.addMission(new RemoteBuildMission(this, false));
 
         // upgrader controller
-        this.addMission(new UpgradeMission(this, true));
+        this.addMission(new UpgradeMission(this));
 
         // bring in energy from spawnroom (requires a flag w/ name "opName_destination" be placed on controller battery)
         let destinationFlag = Game.flags[`${this.name}_destination`];

@@ -1,4 +1,5 @@
 import {helper} from "../../helpers/helper";
+import {CreepHelper} from "../../helpers/CreepHelper";
 export class AbstractAgent {
 
     public creep: Creep;
@@ -13,7 +14,7 @@ export class AbstractAgent {
     public fatigue: number;
     public memory: any;
     public posLastTick: RoomPosition;
-    protected cache: any;
+    public cache: any;
     private potentials: {[partType: string]: number};
 
     constructor(creep: Creep) {
@@ -105,5 +106,44 @@ export class AbstractAgent {
             damage += this.getPotential(ATTACK);
         }
         return damage;
+    }
+
+    public expectedHealing(place: {pos: RoomPosition}): number {
+        let range = this.pos.getRangeTo(place);
+        return this.expectedHealingAtRange(range);
+    }
+
+    public expectedHealingAtRange(range: number) {
+        let potential = this.getPotential(HEAL);
+        if (range <= 1) {
+            return potential;
+        } else {
+            return potential / 3;
+        }
+    }
+
+    public expectedMassDamage(place: {pos: RoomPosition}): number {
+        let range = this.pos.getRangeTo(place);
+        return this.expectedHealingAtRange(range);
+    }
+
+    public expectedMassDamageAtRange(range: number): number {
+        let potential = this.getPotential(RANGED_ATTACK);
+        if (range <= 1) {
+            return potential;
+        } else if (range === 2) {
+            return Math.floor(potential * .4);
+        } else if (range === 3) {
+            return Math.floor(potential * .1);
+        } else {
+            return 0;
+        }
+    }
+
+    public isBoosted() {
+        if (this.cache.isBoosted === undefined) {
+            this.cache.isBoosted = CreepHelper.isBoosted(this.creep);
+        }
+        return this.cache.isBoosted;
     }
 }

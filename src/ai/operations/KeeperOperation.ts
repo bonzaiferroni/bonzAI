@@ -34,12 +34,16 @@ export class KeeperOperation extends Operation {
             return;
         }
 
+        if (this.spawnGroup.maxSpawnEnergy < 5300) {
+            console.log(`KEEPER: unable to spawn in ${this.roomName}, need 5300 to spawn KeeperMission`);
+            return;
+        }
+
         this.addMission(new ScoutMission(this));
         if (!this.state.hasVision) { return; } // early
 
         this.invaderGuru = new InvaderGuru(this);
         this.invaderGuru.init();
-        this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
         this.addMission(new LairMission(this, this.invaderGuru));
 
         MiningMission.Add(this, false);
@@ -53,7 +57,9 @@ export class KeeperOperation extends Operation {
 
     public update() {
         this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
-        this.invaderGuru.update();
+        if (this.invaderGuru) {
+            this.invaderGuru.update();
+        }
     }
 
     public finalize() {

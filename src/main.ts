@@ -10,6 +10,7 @@ import {Operation, OperationPriorityMap} from "./ai/operations/Operation";
 import {OperationFactory} from "./ai/operations/OperationFactory";
 import {Tick} from "./Tick";
 import {consoleCommands} from "./helpers/consoleCommands";
+import {Notifier} from "./notifier";
 
 /* _____ init phase - instantiate operations _____ */
 // init game.cache
@@ -101,6 +102,7 @@ module.exports.loop = function () {
         Profiler.end("postOperations");
         Profiler.finalize();
         GrafanaStats.run(empire);
+        Notifier.finalize();
         TimeoutTracker.finalize();
     } catch (e) { console.log("error during post-operations phase\n", e.stack); }
 

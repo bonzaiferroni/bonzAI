@@ -4,6 +4,7 @@ import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {Traveler} from "../Traveler";
+import {CreepHelper} from "../../helpers/CreepHelper";
 
 interface GuardMissionState extends MissionState {
     guardedFlags: Flag[];
@@ -21,6 +22,7 @@ interface GuardMissionMemory extends MissionMemory {
     targetId: string;
     ticksToLive: {[key: string]: number};
     swampRat: boolean;
+    vsRanger: boolean;
 }
 
 export class GuardMission extends Mission {
@@ -29,6 +31,7 @@ export class GuardMission extends Mission {
 
     public state: GuardMissionState;
     public memory: GuardMissionMemory;
+    private distance: number;
 
     constructor(operation: Operation) {
         super(operation, "guard");
@@ -44,6 +47,9 @@ export class GuardMission extends Mission {
         this.state.guardedFlags = this.getFlagSet("_guarded_", 10);
         this.state.potency = Math.min(this.memory.potency, 8);
         this.state.targetFlags = this.getFlagSet("_targets_", 10);
+        if (!this.distance && this.state.guardedFlags.length > 0) {
+            this.distance = Traveler.findTravelPath(this.spawnGroup, this.state.guardedFlags[0]).path.length;
+        }
     }
 
     public maxGuards = () => {
@@ -53,6 +59,14 @@ export class GuardMission extends Mission {
     };
 
     public guardBody = () => {
+        if (this.memory.vsRanger) {
+            return this.configBody({
+                [MOVE]: 25,
+                [RANGED_ATTACK]: 20,
+                [HEAL]: 5,
+            });
+        }
+
         if (this.memory.potency > 8) {
             console.log(`GUARD: ${
                 this.operation.name} potency is higher than 8, seems to be struggling`);
@@ -78,7 +92,7 @@ export class GuardMission extends Mission {
         }
 
         this.guards = this.headCount("ranger", this.guardBody, this.maxGuards, {
-            prespawn: 50,
+            prespawn: this.distance * 1.05,
             boosts: boosts,
             allowUnboosted: false,
             disableNotify: true,
@@ -99,7 +113,9 @@ export class GuardMission extends Mission {
     }
 
     private rangerActions(guard: Agent) {
-        if (guard.memory.flagIndex === undefined) { guard.memory.flagIndex = 0; }
+        if (guard.memory.flagIndex === undefined || guard.memory.flagIndex >= this.state.guardedFlags.length) {
+            guard.memory.flagIndex = 0;
+        }
         let guardedFlag;
         if (guard.memory.reversed) {
             guardedFlag = this.state.guardedFlags.reverse()[guard.memory.flagIndex];
@@ -129,7 +145,9 @@ export class GuardMission extends Mission {
         }
 
         let hostiles = _.filter(guard.room.hostiles, (c: Creep) => {
-            return c.owner.username !== "Source Keeper" && !c.pos.lookForStructure(STRUCTURE_RAMPART);
+            if (c.owner.username === "Source Keeper") { return false; }
+            let rampart = c.pos.lookForStructure(STRUCTURE_RAMPART);
+            if (!rampart || (rampart.hits < 10000 && this.memory.minPotency >= 5)) { return true; }
         });
 
         if (hostiles.length > 0) {
@@ -138,16 +156,19 @@ export class GuardMission extends Mission {
         }
 
         if (guard.pos.roomName !== guardedFlag.pos.roomName) {
-            guard.travelTo(guardedFlag);
+            guard.travelTo(guardedFlag, {allowSK: true});
             return;
         }
 
         if (guard.room.controller && guard.room.controller.owner
             && !empire.diplomat.allies[guard.room.controller.owner.username]) {
-            let structureTarget = guard.pos.findClosestByRange(FIND_HOSTILE_SPAWNS) as Structure;
-            if (structureTarget) {
+            let structureTarget = guard.pos.findClosestByRange<Structure>(FIND_HOSTILE_SPAWNS);
+            if (!structureTarget && this.memory.minPotency >= 5) {
+                structureTarget = guard.pos.findClosestByRange<Structure>(FIND_HOSTILE_STRUCTURES);
+            }
+            if (structureTarget && !(structureTarget instanceof StructureController)) {
                 if (!guard.pos.inRangeTo(structureTarget, 3)) {
-                    guard.travelTo(structureTarget);
+                    guard.travelTo(structureTarget, {range: 3});
                 } else {
                     guard.rangedAttack(structureTarget);
                 }
@@ -164,22 +185,24 @@ export class GuardMission extends Mission {
             }
         }
 
-        if (guard.pos.isNearTo(guardedFlag)) {
+        if (guard.pos.inRangeTo(guardedFlag, 5) && !guard.pos.isNearExit(0)) {
             guard.memory.flagIndex++;
             if (guard.memory.flagIndex >= this.state.guardedFlags.length) {
                 guard.memory.reversed = !guard.memory.reversed;
                 guard.memory.flagIndex = 0;
             }
         } else {
-            guard.travelTo(guardedFlag);
+            guard.travelTo(guardedFlag, {allowSK: true});
         }
     }
 
     private guardAttack(guard: Agent, hostiles: Creep[]) {
         let myRangedPartCount = guard.partCount(RANGED_ATTACK);
-        for (let hostile of hostiles) {
-            if (hostile.partCount(RANGED_ATTACK) > myRangedPartCount * (this.memory.activateBoost ? 4 : 1)) {
-                this.state.scaryDudes.push(hostile);
+        if (!this.memory.vsRanger) {
+            for (let hostile of hostiles) {
+                if (CreepHelper.partCount(hostile, RANGED_ATTACK) > myRangedPartCount * (this.memory.activateBoost ? 4 : 1)) {
+                    this.state.scaryDudes.push(hostile);
+                }
             }
         }
 

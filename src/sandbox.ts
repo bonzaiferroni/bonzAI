@@ -5,7 +5,7 @@ import {RoomHelper} from "./ai/RoomHelper";
 import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
-import {Traveler, TravelToReturnData} from "./ai/Traveler";
+import {Traveler} from "./ai/Traveler";
 import {Profiler} from "./Profiler";
 import {Viz} from "./helpers/Viz";
 
@@ -22,6 +22,19 @@ export var sandBox = {
                 creep.claimController(creep.room.controller);
             } else {
                 empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE], "claimer");
+            }
+        }
+
+        let signerFlag = Game.flags["signerFlag"];
+        if (signerFlag) {
+            let creep = Game.creeps["signer"];
+            if (creep) {
+                let data = {} as TravelToReturnData;
+                creep.travelTo(signerFlag, {returnData: data});
+                if (data.path) { creep.say(`${data.path.length} more!`); }
+                creep.signController(creep.room.controller, "noTrade");
+            } else {
+                empire.spawnFromClosest(signerFlag.pos, [MOVE], "signer");
             }
         }
 

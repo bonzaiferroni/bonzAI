@@ -10,6 +10,7 @@ import {RoomHelper} from "../RoomHelper";
 import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
+import {CreepHelper} from "../../helpers/CreepHelper";
 
 export interface MissionState {
     hasVision?: boolean;
@@ -27,7 +28,6 @@ export interface MissionMemory {
     transportAnalysis?: TransportAnalysis;
     storageId?: string;
     nextStorageCheck?: number;
-    prespawn?: number;
 }
 
 export abstract class Mission {
@@ -86,7 +86,7 @@ export abstract class Mission {
             this.initState();
             this.init();
         } catch (e) {
-            Notifier.reportException(e, "init", this.name);
+            Notifier.reportException(e, "init", this.roomName);
         }
     }
 
@@ -106,7 +106,7 @@ export abstract class Mission {
                 mission.update();
                 // Profiler.end("in_m." + missionName.substr(0, 3));
             } catch (e) {
-                Notifier.reportException(e, "update", this.name);
+                Notifier.reportException(e, "update", mission.roomName);
             }
         }
     }
@@ -125,7 +125,7 @@ export abstract class Mission {
                 mission.roleCall();
                 // Profiler.end("rc_m." + missionName.substr(0, 3));
             } catch (e) {
-                Notifier.reportException(e, "roleCall", missionName);
+                Notifier.reportException(e, "roleCall", mission.roomName);
             }
         }
     }
@@ -144,7 +144,7 @@ export abstract class Mission {
                 mission.actions();
                 // Profiler.end("ac_m." + missionName.substr(0, 3));
             } catch (e) {
-                Notifier.reportException(e, "actions", missionName);
+                Notifier.reportException(e, "actions", mission.roomName);
             }
         }
     }
@@ -163,7 +163,7 @@ export abstract class Mission {
                 mission.finalize();
                 // Profiler.end("fi_m." + missionName.substr(0, 3));
             } catch (e) {
-                Notifier.reportException(e, "finalize", missionName);
+                Notifier.reportException(e, "finalize", mission.roomName);
             }
         }
     }
@@ -186,23 +186,6 @@ export abstract class Mission {
     }
 
     protected abstract invalidateCache();
-
-    public setBoost(activateBoost: boolean) {
-        let oldValue = this.memory.activateBoost;
-        this.memory.activateBoost = activateBoost;
-        return `changing boost activation for ${this.name} in ${this.operation.name} from ${oldValue} to ` +
-            `${activateBoost}`;
-    }
-
-    public setMax(max: number) {
-        let oldValue = this.memory.max;
-        this.memory.max = max;
-        return `changing max creeps for ${this.name} in ${this.operation.name} from ${oldValue} to ${max}`;
-    }
-
-    public setSpawnGroup(spawnGroup: SpawnGroup) {
-        this.spawnGroup = spawnGroup;
-    }
 
     public invalidateSpawnDistance() {
         if (this.memory.distanceToSpawn) {
@@ -247,6 +230,7 @@ export abstract class Mission {
         if (!this.memory.hc[roleName]) { this.memory.hc[roleName] = this.findOrphans(roleName); }
         let creepNames = this.memory.hc[roleName] as string[];
 
+        // find creeps
         let count = 0;
         for (let i = 0; i < creepNames.length; i++) {
             let creepName = creepNames[i];
@@ -260,13 +244,38 @@ export abstract class Mission {
                 }
                 if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
             } else {
+                if (options.deathCallback) {
+                    options.deathCallback(roleName, Game.time - Memory.creeps[creepName].birthTick < CREEP_LIFE_TIME);
+                }
                 creepNames.splice(i, 1);
                 delete Memory.creeps[creepName];
                 i--;
             }
         }
 
-        let allowSpawn = this.spawnGroup.isAvailable && this.allowSpawn && (this.state.hasVision || options.blindSpawn);
+        // manage freelancing
+        if (options.freelance) {
+            this.removeHired(roleName, creepArray, creepNames);
+
+            if (Math.random() > .8 && count < getMax()) {
+                let creep = this.hireFreelance(roleName);
+                if (creep) {
+                    if (creep instanceof Creep) {
+                        this.cache.spawnedThisTick.push(roleName);
+                        creepNames.push(creep.name);
+                        creepArray.push(creep);
+                        return creepArray;
+                    } else if (!options.freelance.urgent) {
+                        console.log(`waiting to hire ${creep} in ${this.operation.name}`);
+                        return creepArray;
+                    }
+                }
+            }
+        }
+
+        // manage spawning
+        let allowSpawn = (this.spawnGroup.isAvailable || options.forceSpawn) && this.allowSpawn
+            && (this.state.hasVision || options.blindSpawn);
         if (allowSpawn && count < getMax()) {
             let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
             let body = getBody();
@@ -279,6 +288,73 @@ export abstract class Mission {
 
         return creepArray;
     }
+
+    public removeHired(roleName: string, creepArray: Creep[], creepNames: string[]) {
+
+        let employerName = `${this.operation.name}_${this.name}`;
+
+        if (!Memory.freelance[roleName]) { Memory.freelance[roleName] = {}; }
+        for (let i = 0; i < creepArray.length; i++) {
+            let creep = creepArray[i];
+            let ticket = Memory.freelance[roleName][creep.name];
+            if (!ticket) { continue; }
+            if (ticket.status === FreelanceStatus.Hired && ticket.employer !== employerName) {
+                Notifier.log(`MISSION: *** freelance removed ${creep.name} as a ${roleName} in ${this.roomName}`);
+                delete Memory.freelance[roleName][creep.name];
+                _.pull(creepArray, creep);
+                _.pull(creepNames, creep.name);
+                i--;
+            }
+        }
+    }
+
+    public hireFreelance(roleName: string): Creep|string {
+
+        let foundBusy;
+        let employerName = `${this.operation.name}_${this.name}`;
+
+        for (let creepName in Memory.freelance[roleName]) {
+            let creep = Game.creeps[creepName];
+
+            if (creep) {
+
+                // see if it is close enough
+                let distance = Game.map.getRoomLinearDistance(this.roomName, creep.pos.roomName);
+                if (distance > 2) { continue; }
+                let effectiveLifeSpan = creep.ticksToLive - distance * 50;
+                if (effectiveLifeSpan < 200) { continue; }
+
+                // see if it is available
+                let ticket = Memory.freelance[roleName][creepName];
+                if (ticket.employer === employerName) { continue; }
+                if (ticket.status === FreelanceStatus.Hired) { continue; }
+                if (ticket.status === FreelanceStatus.Busy) {
+                    foundBusy = creep.name;
+                    continue;
+                }
+
+                Memory.freelance[roleName][creepName] = {status: FreelanceStatus.Hired, employer: employerName };
+                Notifier.log(`MISSION: *** freelance hired ${creep.name} to be a ${roleName} in ${this.roomName}`);
+                return creep;
+            } else {
+                delete Memory.creeps[creepName];
+                delete Memory.freelance[roleName][creepName];
+            }
+        }
+
+        if (foundBusy) {
+            return foundBusy;
+        }
+    }
+
+    protected updateFreelanceStatus(roleName: string, agent: Agent, status: FreelanceStatus) {
+        let employerName = `${this.operation.name}_${this.name}`;
+        Memory.freelance[roleName][agent.name] = {status: status, employer: employerName};
+    }
+
+    protected deathNotify = (roleName: string, earlyDeath: boolean) => {
+        console.log(`MISSION: ${roleName} from ${this.operation.name} died, earlyDeath: ${earlyDeath}`);
+    };
 
     protected spawnedThisTick(roleName: string) {
         return _.includes(this.cache.spawnedThisTick, roleName);
@@ -295,42 +371,6 @@ export abstract class Mission {
         _.pull(this.memory.hc[fromRole], agent.name);
         if (!this.memory.hc[toRole]) { this.memory.hc[toRole] = []; }
         this.memory.hc[toRole].push(agent.name);
-    }
-
-    protected spawnSharedAgent(roleName: string, getBody: () => string[]): Agent {
-        let spawnMemory = this.spawnGroup.spawns[0].memory;
-        if (!spawnMemory.communityRoles) { spawnMemory.communityRoles = {}; }
-
-        let employerName = this.operation.name + this.name;
-        let creep: Creep;
-        if (spawnMemory.communityRoles[roleName]) {
-            let creepName = spawnMemory.communityRoles[roleName];
-            creep = Game.creeps[creepName];
-            if (creep && Game.map.getRoomLinearDistance(this.spawnGroup.room.name, creep.room.name) <= 3) {
-                if (creep.memory.employer === employerName || (!creep.memory.lastTickEmployed ||
-                    Game.time - creep.memory.lastTickEmployed > 1)) {
-                    creep.memory.employer = employerName;
-                    creep.memory.lastTickEmployed = Game.time;
-                    return new Agent(creep, this);
-                }
-            } else {
-                delete Memory.creeps[creepName];
-                delete spawnMemory.communityRoles[roleName];
-            }
-        }
-
-        if (!creep && this.spawnGroup.isAvailable) {
-            let creepName = "community_" + roleName;
-            while (Game.creeps[creepName]) {
-                creepName = "community_" + roleName + "_" + Math.floor(Math.random() * 100);
-            }
-            let outcome = this.spawnGroup.spawn(getBody(), creepName, undefined, undefined);
-            if (_.isString(outcome)) {
-                spawnMemory.communityRoles[roleName] = outcome;
-            } else if (Game.time % 10 !== 0 && outcome !== ERR_NOT_ENOUGH_RESOURCES) {
-                console.log(`error spawning community ${roleName} in ${this.operation.name} outcome: ${outcome}`);
-            }
-        }
     }
 
     /**
@@ -360,6 +400,17 @@ export abstract class Mission {
             let amount = config[partType];
             for (let i = 0; i < amount; i++) {
                 body.push(partType);
+            }
+        }
+        return body;
+    }
+
+    protected configBody2(config: {part: string, count: number}[]): string[] {
+        let body: string[] = [];
+        for (let value of config) {
+            let amount = value.count;
+            for (let i = 0; i < amount; i++) {
+                body.push(value.part);
             }
         }
         return body;
@@ -406,7 +457,8 @@ export abstract class Mission {
      */
     protected cacheTransportAnalysis(distance: number, load: number): TransportAnalysis {
         if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load
-            || distance !== this.memory.transportAnalysis.distance) {
+            || distance !== this.memory.transportAnalysis.distance
+            || this.spawnGroup.maxSpawnEnergy !== this.memory.transportAnalysis.maxSpawnEnergy) {
             this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy);
         }
         return this.memory.transportAnalysis;
@@ -427,6 +479,7 @@ export abstract class Mission {
             cartsNeeded: cartsNeeded,
             carryCount: cargoUnitsPerCart * 2,
             moveCount: cargoUnitsPerCart,
+            maxSpawnEnergy: maxSpawnEnergy,
         };
     }
 
@@ -531,7 +584,6 @@ export abstract class Mission {
     private prepAgent(agent: Agent, options: HeadCountOptions) {
         if (agent.memory.prep) { return true; }
 
-
         if (options.disableNotify) {
             this.disableNotify(agent);
         }
@@ -548,6 +600,11 @@ export abstract class Mission {
         let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
         if (!boosted) { return false; }
         if (agent.creep.spawning) { return false; }
+
+        if (options.deathCallback && !agent.memory.birthTick) {
+            agent.memory.birthTick = Game.time;
+        }
+
         if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
             agent.avoidSK(this.flag);
             return;
@@ -611,30 +668,24 @@ export abstract class Mission {
         }
     }
 
-    protected registerPrespawn(agent: Agent) {
-        if (!agent.memory.registered) {
-            agent.memory.registered = true;
-            const SANITY_CHECK = CREEP_LIFE_TIME / 2;
-            this.memory.prespawn = Math.max(CREEP_LIFE_TIME - agent.creep.ticksToLive, SANITY_CHECK);
-        }
-    }
-
     protected medicActions(defender: Agent) {
         let hurtCreep = this.findHurtCreep(defender);
         if (!hurtCreep) {
-            defender.idleNear(this.flag, 12);
+            defender.idleNear(this.flag, 5);
             return;
         }
 
         // move to creep
         let range = defender.pos.getRangeTo(hurtCreep);
         if (range > 1) {
-            defender.travelTo(hurtCreep, {movingTarget: true});
+            defender.travelTo(hurtCreep, {movingTarget: true, maxRooms: 1});
         } else {
             defender.yieldRoad(hurtCreep, true);
         }
 
-        if (range === 1) {
+        if (defender.hits < defender.hitsMax) {
+            defender.heal(defender);
+        } else if (range === 1) {
             defender.heal(hurtCreep);
         } else if (range <= 3) {
             defender.rangedHeal(hurtCreep);
@@ -655,10 +706,10 @@ export abstract class Mission {
         } else if (!defender.memory.healCheck || Game.time - defender.memory.healCheck > 25) {
             defender.memory.healCheck = Game.time;
             let hurtCreep = _(this.room.find<Creep>(FIND_MY_CREEPS))
-                .filter((c: Creep) => c.hits < c.hitsMax && c.ticksToLive > 100)
-                .max((c: Creep) => c.partCount(WORK));
+                .filter(x => x.hits < x.hitsMax && x.ticksToLive > 100 && x.getActiveBodyparts(HEAL) === 0)
+                .max((c: Creep) => CreepHelper.partCount(c, WORK));
 
-            if (hurtCreep instanceof Object) {
+            if (_.isObject(hurtCreep)) {
                 defender.memory.healId = hurtCreep.id;
                 return hurtCreep;
             }
@@ -671,3 +722,10 @@ export abstract class Mission {
 }
 
 export type MissionMap = {[missionName: string]: Mission }
+
+export enum FreelanceStatus {
+    Busy,
+    Available,
+    Hired,
+}
+

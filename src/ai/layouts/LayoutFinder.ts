@@ -1,6 +1,6 @@
 import {MemHelper} from "../../helpers/MemHelper";
 import {
-    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LayoutData, LayoutType, PositionMap,
+    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_QUAD, LayoutData, LayoutType, PositionMap,
     Vector2,
 } from "./Layout";
 import {RoomMap} from "./RoomMap";
@@ -199,7 +199,7 @@ export class LayoutFinder {
 
         let validLayout: ValidLayoutData = {
             data: {
-                anchor: progress.anchor,
+                anchor: {x: progress.anchor.x, y: progress.anchor.y },
                 rotation: progress.rotation,
                 type: type,
             },
@@ -301,6 +301,7 @@ export class LayoutFinder {
                     .head();
                 if (!structure) { continue; }
                 if (structure.structureType === STRUCTURE_SPAWN) {
+                    console.log("found a spawn!");
                     validLayout.foundSpawn = true;
                 }
                 validLayout.structureScore += this.structureScores[structureType];
@@ -336,7 +337,6 @@ export class LayoutFinder {
             if (Object.keys(Game.spawns).length === 1) {
                 // needs to have a spawn hit for the first room
                 let best = _(validLayouts).filter(x => x.foundSpawn).max(x => x.energyScore);
-                console.log(JSON.stringify(best));
                 if (_.isObject(best)) {
                     console.log("yes!");
                     return best;

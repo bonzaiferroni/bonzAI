@@ -28,14 +28,14 @@ export class MiningOperation extends Operation {
 
     public init() {
 
-        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 4, 50);
+        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 3, 50);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         } else {
             return;
         }
 
-        if (this.spawnGroup.room.controller.level < 4) { return; }
+        if (this.spawnGroup.room.controller.level < 3) { return; }
 
         this.addMission(new ScoutMission(this));
 

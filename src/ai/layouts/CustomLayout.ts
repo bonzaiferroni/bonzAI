@@ -1,8 +1,12 @@
 import {Layout, LAYOUT_SEGMENTID, PositionMap} from "./Layout";
 import {BuildingPlannerData} from "../../interfaces";
 import {empire} from "../Empire";
+import {Archiver} from "../Archiver";
 
 export class CustomLayout extends Layout {
+
+    protected hasFlex: boolean = true;
+
     public upload(exclude: string[]) {
         if (!Memory.temp.customLayout) {
             return;
@@ -30,7 +34,7 @@ export class CustomLayout extends Layout {
         }
 
         let serializedMap = Layout.serializePositionMap(flexMap);
-        empire.archiver.set(LAYOUT_SEGMENTID, this.roomName, serializedMap);
+        Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, serializedMap);
         console.log(`LAYOUT: Saved ${count} structure positions in ${this.roomName}`);
     }
 
@@ -57,7 +61,7 @@ export class CustomLayout extends Layout {
         }
 
         let serializedMap = Layout.serializePositionMap(flexMap);
-        empire.archiver.set(LAYOUT_SEGMENTID, this.roomName, serializedMap);
+        Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, serializedMap);
         console.log(`LAYOUT: Saved ${count} structure positions in ${this.roomName}, ${
             flagCount} were excluded due to a flag covering the position`);
     }

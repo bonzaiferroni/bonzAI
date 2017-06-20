@@ -225,18 +225,12 @@ export class MasonMission extends Mission {
             agent.creep.repair(other);
         }
 
-        let stolen = false;
-        if (!agent.isFull(200)) {
-            stolen = agent.stealNearby(STRUCTURE_EXTENSION) === OK;
-        }
-
-        if (agent.isFull(300) || stolen || this.carts.length > 0) {
+        if (agent.isFull(300) || this.carts.length > 0) {
             agent.idleNear(rampart, 3, true);
             return;
         } else {
-            let extension = this.getExtension(agent, rampart);
-            let outcome = agent.retrieve(extension, RESOURCE_ENERGY);
-            if (outcome === OK && !agent.creep.pos.inRangeTo(rampart, 3)) {
+            let outcome = agent.retrieve(this.room.storage, RESOURCE_ENERGY);
+            if (outcome === OK) {
                 agent.travelTo(rampart);
             }
         }

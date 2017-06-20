@@ -6,9 +6,14 @@ import {helper} from "../../helpers/helper";
 import {Traveler} from "../Traveler";
 import {HostileAgent} from "../agents/HostileAgent";
 import {Scheduler} from "../../Scheduler";
+import {CreepHelper} from "../../helpers/CreepHelper";
+import {AbstractAgent} from "../agents/AbstractAgent";
+import {Notifier} from "../../notifier";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];
+    assistUntil: number;
+    invTick: number;
 }
 
 interface LairMissionState extends MissionState {
@@ -16,14 +21,16 @@ interface LairMissionState extends MissionState {
     targetLair: StructureKeeperLair;
     storeStructure: StructureStorage | StructureContainer | StructureTerminal;
     distanceToSpawn: number;
+    keepers: Creep[];
 }
 
 export class LairMission extends Mission {
 
     private trappers: Agent[];
     private scavengers: Agent[];
-    private rangers: Agent[];
+    private decoys: Agent[];
     private invaderGuru: InvaderGuru;
+    private invasionMatrix: CostMatrix;
 
     public state: LairMissionState;
     public memory: LairMissionMemory;
@@ -40,6 +47,7 @@ export class LairMission extends Mission {
         if (!this.state.hasVision) { return; } // early
 
         this.state.lairs = this.findLairs();
+        this.state.keepers = _(this.room.hostiles).filter(x => x.owner.username === "Source Keeper").value();
         this.assignKeepers();
         this.state.targetLair = this.findTargetLair();
         this.state.storeStructure = this.spawnGroup.room.storage;
@@ -50,8 +58,16 @@ export class LairMission extends Mission {
     private trapperBody = () => this.configBody({move: 25, attack: 19, heal: 6});
     private maxScavangers = () => 1;
     private scavangerBody = () => this.workerBody(0, 33, 17);
-    private maxRangers = () => this.invaderGuru.invadersPresent || this.invaderGuru.invaderProbable ? 1 : 0;
-    private rangerBody = () => this.configBody({[RANGED_ATTACK]: 25, [MOVE]: 17, [HEAL]: 8});
+    private maxDecoys = () => {
+        if (this.invaderGuru.invaderProbable || this.invaderGuru.invadersPresent) {
+            return 1;
+        } else {
+            return 0;
+        }
+    };
+    private decoyBody = () => {
+        return this.configBody({tough: 5, ranged_attack: 10, move: 25, heal: 10});
+    };
 
     public roleCall() {
         this.trappers = this.headCount("trapper", this.trapperBody, this.maxTrappers, {
@@ -63,32 +79,28 @@ export class LairMission extends Mission {
             prespawn: this.state.distanceToSpawn,
         });
 
-        this.rangers = [];
-        // this.rangers = this.headCount("ranger", this.rangerBody, this.maxRangers, {
-        //   prespawn: this.distanceToSpawn + 50,
-        // });
+        this.decoys = this.headCount("decoy", this.decoyBody, this.maxDecoys, {
+            prespawn: this.state.distanceToSpawn + 50,
+        });
     }
 
     public actions() {
-        if (this.invaderGuru.invadersPresent) {
-            let invaderKiller = this.findInvaderDuty();
-            // if (!invaderKiller) { this.assignInvaderDuty(); }
+
+        if (this.invaderGuru.invadersPresent && Game.time % 5 === 0) {
+            console.log("lairmission invader", this.invaderGuru.invaders.length, this.roomName);
+        }
+
+        // needs to come before trapper, detects this.state.invaderDuty
+        for (let decoy of this.decoys) {
+            this.decoyActions(decoy);
         }
 
         for (let trapper of this.trappers) {
-            if (trapper.memory.invaderDuty && this.invaderGuru.invadersPresent) {
-                this.invaderDutyActions(trapper);
-            } else {
-                this.trapperActions(trapper);
-            }
+            this.trapperActions(trapper);
         }
 
         for (let scavenger of this.scavengers) {
             this.scavengersActions(scavenger);
-        }
-
-        for (let ranger of this.rangers) {
-            this.rangerActions(ranger);
         }
     }
 
@@ -99,6 +111,10 @@ export class LairMission extends Mission {
     }
 
     private trapperActions(trapper: Agent) {
+
+        let invaderDuty = this.invaderDutyActions(trapper);
+        if (invaderDuty) { return; }
+
         if (!this.state.targetLair) {
             if (trapper.hits < trapper.hitsMax) {
                 trapper.heal(trapper);
@@ -117,7 +133,8 @@ export class LairMission extends Mission {
             let keeper = this.state.targetLair.keeper;
             if (keeper) {
                 range = trapper.pos.getRangeTo(keeper);
-                if (range > 1) {
+                // stop and heal at range === 4 if needed
+                if (range > 1 && (range !== 4 || trapper.hitsMax === trapper.hits)) {
                     trapper.travelTo(keeper);
                 }
             } else {
@@ -128,6 +145,204 @@ export class LairMission extends Mission {
         if (!isAttacking && (trapper.hits < trapper.hitsMax || range <= 3)) {
             trapper.heal(trapper);
         }
+    }
+
+    private invaderDutyActions(trapper: Agent): boolean {
+
+        if (!this.invaderGuru.invadersPresent) {
+            return false;
+        }
+
+        let attacking = trapper.standardMelee() === OK;
+
+        if (this.invaderGuru.invaders.length > 2 && this.decoys.length === 0) {
+            let fleeing = this.trapperFlee(trapper);
+            if (fleeing) {
+                trapper.standardHealing();
+                return true;
+            }
+        }
+
+        let bestTarget = _(this.invaderGuru.invaders)
+            .filter(x => CreepHelper.partCount(x.creep, HEAL) > 0)
+            .max(x =>
+                (x.isBoosted() ? 1000 : 0)
+                - (x.room === trapper.room ? x.pos.getRangeTo(trapper) * 10 : 0)
+            );
+        if (_.isObject(bestTarget)) {
+            this.invasionTravel(trapper, bestTarget);
+        } else {
+            return false;
+        }
+
+        if (attacking) {
+            if (trapper.hits < trapper.hitsMax * .4) {
+                trapper.creep.cancelOrder("attack");
+                trapper.heal(trapper);
+            }
+        } else {
+            trapper.standardAgentHealing(this.trappers.concat(this.decoys));
+        }
+        return true;
+    }
+
+    private invasionTravel(agent: Agent, destination: {pos: RoomPosition}): number {
+        let roomCallback = (roomName: string, matrix: CostMatrix) => {
+            if (roomName !== this.roomName) { return; }
+            matrix = matrix.clone();
+            helper.blockOffExits(matrix);
+            for (let hostile of this.invaderGuru.invaders) {
+                if (hostile.getActiveBodyparts(RANGED_ATTACK) > 1) {
+                    helper.blockOffPosition(matrix, hostile, 3, 1, true);
+                }
+            }
+            for (let keeper of this.state.keepers) {
+                helper.blockOffPosition(matrix, keeper, 3, 10, true);
+            }
+            for (let lair of this.state.lairs) {
+                helper.blockOffPosition(matrix, lair, 5, 5, true);
+            }
+            return matrix;
+        };
+
+        let rangeToDestination = agent.pos.getRangeTo(destination);
+        if (rangeToDestination === 1 && destination.pos.isNearExit(0)) {
+            return OK;
+        }
+
+        let options: TravelToOptions = {
+            ignoreRoads: true,
+        };
+
+        if (rangeToDestination > 8) {
+            options.repath = .1;
+            options.movingTarget = true;
+        }
+
+        if (agent.room.name === destination.pos.roomName) {
+            options.maxRooms = 1;
+            options.roomCallback = roomCallback;
+        }
+
+        return agent.travelTo(destination, options);
+    }
+
+    private trapperFlee(trapper: Agent): boolean {
+        let spookies = _(this.invaderGuru.invaders)
+            .filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0)
+            .value();
+
+        if (spookies.length === 0) { return false; }
+        let fleeRange = 8;
+        if (trapper.hits < trapper.hitsMax) {
+            fleeRange = 12;
+        }
+        let fleeing = trapper.fleeHostiles(fleeRange);
+        if (fleeing) {
+            return true;
+        }
+    }
+
+    private decoyActions(decoy: Agent) {
+        if (!this.invaderGuru.invadersPresent) {
+
+            if (decoy.room !== this.room || decoy.pos.isNearExit(0)) {
+                decoy.travelTo(this.flag);
+                return true;
+            }
+
+            let assisting = this.assistKeeperDuty(decoy);
+            if (assisting) { return; }
+            this.medicActions(decoy);
+            return;
+        }
+
+        decoy.standardRangedAttack();
+        decoy.standardAgentHealing(this.trappers.concat(this.decoys));
+
+        // assisting
+        let spookies = _(this.invaderGuru.invaders).filter(x => x.getPotential(RANGED_ATTACK) > 0).value();
+        let closest = decoy.pos.findClosestByRange(this.trappers);
+        if (spookies.length <= 3 && decoy.hits > decoy.hitsMax * .9) {
+            this.decoyAttackActions(decoy, closest);
+            return;
+        }
+
+        // decoying
+        let closestSpooky = decoy.pos.findClosestByRange(spookies);
+        let range = decoy.pos.getRangeTo(closestSpooky);
+        if (range > 5) {
+            this.invasionTravel(decoy, closestSpooky);
+            decoy.clearFleeData();
+        } else if (range === 5) {
+            // do nothing
+        } else {
+            // let fleePoint = {pos: new RoomPosition(25, 25, this.roomName)};
+            let fleePoint = {pos: helper.pathablePosition(this.roomName) };
+            let outcome = decoy.fleeByPath([fleePoint], 40, 2, false, true);
+        }
+    }
+
+    private decoyAttackActions(decoy: Agent, trapper?: Agent) {
+        let destination: AbstractAgent = trapper;
+        if (!destination || decoy.pos.getRangeTo(trapper) > 5 || trapper.hits > trapper.hitsMax * .5) {
+            // path to invader instead
+            destination = _(this.invaderGuru.invaders)
+                .max(x => x.getPotential(HEAL) - (x.room === decoy.room ? x.pos.getRangeTo(decoy) : 0));
+        }
+
+        if (_.isObject(destination)) {
+            this.invasionTravel(decoy, destination);
+        } else {
+            decoy.travelTo(this.flag);
+        }
+    }
+
+    private assistKeeperDuty(decoy: Agent) {
+
+        if (this.state.keepers.length <= 1 && this.trappers.length > 0) {
+            if (!this.memory.assistUntil || Game.time > this.memory.assistUntil) {
+                return false;
+            }
+        } else {
+            this.memory.assistUntil = Game.time + 25;
+        }
+
+        decoy.standardRangedAttack();
+        decoy.standardHealing();
+
+        let trapper = decoy.pos.findClosestByRange(this.trappers);
+        if (!trapper) {
+
+            if (decoy.hits < decoy.hitsMax) {
+                decoy.heal(decoy);
+            }
+
+            // solo duty
+            let keeper = decoy.pos.findClosestByRange(this.state.keepers);
+            let range = decoy.pos.getRangeTo(keeper);
+            if (decoy.hits < decoy.hitsMax * .9) {
+                if (range === 4) {
+                    // do nothing
+                } else if (range < 4) {
+                    decoy.fleeHostiles();
+                } else {
+                    decoy.travelTo(keeper, {maxRooms: 1});
+                }
+            } else {
+                if (range === 3) {
+                    // do nothing
+                } else if (range < 3) {
+                    decoy.fleeHostiles();
+                } else {
+                    decoy.travelTo(keeper, {maxRooms: 1});
+                }
+            }
+            return true;
+        }
+
+        decoy.travelTo(trapper, {movingTarget: true, maxRooms: 1});
+        return true;
     }
 
     private scavengersActions(scavenger: Agent) {
@@ -162,14 +377,10 @@ export class LairMission extends Mission {
 
     private assignKeepers() {
         if (!this.state.lairs) { return; }
-        let lairs = this.room.findStructures(STRUCTURE_KEEPER_LAIR);
-        let hostiles = this.room.hostiles;
-        for (let hostile of hostiles) {
-            if (hostile.owner.username === "Source Keeper") {
-                let closestLair = hostile.pos.findClosestByRange(lairs) as StructureKeeperLair;
-                if (!_.includes(this.state.lairs, closestLair)) { continue; }
-                closestLair.keeper = hostile;
-            }
+        let lairs = this.state.lairs;
+        for (let hostile of this.state.keepers) {
+            let closestLair = hostile.pos.findClosestByRange<StructureKeeperLair>(lairs);
+            closestLair.keeper = hostile;
         }
     }
 
@@ -261,134 +472,4 @@ export class LairMission extends Mission {
 
         return _.map(this.memory.bestLairOrder, id => Game.getObjectById<StructureKeeperLair>(id));
     }
-
-    private assignInvaderDuty() {
-        let lastTrapperSpawned = _.last(this.trappers);
-        if (!lastTrapperSpawned) { return; }
-
-        let keepersInRange = _.filter(lastTrapperSpawned.pos.findInRange<Creep>(FIND_HOSTILE_CREEPS, 1),
-            creep => creep.owner.username === "Source Keeper");
-        if (keepersInRange.length > 0) { return; }
-
-        lastTrapperSpawned.memory.invaderDuty = true;
-    }
-
-    private rangerActions(ranger: Agent) {
-        if (!this.invaderGuru.invadersPresent) {
-            this.medicActions(ranger);
-            return;
-        }
-
-        // attacking
-        ranger.standardRangedAttack();
-
-        // healing
-        ranger.standardHealing(this.rangers.concat(this.trappers));
-
-        if (Game.time === ranger.memory.leaderControl) { return; }
-
-        let tactic = this.rangerTactic(ranger);
-
-        // charge
-        if (tactic === RangerTactic.Charge) {
-            let bestTarget = this.findBestTarget(ranger);
-
-            let movingTarget = false;
-            if (ranger.room !== this.room) {
-                movingTarget = true;
-            }
-            ranger.travelTo(bestTarget, {range: 0, movingTarget: movingTarget});
-            return;
-        }
-
-        let chasers = _.filter(this.invaderGuru.invaders,
-            hostileAgent => hostileAgent.getPotential(RANGED_ATTACK) > 0);
-        if (tactic === RangerTactic.Retreat) {
-            ranger.fleeByPath(chasers, 5, 5);
-        } else if (tactic === RangerTactic.HitAndRun) {
-            ranger.fleeByPath(chasers, 2, 0);
-        }
-    }
-
-    private findInvaderDuty(): Agent {
-        return _.find(this.trappers, t => t.memory.invaderDuty);
-    }
-
-    private invaderDutyActions(trapper: Agent) {
-        let ranger = trapper.pos.findClosestByRange(this.rangers);
-        if (!ranger) {
-            this.soloDutyActions(trapper);
-            return;
-        }
-
-        let attackedCreep = trapper.standardMelee(2000);
-
-        if (!trapper.isNearTo(ranger)) {
-            if (!trapper.memory.needHeal && trapper.hits < trapper.hitsMax - 500) {
-                trapper.memory.needHeal = true;
-            }
-            if (trapper.memory.needHeal && trapper.hits === trapper.hitsMax) {
-                trapper.memory.needHeal = false;
-            }
-
-            if (trapper.memory.needHeal) {
-                if (!attackedCreep) { trapper.heal(trapper); }
-                trapper.fleeByPath(this.room.fleeObjects, 5, 5);
-                return;
-            }
-
-            if (!attackedCreep && trapper.hits < trapper.hitsMax) { trapper.heal(trapper); }
-            trapper.travelTo(ranger);
-            return;
-        }
-
-        ranger.memory.leaderControl = Game.time;
-
-        let target = this.findBestTarget(trapper);
-        if (target.getPotential(HEAL) > 0) {
-            trapper.travelTo(target, {range: 0});
-            ranger.travelTo(trapper, {range: 0});
-            return;
-        } else {
-            ranger.travelTo(target, {range: 0});
-            trapper.travelTo(target, {range: 0});
-        }
-    }
-
-    private soloDutyActions(trapper: Agent) {
-        let fleeing = trapper.fleeByPath(this.invaderGuru.invaders, 10, 5);
-        if (!fleeing) {
-            this.trapperActions(trapper);
-        }
-    }
-
-    private rangerTactic(ranger: Agent): RangerTactic {
-        let healPotential = ranger.getActiveBodyparts(HEAL) * 12;
-        if (ranger.hits < ranger.hitsMax - healPotential) {
-            return RangerTactic.Retreat;
-        }
-
-        let expectedDamage = _.sum(ranger.pos.findInRange(this.invaderGuru.invaders, 5),
-            hostileAgent => hostileAgent.getPotential(RANGED_ATTACK));
-        if (expectedDamage > healPotential) {
-            return RangerTactic.HitAndRun;
-        } else {
-            return RangerTactic.Charge;
-        }
-    }
-
-    private findBestTarget(agent: Agent): HostileAgent {
-        let bestTarget = _(this.invaderGuru.invaders)
-            .filter(hostileAgent => hostileAgent.getPotential(HEAL) > 0)
-            .min(hostileAgent => hostileAgent.pos.getRangeTo(agent));
-        if (!(bestTarget instanceof Object)) {
-            bestTarget = _(this.invaderGuru.invaders)
-                .min(hostileAgent => hostileAgent.pos.getRangeTo(agent));
-        }
-        if (bestTarget instanceof Object) {
-            return bestTarget;
-        }
-    }
 }
-
-enum RangerTactic { Retreat, HitAndRun, Charge }

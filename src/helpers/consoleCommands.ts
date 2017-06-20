@@ -6,7 +6,7 @@ import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
 import {Tick} from "../Tick";
-import {Traveler, TravelState, TravelToOptions} from "../ai/Traveler";
+import {Traveler} from "../ai/Traveler";
 
 export var consoleCommands = {
 
@@ -215,8 +215,14 @@ export var consoleCommands = {
      * @returns {any}
      */
 
-    emptyTerminal(origin: string, destination: string) {
+    emptyTerminal(origin: string, destination: string, type?: string) {
         let originTerminal = Game.rooms[origin].terminal;
+
+        if (type) {
+            let amount = originTerminal.store[type];
+            return originTerminal.send(type, amount, destination);
+        }
+
         let outcome;
         for (let resourceType in originTerminal.store) {
             if (!originTerminal.store.hasOwnProperty(resourceType)) { continue; }

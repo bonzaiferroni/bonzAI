@@ -22,6 +22,7 @@ export interface OperationMemory {
         spawnRooms: { distance: number, roomName: string }[];
         nextSpawnCheck: number;
     };
+    sleepUntil?: {[missionName: string]: number };
 }
 
 export abstract class Operation {
@@ -35,6 +36,7 @@ export abstract class Operation {
     public spawnGroup: SpawnGroup;
     public remoteSpawn: {distance: number, spawnGroup: SpawnGroup};
     public missions: {[missionName: string]: Mission} = {};
+    public sleepingMissions: {[missionName: string]: Mission} = {};
     public memory: OperationMemory;
     public flag: Flag;
     public room: Room;
@@ -81,6 +83,7 @@ export abstract class Operation {
         this.bypass = false;
         this.memory = this.flag.memory;
         if (!this.memory.spawnData) { this.memory.spawnData = {} as any; }
+        if (!this.memory.sleepUntil) { this.memory.sleepUntil = {}; }
 
         // find state
         this.state = {} as OperationState;
@@ -160,8 +163,8 @@ export abstract class Operation {
                         operation.bypass = true;
                         continue;
                     }
-
                     operation.update();
+                    operation.wakeMissions();
 
                     Mission.update(operation.missions);
 
@@ -289,6 +292,27 @@ export abstract class Operation {
         delete this.missions[mission.name];
     }
 
+    public sleepMission(mission: Mission, sleepForTicks: number, randomInterval = true) {
+        delete this.missions[mission.name];
+        this.sleepingMissions[mission.name] = mission;
+        if (randomInterval) {
+            this.memory.sleepUntil[mission.name] = Game.time + helper.randomInterval(sleepForTicks);
+        } else {
+            this.memory.sleepUntil[mission.name] = Game.time + sleepForTicks;
+        }
+    }
+
+    private wakeMissions() {
+        for (let missionName in this.sleepingMissions) {
+            if (Game.time < this.memory.sleepUntil[missionName]) { continue; }
+            let mission = this.sleepingMissions[missionName];
+            delete this.sleepingMissions[missionName];
+            delete this.memory.sleepUntil[missionName];
+            if (!mission) { continue; }
+            this.addMissionLate(mission);
+        }
+    }
+
     public initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0, ignoreAvailability = false) {
 
         let flag = Game.flags[`${this.name}_spawn`];
@@ -372,6 +396,12 @@ export abstract class Operation {
         let oldValue = this.memory[missionName].activateBoost;
         this.memory[missionName].activateBoost = activateBoost;
         return "SPAWN: " + missionName + " boost value changed from " + oldValue + " to " + activateBoost;
+    }
+
+    public wipeMemory() {
+        for (let propertyName in this.memory) {
+            delete this.memory[propertyName];
+        }
     }
 }
 

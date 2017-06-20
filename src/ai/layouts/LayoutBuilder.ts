@@ -20,7 +20,12 @@ export class LayoutBuilder {
         [STRUCTURE_RAMPART]: 5,
     };
 
-    private buildPriority = [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_LINK,
+    private safeTypes = {
+        [STRUCTURE_ROAD]: true,
+        [STRUCTURE_RAMPART]: true,
+    };
+
+    private buildPriority = [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_LINK, STRUCTURE_EXTENSION, STRUCTURE_STORAGE,
         STRUCTURE_TERMINAL, STRUCTURE_ROAD, STRUCTURE_RAMPART, STRUCTURE_OBSERVER, STRUCTURE_NUKER,
         STRUCTURE_POWER_SPAWN, STRUCTURE_LAB];
 
@@ -67,43 +72,40 @@ export class LayoutBuilder {
                 if (outcome === OK) {
                     console.log(`BUILDER: placed ${buildType} in ${this.room.name}`);
                     return;
-                } else if (buildType) {
-                    // temporarily disable structure removal, it is buggy
-                    continue;
                 }
 
-                let errantStructure = _(lookStructures)
-                    .filter(x => x.structureType !== STRUCTURE_ROAD && x.structureType !== STRUCTURE_RAMPART)
-                    .head();
-                if (errantStructure) {
-                    this.demolishStructure(errantStructure);
-                    return;
+                if (outcome === ERR_RCL_NOT_ENOUGH && buildType !== STRUCTURE_LINK) {
+                    let errantStructure = this.findErrantStructure(buildType, positions);
+                    if (errantStructure) {
+                        this.demolishStructure(errantStructure);
+                        return;
+                    }
+
+                    let errantSite = this.findErrantSite(buildType, positions);
+                    if (errantSite) {
+                        errantSite.remove();
+                        return;
+                    }
                 }
 
-                let errantSite = lookSites[0];
-                if (errantSite) {
-                    errantSite.remove();
-                    return;
+                if (outcome === ERR_INVALID_TARGET) {
+                    let errantStructure = _(lookStructures)
+                        .filter(x => !this.safeTypes[x.structureType])
+                        .head();
+                    if (errantStructure) {
+                        this.demolishStructure(errantStructure);
+                        return;
+                    }
+
+                    let errantSite = lookSites[0];
+                    if (errantSite && !this.safeTypes[errantSite.structureType]) {
+                        console.log(`BUILDER: removed a ${errantSite.structureType} to place a ${buildType}, ${this.roomName}`);
+                        errantSite.remove();
+                        return;
+                    }
                 }
 
-                errantStructure = this.findErrantStructure(buildType, positions);
-                if (errantStructure) {
-                    this.demolishStructure(errantStructure);
-                    return;
-                }
-
-                errantSite = this.findErrantSite(buildType, positions);
-                if (errantSite) {
-                    errantSite.remove();
-                    return;
-                }
-
-                if (outcome === ERR_RCL_NOT_ENOUGH) {
-                    continue;
-                }
-
-                console.log(`BUILDER: unhandled error: ${outcome}, position: ${position}, type: ${buildType}`);
-                return;
+                // continue
             }
         }
 
@@ -131,8 +133,7 @@ export class LayoutBuilder {
             }
         }
 
-        console.log(`BUILDER: destroying errant ${structure.structureType} in ${
-            this.room.name}`);
+        console.log(`BUILDER: demolished a ${structure.structureType} to place a structure in ${this.roomName}`);
         structure.destroy();
     }
 
@@ -164,7 +165,7 @@ export class LayoutBuilder {
             this.memory.nextCheck = Game.time + 100;
             return true;
         }
-        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 2) {
+        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 5) {
             return true;
         }
         return ;
@@ -194,6 +195,8 @@ export class LayoutBuilder {
     }
 
     private findErrantSite(buildType: string, positions: RoomPosition[]): ConstructionSite {
+        if (this.safeTypes[buildType]) { return; }
+
         let currentSites = _(this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES))
             .filter(x => x.structureType === buildType)
             .value();
