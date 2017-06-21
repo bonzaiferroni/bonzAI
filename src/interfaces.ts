@@ -65,6 +65,7 @@ export interface HeadCountOptions {
     reservation?: SpawnReservation;
     disableNotify?: boolean;
     skipMoveToRoom?: boolean;
+    skipWaypoints?: boolean;
     boosts?: string[];
     allowUnboosted?: boolean;
     forceSpawn?: boolean;

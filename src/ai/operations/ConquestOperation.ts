@@ -36,7 +36,6 @@ export class ConquestOperation extends Operation {
     }
 
     public init() {
-        this.findOperationWaypoints();
         if (!this.memory.spawnRoom) {
             if (Game.time % 3 === 0) {
                 console.log(`${this.name} needs a spawn missionRoom, example: ${
@@ -92,7 +91,6 @@ export class ConquestOperation extends Operation {
         // the following can be spawned locally
         let localSpawnGroup = empire.getSpawnGroup(this.flag.room.name);
         if (localSpawnGroup && localSpawnGroup.maxSpawnEnergy >= CONQUEST_LOCAL_MIN_SPAWN_ENERGY) {
-            this.waypoints = undefined;
             this.spawnGroup = localSpawnGroup;
             this.addMission(new RefillMission(this));
         }

@@ -1184,7 +1184,7 @@ export class Agent extends AbstractAgent {
         return totalDamage;
     }
 
-    public travelWaypoints(waypoints: Flag[], options?: TravelToOptions): boolean {
+    public travelWaypoints(waypoints: Flag[], options?: TravelToOptions, avoidSK = false): boolean {
         if (this.memory.waypointsCovered) {
             return true;
         }
@@ -1209,7 +1209,11 @@ export class Agent extends AbstractAgent {
             this.memory.waypointIndex++;
         }
 
-        this.travelTo(waypoint, options);
+        if (avoidSK) {
+            this.avoidSK(waypoint);
+        } else {
+            this.travelTo(waypoint, options);
+        }
         return false;
     }
 

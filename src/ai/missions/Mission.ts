@@ -257,7 +257,7 @@ export abstract class Mission {
         if (options.freelance) {
             this.removeHired(roleName, creepArray, creepNames);
 
-            if (Math.random() > .8 && count < getMax()) {
+            if (count < getMax()) {
                 let creep = this.hireFreelance(roleName);
                 if (creep) {
                     if (creep instanceof Creep) {
@@ -298,7 +298,7 @@ export abstract class Mission {
             let creep = creepArray[i];
             let ticket = Memory.freelance[roleName][creep.name];
             if (!ticket) { continue; }
-            if (ticket.status === FreelanceStatus.Hired && ticket.employer !== employerName) {
+            if (ticket.employer !== employerName) {
                 Notifier.log(`MISSION: *** freelance removed ${creep.name} as a ${roleName} in ${this.roomName}`);
                 delete Memory.freelance[roleName][creep.name];
                 _.pull(creepArray, creep);
@@ -349,9 +349,9 @@ export abstract class Mission {
 
     protected updateFreelanceStatus(roleName: string, agent: Agent, status: FreelanceStatus) {
         let ticket = Memory.freelance[roleName][agent.name];
-        if (ticket.status === status) { return; }
+        if (ticket && ticket.status === status) { return; }
         let employerName = `${this.operation.name}_${this.name}`;
-        if (ticket.employer !== employerName) { return; }
+        if (ticket && ticket.employer !== employerName) { return; }
         Memory.freelance[roleName][agent.name] = {status: status, employer: employerName};
     }
 
@@ -606,6 +606,12 @@ export abstract class Mission {
 
         if (options.deathCallback && !agent.memory.birthTick) {
             agent.memory.birthTick = Game.time;
+        }
+
+        let waypoints = this.operation.findOperationWaypoints();
+        if (!options.skipWaypoints && waypoints.length > 0) {
+            let waypointsCovered = agent.travelWaypoints(waypoints, undefined, true);
+            if (!waypointsCovered) { return; }
         }
 
         if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {

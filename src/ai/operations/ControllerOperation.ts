@@ -134,8 +134,6 @@ export class ControllerOperation extends Operation {
         }
 
         this.addMission(new BaseRepairMission(this));
-
-        // this.addMission(new PaverMission(this, defenseGuru.hostiles.length > 0));
     }
 
     public update() {

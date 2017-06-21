@@ -119,24 +119,32 @@ export class SpawnGroup {
         for (let spawn of this.spawns) {
             if (spawn.spawning == null) {
                 outcome = spawn.createCreep(build, name, memory);
-                if (Memory.playerConfig.muteSpawn) { break; } // early
+                if (outcome === ERR_RCL_NOT_ENOUGH) {
+                    continue;
+                }
+
+                if (outcome === ERR_NOT_ENOUGH_RESOURCES) {
+                    let bodyCost = SpawnGroup.calculateBodyCost(build);
+                    if (bodyCost > this.maxSpawnEnergy) {
+                        console.log(`SPAWN: warning, ${name} is too big to spawn in ${this.roomName}. cost: ${
+                            bodyCost}, maxSpawnEnergy: ${this.maxSpawnEnergy}`);
+                    } else if (!Memory.playerConfig.muteSpawn && Game.time % 10 === 0) {
+                        console.log("SPAWN:", this.room.name, "not enough energy for", name, "cost:",
+                            "current:", this.currentSpawnEnergy, "max", this.maxSpawnEnergy);
+                    }
+                }
 
                 if (outcome === ERR_INVALID_ARGS) {
                     console.log("SPAWN: invalid args for creep\nbuild:", build, "\nname:", name, "\ncount:",
                         build.length);
                 }
+
+                if (Memory.playerConfig.muteSpawn) { break; } // early
+
                 if (_.isString(outcome)) {
                     console.log("SPAWN: building " + name);
-                } else if (outcome === ERR_NOT_ENOUGH_RESOURCES) {
-                    if (Game.time % 10 === 0) {
-                        console.log("SPAWN:", this.room.name, "not enough energy for", name, "cost:",
-                            SpawnGroup.calculateBodyCost(build), "current:", this.currentSpawnEnergy, "max",
-                            this.maxSpawnEnergy);
-                    }
                 } else if (outcome !== ERR_NAME_EXISTS) {
                     console.log("SPAWN:", this.room.name, "had error spawning " + name + ", outcome: " + outcome);
-                } else if (outcome === ERR_RCL_NOT_ENOUGH) {
-                    continue;
                 }
                 break;
             }

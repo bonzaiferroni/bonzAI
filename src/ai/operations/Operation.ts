@@ -15,6 +15,7 @@ export interface OperationState {
     hasVision?: boolean;
     sources?: Source[];
     mineral?: Mineral;
+    waypoints?: Flag[];
 }
 
 export interface OperationMemory {
@@ -40,7 +41,6 @@ export abstract class Operation {
     public memory: OperationMemory;
     public flag: Flag;
     public room: Room;
-    public waypoints: Flag[];
     private sourceIds: string[];
     private mineralId: string;
 
@@ -372,16 +372,22 @@ export abstract class Operation {
     }
 
     public findOperationWaypoints() {
-        this.waypoints = [];
+        if (this.state.waypoints) {
+            return this.state.waypoints;
+        }
+
+        let waypoints = [];
         for (let i = 0; i < 100; i++) {
             let flag = Game.flags[this.name + "_waypoints_" + i];
             if (flag) {
-                this.waypoints.push(flag);
+                waypoints.push(flag);
             } else {
                 break;
             }
         }
-        return this.waypoints;
+
+        this.state.waypoints = waypoints;
+        return waypoints;
     }
 
     public setMax(missionName: string, max: number) {

@@ -180,7 +180,7 @@ export class UpgradeMission extends Mission {
         if (invalidSpawnRoom) {
             return 0;
         }
-        return 8;
+        return Math.min(8, this.room.controller.level * 2);
     };
 
     private influxCartBody = () => {
@@ -530,7 +530,7 @@ export class UpgradeMission extends Mission {
         // deliver energy
         let destination: StoreStructure = this.room.storage;
         if (!destination) {
-            destination = cart.findClosestContainer(this.room);
+            destination = cart.findClosestContainer(this.room, true);
         }
         if (!destination) {
             cart.idleOffRoad();

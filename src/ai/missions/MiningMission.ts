@@ -22,6 +22,7 @@ interface MiningMemory extends MissionMemory {
     roadRepairIds: string[];
     prespawn: number;
     positionCount: number;
+    spawnDistance: number;
 }
 
 export class MiningMission extends Mission {
@@ -45,10 +46,9 @@ export class MiningMission extends Mission {
      * @param remoteSpawning
      */
 
-    constructor(operation: Operation, name: string, source: Source, remoteSpawning = false) {
+    constructor(operation: Operation, name: string, source: Source) {
         super(operation, name);
         this.sourceId = source.id;
-        this.remoteSpawning = remoteSpawning;
     }
 
     public static Add(operation: Operation, preferLinkMiner: boolean) {
@@ -67,6 +67,22 @@ export class MiningMission extends Mission {
     public init() {
         this.pathMission = new PathMission(this.operation, this.name + "Path");
         this.operation.addMissionLate(this.pathMission);
+
+        if (this.operation.remoteSpawn) {
+            let remoteGroup = this.operation.remoteSpawn.spawnGroup;
+            if (this.spawnGroup.maxSpawnEnergy < 950 && remoteGroup && remoteGroup.maxSpawnEnergy >= 950) {
+                this.remoteSpawning = true;
+                this.spawnGroup = remoteGroup;
+            }
+        }
+
+        if (!this.memory.spawnDistance) {
+            let source = Game.getObjectById<Source>(this.sourceId);
+            if (source) {
+                // TODO: make this work across a portal
+                this.memory.spawnDistance = Traveler.findTravelPath(this.spawnGroup, source).path.length;
+            }
+        }
     }
 
     public update() {
@@ -114,11 +130,7 @@ export class MiningMission extends Mission {
 
     public roleCall() {
 
-        let prespawn = 0;
-        if (this.state.storage) {
-            prespawn = Game.map.getRoomLinearDistance(this.state.source.pos.roomName,
-                    this.state.storage.pos.roomName) * 50 + 50;
-        }
+        let prespawn = this.memory.spawnDistance;
 
         this.miners = this.headCount(this.name, this.getMinerBody, this.getMaxMiners,
             {prespawn: prespawn});
@@ -144,6 +156,7 @@ export class MiningMission extends Mission {
     public finalize() { }
     public invalidateCache() {
         this.memory.transportAnalysis = undefined;
+        if (Math.random() < .1) { this.memory.spawnDistance = undefined; }
     }
 
     private minerActions(miner: Agent, order: number) {

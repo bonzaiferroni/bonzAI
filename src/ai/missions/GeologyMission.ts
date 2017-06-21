@@ -55,7 +55,6 @@ export class GeologyMission extends Mission {
 
         let dormant = this.state.mineral.ticksToRegeneration > 30000 && this.roleCount("geologyCart") === 0;
         if (this.spawnGroup.maxSpawnEnergy < 5000 || dormant) {
-            console.log(`GEO: checking out in ${this.roomName}`);
             this.operation.removeMission(this);
             return;
         }

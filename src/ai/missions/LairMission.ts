@@ -86,8 +86,17 @@ export class LairMission extends Mission {
 
     public actions() {
 
-        if (this.invaderGuru.invadersPresent && Game.time % 5 === 0) {
-            console.log("lairmission invader", this.invaderGuru.invaders.length, this.roomName);
+        if (this.invaderGuru.invadersPresent) {
+            if (!this.memory.invTick) {
+                this.memory .invTick = Game.time;
+                console.log("****** lairmission invader", this.invaderGuru.invaders.length, this.roomName);
+            }
+        } else if (this.memory.invTick) {
+            let defenseTime = Game.time - this.memory.invTick;
+            if (defenseTime > 100) {
+                Notifier.log(`long SK defense time ${defenseTime} in ${this.roomName}`);
+            }
+            delete this.memory.invTick;
         }
 
         // needs to come before trapper, detects this.state.invaderDuty
