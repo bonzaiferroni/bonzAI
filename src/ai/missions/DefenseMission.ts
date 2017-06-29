@@ -83,7 +83,7 @@ export class DefenseMission extends Mission {
     private getMaxSquadHealers = () => {
         // if (this.roomName === "E2S12") { return 1; }
         return this.state.playerThreat ? 1 : 0;
-    }
+    };
 
     private squadAttackerBody = () => {
         return this.configBody({[TOUGH]: 12, [MOVE]: 10, [ATTACK]: 27, [RANGED_ATTACK]: 1});
@@ -194,8 +194,10 @@ export class DefenseMission extends Mission {
 
         if (attacker.hits < attacker.hitsMax) {
             healer.heal(attacker);
-        } else {
+        } else if (healer.hits < healer.hitsMax) {
             healer.heal(healer);
+        } else {
+            healer.heal(attacker);
         }
 
         if (healer.hits < healer.hitsMax) {
@@ -473,7 +475,8 @@ export class DefenseMission extends Mission {
             let wallCount = this.room.findStructures(STRUCTURE_WALL)
                 .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
             if (this.memory.wallCount && wallCount < this.memory.wallCount) {
-                if (this.room.controller.level >= 6) {
+                // TODO: change this back to rcl6
+                if (this.room.controller.level >= 7) {
                     this.room.controller.activateSafeMode();
                 }
             }

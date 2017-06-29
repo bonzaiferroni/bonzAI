@@ -1,15 +1,78 @@
 import {MINERALS_RAW, RESERVE_AMOUNT, TradeNetwork, PRODUCT_LIST} from "./TradeNetwork";
+import {Notifier} from "../notifier";
 export class MarketTrader {
 
     private network: TradeNetwork;
+    public prices: {
+        [orderType: string]: {
+            [resourceType: string]: number
+        }
+    };
+
+    /* hardcoded values based on the state of the market when this was written, used as default values for prices
+    for best results, write a script that will update prices based on the current state of the market */
+    private resourceValues = {
+        energy: .02,
+        H: .2,
+        O: .2,
+        Z: .15,
+        K: .15,
+        U: .15,
+        L: .15,
+        X: .15,
+        XUH2O: 1.5,
+        XLHO2: 1.5,
+        XKHO2: 1.5,
+        XZHO2: 1.5,
+        XZH2O: 1.5,
+        XLH2O: 1.5,
+        XGH2O: 2,
+        XGHO2: 2,
+        G: 1,
+    };
 
     constructor(network: TradeNetwork) {
         this.network = network;
     }
 
+    public update() {
+        if (!Memory.marketTrader.prices) {
+            Memory.marketTrader.prices = {
+                [ORDER_BUY]: {},
+                [ORDER_SELL]: {},
+            };
+        }
+        this.prices = Memory.marketTrader.prices;
+    }
+
     public actions() {
         this.buyShortages();
-        this.sellCompounds();
+        // this.sellCompounds();
+    }
+
+    public getPrice(resourceType: string, orderType: string) {
+        let price = this.resourceValues[resourceType];
+        if (this.prices[orderType][resourceType]) {
+            price = this.prices[orderType][resourceType];
+        }
+        return price;
+    }
+
+    public setPrice(resourceType: string, orderType: string, price: number) {
+
+        // sanity check
+        let currentPrice = this.getPrice(resourceType, orderType);
+        if (price < currentPrice * .1 || price > currentPrice * 10) {
+            Notifier.log(`TRADER: ${orderType} price for ${resourceType} failed sanity check. current price: ${
+                currentPrice}, failed price: ${price}`);
+            return;
+        }
+
+        this.prices[orderType][resourceType] = _.round(price, 3);
+    }
+
+    public displayPrices() {
+        console.log(JSON.stringify(this.prices, null, 4));
     }
 
     public buyShortages() {
@@ -47,7 +110,7 @@ export class MarketTrader {
             if (order.remainingAmount < 100) { continue; }
             let expense = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
-            expense += transferCost * RESOURCE_VALUE[RESOURCE_ENERGY];
+            expense += transferCost * this.getPrice(RESOURCE_ENERGY, ORDER_BUY);
             if (expense < lowestExpense) {
                 lowestExpense = expense;
                 bestOrder = order;
@@ -58,12 +121,10 @@ export class MarketTrader {
         if (bestOrder) {
             let amount = Math.min(bestOrder.remainingAmount, RESERVE_AMOUNT);
 
-            if (lowestExpense <= RESOURCE_VALUE[resourceType]) {
-                let outcome = Game.market.deal(bestOrder.id, amount, room.name);
-                console.log("bought", amount, resourceType, "from", bestOrder.roomName, "outcome:", outcome);
-            } else {
+            // TODO: disqualify deal when energy costs of transfer are unacceptable relative to resource value
 
-            }
+            let outcome = Game.market.deal(bestOrder.id, amount, room.name);
+            console.log("bought", amount, resourceType, "from", bestOrder.roomName, "outcome:", outcome);
 
             let noBuyOrders = this.orderCount(ORDER_BUY, resourceType) === 0;
             if (noBuyOrders) {
@@ -93,7 +154,13 @@ export class MarketTrader {
         if (Game.time % 100 !== 2) { return; }
 
         for (let compound of PRODUCT_LIST) {
-            if (this.orderCount(ORDER_SELL, compound, PRODUCT_PRICE[compound]) > 0) { continue; }
+
+            let price = this.resourceValues[compound];
+            if (this.prices[ORDER_SELL][compound]) {
+                price = this.prices[ORDER_SELL][compound];
+            }
+
+            if (this.orderCount(ORDER_SELL, compound, price) > 0) { continue; }
 
             let stockedTerminals = _.filter(this.network.terminals, t => t.store[compound] >= RESERVE_AMOUNT);
             if (stockedTerminals.length === 0) { continue; }
@@ -119,7 +186,7 @@ export class MarketTrader {
                 }
             }
 
-            Game.market.createOrder(ORDER_SELL, compound, PRODUCT_PRICE[compound], RESERVE_AMOUNT,
+            Game.market.createOrder(ORDER_SELL, compound, price, RESERVE_AMOUNT,
                 bestTerminal.room.name);
         }
     }
@@ -135,7 +202,7 @@ export class MarketTrader {
             if (order.remainingAmount < 100) { continue; }
             let gain = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
-            gain -= transferCost * RESOURCE_VALUE[RESOURCE_ENERGY];
+            gain -= transferCost * this.getPrice(RESOURCE_ENERGY, ORDER_BUY);
             if (gain > highestGain) {
                 highestGain = gain;
                 bestOrder = order;
@@ -218,26 +285,3 @@ export class MarketTrader {
         }
     }
 }
-
-export const RESOURCE_VALUE = {
-    energy: .02,
-    H: 1,
-    O: 1,
-    Z: 1,
-    K: 1,
-    U: 1,
-    L: 1,
-    X: 1,
-};
-
-export const PRODUCT_PRICE = {
-    XUH2O: 1.5,
-    XLHO2: 1.5,
-    XKHO2: 1.5,
-    XZHO2: 1.5,
-    XZH2O: 1.5,
-    XLH2O: 1.5,
-    XGH2O: 2,
-    XGHO2: 2,
-    G: 1,
-};

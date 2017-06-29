@@ -8,6 +8,7 @@ import {helper} from "./helpers/helper";
 import {Traveler} from "./ai/Traveler";
 import {Profiler} from "./Profiler";
 import {Viz} from "./helpers/Viz";
+import {WorldMap} from "./ai/WorldMap";
 
 export var sandBox = {
     run: function() {
@@ -16,12 +17,10 @@ export var sandBox = {
         if (claimerFlag) {
             let creep = Game.creeps["claimer"];
             if (creep) {
-                let data = {} as TravelToReturnData;
-                creep.travelTo(claimerFlag, {returnData: data});
-                if (data.path) { creep.say(`${data.path.length} more!`); }
+                creep.travelTo(claimerFlag, {offRoad: true});
                 creep.claimController(creep.room.controller);
             } else {
-                empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE], "claimer");
+                empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
             }
         }
 
@@ -32,7 +31,7 @@ export var sandBox = {
                 let data = {} as TravelToReturnData;
                 creep.travelTo(signerFlag, {returnData: data});
                 if (data.path) { creep.say(`${data.path.length} more!`); }
-                creep.signController(creep.room.controller, "noTrade");
+                creep.signController(creep.room.controller, "bad command or file name");
             } else {
                 empire.spawnFromClosest(signerFlag.pos, [MOVE], "signer");
             }

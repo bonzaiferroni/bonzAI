@@ -139,7 +139,7 @@ export class UpgradeMission extends Mission {
         if (this.saverMode) { return this.workerBody(1, 1, 1); }
 
         let potencyPerCreep = this.potencyPerCreep();
-        if (this.remoteSpawning) {
+        if (this.room !== this.spawnGroup.room) {
             return this.workerBody(potencyPerCreep, 4, potencyPerCreep);
         }
 
@@ -153,7 +153,7 @@ export class UpgradeMission extends Mission {
     private getMax = (): number => {
         if (!this.state.battery || this.room.hostiles.length > 0) { return 0; }
         if (!this.room.storage && !this.remoteSpawning
-            && this.room.find(FIND_MY_CONSTRUCTION_SITES).length >= 5) { return 0; }
+            && this.room.find(FIND_MY_CONSTRUCTION_SITES).length >= 2) { return 0; }
 
         let potency = this.getPotency();
         let potencyPerCreep = this.potencyPerCreep();
@@ -180,7 +180,8 @@ export class UpgradeMission extends Mission {
         if (invalidSpawnRoom) {
             return 0;
         }
-        return Math.min(8, this.room.controller.level * 2);
+        // TODO: reenable this
+        return Math.min(0, this.room.controller.level * 2);
     };
 
     private influxCartBody = () => {
@@ -417,7 +418,7 @@ export class UpgradeMission extends Mission {
             }
 
             let storageCapacity;
-            if (this.room.storage) {
+            if (this.room.storage && this.room.controller.level >= 4) {
                 storageCapacity = Math.floor(this.room.storage.store.energy / 1500);
             }
 
@@ -428,7 +429,7 @@ export class UpgradeMission extends Mission {
                 let maxTransferable = Math.floor(((LINK_CAPACITY * .97) * linkCount) / cooldown);
                 return Math.min(maxTransferable, storageCapacity);
             } else if (this.state.battery instanceof StructureContainer) {
-                if (this.room.storage) { return storageCapacity; }
+                if (this.room.storage && this.room.controller.level >= 4) { return storageCapacity; }
                 return this.room.find(FIND_SOURCES).length * 10;
             } else {
                 console.log(`unrecognized controller battery type in ${this.operation.name}, ${

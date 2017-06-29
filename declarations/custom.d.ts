@@ -41,6 +41,7 @@ interface Memory {
         status: number;
         employer: string;
     }} };
+    marketTrader: any;
 }
 
 interface Room {

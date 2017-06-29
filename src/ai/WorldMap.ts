@@ -334,7 +334,7 @@ export class WorldMap {
             return ROOMTYPE_ALLEY;
         } else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
             return ROOMTYPE_CORE;
-        } else if (coords.x % 10 === 6 || coords.x % 10 === 4 || coords.y % 10 === 6 || coords.y % 10 === 4) {
+        } else if (coords.x % 10 <= 6 && coords.x % 10 >= 4 && coords.y % 10 <= 6 && coords.y % 10 >= 4) {
             return ROOMTYPE_SOURCEKEEPER;
         } else {
             return ROOMTYPE_CONTROLLER;

@@ -97,12 +97,12 @@ module.exports.loop = function () {
         }
 
         Profiler.start("postOperations");
-        empire.actions();
         sandBox.run();
         Profiler.end("postOperations");
-        Profiler.finalize();
         GrafanaStats.run(empire);
+        empire.finalize();
         Notifier.finalize();
+        Profiler.finalize();
         TimeoutTracker.finalize();
     } catch (e) { console.log("error during post-operations phase\n", e.stack); }
 

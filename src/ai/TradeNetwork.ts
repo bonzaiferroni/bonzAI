@@ -140,6 +140,7 @@ export class TradeNetwork {
             let outcome = terminal.send(boostType, sendAmount, roomName);
             console.log(`NETWORK: sent ${sendAmount} of ${boostType} from ${terminal.room.name} to ${
                 roomName} status: plenty -- outcome: ${outcome}`);
+            if (outcome === OK) { return; }
         }
 
         let mostToSpare = _(underReserve)

@@ -159,9 +159,6 @@ export var consoleCommands = {
                         delete missionMemory.pathData.paveTick;
                         paveTick++;
                     }
-                    if (missionName === "repair") {
-                        delete flagMemory[missionName];
-                    }
                 }
             } else {
                 flagCount++;

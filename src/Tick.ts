@@ -1,5 +1,7 @@
 import {Operation} from "./ai/operations/Operation";
 export class Tick {
+
+    public static cacheTick: number;
     public static cache: {
         structures: { [roomName: string]: {[structureType: string]: Structure[]} },
         hostiles: { [roomName: string]: Creep[] },
@@ -22,6 +24,8 @@ export class Tick {
     }
 
     public static refresh() {
+        if (Game.time === this.cacheTick) { return; }
+        this.cacheTick = Game.time;
         this.temp = {};
         this.operations = {};
         this.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},

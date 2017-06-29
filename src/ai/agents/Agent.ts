@@ -244,7 +244,7 @@ export class Agent extends AbstractAgent {
         } else {
             let position = this.findIdlePosition(place, acceptableRange);
             if (position) {
-                this.memory.idlePos = MemHelper.serializeIntPosition(this.memory.idlePos);
+                this.memory.idlePos = MemHelper.serializeIntPosition(position);
                 return position;
             } else {
                 console.log(`AGENT: no idlepos within range ${acceptableRange} near ${place.pos}`);
@@ -854,7 +854,7 @@ export class Agent extends AbstractAgent {
     }
 
     public static squadTravel(leader: Agent, follower: Agent, target: HasPos|RoomPosition,
-                              options?: TravelToOptions): number {
+                              options?: TravelToOptions, allowedRange = 1): number {
 
         let outcome;
         if (leader.room !== follower.room) {
@@ -866,16 +866,20 @@ export class Agent extends AbstractAgent {
         }
 
         let range = leader.pos.getRangeTo(follower);
-        if (range > 1) {
+        if (range > allowedRange) {
             if (follower.pos.isNearExit(0)) {
                 follower.moveOffExitToward(leader);
             } else {
-                follower.travelTo(leader);
+                follower.travelTo(leader, {stuckValue: 1});
             }
             // attacker stands still
         } else if (follower.fatigue === 0) {
             outcome = leader.travelTo(target, options);
-            follower.move(follower.pos.getDirectionTo(leader));
+            if (range === 1) {
+                follower.move(follower.pos.getDirectionTo(leader));
+            } else {
+                follower.travelTo(leader, {stuckValue: 1});
+            }
         }
         return outcome;
     }

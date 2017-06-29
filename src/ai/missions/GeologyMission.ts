@@ -7,6 +7,7 @@ import {Agent} from "../agents/Agent";
 import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
 import {Traveler} from "../Traveler";
+import {Tick} from "../../Tick";
 
 interface GeologyMemory extends MissionMemory {
     distanceToStorage: number;
@@ -44,8 +45,8 @@ export class GeologyMission extends Mission {
     }
 
     public init() {
-        this.mineralStats();
         if (!this.state.hasVision) { return; }
+        this.mineralStats();
         this.calculateBestBody();
         this.buildExtractor();
         this.findDistanceToSpawn(this.state.mineral.pos);
@@ -369,9 +370,10 @@ export class GeologyMission extends Mission {
     }
 
     private mineralStats() {
-        // TODO: refactor mineralstats to work in global
-        // if (!Game.cache[this.operation.mineral.mineralType]) { Game.cache[this.operation.mineral.mineralType] = 0; }
-        // Game.cache[this.mineral.mineralType]++;
+        if (Tick.cache.mineralCount[this.state.mineral.mineralType] === undefined) {
+            Tick.cache.mineralCount[this.state.mineral.mineralType] = 0;
+        }
+        Tick.cache.mineralCount[this.state.mineral.mineralType]++;
     }
 
     private updatePathMission() {

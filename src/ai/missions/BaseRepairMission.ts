@@ -42,6 +42,7 @@ export class BaseRepairMission extends Mission {
 
     public actions() {
         if (this.room.hostiles.length > 0) { return; }
+        if (this.room.storage && this.room.storage.store.energy < 10000) { return; }
 
         this.towerActions();
     }

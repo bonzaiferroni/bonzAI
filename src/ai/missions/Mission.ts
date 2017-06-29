@@ -266,7 +266,6 @@ export abstract class Mission {
                         creepArray.push(creep);
                         return creepArray;
                     } else if (!options.freelance.urgent) {
-                        console.log(`waiting to hire ${creep} in ${this.operation.name}}`);
                         return creepArray;
                     }
                 }
@@ -299,7 +298,7 @@ export abstract class Mission {
             let ticket = Memory.freelance[roleName][creep.name];
             if (!ticket) { continue; }
             if (ticket.employer !== employerName) {
-                Notifier.log(`MISSION: *** freelance removed ${creep.name} as a ${roleName} in ${this.roomName}`);
+                console.log(`MISSION: freelance removed ${creep.name} as a ${roleName} in ${this.roomName}`);
                 delete Memory.freelance[roleName][creep.name];
                 _.pull(creepArray, creep);
                 _.pull(creepNames, creep.name);
@@ -334,7 +333,7 @@ export abstract class Mission {
                 }
 
                 Memory.freelance[roleName][creepName] = {status: FreelanceStatus.Hired, employer: employerName };
-                Notifier.log(`MISSION: *** freelance hired ${creep.name} to be a ${roleName} in ${this.roomName}`);
+                console.log(`MISSION: freelance hired ${creep.name} to be a ${roleName} in ${this.roomName}`);
                 return creep;
             } else {
                 delete Memory.creeps[creepName];
@@ -608,13 +607,14 @@ export abstract class Mission {
             agent.memory.birthTick = Game.time;
         }
 
-        let waypoints = this.operation.findOperationWaypoints();
-        if (!options.skipWaypoints && waypoints.length > 0) {
-            let waypointsCovered = agent.travelWaypoints(waypoints, undefined, true);
-            if (!waypointsCovered) { return; }
-        }
-
         if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
+
+            let waypoints = this.operation.findOperationWaypoints();
+            if (!options.skipWaypoints && waypoints.length > 0) {
+                let waypointsCovered = agent.travelWaypoints(waypoints, undefined, true);
+                if (!waypointsCovered) { return; }
+            }
+
             agent.avoidSK(this.flag);
             return;
         }

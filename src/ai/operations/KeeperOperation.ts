@@ -26,7 +26,7 @@ export class KeeperOperation extends Operation {
 
     public init() {
 
-        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
+        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 7, 50);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         } else {

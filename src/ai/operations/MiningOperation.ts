@@ -44,6 +44,7 @@ export class MiningOperation extends Operation {
         // defense
         if (this.flag.room && this.flag.room.roomType === ROOMTYPE_CORE) {
             this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
+            this.addMission(new GeologyMission(this));
         } else {
             this.addMission(new BodyguardMission(this, this.invaderGuru));
         }

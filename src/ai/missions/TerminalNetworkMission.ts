@@ -1,10 +1,13 @@
 import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {MINERALS_RAW, RESERVE_AMOUNT} from "../TradeNetwork";
+import {
+    MINERALS_RAW, NEED_ENERGY_THRESHOLD, RESERVE_AMOUNT, SUPPLY_ENERGY_THRESHOLD, SURPLUS_AMOUNT,
+} from "../TradeNetwork";
 import {MINERAL_STORAGE_TARGET} from "../../config/constants";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {Scheduler} from "../../Scheduler";
+import {Notifier} from "../../notifier";
 
 interface TerminalNetworkMemory extends MissionMemory {
     nextOverstockCheck: number;
@@ -34,6 +37,7 @@ export class TerminalNetworkMission extends Mission {
     public actions() {
         this.sellOverstock();
         this.checkOverstock();
+        this.checkEnergy();
         // empire.network.registerRoom(this.room);
     }
 
@@ -83,5 +87,29 @@ export class TerminalNetworkMission extends Mission {
         this.terminal.send(mostStockedResource, RESERVE_AMOUNT, leastStockedTerminal.room.name);
         console.log("NETWORK: balancing terminal capacity, sending", RESERVE_AMOUNT, mostStockedResource,
             "from", this.room.name, "to", leastStockedTerminal.room.name);
+    }
+
+    private checkEnergy() {
+        if (this.room.storage.store.energy > NEED_ENERGY_THRESHOLD - 100000) {
+            return;
+        }
+
+        if (Scheduler.delay(this.memory, "checkEnergy", 1000)) {
+            return;
+        }
+
+        let order = _.filter(Game.market.orders,
+            x => x.roomName === this.roomName && x.resourceType === "energy" && x.type === ORDER_BUY)[0];
+
+        if (order) {
+            if (order.remainingAmount < 1000) {
+                Game.market.cancelOrder(order.id);
+            } else {
+                return;
+            }
+        }
+
+        Game.market.createOrder(ORDER_BUY, "energy", .032, 100000, this.roomName);
+        Notifier.log(`NETWORK: Creating energy buy order in ${this.roomName}`);
     }
 }

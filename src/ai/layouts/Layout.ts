@@ -14,6 +14,7 @@ export abstract class Layout {
     protected rotation: number;
     protected tempMap: {[controllerLevel: number]: {[structureType: string]: Coord[] } };
     protected data: LayoutData;
+    protected cacheTick: number;
     protected structureCache: {
         tick: number,
         idTick: number;
@@ -25,8 +26,6 @@ export abstract class Layout {
 
     constructor(roomName: string, data: LayoutData) {
         this.roomName = roomName;
-        this.anchor = data.anchor;
-        this.rotation = data.rotation;
         this.data = data;
     }
 
@@ -39,9 +38,17 @@ export abstract class Layout {
     }
 
     protected findMap() {
-        if (this.map) {
+        if (this.map && this.cacheTick && this.cacheTick === this.data.cacheTick) {
             return;
         }
+
+        if (this.data.cacheTick === undefined) {
+            this.data.cacheTick = Game.time;
+        }
+
+        this.cacheTick = this.data.cacheTick;
+        this.anchor = this.data.anchor;
+        this.rotation = this.data.rotation;
 
         let flexMap: FlexMap;
         if (this.hasFlex) {
@@ -217,7 +224,8 @@ export abstract class Layout {
         return false;
     }
 
-    public wipeFlex() {
+    public reset() {
+        this.data.cacheTick = Game.time;
         Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, undefined);
     }
 
@@ -267,6 +275,7 @@ export interface LayoutData {
     rotation: number;
     flex?: boolean;
     turtle?: boolean;
+    cacheTick?: number;
 }
 
 export const LAYOUT_QUAD = "quad";

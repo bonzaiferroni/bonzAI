@@ -86,10 +86,9 @@ export class ControllerOperation extends Operation {
 
         this.addMission(new RemoteBuildMission(this, false, remoteSpawning));
 
-
         if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
             if (this.remoteSpawn && this.remoteSpawn.spawnGroup
-                && this.remoteSpawn.spawnGroup.room.controller.level === 8) {
+                && this.remoteSpawn.spawnGroup.room.controller.level >= 4) {
                 let bodyguard = new BodyguardMission(this);
                 bodyguard.spawnGroup = this.remoteSpawn.spawnGroup;
                 this.addMission(bodyguard);
@@ -113,7 +112,7 @@ export class ControllerOperation extends Operation {
         }
 
         // harvest energy
-        MiningMission.Add(this, true);
+        MiningMission.Add(this, true, true);
 
         // update construction
         let buildMission = new BuilderMission(this, this.defenseGuru);
@@ -162,8 +161,10 @@ export class ControllerOperation extends Operation {
             flex: false,
         };
 
-        if (this.layout) { this.layout.wipeFlex(); }
-        console.log("attemping to move layout, globals will need to be refreshed before a change is made");
+        this.layout = LayoutFactory.Instantiate(this.roomName);
+        this.layout.init();
+
+        console.log("attemping to move layout:", JSON.stringify(Memory.rooms[this.flag.pos.roomName].layout));
     }
 
     public nuke(x: number, y: number, roomName: string): string {

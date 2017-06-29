@@ -16,6 +16,7 @@ interface RemoteUpgradeState extends MissionState {
 interface RemoteUpgradeMemory extends MissionMemory {
     distance: number;
     localSource: boolean;
+    spawnDistance: number;
 }
 
 export class RemoteUpgradeMission extends Mission {
@@ -28,9 +29,10 @@ export class RemoteUpgradeMission extends Mission {
     public state: RemoteUpgradeState;
     public memory: RemoteUpgradeMemory;
     public pathMission: PathMission;
+    private longRangeSpawn: boolean;
 
     constructor(operation: Operation) {
-        super(operation, "remUpgrade");
+        super(operation, "vremUpgrade");
     }
 
     protected init() {
@@ -46,6 +48,8 @@ export class RemoteUpgradeMission extends Mission {
             return;
         }
 
+        this.longRangeSpawn = Game.map.getRoomLinearDistance(this.state.target.pos.roomName, this.spawnGroup.pos.roomName) > 2;
+
         // use the storage in spawning room or in local room
         this.state.energySource = this.room.storage;
         let localRoomReady = this.state.target.room.storage && this.state.target.room.storage.store.energy >= 100000;
@@ -53,6 +57,7 @@ export class RemoteUpgradeMission extends Mission {
             if (!this.memory.localSource) {
                 this.memory.localSource = true;
                 this.memory.distance = undefined;
+                this.memory.spawnDistance = undefined;
             }
             this.state.energySource = this.state.target.room.storage;
         }
@@ -62,6 +67,10 @@ export class RemoteUpgradeMission extends Mission {
             this.memory.distance = Traveler.findTravelPath(this.state.energySource, this.state.target, {
                 offRoad: true,
             }).path.length;
+        }
+
+        if (!this.memory.spawnDistance) {
+            this.memory.spawnDistance = Traveler.findTravelPath(this.spawnGroup, this.state.target).path.length;
         }
 
         // find container or build one
@@ -88,7 +97,7 @@ export class RemoteUpgradeMission extends Mission {
     }
 
     protected getMaxBuilders = () => {
-        if (this.state.site) {
+        if (this.state.site && !this.longRangeSpawn) {
             return 1;
         } else {
             return 0;
@@ -101,8 +110,12 @@ export class RemoteUpgradeMission extends Mission {
 
     protected getMaxCarts = () => {
         if (this.state.container) {
-            let upgCount = this.roleCount("upgrader");
-            let analysis = this.cacheTransportAnalysis(this.memory.distance, upgCount * 31);
+            let upgCount = this.roleCount("upgrade");
+            let potency = upgCount * 31;
+            if (this.longRangeSpawn) {
+                potency = upgCount * 23;
+            }
+            let analysis = this.cacheTransportAnalysis(this.memory.distance, potency);
             return analysis.cartsNeeded;
         } else {
             return 1;
@@ -110,7 +123,11 @@ export class RemoteUpgradeMission extends Mission {
     };
 
     protected getUpgraderBody = () => {
-        return this.workerBody(30, 4, 16);
+        if (this.longRangeSpawn) {
+            return this.workerBody(23, 4, 23);
+        } else {
+            return this.bodyRatio(7.5, 1, 4);
+        }
     };
 
     protected getMaxUpgraders = () => {
@@ -124,7 +141,7 @@ export class RemoteUpgradeMission extends Mission {
     protected roleCall() {
         this.carts = this.headCount("cart", this.standardCartBody, this.getMaxCarts, {
             memory: { scavenger: RESOURCE_ENERGY },
-            prespawn: 1,
+            prespawn: this.memory.spawnDistance,
         });
 
         this.builders = this.headCount("builder", this.getBuilderBody, this.getMaxBuilders, {
@@ -132,8 +149,8 @@ export class RemoteUpgradeMission extends Mission {
             allowUnboosted: true,
         });
 
-        this.upgraders = this.headCount("upgrader", this.getUpgraderBody, this.getMaxUpgraders, {
-            prespawn: 50,
+        this.upgraders = this.headCount("upgrade", this.getUpgraderBody, this.getMaxUpgraders, {
+            prespawn: this.memory.spawnDistance,
             boosts: [RESOURCE_CATALYZED_GHODIUM_ACID],
             allowUnboosted: true,
         });
@@ -166,7 +183,7 @@ export class RemoteUpgradeMission extends Mission {
 
     private builderActions(builder: Agent) {
         if (!this.state.site) {
-            this.swapRole(builder, "builder", "upgrader");
+            this.swapRole(builder, "builder", "upgrade");
             return;
         }
 
@@ -234,7 +251,7 @@ export class RemoteUpgradeMission extends Mission {
                         cart.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
                     if (link) {
                         matrix = matrix.clone();
-                        helper.blockOffPosition(matrix, link, 2);
+                        helper.blockOffPosition(matrix, link, 1);
                         return matrix;
                     }
                 }});
@@ -278,7 +295,7 @@ export class RemoteUpgradeMission extends Mission {
     }
 
     private upgraderActions(upgrader: Agent, order: number) {
-        if (!upgrader.memory.hasLoad && upgrader.room === this.room) {
+        if (!this.longRangeSpawn && !upgrader.memory.hasLoad && upgrader.room === this.room) {
             upgrader.travelTo(this.room.storage);
             let outcome = upgrader.withdraw(this.room.storage, RESOURCE_ENERGY, 100);
             if (outcome === OK) {
@@ -315,7 +332,7 @@ export class RemoteUpgradeMission extends Mission {
                 upgrader.repair(road);
             }
 
-            upgrader.moveItOrLoseIt(position, "upgrader", false, {stuckValue: 4});
+            upgrader.moveItOrLoseIt(position, "upgrade", false, {stuckValue: 4});
         }
     }
 }

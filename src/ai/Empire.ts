@@ -56,22 +56,25 @@ export class Empire {
         this.diplomat.update();
         this.map.update();
         this.network.update();
+        this.market.update();
         this.janitor.update();
         SpawnGroup.update(this.spawnGroups);
         Archiver.update();
+        Scheduler.update();
     }
 
     /**
      * Occurs after operation phases
      */
 
-    public actions() {
+    public finalize() {
         this.map.actions();
         this.network.actions();
         this.market.actions();
         this.janitor.actions();
         SpawnGroup.finalize(this.spawnGroups);
         Archiver.finalize();
+        Scheduler.finalize(); // runs passive processes while cpu is under limit, need to run last
     }
 
     public underCPULimit() {
@@ -117,6 +120,7 @@ export class Empire {
             hostileMemory: {},
             empire: {},
             freelance: {},
+            marketTrader: {},
         });
     }
 }

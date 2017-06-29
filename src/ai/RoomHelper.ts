@@ -40,8 +40,8 @@ export class RoomHelper {
 
             let distance;
             let ret = Traveler.findTravelPath(origin.pos, dest.pos,
-                {maxOps: options.opsLimit, useFindRoute: options.byRoute});
-            if (ret.incomplete) { continue; }
+                {maxOps: options.opsLimit, ensurePath: true});
+            if (ret.incomplete) {continue; }
             distance = ret.path.length;
 
             if (distance < bestDistance) {

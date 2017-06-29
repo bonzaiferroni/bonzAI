@@ -18,7 +18,8 @@ export class GrafanaStats {
 
         for (let resourceType of MINERALS_RAW) {
             Memory.stats["empire.rawMinerals." + resourceType] = emp.network.inventory[resourceType];
-            Memory.stats["empire.mineralCount." + resourceType] = Tick.cache[resourceType] || 0;
+            if (!Tick.cache.mineralCount[resourceType]) { continue; }
+            Memory.stats["empire.mineralCount." + resourceType] = Tick.cache.mineralCount[resourceType];
         }
 
         for (let resourceType of PRODUCT_LIST) {

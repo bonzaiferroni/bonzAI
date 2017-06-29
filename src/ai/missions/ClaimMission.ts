@@ -38,7 +38,6 @@ export class ClaimMission extends Mission {
     public roleCall() {
         this.claimers = this.headCount("claimer", this.claimerBody, this.getMax, {
             blindSpawn: true,
-            skipMoveToRoom: true,
         });
     }
 
@@ -56,10 +55,6 @@ export class ClaimMission extends Mission {
     }
 
     private claimerActions(claimer: Agent) {
-
-        let waypoints = this.operation.findOperationWaypoints();
-        let waypointsCovered = claimer.travelWaypoints(waypoints);
-        if (!waypointsCovered) { return; }
 
         if (!this.controller) {
             claimer.travelTo(this.flag);

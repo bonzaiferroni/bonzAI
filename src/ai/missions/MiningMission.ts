@@ -34,6 +34,7 @@ export class MiningMission extends Mission {
     private _minersNeeded: number;
     private _analysis: TransportAnalysis;
     private pathMission: PathMission;
+    private localStorage: boolean;
 
     public state: MiningState;
     public memory: MiningMemory;
@@ -43,15 +44,16 @@ export class MiningMission extends Mission {
      * @param operation
      * @param name
      * @param source
-     * @param remoteSpawning
+     * @param localStorage
      */
 
-    constructor(operation: Operation, name: string, source: Source) {
+    constructor(operation: Operation, name: string, source: Source, localStorage = false) {
         super(operation, name);
         this.sourceId = source.id;
+        this.localStorage = localStorage;
     }
 
-    public static Add(operation: Operation, preferLinkMiner: boolean) {
+    public static Add(operation: Operation, preferLinkMiner: boolean, localStorage = false) {
         if (!operation.state.hasVision) { return; }
         if (preferLinkMiner && operation.room.controller.level === 8 && operation.room.storage) {
             LinkMiningMission.Add(operation);
@@ -60,7 +62,7 @@ export class MiningMission extends Mission {
 
         for (let i = 0; i < operation.state.sources.length; i++) {
             let source = operation.state.sources[i];
-            operation.addMission(new MiningMission(operation, "miner" + i, source));
+            operation.addMission(new MiningMission(operation, "miner" + i, source, localStorage));
         }
     }
 
@@ -76,7 +78,7 @@ export class MiningMission extends Mission {
             }
         }
 
-        if (!this.memory.spawnDistance) {
+        if (!this.memory.spawnDistance || Math.random() < .1) {
             let source = Game.getObjectById<Source>(this.sourceId);
             if (source) {
                 // TODO: make this work across a portal
@@ -118,7 +120,7 @@ export class MiningMission extends Mission {
             if (_.sum(this.state.storage.store) > FULL_STORAGE_THRESHOLD) {
                 return 0;
             }
-        } else if (this.room === this.spawnGroup.room) {
+        } else if (this.localStorage) {
             return 0;
         }
         return this.analysis.cartsNeeded;
@@ -156,7 +158,6 @@ export class MiningMission extends Mission {
     public finalize() { }
     public invalidateCache() {
         this.memory.transportAnalysis = undefined;
-        if (Math.random() < .1) { this.memory.spawnDistance = undefined; }
     }
 
     private minerActions(miner: Agent, order: number) {
@@ -358,12 +359,14 @@ export class MiningMission extends Mission {
 
     private findMinerStorage(): StructureStorage {
 
-        if (this.operation.type === "mining" || this.operation.type === "keeper") {
-            return this.getStorage(this.state.source.pos);
+        if (this.localStorage) {
+            return this.room.storage;
+        }
+
+        if (this.room.storage && this.room.storage.my) {
+            return this.flag.room.storage;
         } else {
-            if (this.room.storage && this.room.storage.my) {
-                return this.flag.room.storage;
-            }
+            return this.getStorage(this.state.source.pos);
         }
     }
 

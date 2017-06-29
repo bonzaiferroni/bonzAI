@@ -24,14 +24,13 @@ export class EmergencyMinerMission extends Mission {
     }
 
     public roleCall() {
-        let energyAvailable = this.spawnGroup.currentSpawnEnergy >= 1300 ||
-            (this.room.storage && this.room.storage.store.energy > 1300) || this.findMinersBySources();
+        let energyAvailable = (this.room.storage && this.room.storage.store.energy > 10000) || this.findMinersBySources();
         if (energyAvailable) {
             this.memory.lastTick = Game.time;
         }
 
         let getMaxMiners = () => {
-            if (!this.memory.lastTick || Game.time > this.memory.lastTick + 50) {
+            if (!this.memory.lastTick || Game.time > this.memory.lastTick + 100) {
                 if (Game.time % 10 === 0) {
                     console.log("ATTN: Backup miner being spawned in", this.operation.name);
                 }
@@ -39,7 +38,7 @@ export class EmergencyMinerMission extends Mission {
             }
         };
 
-        this.emergencyMiners = this.headCount("emergencyMiner", () => this.workerBody(1, 1, 1), getMaxMiners);
+        this.emergencyMiners = this.headCount("emergencyMiner", () => this.workerBody(2, 1, 1), getMaxMiners);
     }
 
     public actions() {
