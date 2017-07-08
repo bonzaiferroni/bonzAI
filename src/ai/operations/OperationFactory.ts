@@ -12,6 +12,7 @@ import {ZombieOperation} from "./ZombieOperation";
 import {DemolishOperation} from "./DemolishOperation";
 import {RemoteUpgradeOperation} from "./RemoteUpgradeOperation";
 import {submodules} from "../../submodules";
+import {SandboxOperation} from "./SandboxOperation";
 
 export class OperationFactory {
 
@@ -31,6 +32,7 @@ export class OperationFactory {
         guard: GuardOperation,
         swap: SwapOperation,
         rupg: RemoteUpgradeOperation,
+        sand: SandboxOperation,
     };
 
     private static scannedFlags: {[flagName: string]: boolean } = {};

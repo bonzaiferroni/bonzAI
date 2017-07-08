@@ -13,6 +13,28 @@ import {WorldMap} from "./ai/WorldMap";
 export var sandBox = {
     run: function() {
 
+        let bulldozeFlag = Game.flags["bulldoze"];
+        if (bulldozeFlag && !bulldozeFlag.memory[bulldozeFlag.pos.roomName]) {
+
+            if (bulldozeFlag.room && bulldozeFlag.room.controller.my) {
+                bulldozeFlag.room.findStructures<StructureWall>(STRUCTURE_WALL)
+                    .forEach(x => x.destroy());
+                bulldozeFlag.room.controller.unclaim();
+                bulldozeFlag.memory[bulldozeFlag.pos.roomName] = true;
+            } else {
+                let bulldozer = Game.creeps["bulldozer"];
+                if (bulldozer) {
+                    if (bulldozer.pos.inRangeTo(bulldozeFlag, 0)) {
+                        bulldozer.claimController(bulldozer.room.controller);
+                    } else {
+                        bulldozer.travelTo(bulldozeFlag);
+                    }
+                } else {
+                    empire.spawnFromClosest(bulldozeFlag.pos, [CLAIM, MOVE], "bulldozer");
+                }
+            }
+        }
+
         let claimerFlag = Game.flags["claimerFlag"];
         if (claimerFlag) {
             let creep = Game.creeps["claimer"];
@@ -25,26 +47,17 @@ export var sandBox = {
         }
 
         let signerFlag = Game.flags["signerFlag"];
-        if (signerFlag) {
+        let sign = "bad command or file name";
+        if (signerFlag && (!signerFlag.room.controller.sign || signerFlag.room.controller.sign.text !== sign)) {
             let creep = Game.creeps["signer"];
             if (creep) {
                 let data = {} as TravelToReturnData;
                 creep.travelTo(signerFlag, {returnData: data});
                 if (data.path) { creep.say(`${data.path.length} more!`); }
-                creep.signController(creep.room.controller, "bad command or file name");
+                creep.signController(creep.room.controller, sign);
             } else {
                 empire.spawnFromClosest(signerFlag.pos, [MOVE], "signer");
             }
-        }
-
-        let sandboxFlag = Game.flags["sandbox"];
-        if (sandboxFlag) {
-            let sandboxOp = new SandboxOperation(sandboxFlag, "sand0", "sandbox");
-            global.sand0 = sandboxOp;
-            // sandboxOp.init();
-            // sandboxOp.roleCall();
-            // sandboxOp.actions();
-            // sandboxOp.finalize();
         }
 
         if (!Memory.temp.ranTest) {
@@ -150,92 +163,4 @@ function testSerialPos() {
         let position = room.deserializePositionTest(unicode);
     }
     console.log(`unicode: ${Game.cpu.getUsed() - cpu}`);
-}
-
-class SandboxOperation extends Operation {
-    protected update() {
-    }
-    public init() {
-        this.addMission(new SandboxMission(this, "sandbox"));
-    }
-
-    public finalize() {
-    }
-
-    public invalidateCache() {
-    }
-
-}
-
-class SandboxMission extends Mission {
-    protected init() {
-    }
-    public update() {
-    }
-
-    public roleCall() {
-    }
-
-    public actions() {
-        // this.squadTravelTest();
-        // this.fleeByPathTest();
-        this.fatigueTest();
-    }
-
-    public finalize() {
-    }
-
-    public invalidateCache() {
-    }
-
-    public squadTravelTest() {
-        let leaderCreep = Game.creeps["leader"];
-        let leader;
-        if (leaderCreep) {
-            leader = new Agent(leaderCreep, this);
-        } else {
-            empire.spawnFromClosest(this.flag.pos, [MOVE], "leader");
-        }
-
-        let followerCreep = Game.creeps["follower"];
-        let follower;
-        if (followerCreep) {
-            follower = new Agent(followerCreep, this);
-        } else {
-            empire.spawnFromClosest(this.flag.pos, [MOVE], "follower");
-        }
-
-        if (!leader || !follower) { return; }
-
-        Agent.squadTravel(leader, follower, this.flag);
-    }
-
-    private fleeByPathTest() {
-        let fleeFlag = Game.flags["fleeFlag"];
-        if (!fleeFlag) { return; }
-
-        let fleeCreep = Game.creeps["fleeCreep"];
-        if (!fleeCreep) {
-            empire.spawnFromClosest(fleeFlag.pos, [MOVE], "fleeCreep");
-            return;
-        }
-
-        let agent = new Agent(fleeCreep, this);
-        fleeFlag["id"] = "scaryGuy";
-        let fleeing = agent.fleeByPath([fleeFlag as any], 6, 3);
-        if (!fleeing) {
-            agent.travelTo(fleeFlag);
-        }
-    }
-
-    private fatigueTest() {
-        let fattyCreep = Game.creeps["fatty"];
-        if (!fattyCreep) {
-            empire.spawnFromClosest(this.flag.pos, [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, MOVE],
-                "fatty");
-            return;
-        }
-        let fatty = new Agent(fattyCreep, this);
-        fatty.travelTo(this.flag);
-    }
 }

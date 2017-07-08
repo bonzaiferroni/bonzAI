@@ -98,33 +98,28 @@ export class RefillMission extends Mission {
             if (cart.carry.energy < cart.carryCapacity * .8) {
                 cart.memory.hasLoad = false;
             } else {
-                cart.idleNear(this.room.storage || this.room.findStructures<StructureSpawn>(STRUCTURE_SPAWN)[0], 3);
+                cart.idleNear(this.room.storage || this.room.findStructures<StructureSpawn>(STRUCTURE_SPAWN)[0], 6, true);
             }
             return;
         }
 
         // has target
-        if (!cart.pos.isNearTo(target)) {
-            cart.travelTo(target);
-            if (this.room.storage && cart.pos.isNearTo(this.room.storage) &&
-                cart.carry.energy <= cart.carryCapacity - 50) {
-                cart.withdraw(this.room.storage, RESOURCE_ENERGY);
-            }
-            return;
-        }
-
-        // is near to target
-        let outcome = cart.transfer(target, RESOURCE_ENERGY);
-        if (outcome === OK) {
-            if (cart.carry.energy > target.energyCapacity - target.energy) {
-                cart.memory.emptyId = undefined;
-                target = this.findNearestEmpty(cart, target);
-                if (target && !cart.pos.isNearTo(target)) {
-                    cart.travelTo(target);
+        if (cart.pos.isNearTo(target)) {
+            let outcome = cart.transfer(target, RESOURCE_ENERGY);
+            if (outcome === OK) {
+                if (cart.carry.energy > target.energyCapacity - target.energy) {
+                    cart.memory.emptyId = undefined;
+                    target = this.findNearestEmpty(cart, target);
+                    if (target && !cart.pos.isNearTo(target)) {
+                        cart.travelTo(target, {maxRooms: 1});
+                    }
+                } else if (this.room.storage) {
+                    cart.travelTo(this.room.storage, {maxRooms: 1});
                 }
-            } else if (this.room.storage) {
-                cart.travelTo(this.room.storage);
             }
+
+        } else {
+            cart.travelTo(target, {maxRooms: 1});
         }
     }
 

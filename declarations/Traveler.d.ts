@@ -5,6 +5,13 @@ interface TravelToReturnData {
     path?: string;
 }
 
+interface PathfinderReturn {
+    path: RoomPosition[];
+    ops: number;
+    cost: number;
+    incomplete: boolean;
+}
+
 interface TravelToOptions {
     ignoreRoads?: boolean;
     ignoreCreeps?: boolean;

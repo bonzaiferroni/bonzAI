@@ -114,53 +114,12 @@ export var consoleCommands = {
      * remove old properties in memory that are no longer being used by the AI
      */
 
-    removeUnusedProperties() {
-
-        let hostiles = false;
-        if (Memory.empire["hostileRooms"]) {
-            hostiles = true;
-            delete Memory.empire["hostileRooms"];
-        }
-
-        let radarCount = 0;
-        let spawnCount = 0;
-        let analCount = 0;
+    gc() {
         let flagCount = 0;
-        let pathGarbage = 0;
-        let paveTick = 0;
         for (let flagName in Memory.flags) {
             let flag = Game.flags[flagName];
-            if (flag) {
-                let flagMemory = Memory.flags[flagName];
-                for (let missionName in flagMemory) {
-                    if (!flagMemory.hasOwnProperty(missionName)) { continue; }
-                    let missionMemory = flagMemory[missionName];
-                    if (missionName === "radar") {
-                        radarCount++;
-                        delete flagMemory[missionName];
-                    }
-                    if (missionMemory["anal"]) { // :)
-                        analCount++;
-                        delete missionMemory["anal"];
-                    }
-                    if (missionName === "bodyguard" || missionName === "defense") {
-                        delete missionMemory["invaderProbable"];
-                        delete missionMemory["invaderTrack"];
-                    }
-                    if (missionMemory["roadRepairIds"]) {
-                        delete missionMemory["roadRepairIds"];
-                        pathGarbage++;
-                    }
-                    if (missionMemory["paveTick"]) {
-                        delete missionMemory["paveTick"];
-                        pathGarbage++;
-                    }
-                    if (missionMemory.hasOwnProperty("pathData") && missionMemory.pathData.paveTick) {
-                        delete missionMemory.pathData.paveTick;
-                        paveTick++;
-                    }
-                }
-            } else {
+            if (!flag) {
+                console.log(flagName);
                 flagCount++;
                 delete Memory.flags[flagName];
             }
@@ -170,14 +129,13 @@ export var consoleCommands = {
         for (let creepName in Memory.creeps) {
             let creep = Game.creeps[creepName];
             if (!creep) {
+                console.log(creepName);
                 creepCount++;
                 delete Memory.creeps[creepName];
             }
         }
 
-        return `gc Creeps: ${creepCount}, gc flags: ${flagCount}, spawn: ${spawnCount}, radar: ${radarCount}\n` +
-                `analysis: ${analCount}, hostileRooms: ${hostiles}, pathGarbage: ${pathGarbage}\n` +
-                `paveTick ${paveTick}`;
+        return `gc Creeps: ${creepCount}, gc flags: ${flagCount}`;
     },
 
     removeMissionData(missionName: string) {

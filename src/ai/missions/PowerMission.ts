@@ -377,6 +377,12 @@ export class PowerMission extends Mission {
                 console.log("POWER: we had a tie!");
                 clyde.say("tie!", true);
                 clyde.memory.play = undefined;
+                if (clyde.memory.tieCount === undefined) { clyde.memory.tieCount = 0; }
+                clyde.memory.tieCount++;
+                if (clyde.memory.tieCount >= 5) {
+                    this.memory.currentBank.assisting = true;
+                    clyde.say("I help!", true);
+                }
             } else if ((allyPlay === "rock" && myPlay === "scissors") ||
                 (allyPlay === "scissors" && myPlay === "paper") ||
                 (allyPlay === "paper" && myPlay === "rock")) {

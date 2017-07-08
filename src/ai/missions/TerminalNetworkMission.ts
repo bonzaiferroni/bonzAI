@@ -12,6 +12,7 @@ import {Notifier} from "../../notifier";
 interface TerminalNetworkMemory extends MissionMemory {
     nextOverstockCheck: number;
     nextSellOverstock: number;
+    emptyRoom: number;
 }
 
 export class TerminalNetworkMission extends Mission {
@@ -38,6 +39,7 @@ export class TerminalNetworkMission extends Mission {
         this.sellOverstock();
         this.checkOverstock();
         this.checkEnergy();
+        this.emptyRoom();
         // empire.network.registerRoom(this.room);
     }
 
@@ -109,7 +111,22 @@ export class TerminalNetworkMission extends Mission {
             }
         }
 
-        Game.market.createOrder(ORDER_BUY, "energy", .032, 100000, this.roomName);
+        Game.market.createOrder(ORDER_BUY, "energy", .012, 100000, this.roomName);
         Notifier.log(`NETWORK: Creating energy buy order in ${this.roomName}`);
+    }
+
+    private emptyRoom() {
+        if (!this.memory.emptyRoom) { return; }
+        if (!this.room.controller.sign || this.room.controller.sign.text !== "noTrade") {
+            let signer = this.headCount("signer", () => [MOVE], () => 1)[0];
+            if (!signer) { return; }
+            let outcome = signer.creep.signController(this.room.controller, "noTrade");
+            if (outcome === ERR_NOT_IN_RANGE) {
+                signer.travelTo(this.room.controller);
+            }
+            return;
+        }
+
+        empire.network.emptyTerminal(this.roomName);
     }
 }

@@ -417,6 +417,49 @@ export class TradeNetwork {
             }
         }
     }
+
+    public emptyTerminal(roomName: string) {
+        let room = Game.rooms[roomName];
+        if (!room) { return; }
+        let terminal = room.terminal;
+        if (!terminal || terminal.cooldown) { return; }
+
+        if (_.sum(terminal.store) < 1000) {
+            console.log(`NETWORK: all empty in ${roomName}`);
+            return;
+        }
+
+        let otherTerminal = _(this.terminals)
+            .filter(x => x.pos.roomName !== roomName && x.storeCapacity - _.sum(x.store) >= 50000)
+            .min(x => Game.map.getRoomLinearDistance(x.pos.roomName, roomName));
+
+        if (!_.isObject(otherTerminal)) {
+            console.log(`NETWORK: no room to send out resources from ${roomName}`);
+            return;
+        }
+
+        // send everything but energy
+        for (let resourceType in terminal.store) {
+            if (resourceType === RESOURCE_ENERGY) { continue; }
+            let amount = terminal.store[resourceType];
+            if (amount < 100) { continue; }
+            let outcome = terminal.send(resourceType, amount, otherTerminal.pos.roomName);
+            if (outcome !== OK) {
+                console.log(`NETWORK: unable to empty resource from ${roomName} to ${
+                    otherTerminal.pos.roomName}, outcome: ${outcome}`);
+            }
+            return;
+        }
+
+        // send energy
+        let sendCost = Game.market.calcTransactionCost(terminal.store.energy, roomName, otherTerminal.pos.roomName);
+        let amount = terminal.store.energy - sendCost;
+        let outcome = terminal.send(RESOURCE_ENERGY, amount, otherTerminal.pos.roomName);
+        if (outcome !== OK) {
+            console.log(`NETWORK: unable to empty resource from ${roomName} to ${
+                otherTerminal.pos.roomName}, outcome: ${outcome}`);
+        }
+    }
 }
 
 // these are the constants that govern your energy balance

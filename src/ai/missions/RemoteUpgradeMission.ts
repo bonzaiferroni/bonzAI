@@ -78,7 +78,7 @@ export class RemoteUpgradeMission extends Mission {
         if (this.state.container) {
             if (!this.positions) {
                 this.positions = _(this.state.container.pos.openAdjacentSpots(true))
-                    .filter(x => !x.lookForStructure(STRUCTURE_ROAD))
+                    .filter(x => !x.lookForStructure(STRUCTURE_ROAD) && x.inRangeTo(this.state.target.room.controller, 3))
                     .value();
                 this.positions = this.positions.concat([ this.state.container.pos]);
             }

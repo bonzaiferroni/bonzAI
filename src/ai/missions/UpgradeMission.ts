@@ -460,7 +460,7 @@ export class UpgradeMission extends Mission {
         for (let i = 1; i <= 8; i++) {
             let position = this.state.battery.pos.getPositionAtDirection(i);
             let invalidPosition = !position.isPassible(true) || !position.inRangeTo(this.room.controller, 3)
-                || position.lookFor(LOOK_STRUCTURES).length > 0
+                || _.filter(position.lookFor<Structure>(LOOK_STRUCTURES), x => x.structureType === STRUCTURE_ROAD).length > 0
                 || position.lookFor(LOOK_CONSTRUCTION_SITES).length > 0;
             if (invalidPosition) { continue; }
             positions.push(position);

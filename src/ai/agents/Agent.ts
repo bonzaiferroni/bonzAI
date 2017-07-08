@@ -443,7 +443,7 @@ export class Agent extends AbstractAgent {
 
         if (fleeData.nextPos) {
             let position = helper.deserializeRoomPosition(fleeData.nextPos);
-            if (this.arrivedAtPosition(position)) {
+            if (this.arrivedAtPosition(position) && fleeData.path) {
                 fleeData.path = fleeData.path.substr(1);
             } else {
                 fleeData.path = undefined;
@@ -779,7 +779,11 @@ export class Agent extends AbstractAgent {
         }
 
         if (!this.pos.isNearTo(battery)) {
-            this.travelTo(battery);
+            if (this.room === battery.room) {
+                this.travelTo(battery, {maxRooms: 1});
+            } else {
+                this.travelTo(battery);
+            }
             return;
         }
 
@@ -794,7 +798,11 @@ export class Agent extends AbstractAgent {
         if (outcome === OK) {
             this.memory.batteryId = undefined;
             if (nextDestination) {
-                this.travelTo(nextDestination);
+                if (this.pos.roomName === nextDestination.pos.roomName) {
+                    this.travelTo(nextDestination, {maxRooms: 1});
+                } else {
+                    this.travelTo(nextDestination);
+                }
             }
             if (battery instanceof Creep) {
                 battery.memory.donating = undefined;
@@ -821,8 +829,8 @@ export class Agent extends AbstractAgent {
         }
 
         let find = () => {
-            let battery: StoreStructure|Creep = _(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)
-                .concat(this.room.findStructures<StructureTerminal>(STRUCTURE_TERMINAL)))
+            let battery: StoreStructure|Creep = _(this.room.findStructures<StoreStructure>(STRUCTURE_CONTAINER)
+                .concat(this.room.findStructures<StoreStructure>(STRUCTURE_TERMINAL)))
                 .filter(x => x.store.energy >= minEnergy)
                 // don't draw from a controller battery
                 .filter(x => !(x instanceof StructureContainer) || !x.room.controller ||
@@ -1027,7 +1035,7 @@ export class Agent extends AbstractAgent {
         for (let part of this.creep.body) {
             if (part.type !== TOUGH) { continue; }
             if (part.boost) {
-                shield += part.hits / BOOSTS[TOUGH][part.boost].damage;
+                shield += part.hits / BOOSTS[TOUGH][part.boost]["damage"];
             } else {
                 shield += part.hits;
             }

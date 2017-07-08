@@ -11,6 +11,7 @@ import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {Profiler} from "../../Profiler";
 
 export interface MissionState {
     hasVision?: boolean;

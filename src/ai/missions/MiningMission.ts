@@ -381,6 +381,8 @@ export class MiningMission extends Mission {
 
     private placeContainer() {
 
+        if (Object.keys(Game.constructionSites).length >= 90 ) { return; }
+
         let startingPosition: {pos: RoomPosition} = this.findMinerStorage();
         if (!startingPosition) {
             startingPosition = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
