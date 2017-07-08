@@ -40,6 +40,8 @@ interface ControllerOperationMemory extends OperationMemory {
     rotation: number;
     centerPosition: RoomPosition;
     repairIndices: {[structureType: string]: number};
+    showLayoutType: string;
+    showLayoutTill: number;
 }
 
 export class ControllerOperation extends Operation {
@@ -148,6 +150,9 @@ export class ControllerOperation extends Operation {
     }
 
     public finalize() {
+        if (Game.time < this.memory.showLayoutTill) {
+            this.showLayout(this.memory.showLayoutType, 0);
+        }
     }
 
     public invalidateCache() {
@@ -179,7 +184,13 @@ export class ControllerOperation extends Operation {
         }
     }
 
-    public showLayout(type = "all", maintain = true): string {
+    public showLayout(type = "all", maintain = 20): string {
+
+        if (maintain !== 0) {
+            this.memory.showLayoutTill = Game.time + maintain;
+            this.memory.showLayoutType = type;
+        }
+
         if (!this.layout || !this.layout.map) {
             return "No layout defined";
         }
