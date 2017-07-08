@@ -180,16 +180,18 @@ export class LayoutFinder {
     private runNextSimulation(progress: LayoutFinderProgress) {
         let type = this.layoutTypes[progress.typeIndex];
 
-        let layout = LayoutFactory.Instantiate(this.roomName, {
-            anchor: progress.anchor,
-            rotation: progress.rotation,
-            type: type,
-        });
+        let layout = LayoutFactory.Instantiate(this.roomName, type);
 
         this.currentRadius = layout.fixedMap.radius;
         if (!progress.anchor) {
             progress.anchor = {x: this.currentRadius + 2, y: this.currentRadius + 2 };
         }
+
+        layout.simulateData({
+            anchor: progress.anchor,
+            rotation: progress.rotation,
+            type: type,
+        });
 
         let obstacle = this.obstacleMap.findAnyInRange(progress.anchor, layout.fixedMap.radius, layout.fixedMap.taper);
         if (obstacle) {

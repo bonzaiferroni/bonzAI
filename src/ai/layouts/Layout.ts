@@ -24,9 +24,8 @@ export abstract class Layout {
         ids: {},
     } as any;
 
-    constructor(roomName: string, data: LayoutData) {
+    constructor(roomName: string) {
         this.roomName = roomName;
-        this.data = data;
     }
 
     public init() {
@@ -34,6 +33,11 @@ export abstract class Layout {
 
     public update() {
         this.data = Memory.rooms[this.roomName].layout;
+        this.findMap();
+    }
+
+    public simulateData(data: LayoutData) {
+        this.data = data;
         this.findMap();
     }
 

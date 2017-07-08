@@ -16,10 +16,10 @@ export class LayoutFactory {
         [LAYOUT_CUSTOM]: CustomLayout,
     };
 
-    public static Instantiate(roomName: string, data?: LayoutData): Layout {
-        if (!data) {
+    public static Instantiate(roomName: string, type?: string): Layout {
+        if (!type) {
             if (!Memory.rooms[roomName]) { Memory.rooms[roomName] = {} as any; }
-            data = Memory.rooms[roomName].layout;
+            let data = Memory.rooms[roomName].layout;
             if (!data) {
                 if (Game.time % 10 === 0) {
                     console.log(`LAYOUT: no auto-layout type specified for ${roomName}`);
@@ -32,8 +32,10 @@ export class LayoutFactory {
                 };
                 Memory.rooms[roomName].layout = data;
             }
+            type = data.type;
         }
-        let layoutClass = LayoutFactory.layoutClasses[data.type];
-        return new layoutClass(roomName, data);
+
+        let layoutClass = LayoutFactory.layoutClasses[type];
+        return new layoutClass(roomName);
     }
 }

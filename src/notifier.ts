@@ -1,8 +1,7 @@
 export class Notifier {
 
     public static exceptionCount: number;
-    public static exceptionIdentifiers: {[identifier: string]: number}
-    public static tick: number;
+    public static exceptionIdentifiers: {[identifier: string]: number};
 
     public static log(message: string) {
         console.log(message);
@@ -74,11 +73,6 @@ export class Notifier {
     }
 
     public static reportException(e: any, phaseName: string, identifier?: string) {
-        if (this.tick !== Game.time) {
-            this.tick = Game.time;
-            this.exceptionCount = 0;
-            this.exceptionIdentifiers = {};
-        }
 
         if (this.exceptionCount === 0) {
             console.log(`NOTIFIER: error caught in ${phaseName} phase for ${identifier}`);
@@ -98,6 +92,9 @@ export class Notifier {
             console.log(`NOTIFIER: ${this.exceptionCount} total exceptions this tick`);
             console.log(JSON.stringify(this.exceptionIdentifiers));
         }
+
+        this.exceptionCount = 0;
+        this.exceptionIdentifiers = {};
     }
 }
 
