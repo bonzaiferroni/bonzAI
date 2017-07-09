@@ -1,7 +1,7 @@
 export class Notifier {
 
     public static exceptionCount: number;
-    public static exceptionIdentifiers: {[identifier: string]: number};
+    public static exceptionIdentifiers: {[identifier: string]: number} = {};
 
     public static log(message: string) {
         console.log(message);

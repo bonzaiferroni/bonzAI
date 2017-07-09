@@ -145,7 +145,7 @@ export class BuilderMission extends Mission {
         // repair the rampart you just built
         if (this.memory.rampartPos) {
             let rampart = helper.deserializeRoomPosition(this.memory.rampartPos).lookForStructure(STRUCTURE_RAMPART);
-            if (rampart && rampart.hits < 10000) {
+            if (rampart && rampart.hits < 100000) {
                 if (rampart.pos.inRangeTo(builder, 3)) {
                     builder.repair(rampart);
                 } else {
