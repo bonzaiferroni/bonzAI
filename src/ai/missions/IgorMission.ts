@@ -616,7 +616,9 @@ export class IgorMission extends Mission {
                 console.log(`IGOR: terminal placement unoptimal (${this.operation.name})`);
             }
         }
-        return helper.deserializeRoomPosition(this.memory.idlePosition);
+        if (this.memory.idlePosition) {
+            return helper.deserializeRoomPosition(this.memory.idlePosition);
+        }
     }
 
     private optimalIgorPos(): RoomPosition {
