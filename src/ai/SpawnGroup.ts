@@ -181,13 +181,13 @@ export class SpawnGroup {
 
         if (Game.time % 100 !== 0) { return; }
         let log = this.memory.log;
-        let average = log.availability / 100;
+        let average = _.round(log.availability / 100, 2);
         log.availability = 0;
         log.history.push(average);
         while (log.history.length > 5) { log.history.shift(); }
 
         if (Game.time % 500 !== 0) { return; }
-        let longAverage = _.sum(log.history) / 5;
+        let longAverage = _.round(_.sum(log.history) / 5, 2);
         log.longHistory.push(longAverage);
         while (log.longHistory.length > 5) { log.longHistory.shift(); }
     }
@@ -220,7 +220,7 @@ export class SpawnGroup {
 
         let currentStatus = this.currentSpawnEnergy / this.maxSpawnEnergy;
         let lerp = (a: number, b: number, f: number) => a + f * (b - a);
-        this.memory.efficiency = lerp(this.memory.efficiency, currentStatus, .1);
+        this.memory.efficiency = _.round(lerp(this.memory.efficiency, currentStatus, .1), 2);
         return this.memory.efficiency;
     }
 }

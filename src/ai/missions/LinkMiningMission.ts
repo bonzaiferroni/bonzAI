@@ -1,15 +1,22 @@
-import {Mission} from "./Mission";
+import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {Traveler} from "../Traveler";
+
+interface LinkMiningMemory extends MissionMemory {
+    linkId: string;
+}
+
 export class LinkMiningMission extends Mission {
 
     private linkMiners: Agent[];
     private source: Source;
     private sourceId: string;
     private link: StructureLink;
+
+    protected memory: LinkMiningMemory;
 
     /**
      * Sends a miner to a source with a link, energy transfer is managed by LinkNetworkMission
@@ -131,7 +138,7 @@ export class LinkMiningMission extends Mission {
         if (this.source.pos.findInRange(this.source.room.findStructures<StructureLink>(STRUCTURE_LINK), 2).length > 0) {
             return;
         }
-        let container = this.source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
+        let container = this.source.pos.findInRange(this.room.findStructures(STRUCTURE_CONTAINER), 1)[0];
         if (container) {
             container.destroy();
             return;
@@ -160,7 +167,22 @@ export class LinkMiningMission extends Mission {
     }
 
     private findLink() {
-        return this.source.findMemoStructure(STRUCTURE_LINK, 2, true) as StructureLink;
+        if (this.memory.linkId) {
+            let link = Game.getObjectById<StructureLink>(this.memory.linkId);
+            if (link) {
+                return link;
+            } else {
+                delete this.memory.linkId;
+                return this.findLink();
+            }
+        } else {
+            if (!this.room) { return; }
+            let link = this.source.pos.findInRange(this.room.findStructures(STRUCTURE_LINK), 2)[0];
+            if (link) {
+                this.memory.linkId = link.id;
+                return link;
+            }
+        }
     }
 
     private findValidLinkPos(minerPos: RoomPosition, path: RoomPosition[]): RoomPosition {

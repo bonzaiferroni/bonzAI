@@ -53,13 +53,17 @@ export class BuilderMission extends Mission {
             }
         }
 
-        if (this.room && this.room.controller.level < 8) {
-            this.boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID];
-        }
+        this.boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID];
     }
 
     public update() {
         this.sites = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+        if (this.sites.length > 0 && this.room.controller.level === 8) {
+            let nonRoads = _.filter(this.sites, x => x.structureType !== STRUCTURE_ROAD);
+            if (nonRoads.length === 0) {
+                this.sites = undefined;
+            }
+        }
     }
 
     private maxBuilders = () => {
@@ -141,7 +145,7 @@ export class BuilderMission extends Mission {
         // repair the rampart you just built
         if (this.memory.rampartPos) {
             let rampart = helper.deserializeRoomPosition(this.memory.rampartPos).lookForStructure(STRUCTURE_RAMPART);
-            if (rampart && rampart.hits < 100000) {
+            if (rampart && rampart.hits < 10000) {
                 if (rampart.pos.inRangeTo(builder, 3)) {
                     builder.repair(rampart);
                 } else {
@@ -196,18 +200,6 @@ export class BuilderMission extends Mission {
     }
 
     private findBuilderPotency() {
-        let progress = 0;
-        for (let site of this.sites) {
-            if (site.structureType === STRUCTURE_RAMPART) {
-                progress += 1000;
-            } else {
-                progress += site.progressTotal - site.progress;
-            }
-        }
-
-        let desiredCompletionTime = progress / 500;
-        let progressPotency = desiredCompletionTime / BUILD_POWER;
-
         let supplyPotency = 1;
         if (this.room.storage) {
             if (this.room.storage.store.energy < 20000) {
@@ -219,11 +211,7 @@ export class BuilderMission extends Mission {
             supplyPotency = this.room.find(FIND_SOURCES).length * 2;
         }
 
-        if (this.room.controller.level === 8) {
-            return Math.min(supplyPotency, progressPotency);
-        } else {
-            return supplyPotency;
-        }
+        return supplyPotency;
     }
 
     private builderCartActions(cart: Agent) {

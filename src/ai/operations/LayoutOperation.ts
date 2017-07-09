@@ -107,7 +107,7 @@ export class LayoutOperation extends Operation {
     }
 
     private filterByType(nearbyRooms: string[]): string[] {
-        return _(nearbyRooms).filter(x => WorldMap.roomTypeFromName(x) !== ROOMTYPE_ALLEY).value();
+        return _(nearbyRooms).filter(x => WorldMap.roomType(x) !== ROOMTYPE_ALLEY).value();
     }
 
     private filterByPath(nearbyRooms: string[]) {

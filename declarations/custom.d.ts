@@ -51,7 +51,6 @@ interface Room {
     hostilesAndLairs: RoomObject[];
     fleeObjects: (Creep|Structure)[];
     coords: RoomCoord;
-    roomType: number;
     _defaultMatrix: CostMatrix;
     defaultMatrix: CostMatrix;
     structures: {[structureType: string]: Structure[] };
@@ -138,10 +137,6 @@ interface RoomPosition {
     isNearExit(range: number): boolean;
     getRangeToClosest(positions: {pos: RoomPosition}[] | RoomPosition[]): number;
     terrainCost(): number;
-}
-
-interface RoomObject {
-    findMemoStructure<T extends Structure>(structureType: string, range: number, immediate?: boolean): T;
 }
 
 interface Creep {

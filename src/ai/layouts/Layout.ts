@@ -158,6 +158,10 @@ export abstract class Layout {
             if (turtlePositions) {
                 map[STRUCTURE_RAMPART] = map[STRUCTURE_RAMPART].concat(turtlePositions);
             }
+            turtlePositions = this.flexPositions("turtle", flexMap);
+            if (turtlePositions) {
+                map[STRUCTURE_RAMPART] = map[STRUCTURE_RAMPART].concat(turtlePositions);
+            }
         }
 
         return map;

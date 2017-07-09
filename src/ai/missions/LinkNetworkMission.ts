@@ -20,6 +20,8 @@ export class LinkNetworkMission extends Mission {
     private conduits: Agent[];
     public state: LinkNetworkState;
     public memory: LinkNetworkMemory;
+    private storageLinkId: string;
+    private sourceLinkIds: {[sourceId: string]: string} = {};
 
     /**
      * Manages linknetwork in room to efficiently send energy between the storage, controller, and sources
@@ -33,18 +35,26 @@ export class LinkNetworkMission extends Mission {
     }
 
     public init() {
-        if (this.spawnGroup.maxSpawnEnergy < 600) { this.operation.removeMission(this); }
+        if (this.spawnGroup.maxSpawnEnergy < 600 || !this.room.storage) {
+            this.operation.removeMission(this);
+        }
+        if (this.room.controller.level === 8) {
+            let storageLink = this.room.storage.pos.findInRange(this.room.findStructures(STRUCTURE_LINK), 2)[0];
+            if (storageLink) {
+                this.storageLinkId = storageLink.id;
+            }
+
+            for (let source of this.state.sources) {
+                let link = source.pos.findInRange(this.room.findStructures(STRUCTURE_LINK), 2)[0];
+                if (link) {
+                    this.sourceLinkIds[source.id] = link.id;
+                }
+            }
+        }
     }
 
     public update() {
-        this.state.storageLinks = [];
-        this.state.sourceLinks = [];
-        if (!this.room.storage) { return; }
-        this.state.controllerLink = this.findControllerLink();
-        this.findStorageLinks();
-        if (this.room.controller.level === 8) {
-            this.findSourceLinks();
-        }
+        this.findLinks();
     }
 
     public roleCall() {
@@ -73,13 +83,33 @@ export class LinkNetworkMission extends Mission {
     public invalidateCache() {
     }
 
-    private findStorageLinks() {
+    private findLinks() {
+
+        this.state.storageLinks = [];
+        this.state.sourceLinks = [];
+
+        // controller links
+        this.state.controllerLink = this.findControllerLink();
+
         if (this.room.controller.level === 8) {
-            let storageLink = this.room.storage.findMemoStructure(STRUCTURE_LINK, 2) as StructureLink;
+
+            // source links
+            for (let sourceId in this.sourceLinkIds) {
+                let linkId = this.sourceLinkIds[sourceId];
+                let link = Game.getObjectById<StructureLink>(linkId);
+                if (link) {
+                    this.state.sourceLinks.push(link);
+                }
+            }
+
+            // storage link
+            let storageLink = Game.getObjectById<StructureLink>(this.storageLinkId);
             if (storageLink) {
                 this.state.storageLinks.push(storageLink);
             }
         } else {
+
+            // storage link
             if (!Scheduler.delay(this.memory, "findStorageLinks", 100) || !this.memory.storageLinkIds) {
                 let linkIds = [];
                 let links = this.room.findStructures(STRUCTURE_LINK) as StructureLink[];
@@ -102,15 +132,6 @@ export class LinkNetworkMission extends Mission {
             }
 
             this.state.storageLinks = _.sortBy(this.state.storageLinks, "energy");
-        }
-    }
-
-    private findSourceLinks() {
-        for (let source of this.state.sources) {
-            let link = source.findMemoStructure(STRUCTURE_LINK, 2) as Link;
-            if (link) {
-                this.state.sourceLinks.push(link);
-            }
         }
     }
 

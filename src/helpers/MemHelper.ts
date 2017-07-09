@@ -81,6 +81,7 @@ export class MemHelper {
             let obj = find();
             if (obj) {
                 host.memory[identifier] = obj.id;
+                delete host.memory[`next_${identifier}`];
                 return obj;
             } else if (delay !== undefined) {
                 host.memory[`next_${identifier}`] = Game.time + delay;

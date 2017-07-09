@@ -130,6 +130,9 @@ export class UpgradeMission extends Mission {
     }
 
     public update() {
+        if (!this.batteryId) {
+
+        }
         this.state.battery = Game.getObjectById<StoreStructure>(this.batteryId);
         this.state.upgraderPositions = this.findUpgraderPositions();
         this.updatePathMission();

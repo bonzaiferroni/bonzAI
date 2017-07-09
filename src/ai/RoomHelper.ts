@@ -8,6 +8,7 @@ export interface FindClosestOptions {
 }
 
 export class RoomHelper {
+
     public static findClosest<T extends {pos: RoomPosition}>(
         origin: {pos: RoomPosition}, destinations: T[],
         options: FindClosestOptions = {}): {destination: T, distance: number}[] {

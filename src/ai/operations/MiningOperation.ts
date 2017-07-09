@@ -7,7 +7,7 @@ import {ReserveMission} from "../missions/ReserveMission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {OperationPriority, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
-import {ROOMTYPE_CORE} from "../WorldMap";
+import {ROOMTYPE_CORE, WorldMap} from "../WorldMap";
 import {InvaderGuru} from "../missions/InvaderGuru";
 export class MiningOperation extends Operation {
     private invaderGuru: InvaderGuru;
@@ -42,7 +42,7 @@ export class MiningOperation extends Operation {
         this.invaderGuru = new InvaderGuru(this);
         this.invaderGuru.init();
         // defense
-        if (this.flag.room && this.flag.room.roomType === ROOMTYPE_CORE) {
+        if (this.flag.room && WorldMap.roomType(this.flag.pos.roomName) === ROOMTYPE_CORE) {
             this.addMission(new EnhancedBodyguardMission(this, this.invaderGuru));
             this.addMission(new GeologyMission(this));
         } else {

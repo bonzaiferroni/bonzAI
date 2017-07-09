@@ -6,7 +6,6 @@ import {Profiler} from "../Profiler";
 export class WorldMap {
 
     public controlledRooms: {[roomName: string]: Room } = {};
-
     public allyMap: {[roomName: string]: RoomMemory } = {};
     public allyRooms: Room[];
     public tradeMap: {[roomName: string]: RoomMemory } = {};
@@ -19,6 +18,7 @@ export class WorldMap {
     public artRooms = ARTROOMS;
 
     private diplomat: Diplomat;
+    public static roomTypeCache: {[roomName: string]: number} = {};
 
     constructor(diplomat: Diplomat) {
         this.diplomat = diplomat;
@@ -328,17 +328,22 @@ export class WorldMap {
         };
     }
 
-    public static roomTypeFromName(roomName: string): number {
-        let coords = this.getRoomCoordinates(roomName);
-        if (coords.x % 10 === 0 || coords.y % 10 === 0) {
-            return ROOMTYPE_ALLEY;
-        } else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
-            return ROOMTYPE_CORE;
-        } else if (coords.x % 10 <= 6 && coords.x % 10 >= 4 && coords.y % 10 <= 6 && coords.y % 10 >= 4) {
-            return ROOMTYPE_SOURCEKEEPER;
-        } else {
-            return ROOMTYPE_CONTROLLER;
+    public static roomType(roomName: string): number {
+        if (!this.roomTypeCache[roomName]) {
+            let type: number;
+            let coords = this.getRoomCoordinates(roomName);
+            if (coords.x % 10 === 0 || coords.y % 10 === 0) {
+                type = ROOMTYPE_ALLEY;
+            } else if (coords.x % 5 === 0 && coords.y % 5 === 0) {
+                type = ROOMTYPE_CORE;
+            } else if (coords.x % 10 <= 6 && coords.x % 10 >= 4 && coords.y % 10 <= 6 && coords.y % 10 >= 4) {
+                type = ROOMTYPE_SOURCEKEEPER;
+            } else {
+                type = ROOMTYPE_CONTROLLER;
+            }
+            this.roomTypeCache[roomName] = type;
         }
+        return this.roomTypeCache[roomName];
     }
 
     public static findNearestCore(roomName: string): string {

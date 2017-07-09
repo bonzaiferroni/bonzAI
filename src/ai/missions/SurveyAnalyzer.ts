@@ -107,7 +107,7 @@ export class SurveyAnalyzer {
                 noSafePath = true;
             }
 
-            let type = WorldMap.roomTypeFromName(roomName);
+            let type = WorldMap.roomType(roomName);
             if (type === ROOMTYPE_SOURCEKEEPER || noSafePath) {
                 data[roomName] = { danger: true };
             } else {
@@ -128,7 +128,7 @@ export class SurveyAnalyzer {
             for (let value of _.values<string>(Game.map.describeExits(testRoom))) {
                 if (alreadyChecked[value]) { continue; }
                 if (Game.map.getRoomLinearDistance(startRoomName, value) > distance) { continue; }
-                if (_.includes(filterOut, WorldMap.roomTypeFromName(value))) { continue; }
+                if (_.includes(filterOut, WorldMap.roomType(value))) { continue; }
                 adjacentRooms.push(value);
                 testRooms.push(value);
                 alreadyChecked[value] = true;
@@ -174,7 +174,7 @@ export class SurveyAnalyzer {
         // source info
         let roomDistance = Game.map.getRoomLinearDistance(this.room.name, room.name);
         let sources = room.find<Source>(FIND_SOURCES);
-        let roomType = WorldMap.roomTypeFromName(room.name);
+        let roomType = WorldMap.roomType(room.name);
         let distances = [];
         data.sourceCount = sources.length;
         for (let source of sources) {
@@ -311,7 +311,7 @@ export class SurveyAnalyzer {
             opName += direction;
         }
         let opType = "mining";
-        if (room.roomType === ROOMTYPE_SOURCEKEEPER) {
+        if (WorldMap.roomType(room.name) === ROOMTYPE_SOURCEKEEPER) {
             opType = "keeper";
         }
         let flagName = `${opType}_${opName}`;

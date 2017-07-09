@@ -244,7 +244,7 @@ export class RemoteUpgradeMission extends Mission {
         if (this.state.container) {
 
             let range = cart.pos.getRangeTo(this.state.container);
-            if (range > 6) {
+            if (range > 5) {
                 cart.travelTo(this.state.container, { roomCallback: (roomName, matrix) => {
                     if (roomName !== this.state.target.pos.roomName) { return; }
                     let link = this.state.target.room.controller.pos.findInRange(
@@ -263,7 +263,7 @@ export class RemoteUpgradeMission extends Mission {
             }
 
             if (cart.carry.energy === cart.carryCapacity && this.state.inboundEnergy > 1200) {
-                cart.idleNear(this.state.container, 5);
+                cart.idleNear(this.state.container, 4);
                 return;
             }
 

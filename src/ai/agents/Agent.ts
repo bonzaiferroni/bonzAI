@@ -364,7 +364,7 @@ export class Agent extends AbstractAgent {
         };
 
         let options: TravelToOptions = {};
-        if (this.room.roomType === ROOMTYPE_SOURCEKEEPER) {
+        if (WorldMap.roomType(this.room.name) === ROOMTYPE_SOURCEKEEPER) {
             options.roomCallback = costCall;
             let hostileCount = this.creep.room.hostiles.length;
             if (!this.memory.hostileCount) { this.memory.hostileCount = 0; }
@@ -1211,7 +1211,7 @@ export class Agent extends AbstractAgent {
         }
 
         let waypoint = waypoints[this.memory.waypointIndex];
-        if (WorldMap.roomTypeFromName(waypoint.pos.roomName) === ROOMTYPE_CORE) {
+        if (WorldMap.roomType(waypoint.pos.roomName) === ROOMTYPE_CORE) {
             let portalCrossing = this.travelPortalWaypoint(waypoint);
             if (portalCrossing) { return false; }
         }

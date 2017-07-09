@@ -38,37 +38,6 @@ export function initRoomPrototype() {
         configurable: true,
     });
 
-    Object.defineProperty(Room.prototype, "roomType", {
-        get: function myProperty(): number {
-            if (!this.memory.roomType) {
-
-                // source keeper
-                let lairs = this.findStructures(STRUCTURE_KEEPER_LAIR);
-                if (lairs.length > 0) {
-                    this.memory.roomType = ROOMTYPE_SOURCEKEEPER;
-                }
-
-                // core
-                if (!this.memory.roomType) {
-                    let sources = this.find(FIND_SOURCES);
-                    if (sources.length === 3) {
-                        this.memory.roomType = ROOMTYPE_CORE;
-                    }
-                }
-
-                // controller rooms
-                if (!this.memory.roomType) {
-                    if (this.controller) {
-                        this.memory.roomType = ROOMTYPE_CONTROLLER;
-                    } else {
-                        this.memory.roomType = ROOMTYPE_ALLEY;
-                    }
-                }
-            }
-            return this.memory.roomType;
-        },
-        configurable: true,
-    });
 
     Object.defineProperty(Room.prototype, "structures", {
         get: function myProperty() {

@@ -35,6 +35,7 @@ export class MiningMission extends Mission {
     private _analysis: TransportAnalysis;
     private pathMission: PathMission;
     private localStorage: boolean;
+    private containerId: string;
 
     public state: MiningState;
     public memory: MiningMemory;
@@ -372,11 +373,24 @@ export class MiningMission extends Mission {
 
     private getContainer(): StructureContainer {
         if (!this.state.source) { return; }
-        let container = this.state.source.findMemoStructure<StructureContainer>(STRUCTURE_CONTAINER, 1);
-        if (!container) {
-            this.placeContainer();
+        if (this.containerId) {
+            let container = Game.getObjectById<StructureContainer>(this.containerId);
+            if (container) {
+                return container;
+            } else {
+                this.containerId = undefined;
+                return this.getContainer();
+            }
+        } else {
+            let containers = this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER);
+            let container = this.state.source.pos.findInRange(containers, 1)[0];
+            if (container) {
+                this.containerId = container.id;
+                return container;
+            } else {
+                this.placeContainer();
+            }
         }
-        return container;
     }
 
     private placeContainer() {

@@ -282,6 +282,7 @@ export class FlexGenerator {
         }
 
         structurePositions[STRUCTURE_RAMPART] = this.rampartMap.getPositions(STRUCTURE_RAMPART, this.roomName);
+        structurePositions["turtle"] = this.turtleMap.getPositions("turtle", this.roomName);
         return structurePositions;
     }
 

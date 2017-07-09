@@ -138,6 +138,36 @@ export var consoleCommands = {
         return `gc Creeps: ${creepCount}, gc flags: ${flagCount}`;
     },
 
+    gcTemp() {
+
+        let before = JSON.stringify(Memory.rooms).length;
+
+        let save = {
+            layout: true,
+            avoid: true,
+            nextScan: true,
+            level: true,
+            owner: true,
+            builder: true,
+            spawnMemory: true,
+            nextRadar: true,
+        };
+
+        let count = 0;
+        for (let roomName in Memory.rooms) {
+            let mem = Memory.rooms[roomName];
+            for (let propertyName in mem) {
+                if (save[propertyName]) {continue;}
+                delete mem[propertyName];
+                count++;
+            }
+        }
+
+        let after = JSON.stringify(Memory.rooms).length;
+
+        return `count: ${count}, before: ${before}, after: ${after}`;
+    },
+
     removeMissionData(missionName: string) {
         for (let flagName in Memory.flags) {
             delete Memory.flags[flagName][missionName];

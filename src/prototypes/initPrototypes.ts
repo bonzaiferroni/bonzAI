@@ -8,33 +8,6 @@ export function initPrototypes() {
 
     // misc prototype modifications
 
-    /**
-     * Will remember an instance of structureType that it finds within range, good for storing mining containers, etc.
-     * There should only be one instance of that structureType within range, per object
-     * @param structureType
-     * @param range
-     * @param immediate
-     * @returns Structure[]
-     */
-    RoomObject.prototype.findMemoStructure = function<T>(structureType: string, range: number, immediate = false): T {
-        if (!this.room.memory[structureType]) { this.room.memory[structureType] = {}; }
-        if (this.room.memory[structureType][this.id]) {
-            let structure = Game.getObjectById(this.room.memory[structureType][this.id]);
-            if (structure) {
-                return structure as T;
-            } else {
-                this.room.memory[structureType][this.id] = undefined;
-                return this.findMemoStructure(structureType, range, immediate);
-            }
-        } else {
-            let structures = this.pos.findInRange(this.room.findStructures(structureType), range);
-            if (structures.length > 0) {
-               this.room.memory[structureType][this.id] = structures[0].id;
-               return structures[0];
-            }
-        }
-    };
-
     StructureObserver.prototype._observeRoom = StructureObserver.prototype.observeRoom;
 
     StructureObserver.prototype.observeRoom = function(roomName: string, purpose = "unknown",

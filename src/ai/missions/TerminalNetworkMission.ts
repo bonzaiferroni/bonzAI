@@ -25,7 +25,10 @@ export class TerminalNetworkMission extends Mission {
         super(operation, "network");
     }
 
-    public init() {}
+    public init() {
+
+        // this.signText = `number of ticks since last incident: ${}`
+    }
 
     public update() {
         this.terminal = this.room.terminal;
