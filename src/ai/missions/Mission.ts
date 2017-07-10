@@ -246,7 +246,7 @@ export abstract class Mission {
                 if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
             } else {
                 if (options.deathCallback) {
-                    options.deathCallback(roleName, Game.time - Memory.creeps[creepName].birthTick < CREEP_LIFE_TIME);
+                    options.deathCallback(roleName, Game.time - Memory.creeps[creepName].birthTick < CREEP_LIFE_TIME - 10);
                 }
                 creepNames.splice(i, 1);
                 delete Memory.creeps[creepName];
@@ -357,7 +357,7 @@ export abstract class Mission {
 
     protected deathNotify = (roleName: string, earlyDeath: boolean) => {
         if (earlyDeath) {
-            Notifier.log(`RIP ${roleName} of ${this.operation.name} :'(`, 4);
+            Notifier.log(`RIP ${roleName} of ${this.operation.name} :'(`, 5);
         } else {
             Notifier.log(`RIP ${roleName} of ${this.operation.name} :')`, 1);
         }
