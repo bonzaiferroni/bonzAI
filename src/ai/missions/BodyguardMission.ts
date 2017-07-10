@@ -60,18 +60,13 @@ export class BodyguardMission extends Mission {
     };
 
     private maxDefenders = () => {
+        if (!this.state.hasVision) { return 1; }
         let maxDefenders = 0;
         if (this.invaderGuru && this.invaderGuru.invaderProbable) {
             maxDefenders = 1;
-
         }
-        if (this.state.hasVision) {
-            if (this.hostiles.length > 0) {
-                maxDefenders = Math.ceil(this.hostiles.length / 2);
-            }
-            if (this.operation.type !== "mining" && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
-                maxDefenders = 1;
-            }
+        if (this.operation.type !== "mining" && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
+            maxDefenders = 1;
         }
         return maxDefenders;
     };

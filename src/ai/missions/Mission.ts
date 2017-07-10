@@ -6,7 +6,7 @@ import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap, ROOMTYPE_ALLEY} from "../WorldMap";
 import {Traveler} from "../Traveler";
-import {RoomHelper} from "../RoomHelper";
+import {RoomHelper} from "../../helpers/RoomHelper";
 import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";

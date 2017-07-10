@@ -6,7 +6,7 @@ import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "..
 import {Agent} from "../agents/Agent";
 import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
-import {RoomHelper} from "../RoomHelper";
+import {RoomHelper} from "../../helpers/RoomHelper";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Profiler} from "../../Profiler";
 import {Traveler} from "../Traveler";

@@ -1,5 +1,5 @@
-import {empire} from "./Empire";
-import {Traveler} from "./Traveler";
+import {empire} from "../ai/Empire";
+import {Traveler} from "../ai/Traveler";
 export interface FindClosestOptions {
     linearDistanceLimit?: number;
     opsLimit?: number;

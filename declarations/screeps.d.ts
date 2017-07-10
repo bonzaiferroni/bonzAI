@@ -2060,6 +2060,7 @@ declare class StructureController extends OwnedStructure {
     activateSafeMode(): number;
 
     safeMode: number;
+    safeModeAvailable: number;
 
     sign: {
         username: string,

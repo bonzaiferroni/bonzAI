@@ -18,6 +18,9 @@ export class ClaimMission extends Mission {
     }
 
     public init() {
+        if (this.state.hasVision && this.room.controller.my) {
+            this.operation.removeMission(this);
+        }
     }
 
     public update() {

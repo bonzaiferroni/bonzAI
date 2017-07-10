@@ -277,7 +277,9 @@ export class PowerMission extends Mission {
         }
 
         // attack and move
-        Agent.squadTravel(clyde, bonnie, target);
+        if (clyde.pos.getRangeTo(target) > 1) {
+            Agent.squadTravel(clyde, bonnie, target);
+        }
         return true;
     }
 
