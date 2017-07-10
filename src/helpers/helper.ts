@@ -282,6 +282,7 @@ export var helper = {
         if (towers.length === 0) { return 0; }
         let expectedDamage = 0;
         for (let tower of towers) {
+            if (tower.energy === 0) { continue; }
             let range = position.getRangeTo(tower);
             expectedDamage += helper.towerDamageAtRange(range);
         }

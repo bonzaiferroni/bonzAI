@@ -356,7 +356,11 @@ export abstract class Mission {
     }
 
     protected deathNotify = (roleName: string, earlyDeath: boolean) => {
-        console.log(`MISSION: ${roleName} from ${this.operation.name} died, earlyDeath: ${earlyDeath}`);
+        if (earlyDeath) {
+            Notifier.log(`RIP ${roleName} of ${this.operation.name} :'(`, 4);
+        } else {
+            Notifier.log(`RIP ${roleName} of ${this.operation.name} :')`, 1);
+        }
     };
 
     protected spawnedThisTick(roleName: string) {
@@ -600,7 +604,7 @@ export abstract class Mission {
             options.allowUnboosted = agent.memory.allowUnboosted;
         }
 
-        if (options.deathCallback && !agent.memory.birthTick) {
+        if (options.deathCallback && !agent.creep.spawning && !agent.memory.birthTick) {
             agent.memory.birthTick = Game.time;
         }
 
