@@ -583,6 +583,11 @@ export class IgorMission extends Mission {
             if (labId) {
                 let lab = Game.getObjectById<StructureLab>(labId);
                 if (lab) {
+                    if (_.includes(this.reagentLabs, lab)) {
+                        console.log(`IGOR: reagent lab is being used for boost in ${this.roomName}, adjusting`);
+                        delete requests[resourceType];
+                        delete this.memory.boostOrders[resourceType];
+                    }
                     Viz.text(lab.pos, resourceType, "black");
                 } else {
                     console.log("IGOR: lost a lab? removing boost order");

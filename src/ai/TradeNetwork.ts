@@ -332,7 +332,7 @@ export class TradeNetwork {
                 `TRADE: ${_.padLeft(`${item.from} ${item.sender ? item.sender.username : "npc"}`.substr(0, 12), 12)} ` +
                 `→ ${_.pad(`${kFormatter(item.amount)} ${item.resourceType}`.substr(0, 12), 12)} → ` +
                 `${_.padRight(`${item.to} ${item.recipient ? item.recipient.username : "npc"}`.substr(0, 12), 12)} ` +
-                `(dist: ${distance}, cost: ${kFormatter(cost)})`
+                `(dist: ${distance}, cost: ${kFormatter(cost)})` // ${item.}
             );
         };
 

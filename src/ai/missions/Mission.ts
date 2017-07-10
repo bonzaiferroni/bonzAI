@@ -600,13 +600,13 @@ export abstract class Mission {
             options.allowUnboosted = agent.memory.allowUnboosted;
         }
 
-        let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
-        if (!boosted) { return false; }
-        if (agent.creep.spawning) { return false; }
-
         if (options.deathCallback && !agent.memory.birthTick) {
             agent.memory.birthTick = Game.time;
         }
+
+        let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
+        if (!boosted) { return false; }
+        if (agent.creep.spawning) { return false; }
 
         if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
 

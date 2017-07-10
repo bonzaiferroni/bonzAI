@@ -61,7 +61,7 @@ export class BuilderMission extends Mission {
         if (this.sites.length > 0 && this.room.controller.level === 8) {
             let nonRoads = _.filter(this.sites, x => x.structureType !== STRUCTURE_ROAD);
             if (nonRoads.length === 0) {
-                this.sites = undefined;
+                this.boosts = undefined;
             }
         }
     }
