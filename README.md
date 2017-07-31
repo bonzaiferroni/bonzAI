@@ -8,7 +8,7 @@ For people that are interested in using it on a private server or forking it, I'
 I had only been doing javascript/typescript for a few months when I started this. Any advice/guidance from experienced programmers is very welcome.
 
 #### Use on MMO server
-Using this code as-is on the MMO server could present some problems. First, the screeps world is most interesting when there are a diversity of ideas/approaches being tried. Second, there will no doubt be gaps in its functionality and undesired behavior. At the moment the code is very passive, but eventually it will start claiming rooms and attacking neighbors (if you are my neighbor, don't worry, I plan to provide an opt-out system).
+Using this code as-is on the MMO server could present some problems. First, the screeps world is most interesting when there are a diversity of ideas/approaches being tried. Second, there will no doubt be gaps in its functionality and undesired behavior. For example, the variable which defines your trading partners will be initialized to my own trading partner list.
 
 For these reasons, I don't recommend using it that way without first going through the code and modifying its behavior to what you would like to see. 
 
