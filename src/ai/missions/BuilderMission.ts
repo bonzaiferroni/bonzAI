@@ -231,6 +231,7 @@ export class BuilderMission extends Mission {
         if (this.room.hostiles.length > 0 && this.room.hostiles[0].owner.username !== "Invader") {
             if (!this.walls) {
                 this.walls = _(this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)))
+                    .filter((s: Structure)=>s.hits)
                     .sortBy("hits")
                     .value() as Structure[];
             }
@@ -270,7 +271,7 @@ export class BuilderMission extends Mission {
 
             if (structures.length === 0) {
                 // increase maxHitsToBuild if there are walls/ramparts in missionRoom and re-call function
-                if (this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL)).length > 0) {
+                if (this.room.findStructures(STRUCTURE_RAMPART).concat(this.room.findStructures(STRUCTURE_WALL).filter((s: Structure)=>s.hits)).length > 0) {
                     // TODO: seems to produce some pretty uneven walls, find out why
                     this.memory.maxHitsToBuild += Math.pow(10, Math.floor(Math.log(this.memory.maxHitsToBuild) / Math.log(10)));
                     return this.findMasonTarget(builder);
