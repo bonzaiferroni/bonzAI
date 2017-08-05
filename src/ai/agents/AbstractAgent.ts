@@ -1,5 +1,7 @@
 import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {HostileAgent} from "./HostileAgent";
+import {RaidAgent} from "./RaidAgent";
 export class AbstractAgent {
 
     public creep: Creep;
@@ -17,6 +19,11 @@ export class AbstractAgent {
     public cache: any;
     private potentials: {[partType: string]: number};
 
+    public static census: {
+        hostile: {[roomName: string]: HostileAgent[] }
+        raid: {[roomName: string]: RaidAgent[] }
+    };
+
     constructor(creep: Creep) {
         this.creep = creep;
         this.memory = creep.memory;
@@ -30,6 +37,13 @@ export class AbstractAgent {
         this.fatigue = creep.fatigue;
         this.room = creep.room;
         this.cache = {};
+    }
+
+    public static update() {
+        this.census = {
+            hostile: {},
+            raid: {},
+        }
     }
 
     public getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }

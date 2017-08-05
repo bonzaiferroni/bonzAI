@@ -30,6 +30,7 @@ export class GrafanaStats {
         Memory.stats["empire.activeLabCount"] = Tick.cache.activeLabCount;
 
         Memory.stats["empire.energy"] = emp.network.inventory[RESOURCE_ENERGY];
+        Memory.stats["market.credits"] = Game.market.credits;
 
         for (let storage of emp.network.storages) {
             Memory.stats["empire.power." + storage.room.name] = storage.store.power ? storage.store.power : 0;

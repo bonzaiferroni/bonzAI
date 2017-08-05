@@ -12,6 +12,8 @@ import {Janitor} from "./Janitor";
 import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
 import {Archiver} from "./Archiver";
+import {AbstractAgent} from "./agents/AbstractAgent";
+import {MatrixHelper} from "../helpers/MatrixHelper";
 
 export class Empire {
 
@@ -39,6 +41,13 @@ export class Empire {
         this.spawnGroups = this.map.init();
         this.network = new TradeNetwork(this.map);
         this.market = new MarketTrader(this.network);
+
+        let blacklist: {[roomName: string]: boolean } = {};
+        for (let roomName in this.map.foesMap) {
+            blacklist[roomName] = true;
+        }
+        this.market.updateBlacklist(blacklist);
+
         this.janitor = new Janitor();
         this.janitor.init();
         SpawnGroup.init(this.spawnGroups);
@@ -61,6 +70,8 @@ export class Empire {
         SpawnGroup.update(this.spawnGroups);
         Archiver.update();
         Scheduler.update();
+        AbstractAgent.update();
+        MatrixHelper.update();
     }
 
     /**

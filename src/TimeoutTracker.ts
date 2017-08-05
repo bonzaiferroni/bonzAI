@@ -4,7 +4,7 @@ export class TimeoutTracker {
         if (global.timeoutTracker && global.timeoutTracker.phase !== "finished") {
             let data = global.timeoutTracker;
             Notifier.log(`TIMEOUT: operation: ${data.operation}, mission: ${data.mission}, phase: ${data.phase}, ` +
-                `function: ${data.func}, tick: ${data.tick}, current: ${Game.time}, cpu: ${_.round(data.cpu)}`);
+                `other: ${data.other}, tick: ${data.tick}, current: ${Game.time}, cpu: ${_.round(data.cpu)}`);
             delete global.timeoutTracker;
         }
 
@@ -12,7 +12,7 @@ export class TimeoutTracker {
             phase: "pre-operation initState",
             operation: undefined,
             mission: undefined,
-            func: undefined,
+            other: undefined,
             tick: Game.time,
             cpu: Game.cpu.getUsed(),
         };
@@ -23,11 +23,11 @@ export class TimeoutTracker {
         Memory.gameTimeLastTick = Game.time;
     }
 
-    public static log(phase: string, operation?: string, mission?: string, func?: string) {
+    public static log(phase: string, operation?: string, mission?: string, other?: string) {
         global.timeoutTracker.operation = operation;
         global.timeoutTracker.mission = mission;
         global.timeoutTracker.phase = phase;
-        global.timeoutTracker.func = func;
+        global.timeoutTracker.other = other;
         global.timeoutTracker.cpu = Game.cpu.getUsed();
     }
 

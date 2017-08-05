@@ -26,4 +26,17 @@ export class CreepHelper {
         }
         return count;
     };
+
+    public static calculateShield(creep: Creep) {
+        let shield = 0;
+        for (let part of creep.body) {
+            if (part.type !== TOUGH) { continue; }
+            if (part.boost) {
+                shield += part.hits / BOOSTS[TOUGH][part.boost]["damage"];
+            } else {
+                shield += part.hits;
+            }
+        }
+        return shield;
+    }
 }

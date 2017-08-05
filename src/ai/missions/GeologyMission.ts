@@ -4,10 +4,10 @@ import {Mission, MissionMemory, MissionState} from "./Mission";
 import {LOADAMOUNT_MINERAL} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
-import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
 import {Traveler} from "../Traveler";
 import {Tick} from "../../Tick";
+import {PaverMission} from "./PaverMission";
 
 interface GeologyMemory extends MissionMemory {
     distanceToStorage: number;
@@ -37,7 +37,6 @@ export class GeologyMission extends Mission {
 
     public memory: GeologyMemory;
     public state: GeologyState;
-    private pathMission: PathMission;
     private testMineral: Mineral;
 
     constructor(operation: Operation) {
@@ -59,10 +58,6 @@ export class GeologyMission extends Mission {
             this.operation.removeMission(this);
             return;
         }
-
-        // init path
-        this.pathMission = new PathMission(this.operation, this.name + "Path");
-        this.operation.addMissionLate(this.pathMission);
     }
 
     public addStore(store: StoreStructure) {
@@ -330,7 +325,7 @@ export class GeologyMission extends Mission {
 
         if (cart.pos.isNearTo(this.state.store)) {
             let outcome = cart.transferEverything(this.state.store);
-            if (outcome === OK && cart.ticksToLive < this.analysis.distance) {
+            if (outcome === OK && this.analysis && cart.ticksToLive < this.analysis.distance) {
                 cart.suicide();
             } else if (outcome === OK) {
                 cart.travelTo(this.state.container);
@@ -380,8 +375,7 @@ export class GeologyMission extends Mission {
         if (!this.state.store) { return; }
         let endPos = this.state.mineral.pos;
         if (this.state.container) { endPos = this.state.container.pos; }
-        this.pathMission.updatePath(this.state.store.pos, endPos, 1, .4);
-        let distance = this.pathMission.getdistance();
+        let distance = PaverMission.updatePath(this.operation.name + this.name, this.state.store.pos, endPos, 1, this.memory);
         if (distance) {
             this.memory.distanceToStorage = distance;
         }

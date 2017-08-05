@@ -78,7 +78,7 @@ export class Patcher {
                             .map(x => helper.coordToPosition(x, currentFlag.memory.centerPosition,
                                 currentFlag.memory.rotation))
                             .value();
-                        flexMap[structureType] = MemHelper.serializeIntPositions(positions);
+                        flexMap[structureType] = MemHelper.intPositions(positions);
                     }
 
                     if (!flexMap) {

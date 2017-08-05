@@ -159,14 +159,16 @@ export abstract class Operation {
                     operation.initState();
 
                     if (!operation.flag) {
-                        // flag must have been pulled
-                        operation.bypass = true;
+                        // flag was pulled
+                        delete priorityMap[priority][opName];
                         continue;
                     }
+                    // Profiler.start("upd.o." + operation.type.substr(0, 3));
                     operation.update();
                     operation.wakeMissions();
 
                     Mission.update(operation.missions);
+                    // Profiler.end("upd.o." + operation.type.substr(0, 3));
 
                 } catch (e) {
                     Notifier.reportException(e, "update", opName);
@@ -189,7 +191,6 @@ export abstract class Operation {
 
             for (let opName in operations) {
                 let operation = operations[opName];
-                if (operation.bypass) { continue; }
                 Mission.roleCall(operation.missions);
             }
         }
@@ -200,15 +201,20 @@ export abstract class Operation {
      */
 
     public static actions(priorityMap: OperationPriorityMap) {
+        let cpuLimit = 450;
+        if (Memory.playerConfig.timeoutSafety) {
+            cpuLimit = Memory.playerConfig.timeoutSafety;
+        }
         for (let priority of this.priorityOrder) {
             let operations = priorityMap[priority];
             if (!operations) { continue; }
 
             for (let opName in operations) {
                 let operation = operations[opName];
-                if (operation.bypass) { continue; }
+
                 // this avoids timeouts due to GC events and other spikes. Set this number lower to be more conservative
-                if (operation.priority > OperationPriority.High && Game.cpu.getUsed() > 450) {
+                if (operation.priority > OperationPriority.VeryHigh && Game.cpu.getUsed() > cpuLimit) {
+                    operation.bypassActions();
                     operation.bypass = true;
                     Tick.cache.bypassCount++;
                     continue;
@@ -313,7 +319,10 @@ export abstract class Operation {
         }
     }
 
-    public initRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0, ignoreAvailability = false) {
+    protected bypassActions() {
+    }
+
+    public updateRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0, ignoreAvailability = false) {
 
         let flag = Game.flags[`${this.name}_spawn`];
         if (flag) {
@@ -362,6 +371,16 @@ export abstract class Operation {
             if (bestSpawn) {
                 this.remoteSpawn = {distance: bestSpawn.distance, spawnGroup: empire.spawnGroups[bestSpawn.roomName]};
             }
+        }
+    }
+
+    protected assignRemoteSpawn(): boolean {
+        if (this.remoteSpawn && this.remoteSpawn.spawnGroup) {
+            this.spawnGroup = this.remoteSpawn.spawnGroup;
+            return true;
+        } else {
+            console.log(`OPERATION: unable to find spawnGroup for ${this.type} in ${this.roomName}`);
+            return false;
         }
     }
 

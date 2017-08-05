@@ -5,6 +5,7 @@ import {Tick} from "../Tick";
 import {Traveler} from "../ai/Traveler";
 
 export function initRoomPrototype() {
+
     Object.defineProperty(Room.prototype, "hostiles", {
         get: function myProperty() {
             if (!Tick.cache.hostiles[this.name]) {
@@ -38,7 +39,6 @@ export function initRoomPrototype() {
         configurable: true,
     });
 
-
     Object.defineProperty(Room.prototype, "structures", {
         get: function myProperty() {
             if (!Tick.cache.structures[this.name]) {
@@ -61,28 +61,6 @@ export function initRoomPrototype() {
         }
         return Tick.cache.structures[this.name][structureType] || [];
     };
-
-    /**
-     * Returns missionRoom coordinates for a given missionRoom
-     * @returns {*}
-     */
-
-    Object.defineProperty(Room.prototype, "coords", {
-        get: function myProperty() {
-            if (!this.memory.coordinates) {
-                this.memory.coordinates = WorldMap.getRoomCoordinates(this.name);
-            }
-            return this.memory.coordinates;
-        },
-        configurable: true,
-    });
-
-    Object.defineProperty(Room.prototype, "defaultMatrix", {
-        get: function myProperty() {
-            return Traveler.getStructureMatrix(this);
-        },
-        configurable: true,
-    });
 
     Object.defineProperty(Room.prototype, "fleeObjects", {
         get: function myProperty() {

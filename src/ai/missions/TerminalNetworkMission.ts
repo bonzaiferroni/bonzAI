@@ -53,7 +53,7 @@ export class TerminalNetworkMission extends Mission {
     }
 
     private sellOverstock() {
-        if (Scheduler.delay(this.memory, "sellOverstock", 100)) { return; }
+        if (Scheduler.delay(this.memory, "sellOverstock", 50)) { return; }
 
         for (let mineralType of MINERALS_RAW) {
             if (this.storage.store[mineralType] >= MINERAL_STORAGE_TARGET[mineralType]

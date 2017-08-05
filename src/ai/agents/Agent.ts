@@ -14,6 +14,7 @@ import {CreepHelper} from "../../helpers/CreepHelper";
 
 export class Agent extends AbstractAgent {
 
+    public memory: any;
     public mission: Mission;
     public missionRoom: Room;
     public outcome: number;
@@ -34,7 +35,12 @@ export class Agent extends AbstractAgent {
         waypointIndex?: number;
         portalCrossing?: boolean;
     };*/
-    public memory: any;
+    public isHealing: boolean;
+    public isRangedHealing: boolean;
+    public isAttacking: boolean;
+    public isRangedAttacking: boolean;
+    public isRangedMassAttacking: boolean;
+    public isDismantling: boolean;
 
     constructor(creep: Creep, mission: Mission) {
         super(creep);
@@ -44,18 +50,14 @@ export class Agent extends AbstractAgent {
         this.name = creep.name;
     }
 
-    public attack(target: Creep|Structure): number { return this.creep.attack(target); }
     public attackController(controller: StructureController): number { return this.creep.attackController(controller); }
     public build(target: ConstructionSite): number { return this.creep.build(target); }
     public claimController(controller: StructureController): number { return this.creep.claimController(controller); }
-    public dismantle(target: Structure): number { return this.creep.dismantle(target); }
     public drop(resourceType: string, amount?: number): number { return this.creep.drop(resourceType, amount); }
     public getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }
     public harvest(source: Source|Mineral): number { return this.creep.harvest(source); }
     public move(direction: number): number { return this.creep.move(direction); }
     public pickup(resource: Resource): number { return this.creep.pickup(resource); }
-    public rangedAttack(target: Creep|Structure): number { return this.creep.rangedAttack(target); }
-    public rangedMassAttack(): number { return this.creep.rangedMassAttack(); }
     public repair(target: Structure): number { return this.creep.repair(target); }
     public reserveController(controller: StructureController): number {
         return this.creep.reserveController(controller); }
@@ -64,18 +66,44 @@ export class Agent extends AbstractAgent {
     public upgradeController(controller: StructureController): number {
         return this.creep.upgradeController(controller); }
     public heal(target: Creep|Agent): number {
+        let outcome;
         if (target instanceof Agent) {
-            return this.creep.heal(target.creep);
+            outcome = this.creep.heal(target.creep);
         } else {
-            return this.creep.heal(target);
+            outcome = this.creep.heal(target);
         }
+        this.isHealing = outcome === OK;
+        return outcome;
     }
     public rangedHeal(target: Creep|Agent): number {
+        let outcome;
         if (target instanceof Agent) {
-            return this.creep.rangedHeal(target.creep);
+            outcome = this.creep.rangedHeal(target.creep);
         } else {
-            return this.creep.rangedHeal(target);
+            outcome = this.creep.rangedHeal(target);
         }
+        this.isRangedHealing = outcome === OK;
+        return outcome;
+    }
+    public attack(target: Creep|Structure): number {
+        let outcome = this.creep.attack(target);
+        this.isAttacking = outcome === OK;
+        return outcome;
+    }
+    public dismantle(target: Structure): number {
+        let outcome = this.creep.dismantle(target);
+        this.isDismantling = outcome === OK;
+        return outcome;
+    }
+    public rangedAttack(target: Creep|Structure): number {
+        let outcome = this.creep.rangedAttack(target);
+        this.isRangedAttacking = outcome === OK;
+        return outcome;
+    }
+    public rangedMassAttack(): number {
+        let outcome = this.creep.rangedMassAttack();
+        this.isRangedMassAttacking = outcome === OK;
+        return outcome;
     }
     public transfer(target: Creep|Structure, resourceType: string, amount?: number): number {
         return this.creep.transfer(target, resourceType, amount); }
@@ -244,7 +272,7 @@ export class Agent extends AbstractAgent {
         } else {
             let position = this.findIdlePosition(place, acceptableRange);
             if (position) {
-                this.memory.idlePos = MemHelper.serializeIntPosition(position);
+                this.memory.idlePos = MemHelper.intPosition(position);
                 return position;
             } else {
                 console.log(`AGENT: no idlepos within range ${acceptableRange} near ${place.pos}`);
@@ -424,7 +452,7 @@ export class Agent extends AbstractAgent {
         }
 
         if (this.fatigue > 0) {
-            if (closest instanceof Creep) {
+            if (closest instanceof Creep && rangeToClosest < fleeRange - 1) {
                 let moveCount = this.getActiveBodyparts(MOVE);
                 let dropAmount = this.carry.energy - (moveCount * CARRY_CAPACITY);
                 this.drop(RESOURCE_ENERGY, dropAmount);
@@ -875,7 +903,7 @@ export class Agent extends AbstractAgent {
 
         let range = leader.pos.getRangeTo(follower);
         if (range > allowedRange) {
-            if (follower.pos.isNearExit(0)) {
+            if (follower.pos.isNearExit(0) && follower.room === leader.room) {
                 follower.moveOffExitToward(leader);
             } else {
                 follower.travelTo(leader, {stuckValue: 1});
@@ -901,26 +929,28 @@ export class Agent extends AbstractAgent {
         return this.standardHealing(_.map(agents, x => x.creep));
     }
 
-    public standardHealing(creeps?: Creep[]): number {
+    public standardHealing(creeps?: Creep[], conserveRanged = false): number {
         if (!creeps) {
             creeps = this.room.find<Creep>(FIND_MY_CREEPS);
         }
-        let bestHealTarget = _(this.pos.findInRange(creeps, 3))
-            .filter(x => {
-                if (!x.hitsTemp) {
-                    x.hitsTemp = x.hits;
-                }
-                return x.hitsTemp < x.hitsMax;
-            })
-            .max(x => {
-                let healScore = x.hitsMax - x.hitsTemp;
-                if (x.pos.getRangeTo(this) > 1) { healScore -= 2000; }
-                if (CreepHelper.partCount(x, HEAL) > 2) { healScore += 1000; }
-                return healScore;
-            });
 
-        if (!_.isObject(bestHealTarget)) {
-            return ERR_NOT_IN_RANGE;
+        let bestHealScore = -Number.MAX_VALUE;
+        let bestHealTarget: Creep;
+        for (let creep of creeps) {
+            if (!creep.hitsTemp) {
+                creep.hitsTemp = creep.hits;
+            }
+            let range = this.pos.getRangeTo(creep);
+            if (conserveRanged && range > 1 && creep.hitsTemp > creep.hitsMax * .8) { continue; }
+            let healScore = creep.hitsMax - creep.hitsTemp;
+            if (range > 1) {
+                if (this.hits < this.hitsMax * .5) { continue; }
+                healScore -= 1000;
+            }
+            if (healScore > bestHealScore) {
+                bestHealScore = healScore;
+                bestHealTarget = creep;
+            }
         }
 
         let outcome;
@@ -1030,19 +1060,8 @@ export class Agent extends AbstractAgent {
 
     public get shield(): number {
         if (this.cache.shield !== undefined) { return this.cache.shield; }
-
-        let shield = 0;
-        for (let part of this.creep.body) {
-            if (part.type !== TOUGH) { continue; }
-            if (part.boost) {
-                shield += part.hits / BOOSTS[TOUGH][part.boost]["damage"];
-            } else {
-                shield += part.hits;
-            }
-        }
-
-        this.cache.shield = shield;
-        return shield;
+        this.cache.shield = CreepHelper.calculateShield(this.creep);
+        return this.cache.shield;
     }
 
     public get rangeToEdge(): number {
@@ -1099,13 +1118,14 @@ export class Agent extends AbstractAgent {
         return ERR_NO_PATH;
     }
 
-    public moveOffExitToward(leader: Agent) {
-        let positions = this.pos.openAdjacentSpots(true);
-        if (positions.length === 0) {
-            this.travelTo(leader);
-        } else {
-            this.travelTo(leader.pos.findClosestByRange(positions));
+    public moveOffExitToward(leader: Agent): number {
+        for (let position of this.pos.openAdjacentSpots()) {
+            let rangeToLeader = this.pos.getRangeTo(position);
+            if (rangeToLeader === 1) {
+                return this.travelTo(position);
+            }
         }
+        this.travelTo(leader, {ignoreCreeps: false});
     }
 
     /**
@@ -1171,7 +1191,7 @@ export class Agent extends AbstractAgent {
         }
     }
 
-    public massAttackDamage(targets?: {pos: RoomPosition}[]): number {
+    public massAttackDamage(targets?: {pos: RoomPosition}[], ignoreRampart = false): number {
 
         if (!targets) {
             targets = this.room.hostiles;
@@ -1186,7 +1206,7 @@ export class Agent extends AbstractAgent {
         };
 
         for (let hostile of hostiles) {
-            if (hostile.pos.lookForStructure(STRUCTURE_RAMPART)) { continue; }
+            if (!ignoreRampart && hostile.pos.lookForStructure(STRUCTURE_RAMPART)) { continue; }
             let range = this.pos.getRangeTo(hostile);
             let damage = rangeMap[range];
             if (!damage) { continue; }

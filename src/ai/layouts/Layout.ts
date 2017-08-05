@@ -242,7 +242,7 @@ export abstract class Layout {
         for (let structureType in flexMap) {
             let positions = flexMap[structureType];
             if (!positions) { continue; }
-            serializedMap[structureType] = MemHelper.serializeIntPositions(positions);
+            serializedMap[structureType] = MemHelper.intPositions(positions);
         }
         return serializedMap;
     }

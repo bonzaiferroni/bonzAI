@@ -7,6 +7,8 @@ import {Traveler} from "../Traveler";
 import {WorldMap} from "../WorldMap";
 import {Operation} from "../operations/Operation";
 import {empire} from "../Empire";
+import {PosHelper} from "../../helpers/PosHelper";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
 export class RaidGuru extends Guru {
 
     public raidRoom: Room;
@@ -70,7 +72,7 @@ export class RaidGuru extends Guru {
         cache.fallbackPos = this.findFallback(room, cache.bestExit);
         cache.matrix = matrix.serialize();
 
-        helper.showMatrix(matrix, roomName);
+        MatrixHelper.showMatrix(matrix, roomName);
         Notifier.log(`ZOMBIE: init raid at ${roomName}, expectedDamage: ${cache.expectedDamage}, bestExit: ${
             cache.bestExit}`);
         return cache;
@@ -95,7 +97,7 @@ export class RaidGuru extends Guru {
             roomCallback: (roomName: string): CostMatrix | boolean => {
                 if (roomName !== this.room.name && Traveler.checkAvoid(roomName)) { return false; }
                 let room = Game.rooms[roomName];
-                if (room) { return room.defaultMatrix; }
+                if (room) { return Traveler.getStructureMatrix(room); }
             },
         });
         if (!ret.incomplete) {
@@ -153,7 +155,7 @@ export class RaidGuru extends Guru {
             let expectedDamage = 0;
             for (let tower of towers) {
                 let range = bestExit.getRangeTo(tower);
-                expectedDamage += helper.towerDamageAtRange(range);
+                expectedDamage += PosHelper.towerDamageAtRange(range);
             }
             return expectedDamage / 2;
         } else {
@@ -162,7 +164,7 @@ export class RaidGuru extends Guru {
                 let expectedDamage = 0;
                 for (let otherTower of towers) {
                     let range = attackedTower.pos.getRangeTo(otherTower);
-                    expectedDamage += helper.towerDamageAtRange(range);
+                    expectedDamage += PosHelper.towerDamageAtRange(range);
                 }
                 if (expectedDamage > mostExpectedDamage) {
                     mostExpectedDamage = expectedDamage;

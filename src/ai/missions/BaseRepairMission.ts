@@ -1,13 +1,14 @@
 import {Mission, MissionMemory} from "./Mission";
 import {ControllerOperation} from "../operations/ControllerOperation";
 import {Layout} from "../layouts/Layout";
-import {Scheduler} from "../../Scheduler";
+import {Scheduler, SchedulerPriority} from "../../Scheduler";
 import {Viz} from "../../helpers/Viz";
+import {GrafanaStats} from "../../helpers/GrafanaStats";
 
 interface BaseRepairMemory extends MissionMemory {
     roadIds: string[];
     rampId: string;
-    rampThreshold: number;
+    lowestHits: number;
 }
 
 export class BaseRepairMission extends Mission {
@@ -43,6 +44,7 @@ export class BaseRepairMission extends Mission {
     public actions() {
         if (this.room.hostiles.length > 0) { return; }
         if (this.room.storage && this.room.storage.store.energy < 10000) { return; }
+        if (this.memory.lowestHits > 100000 && (!this.room.terminal || this.room.controller.level < 6)) { return; }
 
         this.towerActions();
     }
@@ -56,10 +58,20 @@ export class BaseRepairMission extends Mission {
     private towerActions() {
         let structure = this.getNextRepair();
         if (structure) {
-            let towers = this.findTowersByRange(structure.pos);
-            for (let tower of towers) {
-                if (!tower) { continue; }
-                tower.repair(structure);
+
+            let doRepair = () => {
+                let towers = this.findTowersByRange(structure.pos);
+                for (let tower of towers) {
+                    if (!tower) { continue; }
+                    tower.repair(structure);
+                }
+            };
+
+            if (structure.hits < 10000000) {
+                doRepair();
+            } else {
+                // 10m hits, non emergency, repair when cpu is ideal
+                Scheduler.addPassiveProcess(SchedulerPriority.Medium, doRepair);
             }
         }
     }
@@ -86,6 +98,8 @@ export class BaseRepairMission extends Mission {
             return;
         }
 
+        Memory.stats["empire.walls." + this.roomName] = lowest.hits;
+        this.memory.lowestHits = lowest.hits;
         this.memory.rampId = lowest.id;
     }
 
@@ -146,11 +160,9 @@ export class BaseRepairMission extends Mission {
 
     private towerSearch(x: number, y: number): string[] {
         let position = new RoomPosition(x, y, this.roomName);
-        if (this.room.memory.layout && this.room.memory.layout.turtle) {
-            let inRange = position.findInRange<StructureTower>(this.towers, 8);
-            if (inRange.length > 0) {
-                return _.map(inRange, tower => tower.id);
-            }
+        let inRange = position.findInRange<StructureTower>(this.towers, 8);
+        if (inRange.length > 0) {
+            return _.map(inRange, tower => tower.id);
         }
 
         let closest = position.findClosestByRange(this.towers);

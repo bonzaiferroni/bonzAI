@@ -19,6 +19,7 @@ interface Memory {
         powerMinimum: number;
         saverMode: boolean;
         partnerTrade: boolean;
+        timeoutSafety: number;
     };
     profiler: {[identifier: string]: ProfilerData };
     notifier: {
@@ -50,15 +51,8 @@ interface Room {
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
     fleeObjects: (Creep|Structure)[];
-    coords: RoomCoord;
-    _defaultMatrix: CostMatrix;
-    defaultMatrix: CostMatrix;
     structures: {[structureType: string]: Structure[] };
     memory: RoomMemory;
-    serializePosition(position: {x: number, y: number, roomName: string}): number;
-    deserializePosition(serializedPosition: number): RoomPosition;
-    serializePositionTest(position: {x: number, y: number, roomName: string}): string;
-    deserializePositionTest(serializedPosition: string): RoomPosition;
 }
 
 interface RoomMemory {
@@ -127,8 +121,6 @@ interface RoomCoord {
 }
 
 interface RoomPosition {
-    getFleeOptions(roomObject: RoomObject): RoomPosition[];
-    bestFleePosition(roomObject: RoomObject): RoomPosition;
     openAdjacentSpots(ignoreCreeps?: boolean): RoomPosition[];
     getPositionAtDirection(direction: number, range?: number): RoomPosition;
     isPassible(ignoreCreeps?: boolean): boolean;
@@ -142,6 +134,10 @@ interface RoomPosition {
 interface Creep {
     blindMoveTo(destination: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
     hitsTemp: number;
+    expectedDamage: number;
+    shieldHits: number;
+    shieldMax: number;
+    averageDamage: number;
 }
 
 interface CreepMemory {

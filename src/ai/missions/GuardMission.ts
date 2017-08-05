@@ -5,6 +5,7 @@ import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {Traveler} from "../Traveler";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
 
 interface GuardMissionState extends MissionState {
     guardedFlags: Flag[];
@@ -265,17 +266,17 @@ export class GuardMission extends Mission {
                 if (roomName !== guard.room.name) { return; }
                 let costs = new PathFinder.CostMatrix();
 
-                helper.blockOffPosition(costs, roomObject, 2);
+                MatrixHelper.blockOffPosition(costs, roomObject, 2);
 
                 for (let dude of this.state.scaryDudes) {
                     if (!dude.pos.inRangeTo(guard, 4)) {
-                        helper.blockOffPosition(costs, dude, 5);
+                        MatrixHelper.blockOffPosition(costs, dude, 5);
                     }
                 }
 
                 for (let creep of guard.room.hostiles) {
                     if (creep.pos.lookForStructure(STRUCTURE_RAMPART)) {
-                        helper.blockOffPosition(costs, creep, 1);
+                        MatrixHelper.blockOffPosition(costs, creep, 1);
                     }
                 }
 
@@ -300,7 +301,7 @@ export class GuardMission extends Mission {
             let ticksToLive = this.memory.ticksToLive[id];
             if (ticksToLive > 10) {
                 console.log("GUARD:", this.operation.name, "was killed, increasing potency:",
-                    this.memory.potency, "->", ++this.memory.potency);
+                    this.memory.potency, "->", this.memory.potency += 4);
             } else if (this.memory.potency > 1) {
                 console.log("GUARD:", this.operation.name, "guard died of old age, decreasing potency:",
                     this.memory.potency, "->", --this.memory.potency);

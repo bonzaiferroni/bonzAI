@@ -14,7 +14,7 @@ export class SignerOperation extends Operation {
     }
 
     protected update() {
-        this.initRemoteSpawn(1490, 1, 50);
+        this.updateRemoteSpawn(1490, 1, 50);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         } else {

@@ -7,7 +7,7 @@ export class MemHelper {
      * @returns {number}
      */
 
-    public static serializeIntPosition (position: {x: number, y: number, roomName: string}): number {
+    public static intPosition (position: {x: number, y: number, roomName: string}): number {
         return position.x * 100 + position.y;
     };
 
@@ -27,10 +27,10 @@ export class MemHelper {
      * @param positions
      */
 
-    public static serializeIntPositions(positions: {x: number, y: number, roomName: string}[]): string {
+    public static intPositions(positions: {x: number, y: number, roomName: string}[]): string {
         let ints = [];
         for (let position of positions) {
-            ints.push(MemHelper.serializeIntPosition(position));
+            ints.push(MemHelper.intPosition(position));
         }
         return ints.join("_");
     }

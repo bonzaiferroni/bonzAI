@@ -8,6 +8,8 @@ import {LairMission} from "../missions/LairMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
 import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH, OperationPriority} from "../../config/constants";
+import {Mission} from "../missions/Mission";
+import {PaverMission} from "../missions/PaverMission";
 export class KeeperOperation extends Operation {
     private invaderGuru: InvaderGuru;
 
@@ -26,13 +28,9 @@ export class KeeperOperation extends Operation {
 
     public init() {
 
-        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 7, 50);
-        if (this.remoteSpawn) {
-            this.spawnGroup = this.remoteSpawn.spawnGroup;
-        } else {
-            console.log("ATTN: no spawnGroup found for", this.name);
-            return;
-        }
+        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 7, 50);
+        let assignedSpawn = this.assignRemoteSpawn();
+        if (!assignedSpawn) { return; }
 
         if (this.spawnGroup.maxSpawnEnergy < 5300) {
             console.log(`KEEPER: unable to spawn in ${this.roomName}, need 5300 to spawn KeeperMission`);
@@ -49,6 +47,7 @@ export class KeeperOperation extends Operation {
         MiningMission.Add(this, false);
 
         this.addMission(new RemoteBuildMission(this, true));
+        this.addMission(new PaverMission(this));
 
         if (this.state.mineral.pos.lookFor(LOOK_FLAGS).length === 0) {
             this.addMission(new GeologyMission(this));
@@ -56,10 +55,17 @@ export class KeeperOperation extends Operation {
     }
 
     public update() {
-        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
+        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
         if (this.invaderGuru) {
             this.invaderGuru.update();
         }
+    }
+
+    protected bypassActions() {
+        let bypassMissions = {
+            lair: this.missions["lair"],
+        };
+        // Mission.actions(bypassMissions);
     }
 
     public finalize() {

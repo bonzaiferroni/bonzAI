@@ -62,7 +62,7 @@ export class ControllerOperation extends Operation {
 
     public init() {
 
-        this.initRemoteSpawn(8, 8);
+        this.updateRemoteSpawn(8, 8);
         this.defenseGuru = new DefenseGuru(this);
         this.defenseGuru.init();
         this.layout = LayoutFactory.Instantiate(this.roomName);
@@ -135,11 +135,12 @@ export class ControllerOperation extends Operation {
         }
 
         this.addMission(new BaseRepairMission(this));
+        this.addMission(new PaverMission(this));
     }
 
     public update() {
         this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
-        this.initRemoteSpawn(8, 8);
+        this.updateRemoteSpawn(8, 8);
         if (!this.spawnGroup && this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         }

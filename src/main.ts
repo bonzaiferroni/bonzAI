@@ -52,13 +52,13 @@ module.exports.loop = function () {
 
         // init utilities
         TimeoutTracker.init();
-        TimeoutTracker.log("init"); // TODO: change to "update" once you get comparison data
         global.cc = consoleCommands;
 
         empire.update();
     } catch (e) { console.log("error initState phase:\n", e.stack); }
 
     Profiler.start("init");
+    TimeoutTracker.log("update");
     Operation.update(operations);
     Profiler.end("init");
 
@@ -105,6 +105,4 @@ module.exports.loop = function () {
         Profiler.finalize();
         TimeoutTracker.finalize();
     } catch (e) { console.log("error during post-operations phase\n", e.stack); }
-
-    // console.log(`end of loop, time: ${Game.time}, cpu ${Game.cpu.getUsed()}`);
 };

@@ -42,7 +42,8 @@ export var sandBox = {
                 creep.travelTo(claimerFlag, {offRoad: true});
                 creep.claimController(creep.room.controller);
             } else {
-                empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
+                empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE], "claimer");
+                // empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
             }
         }
 
@@ -60,24 +61,9 @@ export var sandBox = {
             }
         }
 
-        if (!Memory.temp.ranTest) {
-            Memory.temp.ranTest = true;
-            let place1 = Game.flags["keeper_lima6"];
-            let destinations = _.toArray(empire.spawnGroups);
-            let selected = RoomHelper.findClosest(place1, destinations, {margin: 50});
-            console.log(`selected the following: `);
-            for (let value of selected) { console.log(value.destination.pos); }
-        }
-
-        if (Game.time % 10 === 0) {
-            console.log("cpu: " + _.round(Memory.cpu.average, 2), "perCreep: " +
+        if (Game.time % 12 === 0) {
+            console.log(`time: ${Game.time}, cpu: ${_.round(Memory.cpu.average, 2)}`, "perCreep: " +
                 _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2));
-        }
-
-        if (Memory.temp.test) {
-            // testSerialPos();
-            testFunction();
-            Memory.temp.test = undefined;
         }
 
         nukePos();
@@ -86,7 +72,9 @@ export var sandBox = {
 
 function nukePos() {
     if (!Memory.temp.nukePos) { return; }
+    if (!Memory.temp.nukeCount) { return; }
     if (Game.time < Memory.temp.nextNuke) { return; }
+    if (!Memory.temp.nukeDelay) { Memory.temp.nukeDelay = 248; }
     let position = helper.deserializeRoomPosition(Memory.temp.nukePos);
     for (let roomName in empire.spawnGroups) {
         if (Game.map.getRoomLinearDistance(position.roomName, roomName) > 10) { continue; }
@@ -96,7 +84,8 @@ function nukePos() {
         let outcome = nuker.launchNuke(position);
         console.log(`${roomName} is nuking ${position}, outcome: ${outcome}`);
         if (outcome === OK) {
-            Memory.temp.nextNuke = Game.time + 300;
+            Memory.temp.nukeCount--;
+            Memory.temp.nextNuke = Game.time + Memory.temp.nukeDelay;
             return;
         }
     }
@@ -113,54 +102,4 @@ function testFunction() {
     cpu = Game.cpu.getUsed();
 
     console.log(`function: ${Game.cpu.getUsed() - cpu}`);
-}
-
-function testSerialPos() {
-    let room = Game.spawns["Spawn1"].room;
-    let positions = room.find<Structure>(FIND_STRUCTURES).map(s => s.pos);
-    let jsons = positions.map(p => { return {x: p.x, y: p.y, roomName: p.roomName}; });
-    let integers = positions.map(p => room.serializePosition(p));
-    let unicodes = positions.map(p => room.serializePositionTest(p));
-
-    console.log("\nthese compare what the overhead per tick would be for just storage");
-    let cpu = Game.cpu.getUsed();
-    for (let i = 0; i < 100; i++) {
-        let str = JSON.stringify(jsons);
-        JSON.parse(str);
-    }
-    console.log(`nonserialized: ${Game.cpu.getUsed() - cpu}`);
-    cpu = Game.cpu.getUsed();
-    for (let i = 0; i < 100; i++) {
-        let str = JSON.stringify(integers);
-        JSON.parse(str);
-    }
-    console.log(`type 1: ${Game.cpu.getUsed() - cpu}`);
-    cpu = Game.cpu.getUsed();
-    for (let i = 0; i < 100; i++) {
-        let str = JSON.stringify(unicodes);
-        JSON.parse(str);
-    }
-    console.log(`type 2: ${Game.cpu.getUsed() - cpu}`);
-
-    console.log("\nthese compare the cost for deserialization");
-    cpu = Game.cpu.getUsed();
-    for (let json of jsons) {
-        let position = new RoomPosition(json.x, json.y, json.roomName);
-    }
-    console.log(`json: ${Game.cpu.getUsed() - cpu}`);
-    cpu = Game.cpu.getUsed();
-    for (let json of jsons) {
-        let position = _.create(json);
-    }
-    console.log(`json (lodash): ${Game.cpu.getUsed() - cpu}`);
-    cpu = Game.cpu.getUsed();
-    for (let integer of integers) {
-        let position = room.deserializePosition(integer);
-    }
-    console.log(`integer: ${Game.cpu.getUsed() - cpu}`);
-    cpu = Game.cpu.getUsed();
-    for (let unicode of unicodes) {
-        let position = room.deserializePositionTest(unicode);
-    }
-    console.log(`unicode: ${Game.cpu.getUsed() - cpu}`);
 }

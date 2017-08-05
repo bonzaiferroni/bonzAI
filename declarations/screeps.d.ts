@@ -1205,11 +1205,12 @@ declare class Market {
 
     deal(orderId: string, amount : number, targetRoomName?: string): number;
 
-    getAllOrders(filter : OrderFilter) : Order[];
+    getAllOrders(filter?: OrderFilter) : Order[];
 
     changeOrderPrice(orderId: string, newPrice: number): number;
+    extendOrder(orderId: string, amount: number): number;
 
-    orders: {[key:string]:Order};
+    orders: {[key:string]: Order};
     credits: number;
 }
 
@@ -1252,6 +1253,11 @@ interface Transaction {
     from: string;
     to: string;
     description: string;
+    order: {
+        id: string,
+        type: string,
+        price: number,
+    }
 }
 interface Memory {
     [name: string]: any;

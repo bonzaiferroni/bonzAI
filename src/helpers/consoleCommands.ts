@@ -7,6 +7,9 @@ import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
 import {Tick} from "../Tick";
 import {Traveler} from "../ai/Traveler";
+import {PosHelper} from "./PosHelper";
+import {PaverMission} from "../ai/missions/PaverMission";
+import {MemHelper} from "./MemHelper";
 
 export var consoleCommands = {
 
@@ -356,21 +359,29 @@ export var consoleCommands = {
     },
 
     testCPU() {
-        let hardPath1 = Game.flags["hardPath1"];
-        let hardPath2 = Game.flags["hardPath2"];
-        if (hardPath1 && hardPath2) {
-            // let oldTraveler = new OldTraveler();
-            let roomDistance = Game.map.getRoomLinearDistance(hardPath1.pos.roomName, hardPath2.pos.roomName);
-            console.log(`testing ${hardPath1.pos} to ${hardPath2.pos}, room distance: ${roomDistance}`);
-            let cpu1 = Game.cpu.getUsed();
-            let retN = Traveler.findTravelPath(hardPath1.pos, hardPath2.pos, {ensurePath: true});
-            cpu1 = Game.cpu.getUsed() - cpu1;
-            let cpu2 = Game.cpu.getUsed();
-            // let retO = oldTraveler.findTravelPath(hardPath1, hardPath2);
-            cpu2 = Game.cpu.getUsed() - cpu2;
+        let position = Game.spawns["Spawn1"].pos;
+        let dirs = [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8];
+        let test1 = () => {
+            for (let dir of dirs) {
+                position.getPositionAtDirection(dir);
+            }
+        };
 
-            console.log(`test: new, cpu: ${cpu1}, incomplete: ${retN.incomplete}, path length: ${retN.path.length}`);
-            // console.log(`test: old, cpu: ${cpu2}, incomplete: ${retO.incomplete}, path length: ${retO.path.length}`);
+        let test2 = () => {
+            for (let dir of dirs) {
+            }
+        };
+
+        let tests = [test1, test2];
+        if (Math.random() < .5) {
+            tests = [test2, test1];
+        }
+
+        for (let test of tests) {
+            let cpu = Game.cpu.getUsed();
+            test();
+            cpu = Game.cpu.getUsed() - cpu;
+            console.log(`${test.name} ${_.round(cpu, 5)}`);
         }
 
         /* output
@@ -382,15 +393,24 @@ export var consoleCommands = {
          */
     },
 
-    test() {
-        let count = 0;
-        for (let roomName in empire.spawnGroups) {
-            let room = Game.rooms[roomName];
-            let sites = room.controller.pos.findInRange<ConstructionSite>(FIND_CONSTRUCTION_SITES, 3);
-            for (let site of sites) {
-                count++;
-                site.remove();
+    viewRoadMap(roomName: string) {
+        let roadMap = PaverMission.getRoadPositions(roomName);
+        for (let pos of roadMap) {
+            Viz.colorPos(pos, "cyan");
+        }
+    },
+
+    construction() {
+        let roomCounts = {};
+        for (let id in Game.constructionSites) {
+            let site = Game.constructionSites[id];
+            if (!roomCounts[site.pos.roomName]) {
+                roomCounts[site.pos.roomName] = 0;
             }
+            roomCounts[site.pos.roomName]++;
+        }
+        for (let roomName in roomCounts) {
+            console.log(roomName, roomCounts[roomName]);
         }
     },
 
@@ -490,7 +510,7 @@ export var consoleCommands = {
         return JSON.stringify(data);
     },
 
-    visWalls(roomName: string) {
+    visWalls(roomName: string, maxHits?: number) {
         let room = Game.rooms[roomName];
         if (!room) { return "no vision"; }
 
@@ -500,9 +520,12 @@ export var consoleCommands = {
 
         if (structures.length === 0) { return "no walls"; }
 
-        let maxHits = _.max(structures, x => x.hits).hits;
+        if (!maxHits) {
+            maxHits = _.max(structures, x => x.hits).hits;
+        }
 
         for (let wall of structures) {
+            if (wall.hits > maxHits) { continue; }
             let pos = wall.pos;
             let opacity = wall.hits / maxHits;
             new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: "orange", opacity: opacity});

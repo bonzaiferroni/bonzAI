@@ -61,8 +61,16 @@ export class LinkMiningMission extends Mission {
         return this.link ? 1 : 0;
     };
 
+    public minerBody = () => {
+        if (this.spawnGroup.maxSpawnEnergy >= 3000 && this.spawnGroup.averageAvailability >= 1) {
+            return this.workerBody(10, 4, 10);
+        } else {
+            return this.workerBody(5, 4, 5);
+        }
+    };
+
     public roleCall() {
-        this.linkMiners = this.headCount(this.name, () => this.workerBody(5, 4, 5), this.getMaxMiners );
+        this.linkMiners = this.headCount(this.name, this.minerBody, this.getMaxMiners );
     }
 
     public actions() {

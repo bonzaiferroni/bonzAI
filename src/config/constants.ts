@@ -3,7 +3,6 @@ export const DESTINATION_REACHED = -1201;
 export const CACHE_INVALIDATION_FREQUENCY = 1000;
 export const CACHE_INVALIDATION_PERIOD = 10;
 export const MAX_HARVEST_DISTANCE = 2;
-export const RAID_CREEP_MATRIX_COST = 40;
 export const MAX_HARVEST_PATH = 165;
 
 export const PRIORITY_BUILD: string[] = [
@@ -46,40 +45,6 @@ export const MINERAL_STORAGE_TARGET = {
     X: 140000,
 };
 
-export const REAGENT_LIST = {
-    KO: ["K", "O"],
-    UH: ["U", "H"],
-    UO: ["U", "O"],
-    OH: ["O", "H"],
-    LO: ["L", "O"],
-    LH: ["L", "H"],
-    ZO: ["Z", "O"],
-    ZH: ["Z", "H"],
-    ZK: ["Z", "K"],
-    UL: ["U", "L"],
-    G: ["ZK", "UL"],
-    GH: ["G", "H"],
-    GO: ["G", "O"],
-    UH2O: ["UH", "OH"],
-    UHO2: ["UO", "OH"],
-    GH2O: ["GH", "OH"],
-    GHO2: ["GO", "OH"],
-    LHO2: ["LO", "OH"],
-    LH2O: ["LH", "OH"],
-    ZHO2: ["ZO", "OH"],
-    ZH2O: ["ZH", "OH"],
-    KHO2: ["KO", "OH"],
-    XUH2O: ["X", "UH2O"],
-    XUHO2: ["X", "UHO2"],
-    XGH2O: ["X", "GH2O"],
-    XGHO2: ["X", "GHO2"],
-    XLHO2: ["X", "LHO2"],
-    XLH2O: ["X", "LH2O"],
-    XZHO2: ["ZHO2", "X"],
-    XZH2O: ["ZH2O", "X"],
-    XKHO2: ["KHO2", "X"],
-};
-
 export const OPERATION_NAMES = [
     "domo", "boca", "lima", "root", "lima", "gato", "fret", "thad", "colo", "pony",
     "moon", "oslo", "pita", "gaol", "snek", "kiev", "bonn", "dili", "cali", "nuuk",
@@ -87,3 +52,13 @@ export const OPERATION_NAMES = [
     "jeux", "cozy", "lupe", "hazy", "jugs", "quip", "jibs", "quay", "zany", "mojo",
     "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "nxfo",
 ];
+
+export const REAGENT_LIST: {[prodctName: string]: string[]} = {};
+
+for (let reagent1 in REACTIONS) {
+    let reactionList = REACTIONS[reagent1];
+    for (let reagent2 in reactionList) {
+        let product = reactionList[reagent2];
+        REAGENT_LIST[product] = [reagent1, reagent2];
+    }
+}

@@ -12,12 +12,14 @@ import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {Profiler} from "../../Profiler";
+import {TimeoutTracker} from "../../TimeoutTracker";
+import {PaverMission} from "./PaverMission";
 
 export interface MissionState {
     hasVision?: boolean;
     sources?: Source[];
-    spawnedThisTick?: string[];
     mineral?: Mineral;
+    spawnedThisTick?: {[roleName: string]: string}
 }
 
 export interface MissionMemory {
@@ -63,9 +65,7 @@ export abstract class Mission {
         if (!this.operation.memory[this.name]) { this.operation.memory[this.name] = {}; }
         this.memory = this.operation.memory[this.name];
         if (!this.memory.hc) { this.memory.hc = {}; }
-        this.cache = {
-            spawnedThisTick: [],
-        };
+        this.cache = {};
 
         // find state
         this.state = {} as MissionState;
@@ -76,6 +76,8 @@ export abstract class Mission {
         } else {
             this.state.hasVision = false;
         }
+
+        this.state.spawnedThisTick = {};
     }
 
     /**
@@ -102,10 +104,11 @@ export abstract class Mission {
             let mission = missions[missionName];
 
             try {
-                // Profiler.start("in_m." + missionName.substr(0, 3));
+                // TimeoutTracker.log("update", mission.operation.name, mission.name, mission.roomName);
+                // Profiler.start("upd.m." + missionName.substr(0, 3));
                 mission.initState();
                 mission.update();
-                // Profiler.end("in_m." + missionName.substr(0, 3));
+                // Profiler.end("upd.m." + missionName.substr(0, 3));
             } catch (e) {
                 Notifier.reportException(e, "update", mission.roomName);
             }
@@ -245,7 +248,7 @@ export abstract class Mission {
                 }
                 if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
             } else {
-                if (options.deathCallback) {
+                if (options.deathCallback && Memory.creeps[creepName]) {
                     options.deathCallback(roleName, Game.time - Memory.creeps[creepName].birthTick < CREEP_LIFE_TIME - 10);
                 }
                 creepNames.splice(i, 1);
@@ -262,7 +265,7 @@ export abstract class Mission {
                 let creep = this.hireFreelance(roleName);
                 if (creep) {
                     if (creep instanceof Creep) {
-                        this.cache.spawnedThisTick.push(roleName);
+                        this.state.spawnedThisTick[roleName] = creep.name;
                         creepNames.push(creep.name);
                         creepArray.push(creep);
                         return creepArray;
@@ -281,7 +284,7 @@ export abstract class Mission {
             let body = getBody();
             let outcome = this.spawnGroup.spawn(body, creepName, options.memory, options.reservation);
             if (_.isString(outcome)) {
-                this.cache.spawnedThisTick.push(roleName);
+                this.state.spawnedThisTick[roleName] = outcome;
                 creepNames.push(creepName);
             }
         }
@@ -363,8 +366,8 @@ export abstract class Mission {
         }
     };
 
-    protected spawnedThisTick(roleName: string) {
-        return _.includes(this.cache.spawnedThisTick, roleName);
+    protected spawnedThisTick(roleName: string): string {
+        return this.state.spawnedThisTick[roleName];
     }
 
     protected roleCount(roleName: string, filter?: (creep: Creep) => boolean): number {
@@ -401,12 +404,27 @@ export abstract class Mission {
         return body;
     }
 
-    protected configBody(config: {[partType: string]: number}): string[] {
+    protected configBody(config: {[partType: string]: number}, moveLast = false): string[] {
         let body: string[] = [];
-        for (let partType in config) {
-            let amount = config[partType];
-            for (let i = 0; i < amount; i++) {
-                body.push(partType);
+
+        if (moveLast) {
+            for (let partType in config) {
+                let amount = config[partType];
+                if (partType === MOVE) {
+                    amount--;
+                }
+                for (let i = 0; i < amount; i++) {
+                    body.push(partType);
+                }
+
+            }
+            body.push(MOVE);
+        } else {
+            for (let partType in config) {
+                let amount = config[partType];
+                for (let i = 0; i < amount; i++) {
+                    body.push(partType);
+                }
             }
         }
         return body;
@@ -595,6 +613,7 @@ export abstract class Mission {
             this.disableNotify(agent);
         }
 
+
         // accomodate legacy code
         if (options.boosts === undefined) {
             options.boosts = agent.memory.boosts;
@@ -732,7 +751,7 @@ export abstract class Mission {
 
     protected standardCartBody = () => {
         return this.bodyRatio(0, 2, 1);
-    }
+    };
 }
 
 export type MissionMap = {[missionName: string]: Mission }

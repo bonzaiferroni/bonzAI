@@ -43,36 +43,6 @@ export var helper = {
         return new RoomPosition(roomPosition.x, roomPosition.y, roomPosition.roomName);
     },
 
-    blockOffPosition(costs: CostMatrix, roomObject: {pos: RoomPosition}, range: number, cost = 30, add = false) {
-        for (let xDelta = -range; xDelta <= range; xDelta++) {
-            let x = roomObject.pos.x + xDelta;
-            if (x < 0 || x > 49) { continue; }
-            for (let yDelta = -range; yDelta <= range; yDelta++) {
-                let y = roomObject.pos.y + yDelta;
-                if (y < 0 || y > 49) { continue; }
-                let terrain = Game.map.getTerrainAt(x, y, roomObject.pos.roomName);
-                if (terrain === "wall") { continue; }
-                let currentCost = costs.get(x, y);
-                if (currentCost === 0) {
-                    if (terrain === "plain") {
-                        currentCost += 2;
-                    } else {
-                        currentCost += 10;
-                    }
-                }
-                if (currentCost >= 0xff) { continue; }
-                if (add) {
-                    costs.set(x, y, Math.min(cost + currentCost, 200));
-                    continue;
-                }
-                if (currentCost > cost) {
-                    continue;
-                }
-                costs.set(x, y, cost);
-            }
-        }
-    },
-
     blockOffPositionByRange(costs: CostMatrix, roomObject: RoomObject, blockRange: number, multiplier: number,
                             limit: number) {
         for (let xDelta = -blockRange; xDelta <= blockRange; xDelta++) {
@@ -98,85 +68,6 @@ export var helper = {
                 costs.set(x, y, newCost);
             }
         }
-    },
-
-    addTerrainToMatrix(matrix: CostMatrix, roomName: string): CostMatrix {
-        for (let x = 0; x < 50; x++) {
-            for (let y = 0; y < 50; y++) {
-                let terrain = Game.map.getTerrainAt(x, y, roomName);
-                if (terrain === "wall") {
-                    matrix.set(x, y, 0xff);
-                } else if (terrain === "swamp") {
-                    matrix.set(x, y, 5);
-                } else {
-                    matrix.set(x, y, 1);
-                }
-            }
-        }
-        return;
-    },
-
-    blockOffExits(matrix: CostMatrix, cost = 0xff, range = 0, roomName?: string): CostMatrix {
-        if (roomName && cost < 0xff) {
-            // adjust based on terrain
-            for (let x = range; x < 50 - range; x += 49 - range * 2) {
-                for (let y = range; y < 50 - range; y++) {
-                    let terrain = Game.map.getTerrainAt(x, y, roomName);
-                    if (terrain !== "wall") { matrix.set(x, y, cost); }
-                }
-            }
-            for (let x = range; x < 50 - range; x++) {
-                for (let y = range; y < 50 - range; y += 49 - range * 2) {
-                    let terrain = Game.map.getTerrainAt(x, y, roomName);
-                    if (terrain !== "wall") { matrix.set(x, y, cost); }
-                }
-            }
-        } else {
-            // make impassable
-            for (let x = range; x < 50 - range; x += 49 - range * 2) {
-                for (let y = range; y < 50 - range; y++) {
-                    matrix.set(x, y, 0xff);
-                }
-            }
-            for (let x = range; x < 50 - range; x++) {
-                for (let y = range; y < 50 - range; y += 49 - range * 2) {
-                    matrix.set(x, y, 0xff);
-                }
-            }
-        }
-        return matrix;
-    },
-
-    showMatrix(matrix: CostMatrix, roomName: string, maxValue = 255, consoleReport = false) {
-        if (!Tick.temp.showMatrix) { Tick.temp.showMatrix = {}; }
-        if (Tick.temp.showMatrix[roomName]) {
-            return;
-        }
-
-        // showMatrix
-        for (let y = 0; y < 50; y++) {
-            let line = "";
-            for (let x = 0; x < 50; x++) {
-                let position = new RoomPosition(x, y, roomName);
-                let value = matrix.get(x, y);
-                if (value >= 0xff) {
-                    if (consoleReport) {
-                        line += "ff ";
-                    }
-                    Viz.colorPos(position, "red");
-                } else {
-                    Viz.colorPos(position, "green", value / maxValue);
-                    if (consoleReport) {
-                        line += `${value}${value < 10 ? " " : ""}${value < 100 ? " " : ""}`;
-                    }
-                }
-            }
-            if (consoleReport) {
-                console.log(line);
-            }
-        }
-
-        Tick.temp.showMatrix[roomName] = true;
     },
 
     coordToPosition(coord: Coord, centerPosition: RoomPosition, rotation = 0) {
@@ -269,24 +160,6 @@ export var helper = {
         }
 
         return `placed ${count} out of ${path.length} flags`;
-    },
-
-    towerDamageAtRange(range: number): number {
-        if (range <= TOWER_OPTIMAL_RANGE) { return TOWER_POWER_ATTACK; }
-        if (range >= TOWER_FALLOFF_RANGE) { range = TOWER_FALLOFF_RANGE; }
-        return TOWER_POWER_ATTACK - (TOWER_POWER_ATTACK * TOWER_FALLOFF *
-            (range - TOWER_OPTIMAL_RANGE) / (TOWER_FALLOFF_RANGE - TOWER_OPTIMAL_RANGE));
-    },
-
-    towerDamageAtPosition(position: RoomPosition, towers: Tower[]): number {
-        if (towers.length === 0) { return 0; }
-        let expectedDamage = 0;
-        for (let tower of towers) {
-            if (tower.energy === 0) { continue; }
-            let range = position.getRangeTo(tower);
-            expectedDamage += helper.towerDamageAtRange(range);
-        }
-        return expectedDamage;
     },
 
     permutator(inputArr): number[][] {

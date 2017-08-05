@@ -157,8 +157,8 @@ export class IgorMission extends Mission {
                     }
                 }
                 if (outcome !== OK) {
-                    console.log(`IGOR: bad command: ${outcome}, clearing order ${this.roomName}, ${
-                        command.resourceType}, ${origin.pos} => ${destination.pos}`);
+                    console.log(`IGOR: bad withdraw command: ${outcome}, ${command.amount}, ${command.resourceType}, ${
+                        origin.pos} => ${destination.pos}`);
                     this.memory.command = undefined;
                 }
             } else if (origin === this.room.storage && this.igorPosition) {
@@ -224,12 +224,33 @@ export class IgorMission extends Mission {
             }
         }
 
-        // push local minerals
-        for (let mineralType in storage.store) {
-            if (mineralType !== RESOURCE_ENERGY) {
-                if (!terminal.store[mineralType] || terminal.store[mineralType] < RESERVE_AMOUNT * 2) {
-                    return {origin: storage.id, destination: terminal.id, resourceType: mineralType};
+        // push resources from storage to terminal (goal: 10k in terminal)
+        if (_.sum(terminal.store) < terminal.storeCapacity - 30000) {
+            for (let resourceType in storage.store) {
+                if (resourceType === RESOURCE_ENERGY) { continue; }
+                if (terminal.store[resourceType] >= RESERVE_AMOUNT * 2) { continue; }
+
+                let amount = IGOR_CAPACITY;
+                let amountUnderStocked = Math.min(RESERVE_AMOUNT * 2 - terminal.store[resourceType], storage.store[resourceType]);
+                if (amountUnderStocked < IGOR_CAPACITY) {
+                    amount = Math.min(amountUnderStocked, IGOR_CAPACITY);
                 }
+                return {origin: storage.id, destination: terminal.id, resourceType: resourceType, amount: amount};
+            }
+        }
+
+        // push resources from terminal to storage (goal: 10k in terminal)
+        if (_.sum(storage.store) < storage.storeCapacity - 30000) {
+            for (let resourceType in terminal.store) {
+                if (resourceType === RESOURCE_ENERGY) { continue; }
+                if (terminal.store[resourceType] <= RESERVE_AMOUNT * 2) { continue; }
+
+                let amount = IGOR_CAPACITY;
+                let amountOverStocked = terminal.store[resourceType] - RESERVE_AMOUNT * 2;
+                if (amountOverStocked < IGOR_CAPACITY) {
+                    amount = Math.min(amountOverStocked, IGOR_CAPACITY);
+                }
+                return {origin: terminal.id, destination: storage.id, resourceType: resourceType, amount: amount};
             }
         }
 
@@ -486,9 +507,9 @@ export class IgorMission extends Mission {
                 amount: PRODUCTION_AMOUNT + IGOR_CAPACITY - (this.terminal.store[compound] || 0) });
         }
 
-        if (store[RESOURCE_CATALYZED_GHODIUM_ACID] < PRODUCTION_AMOUNT + 5000) {
+        /*if (store[RESOURCE_CATALYZED_GHODIUM_ACID] < PRODUCTION_AMOUNT + 5000) {
             return this.generateProcess({ mineralType: RESOURCE_CATALYZED_GHODIUM_ACID, amount: 5000 });
-        }
+        }*/
     }
 
     private recursiveShortageCheck(shortage: Shortage, fullAmount = false): Shortage {
@@ -502,13 +523,16 @@ export class IgorMission extends Mission {
         }
         if (amountNeeded > 0) {
             // remove raw minerals from list, no need to make those
-            let reagents = _.filter(REAGENT_LIST[shortage.mineralType],
-                (mineralType: string) => !_.includes(MINERALS_RAW, mineralType));
+            let reagents = REAGENT_LIST[shortage.mineralType];
             let shortageFound;
-            for (let reagent of reagents) {
-                shortageFound = this.recursiveShortageCheck({ mineralType: reagent, amount: amountNeeded });
-                if (shortageFound) { break; }
+            if (reagents) {
+                for (let reagent of reagents) {
+                    if (!REAGENT_LIST[reagent]) { continue; }
+                    shortageFound = this.recursiveShortageCheck({ mineralType: reagent, amount: amountNeeded });
+                    if (shortageFound) { break; }
+                }
             }
+
             if (shortageFound) {
                 return shortageFound;
             } else {

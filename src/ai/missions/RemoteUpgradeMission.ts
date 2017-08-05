@@ -2,8 +2,9 @@ import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Traveler} from "../Traveler";
-import {PathMission} from "./PathMission";
 import {helper} from "../../helpers/helper";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
+import {PaverMission} from "./PaverMission";
 
 interface RemoteUpgradeState extends MissionState {
     inboundEnergy: number;
@@ -28,7 +29,6 @@ export class RemoteUpgradeMission extends Mission {
 
     public state: RemoteUpgradeState;
     public memory: RemoteUpgradeMemory;
-    public pathMission: PathMission;
     private longRangeSpawn: boolean;
 
     constructor(operation: Operation) {
@@ -82,12 +82,9 @@ export class RemoteUpgradeMission extends Mission {
                     .value();
                 this.positions = this.positions.concat([ this.state.container.pos]);
             }
-            if (this.pathMission) {
-                this.pathMission.updatePath(this.state.energySource.pos, this.state.container.pos, 0, .4);
-            } else {
-                this.pathMission = new PathMission(this.operation, this.name + "Path");
-                this.operation.addMissionLate(this.pathMission);
-            }
+
+            PaverMission.updatePath(this.operation.name + this.name, this.state.energySource.pos,
+                this.state.container.pos, 0, this.memory);
         } else {
             this.state.site = this.state.target.pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (!this.state.site) {
@@ -251,7 +248,7 @@ export class RemoteUpgradeMission extends Mission {
                         cart.room.findStructures<StructureLink>(STRUCTURE_LINK), 3)[0];
                     if (link) {
                         matrix = matrix.clone();
-                        helper.blockOffPosition(matrix, link, 1);
+                        MatrixHelper.blockOffPosition(matrix, link, 1);
                         return matrix;
                     }
                 }});

@@ -5,6 +5,8 @@ import {Notifier} from "../../notifier";
 import {Scheduler} from "../../Scheduler";
 import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
+import {Profiler} from "../../Profiler";
 
 interface DefenseMemory extends MissionMemory {
     idlePosition: RoomPosition;
@@ -217,9 +219,9 @@ export class DefenseMission extends Mission {
             for (let hostile of this.room.hostiles) {
                 let range = attacker.pos.getRangeTo(hostile);
                 if (hostile.getActiveBodyparts(ATTACK) > 0) {
-                    helper.blockOffPosition(matrix, hostile, 1, 90);
+                    MatrixHelper.blockOffPosition(matrix, hostile, 1, 90);
                 } else if (hostile.getActiveBodyparts(RANGED_ATTACK) > 0) {
-                    helper.blockOffPosition(matrix, hostile, 3, 20, true);
+                    MatrixHelper.blockOffPosition(matrix, hostile, 3, 20, true);
                 }
             }
 
@@ -476,7 +478,7 @@ export class DefenseMission extends Mission {
                 .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
             if (this.memory.wallCount && wallCount < this.memory.wallCount) {
                 // TODO: change this back to rcl6
-                if (this.room.controller.level >= 7) {
+                if (this.room.controller.level >= 6) {
                     this.room.controller.activateSafeMode();
                 }
             }
@@ -532,39 +534,40 @@ export class DefenseMission extends Mission {
 
         // Notifier reporting
         this.updateAttackLog(playerCreeps);
-
-        if (this.state.playerThreat) {
-            if (!Memory.roomAttacks) { Memory.roomAttacks = {}; }
-            Memory.roomAttacks[playerCreeps[0].owner.username] = Game.time;
-
-            // console report
-            if (Game.time % 10 === 5) {
-                console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " +
-                    this.flag.pos.roomName);
-                console.log("\\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/");
-            }
-
-            this.state.hostileHealers = [];
-            this.state.hostileAttackers = [];
-            for (let creep of this.room.hostiles) {
-                if (CreepHelper.partCount(creep, HEAL) > 12) {
-                    this.state.hostileHealers.push(creep);
-                } else {
-                    this.state.hostileAttackers.push(creep);
-                }
-            }
-
-            this.state.likelyTowerDrainAttempt = this.isTowerDrain();
-            this.state.openRamparts = this.findOpenRamparts();
-            this.state.jonRamparts = this.state.openRamparts.slice(0);
-
-            // find squads
-            this.updateEnemySquads();
-            this.updateVulnerableCreep();
-
-            this.state.enhancedBoost = this.room.terminal &&
-                this.room.terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE] > 1000;
+        if (!this.state.playerThreat) {
+            return;
         }
+
+        if (!Memory.roomAttacks) { Memory.roomAttacks = {}; }
+        Memory.roomAttacks[playerCreeps[0].owner.username] = Game.time;
+
+        // console report
+        if (Game.time % 10 === 5) {
+            console.log("DEFENSE: " + playerCreeps.length + " non-ally hostile creep in owned missionRoom: " +
+                this.flag.pos.roomName);
+            console.log("\\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/ /o\\ \\o/");
+        }
+
+        this.state.hostileHealers = [];
+        this.state.hostileAttackers = [];
+        for (let creep of this.room.hostiles) {
+            if (CreepHelper.partCount(creep, HEAL) > 12) {
+                this.state.hostileHealers.push(creep);
+            } else {
+                this.state.hostileAttackers.push(creep);
+            }
+        }
+
+        this.state.likelyTowerDrainAttempt = this.isTowerDrain();
+        this.state.openRamparts = this.findOpenRamparts();
+        this.state.jonRamparts = this.state.openRamparts.slice(0);
+
+        // find squads
+        this.updateEnemySquads();
+        this.updateVulnerableCreep();
+
+        this.state.enhancedBoost = this.room.terminal &&
+            this.room.terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE] > 1000;
     }
 
     private findOpenRamparts() {

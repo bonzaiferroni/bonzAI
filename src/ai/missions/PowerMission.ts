@@ -143,13 +143,14 @@ export class PowerMission extends Mission {
     private findAlleysInRange(range: number) {
 
         let roomNames = [];
+        let coords = WorldMap.getRoomCoordinates(this.roomName);
 
-        for (let i = this.room.coords.x - range; i <= this.room.coords.x + range; i++) {
-            for (let j = this.room.coords.y - range; j <= this.room.coords.y + range; j++) {
+        for (let i = coords.x - range; i <= coords.x + range; i++) {
+            for (let j = coords.y - range; j <= coords.y + range; j++) {
                 let x = i;
-                let xDir = this.room.coords.xDir;
+                let xDir = coords.xDir;
                 let y = j;
-                let yDir = this.room.coords.yDir;
+                let yDir = coords.yDir;
                 if (x < 0) {
                     x = Math.abs(x) - 1;
                     xDir = WorldMap.negaDirection(xDir);
@@ -214,7 +215,7 @@ export class PowerMission extends Mission {
                 }
             }
         } else {
-            Agent.squadTravel(clyde, bonnie, bankPos, {ignoreRoads: true } );
+            Agent.squadTravel(clyde, bonnie, bankPos, {ignoreRoads: true, preferHighway: true } );
         }
     }
 
@@ -485,18 +486,21 @@ export class PowerMission extends Mission {
         if (observer.observation && observer.observation.purpose === this.name) {
             let room = observer.observation.room;
             let bank = observer.observation.room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
-            if (bank && bank.ticksToDecay > 4500 && room.findStructures(STRUCTURE_WALL).length === 0
-                && bank.power >= Memory.playerConfig.powerMinimum) {
-                console.log("\\o/ \\o/ \\o/", bank.power, "power found at", room, "\\o/ \\o/ \\o/");
-                this.memory.currentBank = {
-                    pos: bank.pos,
-                    hits: bank.hits,
-                    power: bank.power,
-                    distance: Memory.powerObservers[this.room.name][room.name],
-                    timeout: Game.time + bank.ticksToDecay,
-                    posCount: bank.pos.openAdjacentSpots(true).length,
-                    wavesLeft: 3,
-                };
+            if (bank && bank.ticksToDecay > 4500 && bank.power >= Memory.playerConfig.powerMinimum) {
+
+                let ret = Traveler.findTravelPath(this.spawnGroup, bank);
+                if (!ret.incomplete && ret.path.length < 250) {
+                    console.log("\\o/ \\o/ \\o/", bank.power, "power found at", room, "\\o/ \\o/ \\o/");
+                    this.memory.currentBank = {
+                        pos: bank.pos,
+                        hits: bank.hits,
+                        power: bank.power,
+                        distance: Memory.powerObservers[this.room.name][room.name],
+                        timeout: Game.time + bank.ticksToDecay,
+                        posCount: bank.pos.openAdjacentSpots(true).length,
+                        wavesLeft: 3,
+                    };
+                }
                 return;
             }
         }

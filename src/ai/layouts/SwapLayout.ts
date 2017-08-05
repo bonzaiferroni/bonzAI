@@ -2,6 +2,7 @@ import {Layout, PositionMap} from "./Layout";
 import {Viz} from "../../helpers/Viz";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {helper} from "../../helpers/helper";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
 export class SwapLayout extends Layout {
     private controller: Controller;
     private room: Room;
@@ -92,12 +93,12 @@ export class SwapLayout extends Layout {
         let newStubs: ScoreMap[] = [];
 
         let matrix = new PathFinder.CostMatrix();
-        helper.blockOffExits(matrix, 0xff, 0, this.roomName);
-        helper.blockOffExits(matrix, 0xff, 1, this.roomName);
-        helper.blockOffExits(matrix, 50, 2, this.roomName);
-        helper.blockOffPosition(matrix, this.controller, 3, 0xff);
+        MatrixHelper.blockOffExits(matrix, 0xff, 0, this.roomName);
+        MatrixHelper.blockOffExits(matrix, 0xff, 1, this.roomName);
+        MatrixHelper.blockOffExits(matrix, 50, 2, this.roomName);
+        MatrixHelper.blockOffPosition(matrix, this.controller, 3, 0xff);
         for (let source of this.room.find<Source>(FIND_SOURCES)) {
-            helper.blockOffPosition(matrix, source, 3, 0xff);
+            MatrixHelper.blockOffPosition(matrix, source, 3, 0xff);
         }
 
         for (let stub of stubs) {
@@ -173,8 +174,8 @@ export class SwapLayout extends Layout {
         };
 
         let fleeRange = 14;
-        helper.blockOffPosition(matrix, {pos: storagePos}, 2, 0xff);
-        helper.blockOffPosition(matrix, {pos: terminalPos}, 1, 0xff);
+        MatrixHelper.blockOffPosition(matrix, {pos: storagePos}, 2, 0xff);
+        MatrixHelper.blockOffPosition(matrix, {pos: terminalPos}, 1, 0xff);
 
         while (_.sum(remaining) > 0) {
             pathMap.score -= 10;

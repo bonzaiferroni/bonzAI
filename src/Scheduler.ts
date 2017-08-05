@@ -1,23 +1,21 @@
 export class Scheduler {
     private static ranThisTick: {[taskName: string]: boolean };
-    private static passiveProcesses: (() => void)[];
+    private static passiveProcesses: {[priority: number]: (() => void)[]; };
     private static passiveCpu: number;
 
     public static update() {
         this.ranThisTick = {};
-        this.passiveProcesses = [];
+        this.passiveProcesses = {};
         this.passiveCpu = 0;
     }
 
     public static finalize() {
-        for (let process of this.passiveProcesses) {
-            if (!this.underLimit()) { break; }
-            try {
-                process();
-            } catch (e) {
-                console.log(`SCHEDULER: error with passive process`);
-                console.log(e.stack);
-            }
+        if (Memory.playerConfig.timeoutSafety) { return; }
+        let cpu = Game.cpu.getUsed();
+        this.executePassives();
+        if (Game.time % 12 === 0) {
+            cpu = Game.cpu.getUsed() - cpu;
+            console.log(`passive process cpu: ${cpu}`);
         }
     }
 
@@ -53,7 +51,27 @@ export class Scheduler {
         return interval + Math.floor((Math.random() - .5) * interval * .2);
     }
 
-    public static addPassiveProcess(func: () => void) {
-        this.passiveProcesses.push(func);
+    public static addPassiveProcess(priority: SchedulerPriority, func: () => void) {
+        if (!this.passiveProcesses[priority]) {this.passiveProcesses[priority] = []; }
+        this.passiveProcesses[priority].push(func);
+    }
+
+    private static executePassives() {
+        for (let priority of [SchedulerPriority.High, SchedulerPriority.Medium, SchedulerPriority.Low]) {
+            let processes = this.passiveProcesses[priority];
+            if (!processes) { continue; }
+
+            for (let process of processes) {
+                if (!this.underLimit()) { return; }
+                try {
+                    process();
+                } catch (e) {
+                    console.log(`SCHEDULER: error with passive process`);
+                    console.log(e.stack);
+                }
+            }
+        }
     }
 }
+
+export enum SchedulerPriority { High, Medium, Low }

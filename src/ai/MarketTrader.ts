@@ -12,7 +12,7 @@ export class MarketTrader {
     /* hardcoded values based on the state of the market when this was written, used as default values for prices
     for best results, write a script that will update prices based on the current state of the market */
     private resourceValues = {
-        energy: .02,
+        energy: .012,
         H: .2,
         O: .2,
         Z: .15,
@@ -30,6 +30,7 @@ export class MarketTrader {
         XGHO2: 2,
         G: 1,
     };
+    private blacklist: { [roomName: string]: boolean };
 
     constructor(network: TradeNetwork) {
         this.network = network;
@@ -43,6 +44,10 @@ export class MarketTrader {
             };
         }
         this.prices = Memory.marketTrader.prices;
+    }
+
+    public updateBlacklist(blacklist: {[roomName: string]: boolean}) {
+        this.blacklist = blacklist;
     }
 
     public actions() {
@@ -200,6 +205,10 @@ export class MarketTrader {
         let highestGain = 0;
         for (let order of orders) {
             if (order.remainingAmount < 100) { continue; }
+            if (this.blacklist[order.roomName]) {
+                Notifier.log(`skipped: ${order.roomName} due to blacklist`, 3);
+                continue;
+            }
             let gain = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
             gain -= transferCost * this.getPrice(RESOURCE_ENERGY, ORDER_BUY);
@@ -249,11 +258,11 @@ export class MarketTrader {
                 Game.market.cancelOrder(orderId);
             } else if (order.type === type && order.resourceType === resourceType) {
                 count++;
-                if (adjustPrice && adjustPrice < order.price) {
+                /*if (adjustPrice && adjustPrice < order.price) {
                     console.log("MARKET: lowering price for", resourceType, type, "from", order.price, "to",
                         adjustPrice);
                     Game.market.changeOrderPrice(order.id, adjustPrice);
-                }
+                }*/
             }
         }
         return count;

@@ -20,18 +20,18 @@ export class EvacOperation extends Operation {
     public init() {
     }
 
-    public update() { }
+    public update() {
+    }
 
     public finalize() {
-        let soonestNuke = _(this.room.find<Nuke>(FIND_NUKES)).sortBy(x => x.timeToLand).head();
-        if (!soonestNuke) {
+        let soonestNuke = _(this.room.find<Nuke>(FIND_NUKES)).min(x => x.timeToLand);
+        if (!_.isObject(soonestNuke)) {
             Notifier.log(`evacuation complete in ${this.flag.room}`);
             this.memory.ids = undefined;
             this.flag.remove();
             return;
         }
 
-        console.log(soonestNuke.timeToLand);
         if (soonestNuke.timeToLand < 80) {
             if (!this.memory.ids) {
                 this.memory.ids = _(this.room.find<Creep>(FIND_MY_CREEPS)).map(x => x.id).value();

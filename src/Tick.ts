@@ -18,13 +18,16 @@ export class Tick {
 
     public static temp: any;
     public static operations: {[opName: string]: Operation };
+    public static isGlobal: boolean;
 
     public static init() {
+        this.isGlobal = true;
         this.refresh();
     }
 
     public static refresh() {
         if (Game.time === this.cacheTick) { return; }
+        this.isGlobal = false;
         this.cacheTick = Game.time;
         this.temp = {};
         this.operations = {};

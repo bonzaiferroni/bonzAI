@@ -87,22 +87,6 @@ export interface BoostRequests {
     };
 }
 
-export interface RaidData {
-    squadsPresent: number;
-    raidAgents: Agent[];
-    injuredCreeps: {[creepName: string]: number};
-    fallback: boolean;
-    attackFlag: Flag;
-    attackRoom: Room;
-    fallbackFlag: Flag;
-    obstacles: {pos: RoomPosition}[];
-    targetFlags: Flag[];
-    targetStructures: Structure[];
-    raidMatrix: CostMatrix;
-    nextNuke: number;
-    creepAttacks: {[id: string]: number };
-}
-
 export interface FleeAnalysis {
     fleeType: FleeType;
     closestToHealer: number;

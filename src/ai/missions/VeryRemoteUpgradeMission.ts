@@ -4,6 +4,7 @@ import {empire} from "../Empire";
 import {Agent} from "../agents/Agent";
 import {Traveler} from "../Traveler";
 import {helper} from "../../helpers/helper";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
 
 interface RemoteUpgradeMemory extends MissionMemory {
 }
@@ -105,7 +106,7 @@ export class VeryRemoteUpgradeMission extends Mission {
                 let clone = matrix.clone();
                 let links = this.target.room.findStructures<StructureLink>(STRUCTURE_LINK);
                 let link = this.target.room.controller.pos.findClosestByRange(links);
-                helper.blockOffPosition(clone, link, 1, 0xff);
+                MatrixHelper.blockOffPosition(clone, link, 1, 0xff);
                 return clone;
             }
         };
@@ -140,7 +141,7 @@ export class VeryRemoteUpgradeMission extends Mission {
                 let clone = matrix.clone();
                 let links = this.target.room.findStructures<StructureLink>(STRUCTURE_LINK);
                 let link = this.target.room.controller.pos.findClosestByRange(links);
-                helper.blockOffPosition(clone, link, 1, 0xff);
+                MatrixHelper.blockOffPosition(clone, link, 1, 0xff);
                 return clone;
             }
         };

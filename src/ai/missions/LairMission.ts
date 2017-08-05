@@ -9,6 +9,7 @@ import {Scheduler} from "../../Scheduler";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {AbstractAgent} from "../agents/AbstractAgent";
 import {Notifier} from "../../notifier";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];
@@ -192,6 +193,7 @@ export class LairMission extends Mission {
         } else {
             trapper.standardAgentHealing(this.trappers.concat(this.decoys));
         }
+
         return true;
     }
 
@@ -199,17 +201,17 @@ export class LairMission extends Mission {
         let roomCallback = (roomName: string, matrix: CostMatrix) => {
             if (roomName !== this.roomName) { return; }
             matrix = matrix.clone();
-            helper.blockOffExits(matrix);
+            MatrixHelper.blockOffExits(matrix);
             for (let hostile of this.invaderGuru.invaders) {
                 if (hostile.getActiveBodyparts(RANGED_ATTACK) > 1) {
-                    helper.blockOffPosition(matrix, hostile, 3, 1, true);
+                    MatrixHelper.blockOffPosition(matrix, hostile, 3, 1, true);
                 }
             }
             for (let keeper of this.state.keepers) {
-                helper.blockOffPosition(matrix, keeper, 3, 10, true);
+                MatrixHelper.blockOffPosition(matrix, keeper, 3, 10, true);
             }
             for (let lair of this.state.lairs) {
-                helper.blockOffPosition(matrix, lair, 5, 5, true);
+                MatrixHelper.blockOffPosition(matrix, lair, 5, 5, true);
             }
             return matrix;
         };
@@ -318,7 +320,7 @@ export class LairMission extends Mission {
         }
 
         decoy.standardRangedAttack();
-        decoy.standardHealing();
+        decoy.standardHealing(undefined, true);
 
         let trapper = decoy.pos.findClosestByRange(this.trappers);
         if (!trapper) {
@@ -428,12 +430,18 @@ export class LairMission extends Mission {
             }
         } else {
             if (!this.room) { return; }
+            if (scavenger.memory.nextLook > Game.time) { return; }
+            scavenger.memory.nextLook = undefined;
+
             let resource = scavenger.pos.findClosestByRange(
                 _.filter(this.room.find(FIND_DROPPED_RESOURCES),
-                    (r: Resource) => r.amount > 100 && r.resourceType === RESOURCE_ENERGY) as Resource[]);
+                    (r: Resource) => r.amount > 100 && r.resourceType === RESOURCE_ENERGY
+                    && r.pos.findInRange(this.room.hostiles, 10).length === 0) as Resource[]);
             if (resource) {
                 scavenger.memory.resourceId = resource.id;
                 return resource;
+            } else {
+                scavenger.memory.nextLook = Game.time + 10;
             }
         }
     }

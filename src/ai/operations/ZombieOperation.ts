@@ -12,7 +12,7 @@ export class ZombieOperation extends Operation {
     }
 
     public init() {
-        this.initRemoteSpawn(4, 8);
+        this.updateRemoteSpawn(4, 8);
         if (this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         } else {

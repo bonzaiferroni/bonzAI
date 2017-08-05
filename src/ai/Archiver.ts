@@ -33,6 +33,7 @@ export class Archiver {
             segment = JSON.parse(str);
         } catch (e) {
             console.log(`ARCHIVER: invalid json or first time use of segmentID ${segmentId}, creating new object`);
+            this.writeSegments[segmentId] = true;
         }
 
         this.segments[segmentId] = segment;
@@ -48,6 +49,10 @@ export class Archiver {
     public static setSegmentProperty(segmentId: number, propertyName: string, value: any) {
         let segment = this.getSegment(segmentId);
         segment[propertyName] = value;
+        this.writeSegments[segmentId] = true;
+    }
+
+    public static saveSegment(segmentId: number) {
         this.writeSegments[segmentId] = true;
     }
 

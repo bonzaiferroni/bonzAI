@@ -4,12 +4,13 @@ import {TransportAnalysis} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
 import {Agent} from "../agents/Agent";
-import {PathMission} from "./PathMission";
 import {empire} from "../Empire";
 import {RoomHelper} from "../../helpers/RoomHelper";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Profiler} from "../../Profiler";
 import {Traveler} from "../Traveler";
+import {MatrixHelper} from "../../helpers/MatrixHelper";
+import {PaverMission} from "./PaverMission";
 
 interface UpgradeMemory extends MissionMemory {
     batteryPosition: RoomPosition;
@@ -27,7 +28,6 @@ interface UpgradeState extends MissionState {
     potencyPerCreep: number;
     distanceToSpawn: number;
     potency: number;
-    upgraderPositions: RoomPosition[];
 }
 
 export class UpgradeMission extends Mission {
@@ -36,12 +36,12 @@ export class UpgradeMission extends Mission {
     private carts: Agent[];
     private influxCarts: Agent[];
     private batteryId: string;
-    private pathMission: PathMission;
     private spawnDistance: number;
     private boosts: string[];
     private saverMode: boolean;
     private remoteSpawning: boolean;
     private storageDistance: number;
+    private upgraderPositions: RoomPosition[];
 
     public memory: UpgradeMemory;
     public state: UpgradeState;
@@ -77,12 +77,6 @@ export class UpgradeMission extends Mission {
         let battery = this.findControllerBattery();
         if (battery) {
             this.batteryId = battery.id;
-        }
-
-        // maintain path
-        if (this.room.controller.level < 8) {
-            this.pathMission = new PathMission(this.operation, this.name + "Path");
-            this.operation.addMissionLate(this.pathMission);
         }
 
         // figure out boost
@@ -134,7 +128,7 @@ export class UpgradeMission extends Mission {
 
         }
         this.state.battery = Game.getObjectById<StoreStructure>(this.batteryId);
-        this.state.upgraderPositions = this.findUpgraderPositions();
+        this.findUpgraderPositions();
         this.updatePathMission();
     }
 
@@ -160,7 +154,7 @@ export class UpgradeMission extends Mission {
 
         let potency = this.getPotency();
         let potencyPerCreep = this.potencyPerCreep();
-        let max = Math.min(Math.ceil(potency / potencyPerCreep), this.state.upgraderPositions.length);
+        let max = Math.min(Math.ceil(potency / potencyPerCreep), this.upgraderPositions.length);
         return max;
     };
 
@@ -244,7 +238,7 @@ export class UpgradeMission extends Mission {
         } else {
             upgrader.upgradeController(this.room.controller);
         }
-        let myPosition = this.findUpgraderPositions()[index];
+        let myPosition = this.upgraderPositions[index];
         if (myPosition) {
             let range = upgrader.pos.getRangeTo(myPosition);
             if (range > 0) {
@@ -329,9 +323,9 @@ export class UpgradeMission extends Mission {
                 if (roomName !== this.roomName) { return; }
                 matrix = matrix.clone();
                 for (let source of this.state.sources) {
-                    helper.blockOffPosition(matrix, source, 4, 30, true);
+                    MatrixHelper.blockOffPosition(matrix, source, 4, 30, true);
                 }
-                helper.blockOffPosition(matrix, this.state.mineral, 4, 30, true);
+                MatrixHelper.blockOffPosition(matrix, this.state.mineral, 4, 30, true);
                 return matrix;
             }}
         );
@@ -449,14 +443,15 @@ export class UpgradeMission extends Mission {
     private findUpgraderPositions(): RoomPosition[] {
         if (!this.state.battery) { return; }
 
-        if (this.state.upgraderPositions) {
-            return this.state.upgraderPositions;
+        let invalidate = Math.random() > .99;
+        if (this.upgraderPositions && !invalidate) {
+            return;
         }
 
         // invalidates randomly
-        if (this.memory.upgPositions) {
-            this.state.upgraderPositions = RoomHelper.deserializeIntPositions(this.memory.upgPositions, this.room.name);
-            return this.state.upgraderPositions;
+        if (this.memory.upgPositions && !invalidate) {
+            this.upgraderPositions = RoomHelper.deserializeIntPositions(this.memory.upgPositions, this.room.name);
+            return;
         }
 
         let positions = [];
@@ -469,7 +464,7 @@ export class UpgradeMission extends Mission {
             positions.push(position);
         }
         this.memory.upgPositions = RoomHelper.serializeIntPositions(positions);
-        return positions;
+        this.upgraderPositions = positions;
     }
 
     private updatePathMission() {
@@ -487,7 +482,7 @@ export class UpgradeMission extends Mission {
             } else {
                 return;
             }
-            this.pathMission.updatePath(startingPosition.pos, batteryPos, 0);
+            PaverMission.updatePath(this.operation.name + this.name, startingPosition.pos, batteryPos, 0, this.memory);
         }
     }
 

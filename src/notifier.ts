@@ -10,7 +10,7 @@ export class Notifier {
             [2]: () => console.log(`<font color="#00FFFF" severity="2">${message}</font>`),
             [3]: () => console.log(`<font color="#FFFF00" severity="3">${message}</font>`),
             [4]: () => console.log(`<font color="#FF00FF" severity="4">${message}</font>`),
-            [5]: () => console.log(`<font color="#FF0000" severity="5">${message}</font>`),
+            [5]: () => console.log(`<font color="#FF0000" severity="4">${message}</font>`),
         };
         if (styles[severity]) {
             styles[severity]();

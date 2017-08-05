@@ -3,6 +3,7 @@ import {helper} from "../helpers/helper";
 import {RoomMap} from "./layouts/RoomMap";
 import {PositionMap} from "./layouts/Layout";
 import {LayoutDisplay} from "./layouts/LayoutDisplay";
+import {PosHelper} from "../helpers/PosHelper";
 export class FlexGenerator {
 
     private leftMost = 0;
@@ -296,7 +297,7 @@ export class FlexGenerator {
 
             // check narrow passage due to natural walls
             for (let direction = 2; direction <= 8; direction += 2) {
-                if (pos.getPositionAtDirection(direction).lookFor(LOOK_TERRAIN)[0] === "wall") {
+                if (PosHelper.relativePos(pos, direction).lookFor(LOOK_TERRAIN)[0] === "wall") {
                     return true;
                 }
             }

@@ -4,9 +4,6 @@ import {RaidAgent} from "./RaidAgent";
 import {empire} from "../Empire";
 export class HostileAgent extends AbstractAgent {
 
-    private static hostiles: {[roomName: string]: HostileAgent[]; };
-    private static hostilesTick: number;
-
     constructor(creep: Creep) {
         super(creep);
         if (!Memory.hostileMemory[creep.id]) { Memory.hostileMemory[creep.id] = {} as any; }
@@ -20,15 +17,11 @@ export class HostileAgent extends AbstractAgent {
      * @returns {Creep[]}
      */
     public static findInRoom(roomName: string): HostileAgent[] {
-        if (Game.time !== HostileAgent.hostilesTick) {
-            HostileAgent.hostilesTick = Game.time;
-            HostileAgent.hostiles = {};
-        }
 
         let room = Game.rooms[roomName];
         if (!room) { return; }
 
-        if (HostileAgent.hostiles[roomName]) { return HostileAgent.hostiles[roomName]; }
+        if (this.census.hostile[roomName]) { return this.census.hostile[roomName]; }
 
         let hostileAgents: HostileAgent[] = [];
         for (let hostile of room.hostiles) {
@@ -39,7 +32,7 @@ export class HostileAgent extends AbstractAgent {
             hostileAgents.push(hostileAgent);
         }
 
-        HostileAgent.hostiles[roomName] = hostileAgents;
+        this.census.hostile[roomName] = hostileAgents;
         return hostileAgents;
     }
 }

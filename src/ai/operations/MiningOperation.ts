@@ -9,6 +9,8 @@ import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {OperationPriority, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {ROOMTYPE_CORE, WorldMap} from "../WorldMap";
 import {InvaderGuru} from "../missions/InvaderGuru";
+import {Mission} from "../missions/Mission";
+import {PaverMission} from "../missions/PaverMission";
 export class MiningOperation extends Operation {
     private invaderGuru: InvaderGuru;
 
@@ -28,12 +30,9 @@ export class MiningOperation extends Operation {
 
     public init() {
 
-        this.initRemoteSpawn(MAX_HARVEST_DISTANCE, 3, 50);
-        if (this.remoteSpawn) {
-            this.spawnGroup = this.remoteSpawn.spawnGroup;
-        } else {
-            return;
-        }
+        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 3, 50);
+        let foundSpawn = this.assignRemoteSpawn();
+        if (!foundSpawn) { return; }
 
         if (this.spawnGroup.room.controller.level < 3) { return; }
 
@@ -54,13 +53,22 @@ export class MiningOperation extends Operation {
         ReserveMission.Add(this);
         MiningMission.Add(this, false);
 
-        this.addMission(new RemoteBuildMission(this, true));
+        this.addMission(new PaverMission(this));
+        this.addMission(new RemoteBuildMission(this, false, true));
     }
 
     public update() {
+        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 3, 50);
         if (this.invaderGuru) {
             this.invaderGuru.update();
         }
+    }
+
+    protected bypassActions() {
+        let bypassMissions = {};
+        if (this.missions["bodyguard"]) { bypassMissions["bodyguard"] = this.missions["bodyguard"]; }
+        if (this.missions["defense"]) { bypassMissions["defense"] = this.missions["defense"]; }
+        Mission.actions(bypassMissions);
     }
 
     public finalize() {

@@ -3,10 +3,11 @@ import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
-import {PathMission} from "./PathMission";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {empire} from "../Empire";
 import {Traveler} from "../Traveler";
+import {PaverMission} from "./PaverMission";
+import {Profiler} from "../../Profiler";
 
 interface MiningState extends MissionState {
     container: StructureContainer;
@@ -33,7 +34,6 @@ export class MiningMission extends Mission {
     private remoteSpawning: boolean;
     private _minersNeeded: number;
     private _analysis: TransportAnalysis;
-    private pathMission: PathMission;
     private localStorage: boolean;
     private containerId: string;
 
@@ -68,9 +68,6 @@ export class MiningMission extends Mission {
     }
 
     public init() {
-        this.pathMission = new PathMission(this.operation, this.name + "Path");
-        this.operation.addMissionLate(this.pathMission);
-
         if (this.operation.remoteSpawn) {
             let remoteGroup = this.operation.remoteSpawn.spawnGroup;
             if (this.spawnGroup.maxSpawnEnergy < 950 && remoteGroup && remoteGroup.maxSpawnEnergy >= 950) {
@@ -104,6 +101,9 @@ export class MiningMission extends Mission {
         if (minersSupported === 1) {
             let work = Math.ceil((Math.max(this.state.source.energyCapacity,
                         SOURCE_ENERGY_CAPACITY) / ENERGY_REGEN_TIME) / HARVEST_POWER) + 1;
+            if (this.spawnGroup.maxSpawnEnergy >= 3000 && this.spawnGroup.averageAvailability >= 1) {
+                work *= 2;
+            }
             let move = Math.ceil(work / 2);
             if (Game.map.getRoomLinearDistance(this.roomName, this.spawnGroup.room.name) > 2) {
                 move = work;
@@ -203,7 +203,7 @@ export class MiningMission extends Mission {
         if (!hasLoad) {
 
             // heal chipped carts
-            if (cart.hits < cart.hitsMax) {
+            if (cart.hits < cart.hitsMax && !cart.pos.isNearExit(0)) {
                 let healersInRoom = _.filter(cart.room.find<Creep>(FIND_MY_CREEPS), c => c.getActiveBodyparts(HEAL));
                 if (healersInRoom.length > 0) {
                     cart.idleOffRoad();
@@ -510,8 +510,7 @@ export class MiningMission extends Mission {
                 return;
             }
 
-            this.pathMission.updatePath(startingPosition.pos, container.pos, 0);
-            let distance = this.pathMission.getdistance();
+            let distance = PaverMission.updatePath(this.operation.name + this.name, startingPosition.pos, container.pos, 0, this.memory);
             if (distance) {
                 this.memory.distanceToStorage = distance;
             }

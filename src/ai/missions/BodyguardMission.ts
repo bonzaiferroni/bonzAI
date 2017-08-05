@@ -9,6 +9,7 @@ export class BodyguardMission extends Mission {
     private hostiles: Creep[];
     private invaderGuru: InvaderGuru;
     private potency: number;
+    private prespawn: number;
 
     /**
      * Remote defense for non-owned rooms. If boosted invaders are likely, use EnhancedBodyguardMission
@@ -23,6 +24,7 @@ export class BodyguardMission extends Mission {
     }
 
     protected init() {
+        this.prespawn = Game.map.getRoomLinearDistance(this.roomName, this.spawnGroup.room.name) * 50;
         this.potency = this.findPotency();
     }
 
@@ -62,7 +64,7 @@ export class BodyguardMission extends Mission {
     private maxDefenders = () => {
         if (!this.state.hasVision) { return 1; }
         let maxDefenders = 0;
-        if (this.invaderGuru && this.invaderGuru.invaderProbable) {
+        if (this.invaderGuru && (this.invaderGuru.invaderProbable || this.invaderGuru.invadersPresent)) {
             maxDefenders = 1;
         }
         if (this.operation.type !== "mining" && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
@@ -72,7 +74,7 @@ export class BodyguardMission extends Mission {
     };
 
     public roleCall() {
-        this.defenders = this.headCount("leeroy", this.getBody, this.maxDefenders, { prespawn: 50 } );
+        this.defenders = this.headCount("leeroy", this.getBody, this.maxDefenders, { prespawn: this.prespawn } );
     }
 
     public actions() {
@@ -89,6 +91,19 @@ export class BodyguardMission extends Mission {
     }
 
     private defenderActions(defender: Agent) {
+
+        let flag = Game.flags[`${this.operation.name}_hit`];
+        if (flag) {
+            let structure = flag.pos.lookFor<Structure>(LOOK_STRUCTURES)[0];
+            if (structure) {
+                defender.attack(structure);
+                defender.travelTo(structure, {range: 1});
+                return;
+            } else {
+                flag.remove();
+            }
+        }
+
         if (!this.state.hasVision || this.hostiles.length === 0) {
             if (defender.hits < defender.hitsMax) {
                 defender.heal(defender);
