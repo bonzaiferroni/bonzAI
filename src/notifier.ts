@@ -1,7 +1,22 @@
 export const notifier = {
-    log(message: string) {
-        console.log(message);
-        Memory.notifier.push({time: Game.time, message: message});
+    log(message: string, severity = 5) {
+        let styles = {
+            [0]: () => console.log(message),
+            [1]: () => console.log(`<font color="#00FF00" severity="1">${message}</font>`),
+            [2]: () => console.log(`<font color="#00FFFF" severity="2">${message}</font>`),
+            [3]: () => console.log(`<font color="#FFFF00" severity="3">${message}</font>`),
+            [4]: () => console.log(`<font color="#FF00FF" severity="4">${message}</font>`),
+            [5]: () => console.log(`<font color="#FF0000" severity="4">${message}</font>`),
+        };
+        if (styles[severity]) {
+            styles[severity]();
+        }
+        if (severity === 5) {
+            Memory.notifier.push({time: Game.time, earthTime: this.earthTime(-7), message: message});
+        }
+        while (Memory.notifier.length > 1000) {
+            Memory.notifier.shift();
+        }
     },
 
     review(limit = Number.MAX_VALUE, burnAfterReading = false) {
