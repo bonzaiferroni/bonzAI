@@ -1,4 +1,5 @@
 import {WorldMap} from "./WorldMap";
+import {empire} from "./Empire";
 export class TradeNetwork {
 
     public storages: StructureStorage[];
@@ -364,6 +365,10 @@ export class TradeNetwork {
                 }
                 Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
                 if (!this.terminals[0] || item.recipient.username === this.terminals[0].owner.username) { continue; }
+                if (empire.diplomat.foes[item.recipient.username]) {
+                    console.log(`TRADE: detected enemy room at ${item.to} (${item.recipient.username})`);
+                    Memory.rooms[item.to] = { avoid: 1, owner: item.recipient.username } as any;
+                }
                 consoleReport(item);
             } else {
                 break;

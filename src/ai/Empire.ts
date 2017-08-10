@@ -14,6 +14,7 @@ import {TradeNetwork} from "./TradeNetwork";
 import {Archiver} from "./Archiver";
 import {AbstractAgent} from "./agents/AbstractAgent";
 import {MatrixHelper} from "../helpers/MatrixHelper";
+import {SignMaker} from "./SignMaker";
 
 export class Empire {
 
@@ -83,6 +84,7 @@ export class Empire {
         this.network.actions();
         this.market.actions();
         this.janitor.actions();
+        SignMaker.actions();
         SpawnGroup.finalize(this.spawnGroups);
         Archiver.finalize();
         Scheduler.finalize(); // runs passive processes while cpu is under limit, need to run last
@@ -96,11 +98,11 @@ export class Empire {
         return this.spawnGroups[roomName];
     }
 
-    public spawnFromClosest(pos: RoomPosition, body: string[], name: string) {
+    public spawnFromClosest(targetRoomName: string, body: string[], name: string) {
         let closest: SpawnGroup;
         let bestDistance = Number.MAX_VALUE;
         for (let roomName in this.spawnGroups) {
-            let distance = Game.map.getRoomLinearDistance(pos.roomName, roomName);
+            let distance = Game.map.getRoomLinearDistance(targetRoomName, roomName);
             if (distance < bestDistance) {
                 bestDistance = distance;
                 closest = this.spawnGroups[roomName];

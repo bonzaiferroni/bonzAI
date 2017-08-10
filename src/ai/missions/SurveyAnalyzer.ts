@@ -7,6 +7,7 @@ import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER} from "../WorldMap";
 import {Traveler} from "../Traveler";
 import {USERNAME} from "../../config/constants";
 import {empire} from "../Empire";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface SurveyData {
     danger: boolean;
@@ -315,7 +316,7 @@ export class SurveyAnalyzer {
             opType = "keeper";
         }
         let flagName = `${opType}_${opName}`;
-        helper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
+        PosHelper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
         Notifier.log(`SURVEY: created new operation in ${room.name}: ${flagName}`);
         delete this.memory.surveyRooms[room.name];
     }

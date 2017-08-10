@@ -75,7 +75,7 @@ export function initRoomPrototype() {
                     }
                 });
 
-                if (this.roomType === ROOMTYPE_SOURCEKEEPER) {
+                if (WorldMap.roomType(this.name) === ROOMTYPE_SOURCEKEEPER) {
                     fleeObjects = fleeObjects.concat(this.lairThreats);
                 }
 

@@ -374,40 +374,8 @@ export class Agent extends AbstractAgent {
         return boosted;
     }
 
-    public avoidSK(destination: Flag): number {
-        let costCall = (roomName: string, matrix: CostMatrix): CostMatrix | boolean => {
-            if (roomName !== this.pos.roomName) { return; }
-            let room = Game.rooms[this.pos.roomName];
-            let sourceKeepers = _.filter(room.hostiles, (c: Creep) => c.owner.username === "Source Keeper");
-            for (let sourceKeeper of sourceKeepers) {
-                const SAFE_RANGE = 4;
-                if (this.pos.getRangeTo(sourceKeeper) < SAFE_RANGE) { continue; }
-                for (let xDelta = -SAFE_RANGE; xDelta <= SAFE_RANGE; xDelta++) {
-                    for (let yDelta = -SAFE_RANGE; yDelta <= SAFE_RANGE; yDelta++) {
-                        matrix.set(sourceKeeper.pos.x + xDelta, sourceKeeper.pos.y + yDelta, 0xff);
-                    }
-                }
-            }
-            return matrix;
-        };
-
-        let options: TravelToOptions = {};
-        if (WorldMap.roomType(this.room.name) === ROOMTYPE_SOURCEKEEPER) {
-            options.roomCallback = costCall;
-            let hostileCount = this.creep.room.hostiles.length;
-            if (!this.memory.hostileCount) { this.memory.hostileCount = 0; }
-            if (hostileCount > this.memory.hostileCount) {
-                this.resetTravelPath();
-            }
-            this.memory.hostileCount = hostileCount;
-        }
-
-        return this.travelTo(destination, options) as number;
-    }
-
-    public resetTravelPath() {
-        if (!this.memory._trav) { return; }
-        delete this.memory._trav.path;
+    public avoidSK(destination: Flag, options: TravelToOptions = {}): number {
+        return CreepHelper.avoidSK(this.creep, destination, options);
     }
 
     public resetPrep() {

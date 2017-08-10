@@ -10,13 +10,13 @@ export class Scheduler {
     }
 
     public static finalize() {
-        if (Memory.playerConfig.timeoutSafety) { return; }
         let cpu = Game.cpu.getUsed();
-        this.executePassives();
-        if (Game.time % 12 === 0) {
-            cpu = Game.cpu.getUsed() - cpu;
-            console.log(`passive process cpu: ${cpu}`);
+        let completed;
+        if (!Memory.playerConfig.timeoutSafety) {
+            completed = this.executePassives();
         }
+        Memory.stats["game.prof.passive"] = Game.cpu.getUsed() - cpu;
+        Memory.stats["game.prof.passiveComplete"] = completed ? 1 : 0;
     }
 
     /**
@@ -62,7 +62,9 @@ export class Scheduler {
             if (!processes) { continue; }
 
             for (let process of processes) {
-                if (!this.underLimit()) { return; }
+                if (!this.underLimit()) {
+                    return false;
+                }
                 try {
                     process();
                 } catch (e) {
@@ -70,6 +72,7 @@ export class Scheduler {
                     console.log(e.stack);
                 }
             }
+            return true;
         }
     }
 }

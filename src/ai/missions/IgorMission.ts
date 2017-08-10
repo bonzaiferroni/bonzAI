@@ -229,9 +229,10 @@ export class IgorMission extends Mission {
             for (let resourceType in storage.store) {
                 if (resourceType === RESOURCE_ENERGY) { continue; }
                 if (terminal.store[resourceType] >= RESERVE_AMOUNT * 2) { continue; }
+                let amountInTerminal = terminal.store[resourceType] || 0;
 
                 let amount = IGOR_CAPACITY;
-                let amountUnderStocked = Math.min(RESERVE_AMOUNT * 2 - terminal.store[resourceType], storage.store[resourceType]);
+                let amountUnderStocked = Math.min(RESERVE_AMOUNT * 2 - amountInTerminal, storage.store[resourceType]);
                 if (amountUnderStocked < IGOR_CAPACITY) {
                     amount = Math.min(amountUnderStocked, IGOR_CAPACITY);
                 }
@@ -567,6 +568,7 @@ export class IgorMission extends Mission {
     private generateProcess(targetShortage: Shortage): LabProcess {
         let currentShortage = this.recursiveShortageCheck(targetShortage, true);
         if (currentShortage === undefined) {
+            console.log(JSON.stringify(targetShortage))
             console.log("IGOR: error finding current shortage in", this.operation.name);
             return;
         }

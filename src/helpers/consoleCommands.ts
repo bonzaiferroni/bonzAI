@@ -160,7 +160,7 @@ export var consoleCommands = {
         for (let roomName in Memory.rooms) {
             let mem = Memory.rooms[roomName];
             for (let propertyName in mem) {
-                if (save[propertyName]) {continue;}
+                if (save[propertyName]) { continue; }
                 delete mem[propertyName];
                 count++;
             }
@@ -393,7 +393,7 @@ export var consoleCommands = {
          */
     },
 
-    viewRoadMap(roomName: string) {
+    roads(roomName: string) {
         let roadMap = PaverMission.getRoadPositions(roomName);
         for (let pos of roadMap) {
             Viz.colorPos(pos, "cyan");
@@ -411,6 +411,30 @@ export var consoleCommands = {
         }
         for (let roomName in roomCounts) {
             console.log(roomName, roomCounts[roomName]);
+        }
+    },
+
+    nuke(xPos: number, yPos: number, roomName: string, sendNuke: boolean) {
+        let room = Game.rooms[roomName];
+        if (room && room.controller && room.controller.my) {
+            return "that is your room silly";
+        }
+        let nuker = _(empire.network.terminals)
+            .filter(x => Game.map.getRoomLinearDistance(x.room.name, roomName) <= 10)
+            .filter(x => x.room.findStructures(STRUCTURE_NUKER)[0])
+            .map(x => x.room.findStructures<StructureNuker>(STRUCTURE_NUKER)[0])
+            .filter(x => !x.cooldown)
+            .max(x => Game.map.getRoomLinearDistance(x.room.name, roomName));
+        if (!_.isObject(nuker)) {
+            return "no nuker in range";
+        }
+        let position = new RoomPosition(xPos, yPos, roomName);
+        if (sendNuke) {
+            let outcome = nuker.launchNuke(position);
+            return outcome;
+        } else {
+            Viz.colorPos(position, "teal");
+            return `highlighting position. would send from ${nuker.pos.roomName}`;
         }
     },
 
@@ -510,7 +534,7 @@ export var consoleCommands = {
         return JSON.stringify(data);
     },
 
-    visWalls(roomName: string, maxHits?: number) {
+    walls(roomName: string, maxHits?: number) {
         let room = Game.rooms[roomName];
         if (!room) { return "no vision"; }
 
@@ -531,5 +555,4 @@ export var consoleCommands = {
             new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: "orange", opacity: opacity});
         }
     },
-
 };

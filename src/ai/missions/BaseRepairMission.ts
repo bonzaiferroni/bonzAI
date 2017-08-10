@@ -56,6 +56,11 @@ export class BaseRepairMission extends Mission {
     }
 
     private towerActions() {
+        if (this.room.storage && this.room.storage.store.energy < 50000) {
+            // TODO: scale the amount of repair with the amount of energy in storage
+            return;
+        }
+
         let structure = this.getNextRepair();
         if (structure) {
 

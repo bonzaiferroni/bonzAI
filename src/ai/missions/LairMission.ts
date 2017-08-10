@@ -10,6 +10,7 @@ import {CreepHelper} from "../../helpers/CreepHelper";
 import {AbstractAgent} from "../agents/AbstractAgent";
 import {Notifier} from "../../notifier";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];
@@ -289,7 +290,7 @@ export class LairMission extends Mission {
             // do nothing
         } else {
             // let fleePoint = {pos: new RoomPosition(25, 25, this.roomName)};
-            let fleePoint = {pos: helper.pathablePosition(this.roomName) };
+            let fleePoint = {pos: PosHelper.pathablePosition(this.roomName) };
             let outcome = decoy.fleeByPath([fleePoint], 40, 2, false, true);
         }
     }

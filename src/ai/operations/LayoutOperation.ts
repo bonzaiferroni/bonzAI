@@ -3,6 +3,7 @@ import {LayoutFinder} from "../layouts/LayoutFinder";
 import {ROOMTYPE_ALLEY, WorldMap} from "../WorldMap";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface LayoutOperationMemory extends OperationMemory {
     data: {
@@ -112,8 +113,8 @@ export class LayoutOperation extends Operation {
 
     private filterByPath(nearbyRooms: string[]) {
         return _(nearbyRooms).filter((x: string) => {
-            let a = helper.pathablePosition(this.flag.pos.roomName);
-            let b = helper.pathablePosition(x);
+            let a = PosHelper.pathablePosition(this.flag.pos.roomName);
+            let b = PosHelper.pathablePosition(x);
             let ret = PathFinder.search(a, b);
             return !ret.incomplete;
         }).value();

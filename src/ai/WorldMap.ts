@@ -3,6 +3,7 @@ import {TradeNetwork} from "./TradeNetwork";
 import {SpawnGroup} from "./SpawnGroup";
 import {helper} from "../helpers/helper";
 import {Profiler} from "../Profiler";
+import {USERNAME} from "../config/constants";
 export class WorldMap {
 
     public controlledRooms: {[roomName: string]: Room } = {};
@@ -154,6 +155,7 @@ export class WorldMap {
                 scannedRoom.memory.nextScan = Game.time + RADAR_INTERVAL;
                 this.evaluateTrade(scannedRoom);
                 this.evaluatePortal(scannedRoom);
+                this.evaluateSign(scanningRoom, scannedRoom);
                 // TODO: room selection code
             } else {
                 if (!Memory.rooms[roomName]) { Memory.rooms[roomName] = {} as RoomMemory; }
@@ -191,6 +193,26 @@ export class WorldMap {
         } else {
             scannedRoom.memory.portalEnd = PORTAL_DECAY + Game.time;
         }
+    }
+
+    private evaluateSign(scanningRoom: Room, scannedRoom: Room) {
+        if (Game.map.getRoomLinearDistance(scanningRoom.name, scannedRoom.name) > 5) { return; }
+        if (!scannedRoom.controller) { return; }
+        if (scannedRoom.controller && scannedRoom.controller.sign && this.diplomat.allies[scannedRoom.controller.sign.username]) { return; }
+        if (scannedRoom.controller.reservation && scannedRoom.controller.reservation.username !== USERNAME) { return; }
+        if (scannedRoom.controller.owner && scannedRoom.controller.owner.username !== USERNAME) { return; }
+        let randomElement = (elements: string[]) => elements[Math.floor(Math.random() * elements.length)];
+        let capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+        let adjectives = ["fluffy", "ferocious", "flatulent", "wild"];
+        let verbs = ["mauled", "tickled", "snuggled", "eaten", "clawed", "stared", "sassed"];
+        let signs = [
+            `Warning: ${capitalize(randomElement(adjectives))} ThunderKittens have been spotted in the area.`,
+            `For best results settling nearby, contact a pet catcher or your local ThunderKitten representative.`,
+            `Report: Area creep found ${randomElement(verbs)} to death. ThunderKittens believed to be at fault.`,
+            `Tips for surviving a ThunderKitten attack:`,
+        ];
+        if (!Memory.signs) { Memory.signs = {}; }
+        Memory.signs[scannedRoom.name] = randomElement(signs);
     }
 
     private incrementScan(radarData: {x: number; y: number}) {

@@ -23,7 +23,6 @@ export interface MissionState {
 }
 
 export interface MissionMemory {
-    [propName: string]: any;
     hc?: {[roleName: string]: string[]};
     activateBoost?: boolean;
     max?: number;
@@ -612,7 +611,6 @@ export abstract class Mission {
         if (options.disableNotify) {
             this.disableNotify(agent);
         }
-
 
         // accomodate legacy code
         if (options.boosts === undefined) {

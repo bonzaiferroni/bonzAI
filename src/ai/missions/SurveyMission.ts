@@ -3,6 +3,7 @@ import {Operation} from "../operations/Operation";
 import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
 import {Agent} from "../agents/Agent";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface SurveyMemory extends MissionMemory {
     surveyComplete: boolean;
@@ -66,7 +67,7 @@ export class SurveyMission extends Mission {
 
     private explorerActions(explorer: Agent) {
         if (this.state.needsVision) {
-            explorer.travelTo({pos: helper.pathablePosition(this.state.needsVision)});
+            explorer.travelTo({pos: PosHelper.pathablePosition(this.state.needsVision)});
         }
     }
 }

@@ -28,7 +28,9 @@ export class RemoteBuildMission extends Mission {
 
     public update() {
         if (!this.state.hasVision) { return; }
-        this.construction = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+        this.construction = _(this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES))
+            .filter(x => x.structureType !== STRUCTURE_ROAD)
+            .value();
     }
 
     public roleCall() {

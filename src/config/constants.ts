@@ -1,4 +1,3 @@
-import {RESERVE_AMOUNT} from "../ai/TradeNetwork";
 export const DESTINATION_REACHED = -1201;
 export const CACHE_INVALIDATION_FREQUENCY = 1000;
 export const CACHE_INVALIDATION_PERIOD = 10;
@@ -31,6 +30,8 @@ export enum Direction {
     West = 7,
     NorthWest = 8
 }
+// this is a hacky fix, was getting an error for the calculation of PRODUCTION_AMOUNT because it wasn't defined yet
+let RESERVE_AMOUNT = 5000;
 export const IGOR_CAPACITY = 1000;
 // terminals with more than this will try to trade a mineral in the network
 export const PRODUCTION_AMOUNT = Math.ceil((RESERVE_AMOUNT * 2) / IGOR_CAPACITY) * IGOR_CAPACITY;

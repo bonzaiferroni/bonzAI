@@ -20,7 +20,7 @@ export class Notifier {
         }
     }
 
-    public static review(limit = Number.MAX_VALUE, burnAfterReading = false) {
+    public static review(substr?: string) {
         let messageCount = Memory.notifier.length;
 
         let count = 0;
@@ -31,22 +31,14 @@ export class Notifier {
             let minutes = Math.floor(secondsElapsed / 60);
             secondsElapsed -= minutes * 60;
             let seconds = secondsElapsed;
-            console.log(`${value.earthTime} tick: ${value.time} (roughly ${
-                hours > 0 ? `${hours} hours, ` : ""}${
-                minutes > 0 ? `${minutes} minutes, ` : ""}${
-                seconds > 0 ? `${seconds} seconds ` : ""}ago)`);
-            console.log(`${value.message}`);
-            count++;
-            if (count >= limit) { break; }
-        }
-
-        let destroyed = 0;
-        if (burnAfterReading) {
-            while (Memory.notifier.length > 0) {
-                Memory.notifier.shift();
-                destroyed++;
-                if (destroyed >= limit) { break; }
+            if (!substr || value.message.indexOf(substr) >= 0) {
+                console.log(`${value.earthTime} tick: ${value.time} (roughly ${
+                    hours > 0 ? `${hours} hours, ` : ""}${
+                    minutes > 0 ? `${minutes} minutes, ` : ""}${
+                    seconds > 0 ? `${seconds} seconds ` : ""}ago)`);
+                console.log(`${value.message}`);
             }
+            count++;
         }
 
         return `viewing ${count} of ${messageCount} notifications`;

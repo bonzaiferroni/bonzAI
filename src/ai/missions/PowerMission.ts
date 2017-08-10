@@ -8,6 +8,7 @@ import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
 import {Traveler} from "../Traveler";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface PowerMemory extends MissionMemory {
     disabled: boolean;
@@ -396,11 +397,11 @@ export class PowerMission extends Mission {
                 }
                 this.memory.currentBank.assisting = true;
                 clyde.say("damn", true);
-                Notifier.log(`"POWER: ally gets the power! ${bank.room.name}`);
+                console.log(`"POWER: ally gets the power! ${bank.room.name}`);
             } else {
                 this.memory.currentBank.assisting = false;
                 clyde.say("yay!", true);
-                Notifier.log(`"POWER: I get the power! ${bank.room.name}`);
+                console.log(`"POWER: I get the power! ${bank.room.name}`);
             }
         } else {
             console.log("POWER: ally found in", clyde.room.name, "playing a game to find out who gets power");
@@ -425,7 +426,7 @@ export class PowerMission extends Mission {
         let spawn = this.spawnGroup.spawns[0];
         let possibleRoomNames = this.findAlleysInRange(5);
         for (let roomName of possibleRoomNames) {
-            let position = helper.pathablePosition(roomName);
+            let position = PosHelper.pathablePosition(roomName);
             let ret = Traveler.findTravelPath(spawn.pos, position);
             if (ret.incomplete) {
                 Notifier.log(`POWER: incomplete path generating scanData (${this.operation.name}, room: ${roomName})`);

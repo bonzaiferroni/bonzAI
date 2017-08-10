@@ -3,7 +3,7 @@ import {Traveler} from "../ai/Traveler";
 import {Viz} from "./Viz";
 export class MatrixHelper {
 
-    private static STRATEGY_CREEP_MATRIX_COST = 50;
+    private static STRATEGY_CREEP_MATRIX_COST = 20;
     private static structureMatrices: {[roomName: string]: {
         structureCount: number,
         matrix: CostMatrix,
@@ -47,6 +47,7 @@ export class MatrixHelper {
     private static addCreepsToMatrix(matrix: CostMatrix, room: Room) {
         for (let agent of HostileAgent.findInRoom(room.name)) {
             if (agent.getPotential(ATTACK) > 300) {
+                this.blockOffPosition(matrix, agent, 2, 5, true);
                 this.blockOffPosition(matrix, agent, 5, 5, true);
             }
             if (agent.getPotential(RANGED_ATTACK) > 100) {

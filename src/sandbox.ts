@@ -30,7 +30,7 @@ export var sandBox = {
                         bulldozer.travelTo(bulldozeFlag);
                     }
                 } else {
-                    empire.spawnFromClosest(bulldozeFlag.pos, [CLAIM, MOVE], "bulldozer");
+                    empire.spawnFromClosest(bulldozeFlag.pos.roomName, [CLAIM, MOVE], "bulldozer");
                 }
             }
         }
@@ -42,7 +42,7 @@ export var sandBox = {
                 creep.travelTo(claimerFlag, {offRoad: true});
                 creep.claimController(creep.room.controller);
             } else {
-                empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE], "claimer");
+                empire.spawnFromClosest(claimerFlag.pos.roomName, [CLAIM, MOVE], "claimer");
                 // empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
             }
         }
@@ -57,7 +57,7 @@ export var sandBox = {
                 if (data.path) { creep.say(`${data.path.length} more!`); }
                 creep.signController(creep.room.controller, sign);
             } else {
-                empire.spawnFromClosest(signerFlag.pos, [MOVE], "signer");
+                empire.spawnFromClosest(signerFlag.pos.roomName, [MOVE], "signer");
             }
         }
 

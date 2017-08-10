@@ -43,6 +43,8 @@ interface Memory {
         employer: string;
     }} };
     marketTrader: any;
+    signs: {[roomName: string]: string }
+    signMaker: any;
 }
 
 interface Room {

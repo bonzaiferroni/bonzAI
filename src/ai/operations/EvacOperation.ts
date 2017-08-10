@@ -3,6 +3,7 @@ import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface EvacMemory extends OperationMemory {
     ids: string[];
@@ -40,7 +41,7 @@ export class EvacOperation extends Operation {
                 .filter(x => Game.getObjectById<Creep>(x))
                 .map(x => Game.getObjectById<Creep>(x))
                 .value();
-            let fleeOrientation = helper.pathablePosition(this.room.name);
+            let fleeOrientation = PosHelper.pathablePosition(this.room.name);
             for (let creep of creeps) {
                 this.fleeRoom(creep, fleeOrientation);
             }
