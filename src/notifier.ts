@@ -18,6 +18,9 @@ export class Notifier {
         if (severity === 5) {
             Memory.notifier.push({time: Game.time, earthTime: this.earthTime(-7), message: message});
         }
+        while (Memory.notifier.length > 1000) {
+            Memory.notifier.shift();
+        }
     }
 
     public static review(substr?: string) {
