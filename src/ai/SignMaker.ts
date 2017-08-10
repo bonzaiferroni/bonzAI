@@ -51,6 +51,7 @@ export class SignMaker {
             if (Memory.signs[creep.memory.roomName]) {
                 return creep.memory.roomName;
             } else {
+                creep.memory.roomName = undefined;
                 return this.findRoom(creep);
             }
         } else {
