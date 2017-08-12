@@ -140,17 +140,11 @@ export interface RaidCache {
     bestExit: RoomPosition;
 }
 
-export interface SquadConfig {
-    type: string;
-    boostLevel: BoostLevel;
-}
-
 export interface Coord {
     x: number;
     y: number;
 }
 
-export enum BoostLevel { Training, Unboosted, Standard, SuperTough, RCL7, AntiRepair }
 
 export interface SeedSelection {
     seedType: string;

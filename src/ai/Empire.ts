@@ -63,6 +63,7 @@ export class Empire {
         if (this.updateTick === Game.time) { return; }
         this.updateTick = Game.time;
 
+        Notifier.update();
         this.diplomat.update();
         this.map.update();
         this.network.update();
@@ -87,7 +88,6 @@ export class Empire {
         SignMaker.actions();
         SpawnGroup.finalize(this.spawnGroups);
         Archiver.finalize();
-        Scheduler.finalize(); // runs passive processes while cpu is under limit, need to run last
     }
 
     public underCPULimit() {

@@ -3,7 +3,7 @@ import {Traveler} from "../ai/Traveler";
 import {Viz} from "./Viz";
 export class MatrixHelper {
 
-    private static STRATEGY_CREEP_MATRIX_COST = 20;
+    private static STRATEGY_CREEP_MATRIX_COST = 50;
     private static structureMatrices: {[roomName: string]: {
         structureCount: number,
         matrix: CostMatrix,

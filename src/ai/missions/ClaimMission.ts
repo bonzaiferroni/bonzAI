@@ -1,35 +1,46 @@
-import {Mission, MissionMemory} from "./Mission";
+import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
+import {PosHelper} from "../../helpers/PosHelper";
 
 interface ClaimerMemory extends MissionMemory {
     swamp: boolean;
+}
+interface ClaimerState extends MissionState {
+    controller: StructureController;
 }
 
 export class ClaimMission extends Mission {
 
     private claimers: Agent[];
-    private controller: StructureController;
 
-    protected memory: ClaimerMemory;
+    public memory: ClaimerMemory;
+    public state: ClaimerState;
+    private claimRoomName: string;
 
-    constructor(operation: Operation) {
+    constructor(operation: Operation, roomName?: string) {
         super(operation, "claimer");
+        this.claimRoomName = roomName;
     }
 
     public init() {
-        if (this.state.hasVision && this.room.controller.my) {
+    }
+
+    public update() {
+        let room = this.room;
+        if (this.claimRoomName) {
+            room = Game.rooms[this.claimRoomName];
+        }
+        if (room) {
+            this.state.controller = this.room.controller;
+        }
+
+        if (this.state.controller && this.state.controller.my) {
             this.operation.removeMission(this);
         }
     }
 
-    public update() {
-        if (this.room) {
-            this.controller = this.room.controller;
-        }
-    }
-
-    private getMax = () => !this.state.hasVision || (this.controller && !this.controller.my) ? 1 : 0;
+    private getMax = () => !this.state.controller || !this.state.controller.my ? 1 : 0;
     private claimerBody = () => {
         if (this.memory.swamp) {
             return this.configBody({claim: 1, move: 5});
@@ -59,15 +70,20 @@ export class ClaimMission extends Mission {
 
     private claimerActions(claimer: Agent) {
 
-        if (!this.controller) {
-            claimer.travelTo(this.flag);
+        let destination: {pos: RoomPosition } = this.flag;
+        if (this.claimRoomName) {
+            destination = {pos: PosHelper.pathablePosition(this.claimRoomName)};
+        }
+
+        if (!this.state.controller) {
+            claimer.travelTo(destination);
             return; // early
         }
 
-        if (claimer.pos.isNearTo(this.controller)) {
-            claimer.claimController(this.controller);
+        if (claimer.pos.isNearTo(this.state.controller)) {
+            claimer.claimController(this.state.controller);
         } else {
-            claimer.travelTo(this.controller);
+            claimer.travelTo(this.state.controller);
         }
     }
 }

@@ -326,7 +326,7 @@ export class Traveler {
             roomCallback: callback,
         } );
 
-        if (ret.incomplete && options.ensurePath) {
+        if (ret.incomplete && options.ensurePath && roomDistance > 0) {
 
             if (options.useFindRoute === undefined) {
 

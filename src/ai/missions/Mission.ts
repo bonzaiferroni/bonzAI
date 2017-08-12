@@ -477,31 +477,40 @@ export abstract class Mission {
      * Used to determine cart count/size based on transport distance and the bandwidth needed
      * @param distance - distance (or average distance) from point A to point B
      * @param load - how many resource units need to be transported per tick (example: 10 for an energy source)
+     * @param offRoad
      * @returns {{body: string[], cartsNeeded: number}}
      */
-    protected cacheTransportAnalysis(distance: number, load: number): TransportAnalysis {
+    protected cacheTransportAnalysis(distance: number, load: number, offRoad = false): TransportAnalysis {
         if (!this.memory.transportAnalysis || load !== this.memory.transportAnalysis.load
             || distance !== this.memory.transportAnalysis.distance
             || this.spawnGroup.maxSpawnEnergy !== this.memory.transportAnalysis.maxSpawnEnergy) {
-            this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy);
+            this.memory.transportAnalysis = Mission.analyzeTransport(distance, load, this.spawnGroup.maxSpawnEnergy, offRoad);
         }
         return this.memory.transportAnalysis;
     }
 
     // deprecated
-    public static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number): TransportAnalysis {
+    public static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number, offRoad = false): TransportAnalysis {
         // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100 and costs 150
         let maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
             ((BODYPART_COST[CARRY] * 2) + BODYPART_COST[MOVE])), 16);
         let bandwidthNeeded = distance * load * 2.1;
-        let cargoUnitsNeeded = Math.ceil(bandwidthNeeded / (CARRY_CAPACITY * 2));
+        let cargoPartsPerUnit = 2;
+
+        if (offRoad) {
+            maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
+                ((BODYPART_COST[CARRY]) + BODYPART_COST[MOVE])), 25);
+            cargoPartsPerUnit = 1;
+        }
+
+        let cargoUnitsNeeded = Math.ceil(bandwidthNeeded / (CARRY_CAPACITY * cargoPartsPerUnit));
         let cartsNeeded = Math.ceil(cargoUnitsNeeded / maxUnitsPossible);
         let cargoUnitsPerCart = Math.floor(cargoUnitsNeeded / cartsNeeded);
         return {
             load: load,
             distance: distance,
             cartsNeeded: cartsNeeded,
-            carryCount: cargoUnitsPerCart * 2,
+            carryCount: cargoUnitsPerCart * cargoPartsPerUnit,
             moveCount: cargoUnitsPerCart,
             maxSpawnEnergy: maxSpawnEnergy,
         };

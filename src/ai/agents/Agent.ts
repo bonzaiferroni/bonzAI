@@ -21,20 +21,6 @@ export class Agent extends AbstractAgent {
     public spawning: boolean;
     public name: string;
     public travData: TravelToReturnData;
-    /* public memory: {
-        [propName: string]: any;
-        hasLoad?: boolean;
-        idlePosition?: RoomPosition;
-        hostileCount?: number;
-        _flee?: FleeData;
-        _trav?: TravelData;
-        prep?: boolean;
-        remCreepId?: string;
-        batteryId?: string;
-        waypointsCovered?: boolean;
-        waypointIndex?: number;
-        portalCrossing?: boolean;
-    };*/
     public isHealing: boolean;
     public isRangedHealing: boolean;
     public isAttacking: boolean;
@@ -374,7 +360,7 @@ export class Agent extends AbstractAgent {
         return boosted;
     }
 
-    public avoidSK(destination: Flag, options: TravelToOptions = {}): number {
+    public avoidSK(destination: {pos: RoomPosition}, options: TravelToOptions = {}): number {
         return CreepHelper.avoidSK(this.creep, destination, options);
     }
 
@@ -742,18 +728,17 @@ export class Agent extends AbstractAgent {
 
     /**
      * General-purpose energy getting, will look for an energy source in the same missionRoom as the operation flag
-     * @param creep
-     * @param nextDestination
-     * @param highPriority - allows you to withdraw energy before a battery reaches an optimal amount of energy, jumping
      * ahead of any other creeps trying to get energy
-     * @param getFromSource
+     * @param options
      */
 
-    public procureEnergy(nextDestination?: {pos: RoomPosition}, highPriority = false, getFromSource = false) {
-        let battery = this.getBattery();
-        if (!battery) {
-            if (getFromSource) {
-                let closest = this.pos.findClosestByRange<Source>(this.mission.state.sources);
+    public procureEnergy(options: ProcureEnergyOptions = {}) {
+        let supply = this.getSupply(options);
+        if (!supply) {
+            if (options.getFromSource) {
+                let sources = _.filter(this.mission.state.sources,
+                    x => x.energy > 0 && x.pos.openAdjacentSpots().length > 0);
+                let closest = this.pos.findClosestByRange<Source>(sources);
                 if (closest) {
                     if (this.pos.isNearTo(closest)) {
                         this.harvest(closest);
@@ -764,44 +749,48 @@ export class Agent extends AbstractAgent {
                     this.idleOffRoad();
                 }
             } else {
-                if (this.travData && this.travData.state) {
-                    // travel toward wherever you were going last tick
-                    this.idleOffRoad({pos: this.travData.state.destination}, true);
+                if (options.getFromSpawnRoom) {
+                    this.travelTo(this.mission.spawnGroup.room.storage);
                 } else {
-                    this.idleOffRoad();
+                    if (this.travData && this.travData.state) {
+                        // travel toward wherever you were going last tick
+                        this.idleOffRoad({pos: this.travData.state.destination}, true);
+                    } else {
+                        this.idleOffRoad();
+                    }
                 }
             }
             return;
         }
 
-        if (!this.pos.isNearTo(battery)) {
-            if (this.room === battery.room) {
-                this.travelTo(battery, {maxRooms: 1});
+        if (!this.pos.isNearTo(supply)) {
+            if (this.room === supply.room) {
+                this.travelTo(supply, {maxRooms: 1});
             } else {
-                this.travelTo(battery);
+                this.travelTo(supply);
             }
             return;
         }
 
         let outcome;
-        if (highPriority) {
-            if (Agent.normalizeStore(battery).store.energy >= 50) {
-                outcome = this.withdraw(battery, RESOURCE_ENERGY);
+        if (options.highPriority) {
+            if (Agent.normalizeStore(supply).store.energy >= 50) {
+                outcome = this.withdraw(supply, RESOURCE_ENERGY);
             }
         } else {
-            outcome = this.withdrawIfFull(battery, RESOURCE_ENERGY);
+            outcome = this.withdrawIfFull(supply, RESOURCE_ENERGY);
         }
         if (outcome === OK) {
-            this.memory.batteryId = undefined;
-            if (nextDestination) {
-                if (this.pos.roomName === nextDestination.pos.roomName) {
-                    this.travelTo(nextDestination, {maxRooms: 1});
+            this.memory.supplyId = undefined;
+            if (options.nextDestination) {
+                if (this.pos.roomName === options.nextDestination.pos.roomName) {
+                    this.travelTo(options.nextDestination, {maxRooms: 1});
                 } else {
-                    this.travelTo(nextDestination);
+                    this.travelTo(options.nextDestination);
                 }
             }
-            if (battery instanceof Creep) {
-                battery.memory.donating = undefined;
+            if (supply instanceof Creep) {
+                supply.memory.donating = undefined;
             }
         }
     }
@@ -814,47 +803,75 @@ export class Agent extends AbstractAgent {
 
     /**
      * Will return storage if it is available, otherwise will look for an alternative battery and cache it
-     * @param creep - return a battery relative to the missionRoom that the creep is currently in
      * @returns {any}
+     * @param options
      */
 
-    public getBattery(): StoreStructure|Creep {
+    private getSupply(options: ProcureEnergyOptions): StoreStructure|Creep {
         let minEnergy = this.carryCapacity - this.carry.energy;
         if (this.room.storage && this.room.storage.store.energy > minEnergy) {
             return this.room.storage;
         }
 
-        let find = () => {
-            let battery: StoreStructure|Creep = _(this.room.findStructures<StoreStructure>(STRUCTURE_CONTAINER)
-                .concat(this.room.findStructures<StoreStructure>(STRUCTURE_TERMINAL)))
-                .filter(x => x.store.energy >= minEnergy)
-                // don't draw from a controller battery
-                .filter(x => !(x instanceof StructureContainer) || !x.room.controller ||
-                    x.pos.getRangeTo(x.room.controller) > 3 || x.pos.findInRange(FIND_SOURCES, 1).length > 0)
-                .min(x => x.pos.getRangeTo(this) * 100 - x.store.energy);
-            if (!_.isObject(battery)) {
-                battery = _(this.room.find<Creep>(FIND_MY_CREEPS))
-                    .filter(x => x.memory.donatesEnergy && x.carry.energy >= 50)
-                    .filter(x => x.memory.donating === undefined || Game.time > x.memory.donating)
-                    .min(x => x.pos.getRangeTo(this) * 100 - x.carry.energy);
-                if (_.isObject(battery)) {
-                    battery.memory.donating = Game.time + 20;
+        if (this.memory.supplyId) {
+            let supply = Game.getObjectById<StoreStructure|Creep>(this.memory.supplyId);
+            let valid = false;
+            if (supply) {
+                if (supply instanceof Structure) {
+                    valid = supply.store.energy >= minEnergy;
+                } else {
+                    valid = supply.carry.energy > 0;
                 }
             }
-            if (_.isObject(battery)) {
-                return battery;
-            }
-        };
-
-        let validate = (obj: StoreStructure|Creep) => {
-            if (obj instanceof Structure) {
-                return obj.store.energy >= minEnergy;
+            if (valid) {
+                return supply;
             } else {
-                return obj.carry.energy > 0;
+                this.memory.supplyId = undefined;
+                return this.getSupply(options);
             }
-        };
+        } else {
 
-        return MemHelper.findObject<StoreStructure|Creep>(this, "batteryId", find, validate);
+            if (this.memory.nextSupplyCheck > Game.time) {
+                return;
+            }
+
+            let suppliers = this.findEnergySuppliers(minEnergy, options);
+            let availableEnergy = (x: StoreStructure|Creep) => {
+                if (x instanceof Creep) {
+                    return x.carry.energy || 0;
+                } else {
+                    return x.store.energy || 0;
+                }
+            };
+
+            let best = _.min(suppliers, x => x.pos.getRangeTo(this) * 100 - availableEnergy(x));
+
+            if (_.isObject(best)) {
+                this.memory.nextSupplyCheck = undefined;
+                this.memory.supplyId = best;
+                return best;
+            } else {
+                this.memory.nextSupplyCheck = Game.time + 5 + Math.floor(Math.random() * 5);
+            }
+        }
+    }
+
+    private findEnergySuppliers(minEnergy: number, options: ProcureEnergyOptions): (StoreStructure|Creep)[] {
+        if (options.supply) {
+            return options.supply;
+        }
+
+        let structures = _.filter(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER),
+            x => x.store.energy >= minEnergy &&
+            (!x.room.controller || x.pos.getRangeTo(x.room.controller) > 3 || x.pos.findInRange(FIND_SOURCES, 1).length > 0));
+        if (this.room.terminal && this.room.terminal.store.energy >= minEnergy) {
+            structures.push(this.room.terminal);
+        }
+        if (structures.length > 0) {
+            return structures;
+        }
+
+        return _.filter(this.room.find<Creep>(FIND_MY_CREEPS), x => x.memory.donatesEnergy && x.carry.energy >= minEnergy);
     }
 
     public static squadTravel(leader: Agent, follower: Agent, target: HasPos|RoomPosition,
@@ -1294,5 +1311,3 @@ export class Agent extends AbstractAgent {
         return this.pos.findClosestByRange(containers);
     }
 }
-
-type StoreStructure = StructureContainer|StructureTerminal|StructureStorage;

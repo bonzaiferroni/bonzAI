@@ -555,4 +555,12 @@ export var consoleCommands = {
             new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: "orange", opacity: opacity});
         }
     },
+
+    removeWalls(roomName: string) {
+        let room = Game.rooms[roomName];
+        let walls = room.findStructures(STRUCTURE_WALL);
+        for (let wall of walls) {
+            wall.destroy();
+        }
+    },
 };

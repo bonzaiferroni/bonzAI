@@ -77,7 +77,11 @@ export class RemoteBuildMission extends Mission {
 
         let hasLoad = builder.hasLoad();
         if (!hasLoad) {
-            builder.procureEnergy(undefined, true, true);
+            let options: ProcureEnergyOptions = {
+                highPriority: true,
+                getFromSource: true,
+            };
+            builder.procureEnergy(options);
             return; // early
         }
 

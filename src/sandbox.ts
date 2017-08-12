@@ -42,8 +42,8 @@ export var sandBox = {
                 creep.travelTo(claimerFlag, {offRoad: true});
                 creep.claimController(creep.room.controller);
             } else {
-                empire.spawnFromClosest(claimerFlag.pos.roomName, [CLAIM, MOVE], "claimer");
-                // empire.spawnFromClosest(claimerFlag.pos, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
+                // empire.spawnFromClosest(claimerFlag.pos.roomName, [CLAIM, MOVE], "claimer");
+                empire.spawnFromClosest(claimerFlag.pos.roomName, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
             }
         }
 

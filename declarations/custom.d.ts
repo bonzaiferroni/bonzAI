@@ -19,7 +19,7 @@ interface Memory {
         powerMinimum: number;
         saverMode: boolean;
         partnerTrade: boolean;
-        timeoutSafety: number;
+        cpuLimit: number;
     };
     profiler: {[identifier: string]: ProfilerData };
     notifier: {

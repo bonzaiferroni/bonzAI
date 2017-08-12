@@ -202,8 +202,8 @@ export abstract class Operation {
 
     public static actions(priorityMap: OperationPriorityMap) {
         let cpuLimit = 450;
-        if (Memory.playerConfig.timeoutSafety) {
-            cpuLimit = Memory.playerConfig.timeoutSafety;
+        if (Memory.playerConfig.cpuLimit) {
+            cpuLimit = Memory.playerConfig.cpuLimit;
         }
         for (let priority of this.priorityOrder) {
             let operations = priorityMap[priority];

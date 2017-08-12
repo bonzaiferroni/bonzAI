@@ -12,7 +12,7 @@ export class Scheduler {
     public static finalize() {
         let cpu = Game.cpu.getUsed();
         let completed;
-        if (!Memory.playerConfig.timeoutSafety) {
+        if (!Memory.playerConfig.cpuLimit) {
             completed = this.executePassives();
         }
         Memory.stats["game.prof.passive"] = Game.cpu.getUsed() - cpu;

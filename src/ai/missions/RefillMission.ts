@@ -89,7 +89,11 @@ export class RefillMission extends Mission {
                 return;
             }
             cart.memory.emptyId = undefined;
-            cart.procureEnergy(this.findNearestEmpty(cart), true);
+            let options: ProcureEnergyOptions = {
+                nextDestination: this.findNearestEmpty(cart),
+                highPriority: true,
+            }
+            cart.procureEnergy(options);
             return;
         }
 

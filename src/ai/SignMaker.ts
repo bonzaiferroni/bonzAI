@@ -33,11 +33,28 @@ export class SignMaker {
                     delete creep.memory.roomName;
                     delete creep.memory.controlPos;
                     delete Memory.signs[roomName];
+                    delete creep.memory.badPathCount;
                 } else {
                     creep.memory.controlPos = MemHelper.intPosition(room.controller.pos);
                 }
             }
-            CreepHelper.avoidSK(creep, destination, {offRoad: true, ensurePath: true});
+            let ret = {} as TravelToReturnData;
+            CreepHelper.avoidSK(creep, destination, {offRoad: true, ensurePath: true, returnData: ret});
+            if (ret.pathfinderReturn && ret.pathfinderReturn.incomplete) {
+                if (!creep.memory.badPathCount) {
+                    creep.memory.badPathCount = 1;
+                } else {
+                    creep.memory.badPathCount++;
+                }
+            }
+
+            if (creep.memory.badPathCount > 10) {
+                Notifier.log(`no path to sign in ${roomName}, erasing sign`, 3);
+                delete creep.memory.roomName;
+                delete creep.memory.controlPos;
+                delete Memory.signs[roomName];
+                delete creep.memory.badPathCount;
+            }
 
         } else {
             Memory.creeps["signMaker"] = undefined;

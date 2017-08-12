@@ -288,7 +288,11 @@ export class DefenseMission extends Mission {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            cart.procureEnergy(this.findLowestEmpty(cart), true);
+            let options: ProcureEnergyOptions = {
+                nextDestination: this.findLowestEmpty(cart),
+                highPriority: true,
+            };
+            cart.procureEnergy(options);
             return;
         }
 

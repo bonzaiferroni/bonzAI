@@ -1,7 +1,8 @@
 export class Notifier {
 
-    public static exceptionCount: number;
-    public static exceptionIdentifiers: {[identifier: string]: number} = {};
+    private static exceptionCount: number;
+    private static exceptionIdentifiers: {[identifier: string]: number} = {};
+    private static messages: {[roomName: string]: string[]};
 
     public static log(message: string, severity = 5) {
         let styles = {
@@ -94,14 +95,38 @@ export class Notifier {
         this.exceptionCount++;
     }
 
+    public static update() {
+        this.messages = {};
+        this.exceptionCount = 0;
+        this.exceptionIdentifiers = {};
+    }
+
     public static finalize() {
         if (this.exceptionCount > 0) {
             console.log(`NOTIFIER: ${this.exceptionCount} total exceptions this tick`);
             console.log(JSON.stringify(this.exceptionIdentifiers));
         }
 
-        this.exceptionCount = 0;
-        this.exceptionIdentifiers = {};
+        this.displayMessages();
+    }
+
+    public static addMessage(roomName: string, message: string) {
+        if (!this.messages[roomName]) {
+            this.messages[roomName] = [];
+        }
+        this.messages[roomName].push(message);
+    }
+
+    private static displayMessages() {
+        for (let roomName in this.messages) {
+            let messages = this.messages[roomName];
+            let x = 0;
+            let y = .5;
+            for (let message of messages) {
+                new RoomVisual(roomName).text(message, x, y, {color: "white", font: "bold .3", align: "left"});
+                y += .5;
+            }
+        }
     }
 }
 

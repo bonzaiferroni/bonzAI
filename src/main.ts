@@ -11,6 +11,7 @@ import {OperationFactory} from "./ai/operations/OperationFactory";
 import {Tick} from "./Tick";
 import {consoleCommands} from "./helpers/consoleCommands";
 import {Notifier} from "./notifier";
+import {Scheduler} from "./Scheduler";
 
 /* _____ init phase - instantiate operations _____ */
 // init game.cache
@@ -102,7 +103,8 @@ module.exports.loop = function () {
         GrafanaStats.run(empire);
         empire.finalize();
         Notifier.finalize();
-        Profiler.finalize();
-        TimeoutTracker.finalize();
+        Profiler.finalize(); // needs to run near end of tick
+        Scheduler.finalize(); // runs passive processes while cpu is under limit, need to run after profiler
+        TimeoutTracker.finalize(); // need to run last
     } catch (e) { console.log("error during post-operations phase\n", e.stack); }
 };
