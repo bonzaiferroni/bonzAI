@@ -68,7 +68,7 @@ export class ReserveMission extends Mission {
 
     public roleCall() {
         this.reservers = this.headCount("claimer", this.reserverBody, this.maxReservers);
-        this.bulldozers = this.headCount("dozer", () => this.bodyRatio(4, 0, 1, 1),
+        this.bulldozers = this.headCount("dozer", () => this.workerUnitBody(4, 0, 1),
             () => this.memory.needBulldozer ? 1 : 0);
     }
 

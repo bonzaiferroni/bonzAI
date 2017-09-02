@@ -1,7 +1,8 @@
 import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {HostileAgent} from "./HostileAgent";
-import {RaidAgent} from "./RaidAgent";
+import {PeaceAgent} from "./PeaceAgent";
+
 export class AbstractAgent {
 
     public creep: Creep;
@@ -15,13 +16,13 @@ export class AbstractAgent {
     public id: string;
     public fatigue: number;
     public memory: any;
-    public posLastTick: RoomPosition;
+    private previousPos: RoomPosition;
     public cache: any;
     private potentials: {[partType: string]: number};
 
     public static census: {
         hostile: {[roomName: string]: HostileAgent[] }
-        raid: {[roomName: string]: RaidAgent[] }
+        raid: {[roomName: string]: PeaceAgent[] }
     };
 
     constructor(creep: Creep) {
@@ -43,67 +44,39 @@ export class AbstractAgent {
         this.census = {
             hostile: {},
             raid: {},
-        }
+        };
     }
 
     public getActiveBodyparts(type: string): number { return this.creep.getActiveBodyparts(type); }
 
     public getPotential(type: string) {
-        if (!this.potentials) {
-            this.potentials = this.findPotentials();
-        }
-        return this.potentials[type];
+        return CreepHelper.getPotential(this.creep, type);
     }
 
-    private findPotentials(): {[partType: string]: number} {
-        let potentials = {
-            [RANGED_ATTACK]: 0,
-            [HEAL]: 0,
-            [ATTACK]: 0,
-            [WORK]: 0,
-        };
-
-        let unitPotential = {
-            [RANGED_ATTACK]: RANGED_ATTACK_POWER,
-            [ATTACK]: ATTACK_POWER,
-            [HEAL]: HEAL_POWER,
-            [WORK]: DISMANTLE_POWER,
-        };
-
-        for (let part of this.creep.body) {
-            if (unitPotential[part.type]) {
-                let potential = unitPotential[part.type];
-                if (part.boost) { potential *= 4; }
-                potentials[part.type] += potential;
+    public previousPosition() {
+        if (!this.previousPos) {
+            if (this.memory.previousPos) {
+                this.previousPos = helper.deserializeRoomPosition(this.memory.previousPos);
+            } else {
+                this.previousPos = this.pos;
             }
+            this.memory.previousPos = this.pos;
         }
-
-        return potentials;
-    }
-
-    public trackMovement() {
-        if (this.memory.posLastTick && this.memory.posTick === Game.time - 1) {
-            this.posLastTick = helper.deserializeRoomPosition(this.memory.posLastTick);
-        }
-
-        this.memory.posLastTick = this.pos;
-        this.memory.posTick = Game.time;
+        return this.previousPos;
     }
 
     public isMoving() {
-        if (!this.posLastTick) { return false; }
-        return !this.pos.inRangeTo(this.posLastTick, 0);
+        return this.pos.getRangeTo(this.previousPos) > 0;
     }
 
-    public isApproaching(pos: {pos: RoomPosition} | RoomPosition): boolean {
+    public distanceDelta(pos: {pos: RoomPosition} | RoomPosition): number {
         if (!(pos instanceof RoomPosition)) {
             pos = pos.pos;
         }
 
-        if (!this.posLastTick) { return false; }
-        let distanceLastTick = pos.getRangeTo(this.posLastTick);
-        let distanceNow = pos.getRangeTo(this);
-        return distanceNow < distanceLastTick;
+        let rangeLastTick = pos.getRangeTo(this.previousPosition());
+        let rangeNow = pos.getRangeTo(this);
+        return rangeNow - rangeLastTick;
     }
 
     public expectedDamage(place: {pos: RoomPosition}): number {
@@ -112,14 +85,7 @@ export class AbstractAgent {
     }
 
     public expectedDamageAtRange(range: number) {
-        let damage = 0;
-        if (range <= 3) {
-            damage += this.getPotential(RANGED_ATTACK);
-        }
-        if (range <= 1) {
-            damage += this.getPotential(ATTACK);
-        }
-        return damage;
+        return CreepHelper.expectedDamageAtRange(this.creep, range);
     }
 
     public expectedHealing(place: {pos: RoomPosition}): number {

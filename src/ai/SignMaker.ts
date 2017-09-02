@@ -4,7 +4,17 @@ import {CreepHelper} from "../helpers/CreepHelper";
 import {empire} from "./Empire";
 import {Notifier} from "../notifier";
 import {MemHelper} from "../helpers/MemHelper";
+
 export class SignMaker {
+
+    private static memory: {
+        nextSpawn: number;
+    };
+
+    public static init() {
+        if (!Memory.signMaker) { Memory.signMaker = {}; }
+        this.memory = Memory.signMaker;
+    }
 
     public static actions() {
         if (!Memory.signs) { Memory.signs = {}; }
@@ -49,7 +59,7 @@ export class SignMaker {
             }
 
             if (creep.memory.badPathCount > 10) {
-                Notifier.log(`no path to sign in ${roomName}, erasing sign`, 3);
+                Notifier.log(`no path to sign in ${roomName}, erasing sign`, 2);
                 delete creep.memory.roomName;
                 delete creep.memory.controlPos;
                 delete Memory.signs[roomName];
@@ -57,9 +67,16 @@ export class SignMaker {
             }
 
         } else {
+            if (!Memory.creeps) { return; }
             Memory.creeps["signMaker"] = undefined;
+
+            if (this.memory.nextSpawn > Game.time) { return; }
+            if (empire.map.controlledRoomCount <= 3) { return; }
             Notifier.log("spawning signMaker for " + roomName, 1);
-            empire.spawnFromClosest(roomName, [MOVE], "signMaker");
+            let outcome = empire.spawnFromClosest(roomName, [MOVE], "signMaker");
+            if (_.isString(outcome)) {
+                this.memory.nextSpawn = Game.time + 1000;
+            }
         }
     }
 

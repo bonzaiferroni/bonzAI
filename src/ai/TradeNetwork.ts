@@ -1,5 +1,7 @@
 import {WorldMap} from "./WorldMap";
-import {empire} from "./Empire";
+import {Diplomat} from "./Diplomat";
+import {Notifier} from "../notifier";
+import {Observationer} from "./Observationer";
 export class TradeNetwork {
 
     public storages: StructureStorage[];
@@ -9,6 +11,7 @@ export class TradeNetwork {
     private surpluses: {[resourceType: string]: StructureTerminal[] };
     private _inventory: {[key: string]: number};
     private map: WorldMap;
+    private diplomat: Diplomat;
 
     private alreadyTraded: {[roomName: string]: boolean };
 
@@ -16,8 +19,9 @@ export class TradeNetwork {
         tradeRoomIndex: number;
     };
 
-    constructor(map: WorldMap) {
+    constructor(map: WorldMap, diplomat: Diplomat) {
         this.map = map;
+        this.diplomat = diplomat;
         if (!Memory.empire) { Memory.empire = {}; }
     }
 
@@ -93,27 +97,8 @@ export class TradeNetwork {
                 continue;
             }
 
-            let observer = this.findObserver(roomName);
-            if (!observer) {
-                roomMemory.nextTrade = Game.time + 10000;
-                count++;
-                continue;
-            }
-
-            observer.observeRoom(roomName, "tradeNetwork");
+            Observationer.observeRoom(roomName, 10);
             break;
-        }
-    }
-
-    private findObserver(observedRoomName: string): StructureObserver  {
-        for (let observingRoomName in this.map.controlledRooms) {
-            if (Game.map.getRoomLinearDistance(observedRoomName, observingRoomName) > 10) { continue; }
-            let room = this.map.controlledRooms[observingRoomName];
-            if (room.controller.level < 8) { continue; }
-            let observer = _(room.find<StructureObserver>(FIND_STRUCTURES))
-                .filter(s => s.structureType === STRUCTURE_OBSERVER)
-                .head();
-            if (observer) { return observer; }
         }
     }
 
@@ -179,6 +164,7 @@ export class TradeNetwork {
         for (let roomName in this.map.controlledRooms) {
             let room = this.map.controlledRooms[roomName];
             if (room.hostiles.length > 0) { continue; }
+            if (room.memory.swap) { continue; }
             if (room.terminal && room.terminal.my && room.controller.level >= 6) {
                 this.terminals.push(room.terminal);
             }
@@ -365,7 +351,7 @@ export class TradeNetwork {
                 }
                 Memory.traders[item.recipient.username][item.resourceType] -= item.amount;
                 if (!this.terminals[0] || item.recipient.username === this.terminals[0].owner.username) { continue; }
-                if (empire.diplomat.foes[item.recipient.username]) {
+                if (this.diplomat.foes[item.recipient.username]) {
                     console.log(`TRADE: detected enemy room at ${item.to} (${item.recipient.username})`);
                     Memory.rooms[item.to] = { avoid: 1, owner: item.recipient.username } as any;
                 }
@@ -375,8 +361,6 @@ export class TradeNetwork {
             }
         }
     }
-
-    protected processTransaction(item: Transaction) { } // overridden in BonzaiNetwork
 
     protected sendResourceOrder() {
         if (!Memory.resourceOrder) {
@@ -463,6 +447,35 @@ export class TradeNetwork {
         if (outcome !== OK) {
             console.log(`NETWORK: unable to empty resource from ${roomName} to ${
                 otherTerminal.pos.roomName}, outcome: ${outcome}`);
+        }
+    }
+
+    protected decipher(item: Transaction) {
+        if (!item.description) {
+            Notifier.log(`EMPIRE: no description on decipher from ${item.sender.username}.`);
+            return;
+        }
+        let description = item.description.toLocaleLowerCase();
+        if (description === "safe") {
+            this.diplomat.safe[item.sender.username] = true;
+            Notifier.log(`EMPIRE: ${item.sender.username} requested to be added to safe list`);
+        } else if (description === "removesafe") {
+            delete this.diplomat.safe[item.sender.username];
+            Notifier.log(`EMPIRE: ${item.sender.username} requested to be removed from safe list`);
+        } else if (description === "danger") {
+            this.diplomat.danger[item.sender.username] = true;
+            Notifier.log(`EMPIRE: ${item.sender.username} requested to be added to danger list`);
+        } else if (description === "removedanger") {
+            delete this.diplomat.danger[item.sender.username];
+            Notifier.log(`EMPIRE: ${item.sender.username} requested to be removed from danger list`);
+        } else {
+            Notifier.log(`EMPIRE: invalid description on decipher from ${item.sender.username}: ${_.escape(item.description)}`);
+        }
+    }
+
+    protected processTransaction(item: Transaction) {
+        if (item.amount === 111) {
+            this.decipher(item);
         }
     }
 }

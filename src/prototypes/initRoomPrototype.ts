@@ -3,8 +3,20 @@ import {Agent} from "../ai/agents/Agent";
 import {empire} from "../ai/Empire";
 import {Tick} from "../Tick";
 import {Traveler} from "../ai/Traveler";
+import {CreepHelper} from "../helpers/CreepHelper";
 
 export function initRoomPrototype() {
+
+    Object.defineProperty(Room.prototype, "friendlies", {
+        get: function myProperty() {
+            if (!Tick.cache.friendlies[this.name]) {
+                Tick.cache.friendlies[this.name] = _.filter(this.find(FIND_MY_CREEPS) as Creep[],
+                    x => !CreepHelper.isCivilian(x));
+            }
+            return Tick.cache.friendlies[this.name];
+        },
+        configurable: true,
+    });
 
     Object.defineProperty(Room.prototype, "hostiles", {
         get: function myProperty() {
@@ -12,8 +24,7 @@ export function initRoomPrototype() {
                 let hostiles = this.find(FIND_HOSTILE_CREEPS) as Creep[];
                 let filteredHostiles = [];
                 for (let hostile of hostiles) {
-                    let username = hostile.owner.username;
-                    let isEnemy = empire.diplomat.checkEnemy(username, this.name);
+                    let isEnemy = empire.diplomat.checkEnemy(hostile);
                     if (isEnemy) {
                         filteredHostiles.push(hostile);
                     }
@@ -55,11 +66,11 @@ export function initRoomPrototype() {
      * @param structureType
      * @returns {Structure[]}
      */
-    Room.prototype.findStructures = function(structureType: string): Structure[] {
+    Room.prototype.findStructures = function<T extends Structure>(structureType: string): T[] {
         if (!Tick.cache.structures[this.name]) {
             Tick.cache.structures[this.name] = _.groupBy(this.find(FIND_STRUCTURES), (s: Structure) => s.structureType);
         }
-        return Tick.cache.structures[this.name][structureType] || [];
+        return Tick.cache.structures[this.name][structureType] || [] as any;
     };
 
     Object.defineProperty(Room.prototype, "fleeObjects", {

@@ -18,6 +18,7 @@ interface IgorMemory extends MissionMemory {
     productLabIds: string[];
     lastCommandTick: number;
     checkProcessTick: number;
+    checkProgress: number;
     labProcess: LabProcess;
     boostOrders: {[boostType: string]: string};
 }
@@ -64,7 +65,7 @@ export class IgorMission extends Mission {
     }
 
     public roleCall() {
-        this.igors = this.headCount("igor", () => this.bodyRatio(0, 2, 1, 1, 10), () => 1, {
+        this.igors = this.headCount("igor", () => this.workerUnitBody(0, 2, 1, 10), () => 1, {
             prespawn: 50,
             memory: { idlePosition: this.memory.idlePosition },
         });
@@ -450,6 +451,9 @@ export class IgorMission extends Mission {
 
         if (this.memory.labProcess) {
             let process = this.memory.labProcess;
+            Notifier.addMessage(this.roomName, `IGOR: target product ${process.targetShortage.mineralType} (${process.targetShortage.amount
+            }), intermediate product ${process.currentShortage.mineralType} (${process.currentShortage.amount
+            }), expires ${this.memory.checkProgress - Game.time}`);
             let processFinished = this.checkProcessFinished(process);
             if (processFinished) {
                 console.log("IGOR:", this.operation.name, "has finished with", process.currentShortage.mineralType);
@@ -499,18 +503,26 @@ export class IgorMission extends Mission {
     }
 
     private findNewProcess(): LabProcess {
-
         let store = this.gatherInventory();
 
-        for (let compound of PRODUCT_LIST) {
-            if (store[compound] >= PRODUCTION_AMOUNT ) { continue; }
-            return this.generateProcess({ mineralType: compound,
-                amount: PRODUCTION_AMOUNT + IGOR_CAPACITY - (this.terminal.store[compound] || 0) });
-        }
+        let highestPriority = ["XUH2O", "XLHO2", "XGHO2", "XZHO2"];
+        let targetAmount = 3000;
 
-        /*if (store[RESOURCE_CATALYZED_GHODIUM_ACID] < PRODUCTION_AMOUNT + 5000) {
-            return this.generateProcess({ mineralType: RESOURCE_CATALYZED_GHODIUM_ACID, amount: 5000 });
-        }*/
+        let process = this.findShortage(store, highestPriority, targetAmount);
+        if (process) { return process; }
+
+        process = this.findShortage(store, PRODUCT_LIST, PRODUCTION_AMOUNT);
+        if (process) { return process; }
+    }
+
+    private findShortage(store: {[key: string]: number}, products: string[], targetAmount: number): LabProcess {
+        for (let compound of products) {
+            if (store[compound] >= targetAmount ) { continue; }
+            return this.generateProcess({
+                mineralType: compound,
+                amount: targetAmount - (store[compound] || 0),
+            });
+        }
     }
 
     private recursiveShortageCheck(shortage: Shortage, fullAmount = false): Shortage {
@@ -543,9 +555,10 @@ export class IgorMission extends Mission {
     }
 
     private gatherInventory(): {[key: string]: number} {
+        if (this.cache.fullInventory) { return this.cache.fullInventory; }
+
         let inventory: {[key: string]: number} = {};
         for (let mineralType in this.terminal.store) {
-            if (!this.terminal.store.hasOwnProperty(mineralType)) { continue; }
             if (inventory[mineralType] === undefined) { inventory[mineralType] = 0; }
             inventory[mineralType] += this.terminal.store[mineralType];
         }
@@ -555,20 +568,21 @@ export class IgorMission extends Mission {
                 inventory[lab.mineralType] += lab.mineralAmount;
             }
         }
-        /* shouldn't need to check igors
-        for (let igor of this.igors) {
+
+        let igors = this.roleCreeps("igor");
+        for (let igor of igors) {
             for (let resourceType in igor.carry) {
                 inventory[resourceType] += igor.carry[resourceType];
             }
         }
-        */
+
+        this.cache.fullInventory = inventory;
         return inventory;
     }
 
     private generateProcess(targetShortage: Shortage): LabProcess {
         let currentShortage = this.recursiveShortageCheck(targetShortage, true);
         if (currentShortage === undefined) {
-            console.log(JSON.stringify(targetShortage))
             console.log("IGOR: error finding current shortage in", this.operation.name);
             return;
         }
@@ -599,7 +613,7 @@ export class IgorMission extends Mission {
             }
 
             if (request.requesterIds.length === 0) {
-                console.log(`IGOR: removing boost order in ${this.room.name}: ${resourceType}`);
+                // console.log(`IGOR: removing boost order in ${this.room.name}: ${resourceType}`);
                 delete this.memory.boostOrders[resourceType];
                 delete requests[resourceType];
                 continue;
@@ -614,7 +628,7 @@ export class IgorMission extends Mission {
                         delete requests[resourceType];
                         delete this.memory.boostOrders[resourceType];
                     }
-                    Viz.text(lab.pos, resourceType, "black");
+                    Viz.textPos(lab.pos, resourceType, "black");
                 } else {
                     console.log("IGOR: lost a lab? removing boost order");
                     delete this.memory.boostOrders[resourceType];
@@ -664,7 +678,7 @@ export class IgorMission extends Mission {
         let passable = bestPosition.isPassible(true);
         if (!passable) { return; }
 
-        console.log(`IGOR: found a good idle position in ${this.operation.name}: ${bestPosition}`);
+        // console.log(`IGOR: found a good idle position in ${this.operation.name}: ${bestPosition}`);
         let road = bestPosition.lookForStructure(STRUCTURE_ROAD);
         if (road) {
             Notifier.log(`IGOR: destroying road: ${this.room.name}, tick: ${Game.time}`);

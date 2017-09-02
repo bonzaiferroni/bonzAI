@@ -6,13 +6,21 @@ import {LayoutOperation} from "./LayoutOperation";
 import {GuardOperation} from "./GuardOperation";
 import {SwapOperation} from "./SwapOperation";
 import {Operation, OperationMap, OperationPriorityMap} from "./Operation";
-import {empire} from "../Empire";
 import {TransportOperation} from "./TransportOperation";
 import {ZombieOperation} from "./ZombieOperation";
 import {DemolishOperation} from "./DemolishOperation";
 import {RemoteUpgradeOperation} from "./RemoteUpgradeOperation";
-import {submodules} from "../../submodules";
 import {SandboxOperation} from "./SandboxOperation";
+import {RaidOperation} from "../../submodules/RaidOperation/RaidOperation";
+import {IntelOperation} from "../../submodules/RaidOperation/IntelOperation";
+import {SiegeOperation} from "../../submodules/RaidOperation/SiegeOperation";
+import {SabotageOperation} from "../../submodules/RaidOperation/SabotageOperation";
+import {Notifier} from "../../notifier";
+import {PosHelper} from "../../helpers/PosHelper";
+import {BootstrapOperation} from "./BootstrapOperation";
+import {empire} from "../Empire";
+import {helper} from "../../helpers/helper";
+import {BountyOperation} from "./BountyOperation";
 
 export class OperationFactory {
 
@@ -21,86 +29,118 @@ export class OperationFactory {
     private static classes = {
         // conquest: ConquestOperation,
         // fort: FortOperation,
-        tran: TransportOperation,
-        zombie: ZombieOperation,
+        // tran: TransportOperation,
+        // zombie: ZombieOperation,
+        // guard: GuardOperation,
+        // swap: SwapOperation,
+        // rupg: RemoteUpgradeOperation,
+        // raid: RaidOperation,
+        // siege: SiegeOperation,
+        // sabo: SabotageOperation,
         demolish: DemolishOperation,
         mining: MiningOperation,
         keeper: KeeperOperation,
         control: ControllerOperation,
         evac: EvacOperation,
         layout: LayoutOperation,
-        guard: GuardOperation,
-        swap: SwapOperation,
-        rupg: RemoteUpgradeOperation,
         sand: SandboxOperation,
+        boot: BootstrapOperation,
+        intel: IntelOperation,
+        bounty: BountyOperation,
     };
 
     private static scannedFlags: {[flagName: string]: boolean } = {};
+    private static memory: {
+        opNames: {[opName: string]: number }
+    };
 
     /**
      * scan for operations flags and instantiate
      */
 
-    public static getOperations(): OperationPriorityMap {
-
-        this.addSubmodules();
-
-        // gather flag data, instantiate operations
-        for (let flagName in Game.flags) {
-            this.scannedFlags[flagName] = true;
-            let flag = Game.flags[flagName];
-            let operation = this.checkFlag(flag);
-            if (!operation) { continue; }
-            this.addToMap(operation);
+    public static init() {
+        if (!Memory.opFactory) {
+            Memory.opFactory = {};
         }
 
-        this.flagCount = Object.keys(Game.flags).length;
+        this.memory = Memory.opFactory;
+        if (!this.memory.opNames) { this.memory.opNames = {}; }
+    }
+
+    public static getOperations(): OperationPriorityMap {
+        this.scanFlags();
         return this.map;
     }
 
-    public static flagCheck() {
-        let flagCountThisTick = Object.keys(Game.flags).length;
-        if (flagCountThisTick !== this.flagCount) {
-            this.flagCount = flagCountThisTick;
-            for (let flagName in Game.flags) {
-                if (this.scannedFlags[flagName]) { continue; }
-                this.scannedFlags[flagName] = true;
-                let flag = Game.flags[flagName];
-                let operation = this.checkFlag(flag);
-                if (!operation) { continue; }
+    public static scanFlags() {
+        for (let flagName in Game.flags) {
+            if (this.scannedFlags[flagName]) { continue; }
+            this.scannedFlags[flagName] = true;
+            if (this.memory.opNames[flagName]) {
+                this.memory.opNames[flagName] = Game.time;
+                continue;
+            }
+
+            let type = this.getType(flagName);
+            if (!this.classes[type]) { continue; }
+
+            this.memory.opNames[flagName] = Game.time;
+        }
+
+        for (let flagName in this.memory.opNames) {
+            let nextInit = this.memory.opNames[flagName];
+            if (nextInit > Game.time) { continue; }
+            this.memory.opNames[flagName] = Game.time + helper.randomInterval(2000);
+
+            let flag = Game.flags[flagName];
+            if (flag) {
+                let operation = this.getOperation(flag);
                 this.addToMap(operation);
                 operation.baseInit();
+            } else {
+                delete this.memory.opNames[flagName];
             }
         }
     }
 
-    private static checkFlag(flag: Flag) {
-        for (let typeName in this.classes) {
-            if (flag.name.substring(0, typeName.length) !== typeName) { continue; }
-            let operationClass = this.classes[typeName];
-            let name = flag.name.substring(flag.name.indexOf("_") + 1);
+    private static getType(flagName: string): string {
+        return flagName.substring(0, flagName.indexOf("_"));
+    }
 
-            let operation = new operationClass(flag, name, typeName) as Operation;
-            return operation;
-        }
+    private static getName(flagName: string): string {
+        return flagName.substring(flagName.indexOf("_") + 1);
+    }
+
+    private static getOperation(flag: Flag): Operation {
+        let name = this.getName(flag.name);
+        let type = this.getType(flag.name);
+        let opClass = this.classes[type];
+        return new opClass(flag, name, type);
     }
 
     private static addToMap(operation: Operation) {
         let priority = operation.priority;
         if (!this.map[priority]) { this.map[priority] = {}; }
 
-        if (global.hasOwnProperty(operation.name) && this.map[priority][operation.name]) {
-            console.log(`operation with name ${operation.name} already exists (type: ${
-                this.map[priority][operation.name].type}), please use a different name`);
-        }
-
         global[operation.name] = operation;
         this.map[priority][operation.name] = operation;
     }
 
-    private static addSubmodules() {
-        for (let opType in submodules) {
-            this.classes[opType] = submodules[opType];
+    public static bootstrapOperations() {
+        if (Memory.playerConfig.manual) { return; }
+        if (Object.keys(Game.flags).length > 0) {
+            return;
         }
+
+        let spawn1 = _.toArray(Game.spawns)[0];
+        if (!spawn1) {
+            console.log("bonzAI: place your first spawn somewhere nice");
+            return;
+        }
+
+        let pos = PosHelper.pathablePosition(spawn1.pos.roomName);
+        empire.addOperation("layout", pos);
+        empire.addOperation("boot", pos);
+        empire.addOperation("intel", pos, "nsa");
     }
 }

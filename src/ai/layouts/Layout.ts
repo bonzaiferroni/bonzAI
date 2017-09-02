@@ -3,11 +3,13 @@ import {MemHelper} from "../../helpers/MemHelper";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {empire} from "../Empire";
 import {Archiver} from "../Archiver";
+import {Notifier} from "../../notifier";
 
 export abstract class Layout {
 
     public map: PositionMap;
     public fixedMap: BuildingPlannerData;
+    public rotates = true;
     protected hasFlex: boolean;
     protected roomName: string;
     protected anchor: Vector2;
@@ -23,6 +25,7 @@ export abstract class Layout {
     } = {
         ids: {},
     } as any;
+    protected static maps: {[roomName: string]: PositionMap } = {};
 
     constructor(roomName: string) {
         this.roomName = roomName;
@@ -36,12 +39,22 @@ export abstract class Layout {
         this.findMap();
     }
 
-    public simulateData(data: LayoutData) {
+    public simulateData(data: LayoutData, structureTypes: string[]) {
         this.data = data;
-        this.findMap();
+        this.findMap(structureTypes);
     }
 
-    protected findMap() {
+    public show() {
+        LayoutDisplay.showLayout(this);
+    }
+
+    public static findMap(roomName: string): PositionMap {
+        if (this.maps[roomName]) {
+            return this.maps[roomName];
+        }
+    }
+
+    protected findMap(structureTypes?: string[]) {
         if (this.map && this.cacheTick && this.cacheTick === this.data.cacheTick) {
             return;
         }
@@ -55,7 +68,7 @@ export abstract class Layout {
         this.rotation = this.data.rotation;
 
         let flexMap: FlexMap;
-        if (this.hasFlex) {
+        if (this.hasFlex && !structureTypes) {
             if (!this.data.flex) {
                 let generating = this.generateFlex();
                 if (generating) {
@@ -71,7 +84,8 @@ export abstract class Layout {
             }
         }
 
-        this.map = this.consolidateMaps(flexMap);
+        this.map = this.consolidateMaps(flexMap, structureTypes);
+        Layout.maps[this.roomName] = this.map;
     }
 
     public findFixedMap(): PositionMap {
@@ -133,8 +147,10 @@ export abstract class Layout {
         return structureTypes;
     }
 
-    protected consolidateMaps(flexMap: FlexMap): PositionMap {
-        let structureTypes = this.findStructureTypes();
+    protected consolidateMaps(flexMap: FlexMap, structureTypes: string[]): PositionMap {
+        if (!structureTypes) {
+            structureTypes = this.findStructureTypes();
+        }
         let map: PositionMap = {};
         for (let structureType of structureTypes) {
             let positions = [];
@@ -232,6 +248,19 @@ export abstract class Layout {
         return false;
     }
 
+    protected archiveMap(flexMap: PositionMap) {
+        Notifier.log(`archiving flexMap in ${this.roomName}`, 1);
+        LayoutDisplay.showMap(flexMap);
+        let serializedMap = Layout.serializePositionMap(flexMap);
+        Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, serializedMap);
+        this.data.flex = true;
+    }
+
+    protected consoleMap(flexMap: PositionMap) {
+        this.archiveMap(flexMap);
+        Archiver.writeSegment(LAYOUT_SEGMENTID);
+    }
+
     public reset() {
         this.data.cacheTick = Game.time;
         Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, undefined);
@@ -286,6 +315,8 @@ export interface LayoutData {
     cacheTick?: number;
 }
 
+export const LAYOUT_TREE = "tree";
+export const LAYOUT_PLUS = "plus";
 export const LAYOUT_QUAD = "quad";
 export const LAYOUT_FLEX = "flex";
 export const LAYOUT_MINI = "mini";

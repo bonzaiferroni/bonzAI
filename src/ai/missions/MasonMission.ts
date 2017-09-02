@@ -61,7 +61,7 @@ export class MasonMission extends Mission {
     };
 
     public getMasonBody = () => {
-        return this.bodyRatio(2, 2, 1, 1, 10);
+        return this.workerUnitBody(2, 2, 1, 10);
     };
 
     public maxCarts = () => {
@@ -69,11 +69,11 @@ export class MasonMission extends Mission {
     };
 
     public getCartBody = () => {
-        return this.bodyRatio(0, 2, 1, 1, 16);
+        return this.workerUnitBody(0, 2, 1, 16);
     };
 
     public getHazmatCartBody = () => {
-        return this.bodyRatio(0, 4, 2);
+        return this.workerUnitBody(0, 4, 2);
     };
 
     public getMaxHazmat = () => {

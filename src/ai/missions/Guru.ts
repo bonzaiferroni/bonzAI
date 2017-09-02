@@ -1,5 +1,6 @@
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
+import {Observationer} from "../Observationer";
 
 export abstract class Guru {
 
@@ -33,7 +34,7 @@ export abstract class Guru {
         if (Game.map.getRoomLinearDistance(this.spawnGroup.room.name, roomName) > 10) { return; }
         let observer = this.spawnGroup.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
         if (!observer) { return; }
-        observer.observeRoom(this.flag.pos.roomName);
+        Observationer.observeRoom(this.flag.pos.roomName, 5, true);
     }
 
     public static deserializePositions(stringified: string, roomName: string): RoomPosition[] {

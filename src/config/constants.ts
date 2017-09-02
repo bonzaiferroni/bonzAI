@@ -46,14 +46,6 @@ export const MINERAL_STORAGE_TARGET = {
     X: 140000,
 };
 
-export const OPERATION_NAMES = [
-    "domo", "boca", "lima", "root", "lima", "gato", "fret", "thad", "colo", "pony",
-    "moon", "oslo", "pita", "gaol", "snek", "kiev", "bonn", "dili", "cali", "nuuk",
-    "suva", "lome", "bern", "mija", "mano", "casa", "flor", "baja", "jefe", "flux",
-    "jeux", "cozy", "lupe", "hazy", "jugs", "quip", "jibs", "quay", "zany", "mojo",
-    "zarf", "expo", "mump", "huck", "prex", "djin", "hymn", "club", "whap", "nxfo",
-];
-
 export const REAGENT_LIST: {[prodctName: string]: string[]} = {};
 
 for (let reagent1 in REACTIONS) {

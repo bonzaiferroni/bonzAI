@@ -9,11 +9,21 @@ import {Traveler} from "../Traveler";
 import {ROOMTYPE_ALLEY, WorldMap} from "../WorldMap";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {Scheduler} from "../../Scheduler";
+import {Layout} from "../layouts/Layout";
+import {helper} from "../../helpers/helper";
 
 interface PaverMemory extends MissionMemory {
 }
 
 interface PaverState extends MissionState {
+}
+
+export interface PaveData {
+    id: string;
+    startPos: RoomPosition;
+    endPos: RoomPosition;
+    rangeToEnd: number;
+    validityInterval?: number;
 }
 
 interface RoadMapData {
@@ -30,7 +40,6 @@ export class PaverMission extends Mission {
     private pavers: Agent[];
     private needsRepair: boolean;
     private boosts: string[];
-    private roads: StructureRoad;
 
     private static tick: number;
     private static constructionCount: number;
@@ -40,9 +49,12 @@ export class PaverMission extends Mission {
     }
 
     protected init() {
-        if (!this.state.hasVision) { this.operation.sleepMission(this, 100, true); }
-        let potholes = this.findPotholes(.5);
-        let roadData = this.findRoadData();
+        if (!this.state.hasVision) {
+            this.operation.sleepMission(this, 100, true);
+            return;
+        }
+        let roadData = PaverMission.findRoadData(this.room);
+        let potholes = PaverMission.findDisrepaired(roadData.roads, .5);
         if (potholes.length + roadData.unpaved.length === 0) {
             if (this.roleCount("paver") === 0) {
                 this.operation.removeMission(this);
@@ -60,9 +72,9 @@ export class PaverMission extends Mission {
 
     protected paverBody = () => {
         if (this.boosts && this.spawnGroup.maxSpawnEnergy > 4000) {
-            return this.bodyRatio(1, 3, 2, 1, 4);
+            return this.workerUnitBody(1, 3, 2, 4);
         } else {
-            return this.bodyRatio(1, 1, 1, 1, 4);
+            return this.workerUnitBody(1, 1, 1, 4);
         }
     };
 
@@ -79,6 +91,7 @@ export class PaverMission extends Mission {
             memory: { scavenger: RESOURCE_ENERGY },
             boosts: this.boosts,
             allowUnboosted: true,
+            skipMoveToRoom: true,
         });
     }
 
@@ -98,18 +111,12 @@ export class PaverMission extends Mission {
         let fleeing = paver.fleeHostiles();
         if (fleeing) { return; }
 
-        if (!this.state.hasVision) {
-            paver.travelTo(this.flag);
-            return;
-        }
-
         let outcome: number;
         let hasLoad = paver.hasLoad();
         if (hasLoad) {
-            let target: ConstructionSite|StructureRoad = this.findUnpaved(paver);
+            let target: ConstructionSite|StructureRoad|RoomPosition = this.findTarget(paver);
             if (!target) {
-                target = this.findRoadRepair(paver);
-                if (!target) {
+                if (paver.room === this.room) {
                     this.needsRepair = false;
                     let onRoad = paver.pos.lookForStructure(STRUCTURE_ROAD);
                     if (onRoad) {
@@ -120,24 +127,30 @@ export class PaverMission extends Mission {
                         this.operation.removeMission(this);
                         return;
                     }
+                } else {
+                    paver.travelTo(this.flag);
+                    return;
                 }
             }
 
             let range = paver.pos.getRangeTo(target);
-            if (range > 3) {
+            if (range > 3 || paver.pos.isNearExit(0)) {
                 paver.travelTo(target);
             } else {
                 if (target instanceof ConstructionSite) {
                     outcome = paver.build(target);
-                } else {
+                    paver.yieldRoad(target);
+                } else if (target instanceof StructureRoad) {
                     outcome = paver.repair(target);
+                    paver.yieldRoad(target);
+                } else {
+                    paver.yieldRoad({pos: target});
                 }
-                paver.yieldRoad(target);
             }
         } else {
-            paver.memory.unpaved = undefined;
-            paver.memory.roadId = undefined;
-            paver.procureEnergy();
+            paver.procureEnergy({
+                getFromSpawnRoom: true,
+            });
         }
 
         if (outcome !== OK) {
@@ -148,13 +161,12 @@ export class PaverMission extends Mission {
         }
     }
 
-    private findRoadData(): {unpaved: RoomPosition[], roads: StructureRoad[] } {
-        if (this.cache.roadData) { return this.cache.roadData; }
+    private static findRoadData(room: Room): {unpaved: RoomPosition[], roads: StructureRoad[] } {
         let data = {
             unpaved: [],
             roads: [],
         };
-        let positions = PaverMission.getRoadPositions(this.roomName);
+        let positions = PaverMission.getRoadPositions(room.name);
         for (let position of positions) {
             let road = position.lookForStructure(STRUCTURE_ROAD);
             if (road) {
@@ -163,58 +175,52 @@ export class PaverMission extends Mission {
                 data.unpaved.push(position);
             }
         }
-        this.cache.roadData = data;
         return data;
     }
 
-    private findPotholes(disrepair: number): StructureRoad[] {
-        if (!this.room) { return []; }
-        return _.filter(this.findRoadData().roads, x => x.hits < x.hitsMax * disrepair);
+    private static findDisrepaired(roads: StructureRoad[], disrepair: number): StructureRoad[] {
+        return _.filter(roads, x => x.hits < x.hitsMax * disrepair);
     }
 
-    private findUnpaved(paver: Agent): ConstructionSite {
-        let unpavedPos: RoomPosition;
-        if (paver.memory.unpaved) {
-            let position = MemHelper.deserializeIntPosition(paver.memory.unpaved, this.roomName);
-            let road = position.lookForStructure(STRUCTURE_ROAD);
-            if (!road) {
-                unpavedPos = position;
-            } else {
-                paver.memory.unpaved = undefined;
-                return this.findUnpaved(paver);
+    private findTarget(paver: Agent): RoomPosition|ConstructionSite|StructureRoad {
+        if (paver.memory.targetPos) {
+            let position = helper.deserializeRoomPosition(paver.memory.targetPos);
+            let room = Game.rooms[position.roomName];
+            if (room) {
+                let road = position.lookForStructure<StructureRoad>(STRUCTURE_ROAD);
+                if (road) {
+                    if (road.hits < road.hitsMax) {
+                        return road;
+                    } else {
+                        paver.memory.targetPos = undefined;
+                        return this.findTarget(paver);
+                    }
+                }
+                let site = position.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
+                if (site) {
+                    return site;
+                } else {
+                    position.createConstructionSite(STRUCTURE_ROAD);
+                }
             }
+            return position;
         } else {
-            let closest = paver.pos.findClosestByPath(this.findRoadData().unpaved);
-            if (closest) {
-                paver.memory.unpaved = MemHelper.intPosition(closest);
-                unpavedPos = closest;
+            if (!paver.memory.cleared) { paver.memory.cleared = {}; }
+            if (paver.memory.cleared[paver.pos.roomName]) { return; }
+            let data = PaverMission.findRoadData(paver.room);
+            let closest = paver.pos.findClosestByPath(data.unpaved);
+            if (!closest) {
+                let closestDisrepair = paver.pos.findClosestByRange(PaverMission.findDisrepaired(data.roads, .9));
+                if (closestDisrepair) {
+                    closest = closestDisrepair.pos;
+                }
             }
-        }
 
-        if (unpavedPos) {
-            let site = unpavedPos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
-            if (site) {
-                return site;
-            } else {
-                unpavedPos.createConstructionSite(STRUCTURE_ROAD);
-            }
-        }
-    }
-
-    private findRoadRepair(paver: Agent): StructureRoad {
-        if (paver.memory.roadId) {
-            let target = Game.getObjectById<StructureRoad>(paver.memory.roadId);
-            if (target && target.hits < target.hitsMax) {
-                return target;
-            } else {
-                paver.memory.roadId = undefined;
-                return this.findRoadRepair(paver);
-            }
-        } else {
-            let closest = paver.pos.findClosestByRange(this.findPotholes(.9));
             if (closest) {
-                paver.memory.roadId = closest.id;
+                paver.memory.targetPos = closest;
                 return closest;
+            } else {
+                paver.memory.cleared[paver.pos.roomName] = true;
             }
         }
     }
@@ -223,7 +229,7 @@ export class PaverMission extends Mission {
         return Archiver.getSegment(ROADMAP_SEGMENTID);
     }
 
-    public static getRoadPositions(roomName: string): RoomPosition[] {
+    public static getRoadPositions(roomName: string, excludeId?: string): RoomPosition[] {
         let archive = this.getArchive();
         if (!archive[roomName]) { archive[roomName] = {}; }
         let roomData = archive[roomName];
@@ -231,6 +237,7 @@ export class PaverMission extends Mission {
         let positions = [];
         let alreadyFound: {[intPos: number]: boolean } = {};
         for (let id in roomData) {
+            if (id === excludeId) { continue; }
             let data = roomData[id] as RoadMapData;
             if (Game.time > data.tick) {
                 delete roomData[id];
@@ -249,7 +256,8 @@ export class PaverMission extends Mission {
 
     private static savePath(id: string, path: RoomPosition[], rangeToEnd: number, validityInterval: number) {
         let roadMaps: {[roomName: string]: RoadMapData} = {};
-        for (let step = 0; step < path.length - rangeToEnd; step++) {
+        rangeToEnd = Math.max(rangeToEnd, 1);
+        for (let step = 0; step < path.length - (rangeToEnd - 1); step++) {
             let position = path[step];
             if (!roadMaps[position.roomName]) {
                 roadMaps[position.roomName] = {
@@ -271,38 +279,48 @@ export class PaverMission extends Mission {
         Archiver.saveSegment(ROADMAP_SEGMENTID);
     }
 
-    public static updatePath(id: string, startPos: RoomPosition, endPos: RoomPosition, rangeToEnd: number, memory: any): number {
+    public static updatePath(memory: {pathCheck?: number, pathDistance?: number}, callback: () => PaveData): number {
         if (Scheduler.delay(memory, "pathCheck", 1000)) { return; }
 
-        if (Game.map.getRoomLinearDistance(startPos.roomName, endPos.roomName) > 2) {
-            Notifier.log(`PAVER: path too long: ${startPos.roomName} to ${endPos.roomName}`);
+        let data = callback();
+        if (!data) { return; }
+
+        if (Game.map.getRoomLinearDistance(data.startPos.roomName, data.endPos.roomName) > 2) {
+            Notifier.log(`PAVER: path too long: ${data.startPos.roomName} to ${data.endPos.roomName}`);
             return;
         }
 
-        let path = this.findPavedPath(startPos, endPos);
+        let path = this.findPavedPath(data.startPos, data.endPos, data.id);
         if (!path) {
-            Notifier.log(`PAVER: incomplete pavePath, please investigate. ${startPos} to ${endPos}`);
+            Notifier.log(`PAVER: incomplete pavePath, please investigate. ${data.startPos} to ${data.endPos}`);
             return;
         }
 
-        let interval = 100;
-        let startRoom = Game.rooms[startPos.roomName];
+        let recheckInterval = 1000;
+        let startRoom = Game.rooms[data.startPos.roomName];
         if (startRoom && startRoom.controller && startRoom.controller.level === 8) {
-            interval = 5000;
+            recheckInterval = 5000;
         }
 
-        this.savePath(id, path, rangeToEnd, interval * 2);
-        memory.pathCheck = Game.time + interval;
+        if (!data.validityInterval) {
+            data.validityInterval = recheckInterval * 2;
+        }
+
+        this.savePath(data.id, path, data.rangeToEnd, data.validityInterval);
+        memory.pathCheck = Game.time + recheckInterval;
 
         // place all sites in owned rooms
-        let endRoom = Game.rooms[endPos.roomName];
+        let endRoom = Game.rooms[data.endPos.roomName];
         if (endRoom && endRoom.controller && endRoom.controller.my) {
             if (this.tick !== Game.time) {
                 this.tick = Game.time;
                 this.constructionCount = Object.keys(Game.constructionSites).length;
             }
 
+            let index = 0;
             for (let position of path) {
+                if (index > path.length - (data.rangeToEnd - 1)) { continue; }
+                index++;
                 if (!Game.rooms[position.roomName] || this.constructionCount > 80) { continue; }
 
                 let road = position.lookForStructure(STRUCTURE_ROAD);
@@ -315,12 +333,12 @@ export class PaverMission extends Mission {
             }
         }
 
-        return path.length;
+        memory.pathDistance = path.length;
     }
 
-    private static findPavedPath(start: RoomPosition, finish: RoomPosition): RoomPosition[] {
+    private static findPavedPath(start: RoomPosition, finish: RoomPosition, id: string): RoomPosition[] {
+        const UNPLACED_COST = 2;
         const ROAD_COST = 3;
-        const UNPLACED_COST = 4;
         const PLAIN_COST = 5;
         const SWAMP_COST = 6;
         const AVOID_COST = 12;
@@ -362,12 +380,13 @@ export class PaverMission extends Mission {
                 // avoid container/link adjacency
                 let sources = room.find<Source>(FIND_SOURCES);
                 for (let source of sources) {
+                    MatrixHelper.blockOffPosition(matrix, source, 1, AVOID_COST, true);
                     MatrixHelper.blockOffPosition(matrix, source, 2, AVOID_COST, true);
                 }
 
                 let mineral = room.find<Mineral>(FIND_MINERALS)[0];
                 if (mineral) {
-                    MatrixHelper.blockOffPosition(matrix, mineral, 2, AVOID_COST, true);
+                    MatrixHelper.blockOffPosition(matrix, mineral, 1, AVOID_COST, true);
                 }
 
                 // avoid going too close to lairs
@@ -380,9 +399,10 @@ export class PaverMission extends Mission {
                 // add construction sites too
                 let constructionSites = room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
                 for (let site of constructionSites) {
-                    if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_RAMPART) {
+                    if (site.structureType === STRUCTURE_RAMPART) {
                         continue;
                     }
+
                     if (site.structureType === STRUCTURE_ROAD) {
                         matrix.set(site.pos.x, site.pos.y, ROAD_COST);
                     } else {
@@ -391,10 +411,25 @@ export class PaverMission extends Mission {
                 }
 
                 // add unplaced roads
-                for (let pos of this.getRoadPositions(roomName)) {
+                for (let pos of this.getRoadPositions(roomName, id)) {
                     let cost = matrix.get(pos.x, pos.y);
                     if (cost === 0xff || cost === ROAD_COST) { continue; }
                     matrix.set(pos.x, pos.y, UNPLACED_COST);
+                }
+
+                let layout = Layout.findMap(roomName);
+                if (layout) {
+                    let roads = layout[STRUCTURE_ROAD];
+                    if (roads) {
+                        for (let pos of roads) {
+                            matrix.set(pos.x, pos.y, UNPLACED_COST);
+                        }
+                    }
+                }
+
+                let containers = room.findStructures(STRUCTURE_CONTAINER);
+                for (let container of containers) {
+                    matrix.set(container.pos.x, container.pos.y, 50);
                 }
 
                 return matrix;

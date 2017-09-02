@@ -1,14 +1,16 @@
-import {Operation} from "./Operation";
+import {Operation, OperationMemory} from "./Operation";
 import {VeryRemoteUpgradeMission} from "../missions/VeryRemoteUpgradeMission";
 import {OperationPriority} from "../../config/constants";
 import {empire} from "../Empire";
 import {RemoteUpgradeMission} from "../missions/RemoteUpgradeMission";
 
+interface RemoteUpgradeOperationMemory extends OperationMemory {
+    very: boolean;
+}
+
 export class RemoteUpgradeOperation extends Operation {
 
-    public memory: {
-        very: boolean;
-    };
+    public memory: RemoteUpgradeOperationMemory;
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);

@@ -9,9 +9,12 @@ import {Traveler} from "./ai/Traveler";
 import {Profiler} from "./Profiler";
 import {Viz} from "./helpers/Viz";
 import {WorldMap} from "./ai/WorldMap";
+import {Observationer} from "./ai/Observationer";
 
 export var sandBox = {
     run: function() {
+
+        // pathTest();
 
         let bulldozeFlag = Game.flags["bulldoze"];
         if (bulldozeFlag && !bulldozeFlag.memory[bulldozeFlag.pos.roomName]) {
@@ -42,8 +45,7 @@ export var sandBox = {
                 creep.travelTo(claimerFlag, {offRoad: true});
                 creep.claimController(creep.room.controller);
             } else {
-                // empire.spawnFromClosest(claimerFlag.pos.roomName, [CLAIM, MOVE], "claimer");
-                empire.spawnFromClosest(claimerFlag.pos.roomName, [CLAIM, MOVE, MOVE, MOVE, MOVE, MOVE], "claimer");
+                Game.spawns.Spawn1.createCreep([CLAIM, MOVE], "claimer");
             }
         }
 
@@ -62,8 +64,8 @@ export var sandBox = {
         }
 
         if (Game.time % 12 === 0) {
-            console.log(`time: ${Game.time}, cpu: ${_.round(Memory.cpu.average, 2)}`, "perCreep: " +
-                _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2));
+            console.log(`*** time: ${Game.time}, cpu: ${_.round(Memory.cpu.average, 2)}`, "perCreep: " +
+                _.round(Memory.cpu.average / Object.keys(Game.creeps).length, 2), "***");
         }
 
         nukePos();
@@ -102,4 +104,53 @@ function testFunction() {
     cpu = Game.cpu.getUsed();
 
     console.log(`function: ${Game.cpu.getUsed() - cpu}`);
+}
+
+function pathTest() {
+    let range = 0;
+    if (Memory.temp.range) {
+        range = Memory.temp.range;
+    }
+    let pathTargets: {pos: RoomPosition, range: number}[] = [];
+    for (let i = 1; i < 20; i++) {
+        let flagName = `Flag${i}`;
+        let flag = Game.flags[flagName];
+        if (flag) {
+            pathTargets.push({pos: flag.pos, range: range});
+        }
+    }
+
+    if (pathTargets.length === 0) { return; }
+
+    let creep = Game.creeps["pathTester"];
+    if (!creep) {
+        empire.spawnFromClosest(pathTargets[0].pos.roomName, [MOVE], "pathTester", true);
+        return;
+    }
+
+    let cpu = Game.cpu.getUsed();
+    let ret = PathFinder.search(creep.pos, pathTargets, {
+        flee: Memory.temp.flee,
+        maxOps: 20000,
+    });
+    cpu = _.round(Game.cpu.getUsed() - cpu, 3);
+    if (!Memory.temp.cpuAvg) { Memory.temp.cpuAvg = []; }
+    Memory.temp.cpuAvg.push(cpu);
+    let cpuAvg = _.round(_.sum(Memory.temp.cpuAvg) / Memory.temp.cpuAvg.length, 3);
+    while (Memory.temp.cpuAvg.length > 10) { Memory.temp.cpuAvg.shift(); }
+
+    let msg = `${
+        _.padRight(`cpu: ${cpu}`, 16)}${
+        _.padRight(`avg: ${cpuAvg}`, 16)}${
+        _.padRight(`ops: ${ret.ops}`, 16)}${
+        _.padRight(`inc: ${ret.incomplete}`, 16)}${
+        _.padRight(`len: ${ret.path.length}`, 16)}`;
+    console.log(msg);
+    let color = "cyan";
+    if (ret.incomplete) {
+        color = "magenta;";
+    }
+    Traveler.serializePath(creep.pos, ret.path, color);
+    Notifier.addMessage(pathTargets[0].pos.roomName, msg);
+    creep.moveByPath(ret.path);
 }

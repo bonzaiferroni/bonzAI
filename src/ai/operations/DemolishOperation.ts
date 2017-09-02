@@ -17,7 +17,7 @@ export class DemolishOperation extends Operation {
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
-        this.priority = OperationPriority.Low
+        this.priority = OperationPriority.Low;
     }
 
     public init() {
@@ -84,9 +84,11 @@ export class DemolishMission extends Mission {
     private getMaxScavengers = () => this.demoFlags.length > 0 && this.storeStructure ? 1 : 0;
 
     public roleCall() {
-
-        this.demolishers = this.headCount("demolisher", () => this.bodyRatio(1, 0, 1, 1), this.getMaxDemolishers);
-        this.scavangers = this.headCount("scavenger", () => this.bodyRatio(0, 1, 1, 1), this.getMaxScavengers);
+        this.demolishers = this.headCount("demolisher", () => this.workerUnitBody(1, 0, 1), this.getMaxDemolishers, {
+            boosts: this.memory.activateBoost ? [RESOURCE_CATALYZED_LEMERGIUM_ACID] : undefined,
+            allowUnboosted: true,
+        });
+        this.scavangers = this.headCount("scavenger", () => this.workerUnitBody(0, 1, 1), this.getMaxScavengers);
     }
 
     public actions() {
@@ -198,4 +200,3 @@ export class DemolishMission extends Mission {
         }
     }
 }
-

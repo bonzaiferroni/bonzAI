@@ -1,6 +1,7 @@
 import {SpawnReservation} from "../interfaces";
 import {helper} from "../helpers/helper";
 import {Scheduler} from "../Scheduler";
+import {Notifier} from "../notifier";
 export class SpawnGroup {
 
     private roomName: string;
@@ -36,16 +37,6 @@ export class SpawnGroup {
         }
     }
 
-    public init() {
-        this.room = Game.rooms[this.roomName];
-        this.initMemory();
-        let spawns = _(this.room.find<StructureSpawn>(FIND_MY_SPAWNS))
-            .filter(s => s.canCreateCreep([MOVE]) !== ERR_RCL_NOT_ENOUGH)
-            .value();
-        this.spawnIds = _.map(spawns, x => x.id);
-        this.pos = _.head(spawns).pos;
-    }
-
     public static update(spawnGroups: {[roomName: string]: SpawnGroup}) {
         for (let roomName in spawnGroups) {
             let spawnGroup = spawnGroups[roomName];
@@ -54,6 +45,22 @@ export class SpawnGroup {
                 delete spawnGroups[roomName];
             }
         }
+    }
+
+    public static finalize(spawnGroups: {[roomName: string]: SpawnGroup}) {
+        for (let roomName in spawnGroups) {
+            spawnGroups[roomName].finalize();
+        }
+    }
+
+    public init() {
+        this.room = Game.rooms[this.roomName];
+        this.initMemory();
+        let spawns = _(this.room.find<StructureSpawn>(FIND_MY_SPAWNS))
+            .filter(s => s.canCreateCreep([MOVE]) !== ERR_RCL_NOT_ENOUGH)
+            .value();
+        this.spawnIds = _.map(spawns, x => x.id);
+        this.pos = _.head(spawns).pos;
     }
 
     /**
@@ -70,12 +77,6 @@ export class SpawnGroup {
         this.initSpawns();
         this.isAvailable = this.availabilityCheck();
         this.refillEfficiency = this.findRefillEfficiency();
-    }
-
-    public static finalize(spawnGroups: {[roomName: string]: SpawnGroup}) {
-        for (let roomName in spawnGroups) {
-            spawnGroups[roomName].finalize();
-        }
     }
 
     private initMemory() {
@@ -126,8 +127,9 @@ export class SpawnGroup {
                 if (outcome === ERR_NOT_ENOUGH_RESOURCES) {
                     let bodyCost = SpawnGroup.calculateBodyCost(build);
                     if (bodyCost > this.maxSpawnEnergy) {
-                        console.log(`SPAWN: warning, ${name} is too big to spawn in ${this.roomName}. cost: ${
-                            bodyCost}, maxSpawnEnergy: ${this.maxSpawnEnergy}`);
+                        Notifier.log(`SPAWN: warning, ${name} is too big to spawn in ${this.roomName}. cost: ${
+                            bodyCost}, maxSpawnEnergy: ${this.maxSpawnEnergy}`, 4);
+                        this.isAvailable = true;
                     } else if (!Memory.playerConfig.muteSpawn && Game.time % 10 === 0) {
                         console.log("SPAWN:", this.room.name, "not enough energy for", name, "cost:",
                             "current:", this.currentSpawnEnergy, "max", this.maxSpawnEnergy);
@@ -167,13 +169,14 @@ export class SpawnGroup {
 
     // proportion allows you to scale down the body size if you don't want to use all of your spawning energy
     // for example, proportion of .5 would return the max units per cost if only want to use half of your spawn-capacity
-    public maxUnitsPerCost(unitCost: number, proportion: number = 1): number {
-        return Math.floor((this.maxSpawnEnergy * proportion) / unitCost);
+    public maxUnitsPerCost(unitCost: number, limit = 50, additionalCost = 0): number {
+        limit = Math.max(limit, 1);
+        return Math.min(Math.floor((this.maxSpawnEnergy - additionalCost) / unitCost), limit);
     }
 
-    public maxUnits(body: string[], proportion?: number) {
+    public maxUnits(body: string[], limit?: number, additionalCost?: number, additionalPartCount = 0) {
         let cost = SpawnGroup.calculateBodyCost(body);
-        return Math.min(this.maxUnitsPerCost(cost, proportion), Math.floor(50 / body.length));
+        return Math.min(this.maxUnitsPerCost(cost, limit, additionalCost), Math.floor((50 - additionalPartCount) / body.length));
     }
 
     private manageSpawnLog() {

@@ -20,6 +20,15 @@ export class FlexGenerator {
         [STRUCTURE_OBSERVER]: 1,
     };
 
+    private ramparted = {
+        [STRUCTURE_TOWER]: true,
+        [STRUCTURE_STORAGE]: true,
+        [STRUCTURE_TERMINAL]: true,
+        [STRUCTURE_POWER_SPAWN]: true,
+        [STRUCTURE_SPAWN]: true,
+        [STRUCTURE_NUKER]: true,
+    };
+
     private roomName: string;
     private flexMap = new RoomMap<string>();
     private fixedMap: RoomMap<string>;
@@ -89,7 +98,8 @@ export class FlexGenerator {
 
         let position = new RoomPosition(x, y, this.roomName);
         if (Game.rooms[this.roomName]) {
-            if (position.inRangeTo(position.findClosestByRange<Source>(FIND_SOURCES), 2)) { return; }
+            if (position.findInRange(FIND_SOURCES, 2).length > 0) { return; }
+            if (position.findInRange(FIND_MINERALS, 2).length > 0) { return; }
             if (position.inRangeTo(Game.rooms[this.roomName].controller, 3)) { return; }
         }
 
@@ -153,6 +163,10 @@ export class FlexGenerator {
             if (pos.x > this.rightMost) { this.rightMost = pos.x; }
             if (pos.y < this.topMost) { this.topMost = pos.y; }
             if (pos.y > this.bottomMost) { this.bottomMost = pos.y; }
+        }
+
+        if (this.ramparted[structureType]) {
+            this.addRampart(pos);
         }
     }
 

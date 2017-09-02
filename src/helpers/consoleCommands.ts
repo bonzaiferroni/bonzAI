@@ -89,27 +89,9 @@ export var consoleCommands = {
      */
 
     wipeMemory() {
-        for (let flagName in Memory.flags) {
-            let flag = Game.flags[flagName];
-            if (flag) {
-                for (let propertyName of Object.keys(flag.memory)) {
-                    if (propertyName === "power") { continue; }
-                    if (propertyName === "centerPosition") { continue; }
-                    if (propertyName === "rotation") { continue; }
-                    if (propertyName === "radius") { continue; }
-                    if (propertyName === "layoutMap") { continue; }
-                    delete flag.memory[propertyName];
-                }
-            } else {
-                delete Memory.flags[flagName];
-            }
-        }
-
-        for (let creepName in Memory.creeps) {
-            let creep = Game.creeps[creepName];
-            if (!creep) {
-                delete Memory.creeps[creepName];
-            }
+        for (let propertyName in Memory) {
+            if (propertyName === "playerConfig") { continue; }
+            delete Memory[propertyName];
         }
     },
 
@@ -561,6 +543,68 @@ export var consoleCommands = {
         let walls = room.findStructures(STRUCTURE_WALL);
         for (let wall of walls) {
             wall.destroy();
+        }
+    },
+
+    rangerVsRanger(rangedCount1: number, rangedCount2: number) {
+
+        let ranger1: {type: string, hits: number}[] = [];
+        for (let i = 0; i < rangedCount1 - 10; i++) { ranger1.push({type: "ranged", hits: 100}); }
+        for (let i = 0; i < 5; i++) { ranger1.push({type: "move", hits: 100}); }
+        for (let i = 0; i < 10; i++) { ranger1.push({type: "ranged", hits: 100}); }
+        for (let i = 0; i < 20; i++) { ranger1.push({type: "move", hits: 100}); }
+        for (let i = 0; i < 25 - rangedCount1; i++) { ranger1.push({type: "heal", hits: 100}); }
+
+        let ranger2: {type: string, hits: number}[] = [];
+        for (let i = 0; i < rangedCount2; i++) { ranger2.push({type: "ranged", hits: 100}); }
+        for (let i = 0; i < 25; i++) { ranger2.push({type: "move", hits: 100}); }
+        for (let i = 0; i < 25 - rangedCount2; i++) { ranger2.push({type: "heal", hits: 100}); }
+
+        let tick = 0;
+        while (_.sum(ranger1, x => x.hits) > 0 && _.sum(ranger2, x => x.hits) > 0 && tick < 100) {
+            let ranger1Healing = _.filter(ranger1, x => x.hits > 0 && x.type === "heal").length * 12;
+            let ranger1Damage = _.filter(ranger1, x => x.hits > 0 && x.type === "ranged").length * 10;
+            let ranger2Healing = _.filter(ranger2, x => x.hits > 0 && x.type === "heal").length * 12;
+            let ranger2Damage = _.filter(ranger2, x => x.hits > 0 && x.type === "ranged").length * 10;
+
+            // apply healing
+            for (let i = ranger1.length - 1; i >= 0; i--) {
+                if (ranger1Healing <= 0) { break; }
+                let part = ranger1[i];
+                if (part.hits === 100) { continue; }
+                let appliedHealing = Math.min(ranger1Healing, 100 - part.hits);
+                part.hits += appliedHealing;
+                ranger1Healing -= appliedHealing;
+            }
+
+            for (let i = ranger2.length - 1; i >= 0; i--) {
+                if (ranger2Healing <= 0) { break; }
+                let part = ranger2[i];
+                if (part.hits === 100) { continue; }
+                let appliedHealing = Math.min(ranger2Healing, 100 - part.hits);
+                part.hits += appliedHealing;
+                ranger2Healing -= appliedHealing;
+            }
+
+            // apply damage
+            ranger2Damage -= ranger1Healing;
+            for (let part of ranger1) {
+                if (ranger2Damage <= 0) { break; }
+                let appliedDamage = Math.min(ranger2Damage, part.hits);
+                part.hits -= appliedDamage;
+                ranger2Damage -= appliedDamage;
+            }
+
+            ranger1Damage -= ranger2Healing;
+            for (let part of ranger2) {
+                if (ranger1Damage <= 0) { break; }
+                let appliedDamage = Math.min(ranger1Damage, part.hits);
+                part.hits -= appliedDamage;
+                ranger1Damage -= appliedDamage;
+            }
+
+            console.log(`${tick} RANGER1: ${_.sum(ranger1, x => x.hits)}, RANGER2: ${_.sum(ranger2, x => x.hits)}`);
+            tick++;
         }
     },
 };

@@ -1,12 +1,14 @@
 import {MemHelper} from "../../helpers/MemHelper";
 import {
-    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_QUAD, LayoutData, LayoutType, PositionMap,
+    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_PLUS, LAYOUT_QUAD, LAYOUT_TREE, LayoutData, LayoutType,
+    PositionMap,
     Vector2,
 } from "./Layout";
 import {RoomMap} from "./RoomMap";
 import {LayoutFactory} from "./LayoutFactory";
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {LayoutDisplay} from "./LayoutDisplay";
+import {Observationer} from "../Observationer";
 export class LayoutFinder {
 
     private roomName: string;
@@ -14,7 +16,7 @@ export class LayoutFinder {
     private controllerPos: RoomPosition;
     private obstacleMap: RoomMap<number>;
     private progress: LayoutFinderProgress;
-    private layoutTypes = [LAYOUT_QUAD, LAYOUT_FLEX];
+    private layoutTypes = [LAYOUT_TREE, LAYOUT_PLUS, LAYOUT_QUAD, LAYOUT_MINI, LAYOUT_FLEX];
     private validLayouts: {[typeName: string]: ValidLayoutData[]};
     private currentRadius: number;
 
@@ -25,6 +27,14 @@ export class LayoutFinder {
         [STRUCTURE_POWER_SPAWN]: 5,
         [STRUCTURE_LAB]: 3,
         [STRUCTURE_RAMPART]: 0,
+    };
+
+    private layoutScores = {
+        [LAYOUT_TREE]: 10000,
+        [LAYOUT_PLUS]: 1000,
+        [LAYOUT_QUAD]: 500,
+        [LAYOUT_MINI]: 400,
+        [LAYOUT_FLEX]: 0,
     };
 
     constructor(roomName: string) {
@@ -39,7 +49,8 @@ export class LayoutFinder {
             if (!data) {
                 let room = Game.rooms[this.roomName];
                 if (!room) {
-                    this.observeRoom();
+                    console.log(`FINDER: ordering observer vision in ${this.roomName}`);
+                    Observationer.observeRoom(this.roomName, 4);
                     return;
                 }
                 data = this.findData(room);
@@ -136,23 +147,6 @@ export class LayoutFinder {
         return walls;
     }
 
-    private observeRoom() {
-        for (let spawnName in Game.spawns) {
-            let spawn = Game.spawns[spawnName];
-            if (Game.map.getRoomLinearDistance(this.roomName, spawn.pos.roomName) > OBSERVER_RANGE) { continue; }
-            if (spawn.room.controller.level < 8) { continue; }
-            let observer = _(spawn.room.find<Structure>(FIND_STRUCTURES))
-                .filter(x => x.structureType === STRUCTURE_OBSERVER)
-                .head() as StructureObserver;
-            if (!observer) { continue; }
-            observer.observeRoom(this.roomName);
-            console.log(`FINDER: ordering observer vision in ${this.roomName}`);
-            return;
-        }
-
-        console.log(`FINDER: need vision in ${this.roomName} or data with locations of sources and controller`);
-    }
-
     public run(cpuQuota?: number) {
         if (Memory.rooms[this.roomName].layout) { return; }
         if (!this.sourcePositions) {
@@ -191,11 +185,11 @@ export class LayoutFinder {
             anchor: progress.anchor,
             rotation: progress.rotation,
             type: type,
-        });
+        }, [STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_SPAWN, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN]);
 
         let obstacle = this.obstacleMap.findAnyInRange(progress.anchor, layout.fixedMap.radius, layout.fixedMap.taper);
         if (obstacle) {
-            this.incrementProgress(progress, obstacle);
+            this.incrementProgress(progress, layout.rotates, obstacle);
             return;
         }
 
@@ -213,7 +207,7 @@ export class LayoutFinder {
         let structurePositions = layout.findFixedMap();
         let obstruction = this.analyzeStructures(structurePositions, validLayout);
         if (obstruction) {
-            this.incrementProgress(progress);
+            this.incrementProgress(progress, layout.rotates);
             return;
         }
 
@@ -223,11 +217,11 @@ export class LayoutFinder {
 
         if (!this.validLayouts[type]) { this.validLayouts[type] = []; }
         this.validLayouts[type].push(validLayout);
-        console.log("found valid", JSON.stringify(validLayout.data));
-        this.incrementProgress(progress);
+        // console.log("found valid", JSON.stringify(validLayout.data));
+        this.incrementProgress(progress, layout.rotates);
     }
 
-    private incrementProgress(progress: LayoutFinderProgress, obstacle?: Vector2) {
+    private incrementProgress(progress: LayoutFinderProgress, rotates: boolean, obstacle?: Vector2) {
         if (obstacle) {
             progress.rotation = 0;
             // TODO: could speed up progress considerably if you calculated how far to move ahead based on the obstacle
@@ -236,7 +230,7 @@ export class LayoutFinder {
             progress.rotation++;
         }
 
-        if (progress.rotation > 3) {
+        if (progress.rotation > 3 || (progress.rotation > 0 && !rotates)) {
             progress.rotation = 0;
             progress.anchor.x++;
         }
@@ -333,28 +327,50 @@ export class LayoutFinder {
 
     private chooseAmongValidLayouts(): ValidLayoutData {
 
+        let spawnInRoom = false;
+        let room = Game.rooms[this.roomName];
+        if (room) {
+            spawnInRoom = room.find(FIND_MY_SPAWNS).length > 0;
+        }
+        let spawnHit;
+        let bestOverall;
         for (let type in this.validLayouts) {
             let validLayouts = this.validLayouts[type];
 
-            if (Object.keys(Game.spawns).length === 1) {
-                // needs to have a spawn hit for the first room
+            if (spawnInRoom) {
                 let best = _(validLayouts).filter(x => x.foundSpawn).max(x => x.energyScore);
                 if (_.isObject(best)) {
-                    console.log("yes!");
                     return best;
                 } else {
                     console.log("no!");
-                    continue;
                 }
             }
 
             let best = _(validLayouts)
                 .filter(x => x.structureScore > 0)
-                .max(x => x.structureScore * 1000 + x.energyScore);
-            if (_.isObject(best)) { return best; }
+                .max(x => x.structureScore * 1000 + x.energyScore + this.layoutScores[type]);
+            if (_.isObject(best)) {
+                if (!spawnInRoom || best.foundSpawn) {
+                    return best;
+                } else {
+                    bestOverall = best;
+                }
+            }
 
             best = _(validLayouts).max(x => x.energyScore);
-            if (_.isObject(best)) { return best; }
+            if (_.isObject(best)) {
+                if (!spawnInRoom || best.foundSpawn) {
+                    return best;
+                } else {
+                    bestOverall = best;
+                }
+            }
+        }
+
+        if (spawnHit) {
+            return spawnHit;
+        } else {
+            return bestOverall;
         }
     }
 }

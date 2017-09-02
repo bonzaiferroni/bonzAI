@@ -70,10 +70,15 @@ export interface HeadCountOptions {
     allowUnboosted?: boolean;
     forceSpawn?: boolean;
     deathCallback?: (roleName: string, earlyDeath: boolean) => void;
-    freelance?: {
-        roomName: string,
-        urgent: boolean,
-    };
+    freelance?: FreelanceOptions;
+}
+
+export interface FreelanceOptions {
+    roomName: string;
+    roleName: string;
+    allowedRange?: number;
+    noNewSpawn?: boolean;
+    requiredRating?: number;
 }
 
 export interface SpawnReservation {
@@ -145,7 +150,6 @@ export interface Coord {
     y: number;
 }
 
-
 export interface SeedSelection {
     seedType: string;
     origin: Coord;
@@ -193,5 +197,5 @@ export interface BuildingPlannerData {
             x: number,
             y: number
         }[]
-    }}
+    }};
 }

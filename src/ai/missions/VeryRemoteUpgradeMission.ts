@@ -84,7 +84,7 @@ export class VeryRemoteUpgradeMission extends Mission {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            cart.procureEnergy(this.target);
+            cart.procureEnergy({nextDestination: agent => this.target });
             return;
         }
 

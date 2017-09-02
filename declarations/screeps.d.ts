@@ -1226,6 +1226,7 @@ interface Order {
     totalAmount: number;
     price: number;
     npc: boolean;
+    user: string;
 }
 
 interface OrderFilter {

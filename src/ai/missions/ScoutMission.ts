@@ -2,6 +2,7 @@ import {Mission} from "./Mission";
 import {Agent} from "../agents/Agent";
 import {helper} from "../../helpers/helper";
 import {PosHelper} from "../../helpers/PosHelper";
+
 export class ScoutMission extends Mission {
 
     private scouts: Agent[];

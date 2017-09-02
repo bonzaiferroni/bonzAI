@@ -11,6 +11,9 @@ import {RESERVE_AMOUNT} from "../TradeNetwork";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Viz} from "../../helpers/Viz";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {ProcureEnergyOptions} from "./interfaces";
+import {PosHelper} from "../../helpers/PosHelper";
+import {Tick} from "../../Tick";
 
 export class Agent extends AbstractAgent {
 
@@ -134,15 +137,28 @@ export class Agent extends AbstractAgent {
         }
     }
 
+    public sumCarry(): number {
+        if (!this.cache.sumCarry) {
+            this.cache.sumCarry = _.sum(this.carry);
+        }
+        return this.cache.sumCarry;
+    }
+
     public hasLoad(): boolean {
         if (this.carryCapacity === 0) { return false; }
 
-        if (this.memory.hasLoad && _.sum(this.carry) === 0) {
+        if (this.memory.hasLoad && this.sumCarry() === 0) {
             this.memory.hasLoad = false;
-        } else if (!this.memory.hasLoad && _.sum(this.carry) === this.carryCapacity) {
+        } else if (!this.memory.hasLoad && this.sumCarry() === this.carryCapacity) {
             this.memory.hasLoad = true;
         }
         return this.memory.hasLoad;
+    }
+
+    public travelToRoom(roomName: string, options: TravelToOptions = {}) {
+        options.range = 23;
+        let destination = new RoomPosition(25, 25, roomName);
+        return this.travelTo(destination, options);
     }
 
     /**
@@ -153,8 +169,8 @@ export class Agent extends AbstractAgent {
      * @returns {any}
      */
     public idleOffRoad(anchor: {pos: RoomPosition} = this.mission.flag, maintainDistance = false): number {
-        let offRoad = this.pos.lookForStructure(STRUCTURE_ROAD) === undefined;
-        if (offRoad) { return OK; }
+        let road = this.pos.lookForStructure(STRUCTURE_ROAD);
+        if (!road) { return OK; }
 
         let positions = _.sortBy(this.pos.openAdjacentSpots(), (p: RoomPosition) => p.getRangeTo(anchor));
         if (maintainDistance) {
@@ -180,11 +196,12 @@ export class Agent extends AbstractAgent {
         return this.travelTo(anchor) as number;
     }
 
-    public stealNearby(stealSource: string): number {
+    public stealNearby(stealSource: string, excludeRole?: string): number {
         if (this.carry.energy > this.carryCapacity * .8) { return OK; }
         if (stealSource === "creep") {
             let creep = _(this.pos.findInRange<Creep>(FIND_MY_CREEPS, 1))
-                .filter((c: Creep) => c.getActiveBodyparts(WORK) === 0 && c.carry.energy > 0)
+                .filter((c: Creep) => (!excludeRole || c.name.indexOf(excludeRole) < 0)
+                && c.getActiveBodyparts(WORK) === 0 && c.carry.energy > 0)
                 .head();
             if (!creep) { return ERR_NOT_IN_RANGE; }
             return creep.transfer(this.creep, RESOURCE_ENERGY);
@@ -198,8 +215,10 @@ export class Agent extends AbstractAgent {
         }
     }
 
-    public idleNear(place: {pos: RoomPosition}, acceptableRange = 1, cachePos = false, allowSwamp = true): number {
+    public idleNear(place: {pos: RoomPosition}, acceptableRange = 1, cachePos = false, allowSwamp = true,
+                    options: TravelToOptions = {}): number {
         let range = this.pos.getRangeTo(place);
+
         if (range <= acceptableRange && !this.pos.lookForStructure(STRUCTURE_ROAD)) {
             return;
         }
@@ -230,7 +249,7 @@ export class Agent extends AbstractAgent {
         }
 
         if (cachePos) {
-            return this.travelTo(this.cacheIdlePosition(place, acceptableRange));
+            return this.travelTo(this.cacheIdlePosition(place, acceptableRange), options);
         }
 
         if (range <= 1) {
@@ -239,7 +258,7 @@ export class Agent extends AbstractAgent {
             return this.travelTo({pos: position});
         }
 
-        return this.travelTo(place) as number;
+        return this.travelTo(place, options);
     }
 
     private cacheIdlePosition(place: {pos: RoomPosition}, acceptableRange: number): RoomPosition {
@@ -369,6 +388,7 @@ export class Agent extends AbstractAgent {
     }
 
     public fleeHostiles(fleeRange = 6, fleeDelay = 2, confineToRoom = false, peekaboo = false): boolean {
+        if (this.room.controller && this.room.controller.my && this.room.controller.safeMode) { return false; }
         let value = this.fleeByPath(this.room.fleeObjects, fleeRange, fleeDelay, confineToRoom, peekaboo);
         return value;
     }
@@ -458,7 +478,7 @@ export class Agent extends AbstractAgent {
                 roomCallback: (roomName: string): CostMatrix|boolean => {
                     if (Traveler.checkAvoid(roomName)) { return false; }
                     if (roomName === this.room.name) { return Traveler.getCreepMatrix(this.room); }
-                    if (Game.rooms[roomName]) { return Traveler.getStructureMatrix(Game.rooms[roomName]); }
+                    return Traveler.getStructureMatrix(roomName);
                 },
             });
 
@@ -486,7 +506,7 @@ export class Agent extends AbstractAgent {
             roomCallback: (roomName: string): CostMatrix|boolean => {
                 if (Traveler.checkAvoid(roomName)) { return false; }
                 if (roomName === this.room.name) { return Traveler.getCreepMatrix(this.room); }
-                if (Game.rooms[roomName]) { return Traveler.getStructureMatrix(Game.rooms[roomName]); }
+                return Traveler.getStructureMatrix(roomName);
             },
         });
 
@@ -503,6 +523,7 @@ export class Agent extends AbstractAgent {
      * @param name - if given, will suicide the occupying creep if string occurs anywhere in name
      * and will transfer any resources in creeps' carry
      * @param lethal - will suicide the occupying creep
+     * @param options
      * @returns {number}
      */
     public moveItOrLoseIt(position: RoomPosition, name?: string, lethal = true, options?: TravelToOptions): number {
@@ -514,7 +535,7 @@ export class Agent extends AbstractAgent {
         // take care of creep that might be in the way
         let occupier = _.head(position.lookFor<Creep>(LOOK_CREEPS));
         if (occupier && occupier.name) {
-            if (name && occupier.name.indexOf(name) >= 0) {
+            if (name && occupier.name.indexOf(`_${name}_`) >= 0) {
                 if (lethal) {
                     for (let resourceType in occupier.carry) {
                         let amount = occupier.carry[resourceType];
@@ -522,13 +543,13 @@ export class Agent extends AbstractAgent {
                             occupier.transfer(this.creep, resourceType);
                         }
                     }
-                    this.creep.say("my spot!");
+                    this.creep.say("bonzaii!", true);
                     occupier.suicide();
                 }
             } else {
                 let direction = occupier.pos.getDirectionTo(this);
                 occupier.move(direction);
-                this.creep.say("move it");
+                this.creep.say("move it", true);
             }
         }
 
@@ -735,6 +756,18 @@ export class Agent extends AbstractAgent {
     public procureEnergy(options: ProcureEnergyOptions = {}) {
         let supply = this.getSupply(options);
         if (!supply) {
+            let droppedEnergy = this.pos.findClosestByRange<Resource>(FIND_DROPPED_RESOURCES);
+            if (droppedEnergy) {
+                if (this.isNearTo(droppedEnergy)) {
+                    this.pickup(droppedEnergy);
+                } else {
+                    this.travelTo(droppedEnergy);
+                }
+                return;
+            }
+        }
+
+        if (!supply) {
             if (options.getFromSource) {
                 let sources = _.filter(this.mission.state.sources,
                     x => x.energy > 0 && x.pos.openAdjacentSpots().length > 0);
@@ -783,10 +816,13 @@ export class Agent extends AbstractAgent {
         if (outcome === OK) {
             this.memory.supplyId = undefined;
             if (options.nextDestination) {
-                if (this.pos.roomName === options.nextDestination.pos.roomName) {
-                    this.travelTo(options.nextDestination, {maxRooms: 1});
-                } else {
-                    this.travelTo(options.nextDestination);
+                let nextDestination = options.nextDestination(this);
+                if (nextDestination) {
+                    if (this.pos.roomName === nextDestination.pos.roomName) {
+                        this.travelTo(nextDestination, {maxRooms: 1});
+                    } else {
+                        this.travelTo(nextDestination);
+                    }
                 }
             }
             if (supply instanceof Creep) {
@@ -872,6 +908,122 @@ export class Agent extends AbstractAgent {
         }
 
         return _.filter(this.room.find<Creep>(FIND_MY_CREEPS), x => x.memory.donatesEnergy && x.carry.energy >= minEnergy);
+    }
+
+    public findDeliveryTarget(roomName: string): Creep|Structure {
+        let room = Game.rooms[roomName];
+        if (!room) {
+            this.travelToRoom(roomName);
+            return;
+        }
+
+        if (this.room.storage && this.room.storage.my && this.room.controller.level >= 4) {
+            return this.room.storage;
+        }
+
+        if (this.memory.deliverId) {
+            let target = Game.getObjectById<Creep|StructureContainer|EnergyStructure>(this.memory.deliverId);
+            let targetEmpty = true;
+            let nonEssential = false;
+            if (target) {
+                if (target instanceof Creep) {
+                    if (!target.memory.deliverTo) {
+                        this.memory.deliverId = undefined;
+                        return;
+                    }
+                    targetEmpty = target.carry[RESOURCE_ENERGY] <= target.carryCapacity - 25;
+                    nonEssential = true;
+                } else if (target instanceof StructureContainer) {
+                    targetEmpty = target.store[RESOURCE_ENERGY] <= target.storeCapacity - 50;
+                    nonEssential = true;
+                } else {
+                    targetEmpty = target.energy < target.energyCapacity;
+                }
+            } else {
+                this.memory.deliverId = undefined;
+                return this.findDeliveryTarget(roomName);
+            }
+
+            if (nonEssential) {
+                let spawnGroup = empire.getSpawnGroup(roomName);
+                if (empire && Math.random() > ((spawnGroup.currentSpawnEnergy / spawnGroup.maxSpawnEnergy) * .2) + .8) {
+                    this.memory.deliverId = undefined;
+                }
+            }
+
+            if (roomName !== this.pos.roomName || targetEmpty) {
+                return target;
+            } else if (Math.random() < .2) {
+                this.memory.deliverId = undefined;
+            }
+
+        } else {
+            let potentialTargets = this.findPotentialDeliveryTargets(room);
+            let best = this.chooseDeliveryTarget(room, potentialTargets);
+            if (best) {
+                this.memory.deliverId = best.id;
+                return best;
+            }
+        }
+    }
+
+    private findPotentialDeliveryTargets(room: Room): (Creep|Structure)[] {
+        if (!Tick.temp.deliveryCache) { Tick.temp.deliveryCache = {}; }
+        if (Tick.temp.deliveryCache[room.name]) { return Tick.temp.deliveryCache[room.name]; }
+
+        let potentialTargets: (Creep|Structure)[] = [];
+        potentialTargets = potentialTargets.concat(room.findStructures<StructureSpawn>(STRUCTURE_SPAWN));
+        potentialTargets = potentialTargets.concat(room.controller.pos.findInRange(
+            this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER), 3));
+        potentialTargets = potentialTargets.concat(room.findStructures<StructureTower>(STRUCTURE_TOWER));
+        potentialTargets = potentialTargets.concat(room.findStructures<StructureExtension>(STRUCTURE_EXTENSION));
+        potentialTargets = potentialTargets.concat(_.filter(room.find<Creep>(FIND_MY_CREEPS),
+            x => x.memory.deliverTo === true));
+
+        Tick.temp.deliveryCache[room.name] = potentialTargets;
+        return potentialTargets;
+    }
+
+    private chooseDeliveryTarget(room: Room, potentialTargets: (Creep|Structure)[]): Creep|Structure {
+        let best = _.max(potentialTargets, x => {
+            let capacity = 0;
+            let capacityAvailable = 0;
+            if (x instanceof Creep) {
+                capacity = x.carryCapacity;
+                if (x.carry[RESOURCE_ENERGY]) {
+                    capacityAvailable = (x.carryCapacity * .9 - x.carry[RESOURCE_ENERGY]) * 2;
+                } else {
+                    capacityAvailable = x.carryCapacity;
+                }
+            } else if (x instanceof StructureSpawn || x instanceof StructureExtension) {
+                capacity = x.energyCapacity;
+                capacityAvailable = (x.energyCapacity - x.energy) * 10;
+            } else if (x instanceof StructureTower) {
+                capacityAvailable = x.energyCapacity - x.energy;
+            } else if (x instanceof StructureContainer) {
+                if (x.store[RESOURCE_ENERGY]) {
+                    capacityAvailable = (x.storeCapacity - x.store[RESOURCE_ENERGY]) * .25;
+                } else {
+                    capacityAvailable = x.storeCapacity * .25;
+                }
+            }
+
+            let score = (capacity * .1 * Math.random()) + capacityAvailable;
+
+            if (this.room === room) {
+                let range = this.pos.getRangeTo(x);
+                if (range < 5 && capacityAvailable > 0) {
+                    score += (5 - range) * capacityAvailable * 10;
+                } else {
+                    score -= range;
+                }
+            }
+            return score;
+        });
+
+        if (_.isObject(best)) {
+            return best;
+        }
     }
 
     public static squadTravel(leader: Agent, follower: Agent, target: HasPos|RoomPosition,
@@ -1043,10 +1195,8 @@ export class Agent extends AbstractAgent {
         }
     }
 
-    public get shield(): number {
-        if (this.cache.shield !== undefined) { return this.cache.shield; }
-        this.cache.shield = CreepHelper.calculateShield(this.creep);
-        return this.cache.shield;
+    public get shield(): {hits: number, hitsMax: number} {
+        return CreepHelper.shield(this.creep);
     }
 
     public get rangeToEdge(): number {
@@ -1072,7 +1222,7 @@ export class Agent extends AbstractAgent {
             if (terrain === "wall") { continue; }
             if (position.isNearExit(0)) {
                 let outcome = this.move(direction);
-                console.log(outcome);
+                // console.log("moveOnExit", outcome);
                 return outcome;
             }
         }
@@ -1103,14 +1253,16 @@ export class Agent extends AbstractAgent {
         return ERR_NO_PATH;
     }
 
-    public moveOffExitToward(leader: Agent): number {
+    public moveOffExitToward(leader: Agent, detour = true): number {
         for (let position of this.pos.openAdjacentSpots()) {
-            let rangeToLeader = this.pos.getRangeTo(position);
+            let rangeToLeader = leader.pos.getRangeTo(position);
             if (rangeToLeader === 1) {
                 return this.travelTo(position);
             }
         }
-        this.travelTo(leader, {ignoreCreeps: false});
+        if (detour) {
+            this.travelTo(leader, {ignoreCreeps: false});
+        }
     }
 
     /**
@@ -1296,18 +1448,74 @@ export class Agent extends AbstractAgent {
         return this.pos.x === position.x && this.pos.y === position.y && this.pos.roomName === position.roomName;
     }
 
-    public moveToward(myExit: RoomPosition|HasPos): number {
-        let pos = Traveler.normalizePos(myExit);
+    public moveToward(destination: RoomPosition|HasPos): number {
+        let pos = Traveler.normalizePos(destination);
         let direction = this.pos.getDirectionTo(pos);
         return this.move(direction);
     }
 
-    public findClosestContainer(room: Room, emptyOnly = false): StoreStructure {
-        if (this.room !== room) { return room.findStructures<StructureContainer>(STRUCTURE_CONTAINER)[0]; }
-        let containers = this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER);
-        if (emptyOnly) {
-            containers = _.filter(containers, x => _.sum(x.store) < x.storeCapacity);
+    public findAnyEmpty(room: Room): Structure {
+        if (this.room !== room) {
+            this.memory.anyEmptyId = undefined;
+            return room.findStructures<StructureSpawn>(STRUCTURE_SPAWN)[0];
         }
-        return this.pos.findClosestByRange(containers);
+
+        if (this.memory.anyEmptyId) {
+            let empty = Game.getObjectById<EnergyStructure|StructureContainer>(this.memory.anyEmptyId);
+            if (empty) {
+                if (empty instanceof StructureContainer) {
+                    if (_.sum(empty.store) < empty.storeCapacity) {
+                        return empty;
+                    }
+                } else {
+                    if (empty.energy < empty.energyCapacity) {
+                        return empty;
+                    }
+                }
+            }
+            delete this.memory.anyEmptyId;
+            return this.findAnyEmpty(room);
+        } else {
+            if (Game.time > this.memory.nextEmptyCheck) { return; }
+
+            let empties: Structure[] = _.filter(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER), x =>
+                _.sum(x.store) < x.storeCapacity);
+            empties = empties.concat(_.filter(this.room.findStructures<EnergyStructure>(STRUCTURE_SPAWN)
+                    .concat(this.room.findStructures<EnergyStructure>(STRUCTURE_TOWER))
+                    .concat(this.room.findStructures<EnergyStructure>(STRUCTURE_EXTENSION)),
+                x => x.energy < x.energyCapacity));
+            let nearestEmpty = this.pos.findClosestByRange(empties);
+            if (nearestEmpty) {
+                delete this.memory.nextEmptyCheck;
+                this.memory.anyEmptyId = nearestEmpty.id;
+                return nearestEmpty;
+            } else {
+                this.memory.nextEmptyCheck = Game.time + 5 + Math.ceil(Math.random() * 5);
+            }
+        }
+    }
+
+    public hostileEvac(roomName: string, destination: RoomPosition|HasPos): boolean {
+        let room = Game.rooms[roomName];
+        if (this.memory.evac) {
+            if (room) {
+                if (room.hostiles.length === 0) {
+                    this.memory.evac = undefined;
+                    return false;
+                }
+            } else {
+                if (!this.pos.isNearExit(1)) {
+                    this.memory.evac = undefined;
+                    return false;
+                }
+            }
+            console.log(`AGENT: evacuating from ${this.room.name}`);
+            this.travelTo(destination);
+            return true;
+        } else {
+            if (room && room.hostiles.length > 0) {
+                this.memory.evac = true;
+            }
+        }
     }
 }

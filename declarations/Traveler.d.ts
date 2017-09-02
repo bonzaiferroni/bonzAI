@@ -36,11 +36,13 @@ interface TravelToOptions {
     repath?: number;
     route?: {[roomName: string]: boolean};
     ensurePath?: boolean;
+    pushy?: boolean;
 }
 
 interface TravelData {
     state: any[];
     path: string;
+    delay: number;
 }
 
 interface TravelState {

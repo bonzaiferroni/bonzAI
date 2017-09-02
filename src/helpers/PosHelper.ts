@@ -1,7 +1,7 @@
 import {Traveler} from "../ai/Traveler";
 import {WorldMap} from "../ai/WorldMap";
-import {HostileAgent} from "../ai/agents/HostileAgent";
 import {CreepHelper} from "./CreepHelper";
+
 export class PosHelper {
     public static findClosestByPath<T extends {pos: RoomPosition}>(origin: RoomPosition, destinations: T[],
                                                                    ignoreStructures = true, ignoreSwamps = true,
@@ -13,9 +13,7 @@ export class PosHelper {
             swampCost: ignoreSwamps ? 1 : 5,
             roomCallback: (roomName: string) => {
                 if (ignoreStructures) { return; }
-                let room = Game.rooms[roomName];
-                if (!room) { return; }
-                return Traveler.getStructureMatrix(room);
+                return Traveler.getStructureMatrix(roomName);
             },
         });
 
@@ -30,36 +28,36 @@ export class PosHelper {
 
     public static oppositeExit(pos: RoomPosition): RoomPosition {
         if (pos.x === 0) {
-            let roomName = WorldMap.findRelativeRoomName(pos.roomName, 1, 0);
+            let roomName = WorldMap.findRelativeRoomName(pos.roomName, -1, 0);
             return new RoomPosition(49 - pos.x, pos.y, roomName);
         }
         if (pos.x === 49) {
-            let roomName = WorldMap.findRelativeRoomName(pos.roomName, -1, 0);
+            let roomName = WorldMap.findRelativeRoomName(pos.roomName, 1, 0);
             return new RoomPosition(pos.x - 49, pos.y, roomName);
         }
         if (pos.y === 0) {
-            let roomName = WorldMap.findRelativeRoomName(pos.roomName, 0, 1);
+            let roomName = WorldMap.findRelativeRoomName(pos.roomName, 0, -1);
             return new RoomPosition(pos.x, 49 - pos.y, roomName);
         }
         if (pos.y === 49) {
-            let roomName = WorldMap.findRelativeRoomName(pos.roomName, 0, -1);
+            let roomName = WorldMap.findRelativeRoomName(pos.roomName, 0, 1);
             return new RoomPosition(pos.x, pos.y - 49, roomName);
         }
     }
 
     public static creepDamageAtPosition(pos: RoomPosition, ticks = 1): number {
-        let hostileAgents = HostileAgent.findInRoom(pos.roomName);
-        if (!hostileAgents) {
+        let room = Game.rooms[pos.roomName];
+        if (!room) {
             return 0;
         }
 
         let hostileDamage = 0;
-        for (let hostileAgent of hostileAgents) {
-            let range = pos.getRangeTo(hostileAgent) - ticks;
+        for (let hostile of room.hostiles) {
+            let range = pos.getRangeTo(hostile) - ticks;
             if (range < 0) {
                 range = 0;
             }
-            hostileDamage += hostileAgent.expectedDamageAtRange(range);
+            hostileDamage += CreepHelper.expectedDamageAtRange(hostile, range);
         }
         return hostileDamage;
     }
@@ -104,15 +102,7 @@ export class PosHelper {
         for (let creep of room.find<Creep>(searchType)) {
             let range = creep.pos.getRangeTo(pos);
             if (range > maxRange) { continue; }
-            let healPotential = 0;
-            for (let part of creep.body) {
-                if (part.type !== HEAL) { continue; }
-                let partPotential = HEAL_POWER;
-                if (part.boost) {
-                    partPotential *= BOOSTS[HEAL][part.boost][HEAL];
-                }
-                healPotential += partPotential;
-            }
+            let healPotential = CreepHelper.getPotential(creep, HEAL);
             if (range > 1) {
                 healPotential *= RANGED_HEAL_POWER / HEAL_POWER;
             }
@@ -198,7 +188,7 @@ export class PosHelper {
         let healingAtPosition = PosHelper.creepHealingAtPosition(position) * 1.5;
         let areaInjury = PosHelper.findAreaInjury(position, injuryArea) * .5;
         let damageAtPosition = PosHelper.totalDamageAtPosition(position, ticks) * 1.5;
-        let attackerShield = CreepHelper.calculateShield(attacker);
+        let attackerShield = CreepHelper.shield(attacker).hits;
         let formationBonus = position.findInRange(FIND_MY_CREEPS, 1).length * 500;
         return damageAtPosition + (areaInjury * 4) > healingAtPosition + attackerShield + formationBonus;
     }
@@ -219,5 +209,22 @@ export class PosHelper {
                 }
             }
         }
+    }
+
+    public static findTerrainInRange(position: RoomPosition, terrainType: string, range: number): RoomPosition[] {
+        let positions = [];
+        for (let xDelta = -range; xDelta <= range; xDelta++) {
+            let x = position.x + xDelta;
+            if (x < 0 || x > 49) { continue; }
+            for (let yDelta = -range; yDelta <= range; yDelta++) {
+                let y = position.y + yDelta;
+                if (y < 0 || y > 49) { continue; }
+                let lookPos = new RoomPosition(x, y, position.roomName);
+                if (lookPos.lookFor(LOOK_TERRAIN)[0] !== terrainType) { continue; }
+
+                positions.push(lookPos);
+            }
+        }
+        return positions;
     }
 }

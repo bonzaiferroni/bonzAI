@@ -64,9 +64,9 @@ export class TransportMission extends Mission {
 
         let body = () => {
             if (this.offroad) {
-                return this.bodyRatio(0, 1, 1, 1);
+                return this.workerUnitBody(0, 1, 1);
             } else {
-                return this.bodyRatio(0, 2, 1, 1);
+                return this.workerUnitBody(0, 2, 1);
             }
         };
 

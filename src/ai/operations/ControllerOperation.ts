@@ -1,47 +1,42 @@
 import {Operation, OperationMemory} from "./Operation";
+import {Layout} from "../layouts/Layout";
+import {DefenseGuru} from "../DefenseGuru";
+import {LayoutBuilder} from "../layouts/LayoutBuilder";
+import {OperationPriority} from "../../config/constants";
+import {LayoutFactory} from "../layouts/LayoutFactory";
+import {empire} from "../Empire";
+import {ScoutMission} from "../missions/ScoutMission";
+import {RemoteBuildMission} from "../missions/RemoteBuildMission";
+import {ClaimMission} from "../missions/ClaimMission";
+import {BodyguardMission} from "../missions/BodyguardMission";
 import {EmergencyMinerMission} from "../missions/EmergencyMission";
-import {RefillMission} from "../missions/RefillMission";
+import {DefenseMission} from "../missions/DefenseMission";
 import {PowerMission} from "../missions/PowerMission";
 import {TerminalNetworkMission} from "../missions/TerminalNetworkMission";
+import {RefillMission} from "../missions/RefillMission";
 import {IgorMission} from "../missions/IgorMission";
-import {LinkMiningMission} from "../missions/LinkMiningMission";
-import {MiningMission} from "../missions/MiningMission";
 import {BuilderMission} from "../missions/BuilderMission";
+import {UpgradeMission} from "../missions/UpgradeMission";
 import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {GeologyMission} from "../missions/GeologyMission";
-import {UpgradeMission} from "../missions/UpgradeMission";
-import {Coord, SeedData} from "../../interfaces";
-import {helper} from "../../helpers/helper";
-import {SeedAnalysis} from "../SeedAnalysis";
-import {SpawnGroup} from "../SpawnGroup";
-import {Empire, empire} from "../Empire";
 import {MasonMission} from "../missions/MasonMission";
-import {OperationPriority} from "../../config/constants";
-import {BodyguardMission} from "../missions/BodyguardMission";
-import {RemoteBuildMission} from "../missions/RemoteBuildMission";
-import {ScoutMission} from "../missions/ScoutMission";
-import {ClaimMission} from "../missions/ClaimMission";
 import {SurveyMission} from "../missions/SurveyMission";
-import {DefenseMission} from "../missions/DefenseMission";
-import {DefenseGuru} from "../DefenseGuru";
-import {Scheduler} from "../../Scheduler";
+import {BaseRepairMission} from "../missions/BaseRepairMission";
 import {PaverMission} from "../missions/PaverMission";
 import {Viz} from "../../helpers/Viz";
-import {FlexMap, Layout, LAYOUT_SEGMENTID, LayoutData, LayoutType, Vector2} from "../layouts/Layout";
-import {LayoutBuilder} from "../layouts/LayoutBuilder";
-import {LayoutDisplay} from "../layouts/LayoutDisplay";
-import {LayoutFactory} from "../layouts/LayoutFactory";
-import {MemHelper} from "../../helpers/MemHelper";
-import {BaseRepairMission} from "../missions/BaseRepairMission";
-import {Profiler} from "../../Profiler";
+import {Scheduler} from "../../Scheduler";
+import {EarlyBodyguardMission} from "../missions/EarlyBodyguardMission";
+import {Notifier} from "../../notifier";
 
 interface ControllerOperationMemory extends OperationMemory {
+    founded: number;
     radius: number;
     rotation: number;
     centerPosition: RoomPosition;
     repairIndices: {[structureType: string]: number};
     showLayoutType: string;
     showLayoutTill: number;
+    checkPlant: number;
 }
 
 export class ControllerOperation extends Operation {
@@ -55,21 +50,20 @@ export class ControllerOperation extends Operation {
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
         this.priority = OperationPriority.OwnedRoom;
-        if (flag.room && flag.room.controller.level < 6) {
-            this.priority = OperationPriority.VeryHigh;
-        }
     }
 
     public init() {
 
-        this.updateRemoteSpawn(8, 8);
+        if (!this.memory.founded) { this.memory.founded = Game.time; }
+
+        this.updateRemoteSpawn(8, 800);
         this.defenseGuru = new DefenseGuru(this);
         this.defenseGuru.init();
         this.layout = LayoutFactory.Instantiate(this.roomName);
         this.layout.init();
         this.builder = new LayoutBuilder(this.layout, this.roomName);
         this.builder.init();
-        this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
+        this.spawnGroup = empire.getSpawnGroup(this.roomName);
 
         let remoteSpawning = false;
         if (!this.spawnGroup) {
@@ -91,7 +85,7 @@ export class ControllerOperation extends Operation {
         if (this.room.controller.level < 3 && this.room.findStructures(STRUCTURE_TOWER).length === 0) {
             if (this.remoteSpawn && this.remoteSpawn.spawnGroup
                 && this.remoteSpawn.spawnGroup.room.controller.level >= 4) {
-                let bodyguard = new BodyguardMission(this);
+                let bodyguard = new EarlyBodyguardMission(this);
                 bodyguard.spawnGroup = this.remoteSpawn.spawnGroup;
                 this.addMission(bodyguard);
             }
@@ -105,7 +99,9 @@ export class ControllerOperation extends Operation {
         }
 
         this.addMission(new DefenseMission(this));
-        this.addMission(new PowerMission(this));
+        if (Memory.playerConfig.manual) {
+            this.addMission(new PowerMission(this));
+        }
 
         // energy network
         if (this.flag.room.terminal && this.flag.room.storage && this.flag.room.controller.level >= 6) {
@@ -114,10 +110,10 @@ export class ControllerOperation extends Operation {
         }
 
         // harvest energy
-        MiningMission.Add(this, true, true);
+        Operation.addMining(this, true, true);
 
         // update construction
-        let buildMission = new BuilderMission(this, this.defenseGuru);
+        let buildMission = new BuilderMission(this);
         this.addMission(buildMission);
 
         // upgrader controller
@@ -128,10 +124,12 @@ export class ControllerOperation extends Operation {
             this.addMission(new LinkNetworkMission(this));
             // mine minerals
             this.addMission(new GeologyMission(this));
-            // scout and place harvest flags
-            // this.addMission(new SurveyMission(this));
             // repair walls
             this.addMission(new MasonMission(this, this.defenseGuru));
+        }
+
+        if (!Memory.playerConfig.manual) {
+            this.addMission(new SurveyMission(this));
         }
 
         this.addMission(new BaseRepairMission(this));
@@ -140,7 +138,7 @@ export class ControllerOperation extends Operation {
 
     public update() {
         this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
-        this.updateRemoteSpawn(8, 8);
+        this.updateRemoteSpawn(8, 800);
         if (!this.spawnGroup && this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
         }
@@ -151,6 +149,11 @@ export class ControllerOperation extends Operation {
     }
 
     public finalize() {
+        if ((!this.room || !this.room.controller.my) && Game.time > this.memory.founded + 5000) {
+            Notifier.log(`OPERATION was unable to get started in ${this.roomName}`);
+            this.flag.remove();
+        }
+
         if (Game.time < this.memory.showLayoutTill) {
             this.showLayout(this.memory.showLayoutType, 0);
         }

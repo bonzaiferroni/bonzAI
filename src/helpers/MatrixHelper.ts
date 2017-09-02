@@ -3,7 +3,7 @@ import {Traveler} from "../ai/Traveler";
 import {Viz} from "./Viz";
 export class MatrixHelper {
 
-    private static STRATEGY_CREEP_MATRIX_COST = 50;
+    private static STRATEGY_MATRIX_CREEP_COST = 50;
     private static structureMatrices: {[roomName: string]: {
         structureCount: number,
         matrix: CostMatrix,
@@ -51,18 +51,17 @@ export class MatrixHelper {
                 this.blockOffPosition(matrix, agent, 5, 5, true);
             }
             if (agent.getPotential(RANGED_ATTACK) > 100) {
-                this.blockOffPosition(matrix, agent, 3, 10, true);
+                this.blockOffPosition(matrix, agent, 5, 10, true);
             }
         }
 
         // prefer not to path through creeps but don't set them to impassable
         for (let creep of room.find<Creep>(FIND_CREEPS)) {
-            this.blockOffPosition(matrix, creep, 0, this.STRATEGY_CREEP_MATRIX_COST, true);
+            this.blockOffPosition(matrix, creep, 0, this.STRATEGY_MATRIX_CREEP_COST, true);
         }
     }
 
     public static getStrategyMatrix(roomName: string): CostMatrix {
-
         if (this.strategyMatrices[roomName]) { return this.strategyMatrices[roomName]; }
 
         let room = Game.rooms[roomName];
@@ -120,8 +119,8 @@ export class MatrixHelper {
 
     public static adjustCreepPos(creepPos: RoomPosition, destination: RoomPosition) {
         let strategyMatrix = this.getStrategyMatrix(creepPos.roomName);
-        this.adjustCost(creepPos, strategyMatrix, -this.STRATEGY_CREEP_MATRIX_COST);
-        this.adjustCost(destination, strategyMatrix, this.STRATEGY_CREEP_MATRIX_COST);
+        this.adjustCost(creepPos, strategyMatrix, -this.STRATEGY_MATRIX_CREEP_COST);
+        this.adjustCost(destination, strategyMatrix, this.STRATEGY_MATRIX_CREEP_COST);
     }
 
     public static adjustCost(position: RoomPosition, matrix: CostMatrix, adjustment: number) {
@@ -199,5 +198,21 @@ export class MatrixHelper {
                 console.log(line);
             }
         }
+    }
+
+    public static standardCallback(destination: RoomPosition) {
+        return (roomName: string) => {
+            if (roomName !== destination.roomName) {
+                let data = Memory.rooms[roomName];
+                if (data && data.avoid) { return false; }
+            }
+            if (Game.map.getRoomLinearDistance(roomName, destination.roomName) <= 1) {
+                let strategyMatrix = MatrixHelper.getStrategyMatrix(roomName);
+                if (strategyMatrix) {
+                    return strategyMatrix;
+                }
+            }
+            return Traveler.getStructureMatrix(roomName);
+        };
     }
 }

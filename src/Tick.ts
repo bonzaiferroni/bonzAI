@@ -4,6 +4,7 @@ export class Tick {
     public static cacheTick: number;
     public static cache: {
         structures: { [roomName: string]: {[structureType: string]: Structure[]} },
+        friendlies: { [roomName: string]: Creep[] },
         hostiles: { [roomName: string]: Creep[] },
         hostilesAndLairs: { [roomName: string]: RoomObject[] }
         lairThreats: { [roomName: string]: StructureKeeperLair[] }
@@ -32,6 +33,7 @@ export class Tick {
         this.temp = {};
         this.operations = {};
         this.cache = { structures: {}, hostiles: {}, hostilesAndLairs: {}, mineralCount: {}, labProcesses: {},
-            activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0, exceptionCount: 0};
+            activeLabCount: 0, placedRoad: false, fleeObjects: {}, lairThreats: {}, bypassCount: 0, exceptionCount: 0,
+            friendlies: {}};
     }
 }

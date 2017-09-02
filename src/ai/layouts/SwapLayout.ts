@@ -1,36 +1,33 @@
-import {Layout, PositionMap} from "./Layout";
+import {Layout, LAYOUT_SEGMENTID, PositionMap} from "./Layout";
 import {Viz} from "../../helpers/Viz";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {helper} from "../../helpers/helper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
+import {Archiver} from "../Archiver";
 export class SwapLayout extends Layout {
     private controller: Controller;
     private room: Room;
+    protected hasFlex = true;
 
     public generateFlex(): boolean {
-        let cpu = Game.cpu.getUsed();
         let flexMap = this.generateSwapLayout();
-        console.log(Game.cpu.getUsed() - cpu);
+        this.archiveMap(flexMap);
         return true;
     }
 
-    private generateSwapLayout() {
+    private generateSwapLayout(): PositionMap {
         this.room = Game.rooms[this.roomName];
         this.controller = this.room.controller;
 
         let stubs = this.findStoragePostions(this.controller.pos);
         stubs = _.sortBy(stubs, x => -x.score);
-        stubs = this.findTerminals(stubs.slice(1, 10));
+        stubs = this.findTerminals(stubs.slice(0, 10));
         stubs = _.sortBy(stubs, x => -x.score);
-        stubs = this.findStructurePath(stubs.slice(1, 10));
-        if (stubs.length === 0) { console.log("couldn't find any stubs")}
+        stubs = this.findTowers(stubs.slice(0, 10));
         stubs = _.sortBy(stubs, x => -x.score);
-        LayoutDisplay.showMap(stubs[0].positions);
-        // console.log(stubs.length);
-        /* for (let i = 0; i < stubs.length; i++) {
-            if (Game.time % stubs.length !== i) { continue; }
-            LayoutDisplay.showMap(stubs[i].positions);
-        }*/
+        if (stubs.length === 0) { console.log("couldn't find any stubs"); }
+        this.findRamparts(stubs[0]);
+        return stubs[0].positions;
     }
 
     private findStoragePostions(controllerPos: RoomPosition): ScoreMap[] {
@@ -73,14 +70,7 @@ export class SwapLayout extends Layout {
                 if (this.invalidPos(terminalPos)) { continue; }
                 let middlePos = storagePos.getPositionAtDirection(direction);
                 if (this.invalidPos(middlePos)) { continue; }
-                let score = 0;
-                for (let i = 1; i <= 8; i++) {
-                    let wallProbe = terminalPos.getPositionAtDirection(i, 2);
-                    if (this.invalidPos(wallProbe)) { continue; }
-                    score += 10;
-                }
                 let newStub = _.cloneDeep(stub);
-                newStub.score += score;
                 newStub.positions[STRUCTURE_TERMINAL] = [terminalPos];
                 stubsWithTerminals.push(newStub);
             }
@@ -89,7 +79,62 @@ export class SwapLayout extends Layout {
         return stubsWithTerminals;
     }
 
-    private findStructurePath(stubs: ScoreMap[]): ScoreMap[] {
+    private findTowers(stubs: ScoreMap[]) {
+
+        let towerDirections: {[terminalDir: number]: number[] } = {
+            [2]: [1, 3],
+            [4]: [3, 5],
+            [6]: [5, 7],
+            [8]: [7, 1],
+        };
+
+        for (let stub of stubs) {
+            let storagePos = stub.positions[STRUCTURE_STORAGE][0];
+            let terminalPos = stub.positions[STRUCTURE_TERMINAL][0];
+            let terminalDir = storagePos.getDirectionTo(terminalPos);
+            let towerDirs = towerDirections[terminalDir];
+            let tower1pos = storagePos.getPositionAtDirection(towerDirs[0], 2);
+            let tower2pos = storagePos.getPositionAtDirection(towerDirs[1], 2);
+            stub.positions[STRUCTURE_TOWER] = [];
+            if (!this.invalidPos(tower1pos)) {
+                stub.positions[STRUCTURE_TOWER].push(tower1pos);
+                stub.score += 1000;
+            }
+            if (!this.invalidPos(tower2pos)) {
+                stub.positions[STRUCTURE_TOWER].push(tower2pos);
+                stub.score += 1000;
+            }
+        }
+        return stubs;
+    }
+
+    private findRamparts(stub: ScoreMap) {
+        let rampartPositions = stub.positions[STRUCTURE_TERMINAL]
+            .concat(stub.positions[STRUCTURE_STORAGE])
+            .concat(stub.positions[STRUCTURE_TOWER]);
+        stub.positions[STRUCTURE_RAMPART] = rampartPositions;
+    }
+
+    private closeToEdge(n: number, rangeFromEdge: number): boolean  {
+        // be some distance from edge
+        let edgeDistance = 2;
+        return n > 49 - edgeDistance || n < edgeDistance;
+    };
+
+    private posCloseToEdge(position: RoomPosition, rangeFromEdge: number): boolean {
+        return this.closeToEdge(position.x, rangeFromEdge) || this.closeToEdge(position.y, rangeFromEdge);
+    }
+
+    private invalidPos(position: RoomPosition, matrix?: CostMatrix, rangeFromEdge = 2): boolean {
+        if (matrix && matrix.get(position.x, position.y) === 0xff) { return true; }
+        return this.posCloseToEdge(position, rangeFromEdge) || this.isWall(position);
+    }
+
+    private isWall(position: RoomPosition): boolean {
+        return Game.map.getTerrainAt(position) === "wall";
+    }
+
+    /*private findStructurePath(stubs: ScoreMap[]): ScoreMap[] {
         let newStubs: ScoreMap[] = [];
 
         let matrix = new PathFinder.CostMatrix();
@@ -126,28 +171,9 @@ export class SwapLayout extends Layout {
         }
 
         return newStubs;
-    }
+    }*/
 
-    private closeToEdge(n: number, rangeFromEdge: number): boolean  {
-        // be some distance from edge
-        let edgeDistance = 2;
-        return n > 49 - edgeDistance || n < edgeDistance;
-    };
-
-    private posCloseToEdge(position: RoomPosition, rangeFromEdge: number): boolean {
-        return this.closeToEdge(position.x, rangeFromEdge) || this.closeToEdge(position.y, rangeFromEdge);
-    }
-
-    private invalidPos(position: RoomPosition, matrix?: CostMatrix, rangeFromEdge = 2): boolean {
-        if (matrix && matrix.get(position.x, position.y) === 0xff) { return true; }
-        return this.posCloseToEdge(position, rangeFromEdge) || this.isWall(position);
-    }
-
-    private isWall(position: RoomPosition): boolean {
-        return Game.map.getTerrainAt(position) === "wall";
-    }
-
-    private findPathMap(currentPos: RoomPosition, terminalPos: RoomPosition, storagePos: RoomPosition,
+    /*private findPathMap(currentPos: RoomPosition, terminalPos: RoomPosition, storagePos: RoomPosition,
                         matrix: CostMatrix): ScoreMap {
         let remaining = {
             [STRUCTURE_SPAWN]: 1,
@@ -219,7 +245,7 @@ export class SwapLayout extends Layout {
         }
 
         return pathMap;
-    }
+    }*/
 }
 
 interface ScoreMap {

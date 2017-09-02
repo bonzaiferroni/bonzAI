@@ -32,7 +32,7 @@ export class ClaimMission extends Mission {
             room = Game.rooms[this.claimRoomName];
         }
         if (room) {
-            this.state.controller = this.room.controller;
+            this.state.controller = room.controller;
         }
 
         if (this.state.controller && this.state.controller.my) {

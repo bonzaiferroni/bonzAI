@@ -1,15 +1,15 @@
-import {Mission} from "../missions/Mission";
-import {SpawnGroup} from "../SpawnGroup";
 import {OperationPriority} from "../../config/constants";
-import {RoomHelper} from "../../helpers/RoomHelper";
-import {helper} from "../../helpers/helper";
-import {TimeoutTracker} from "../../TimeoutTracker";
-import {empire} from "../Empire";
-import {Scheduler} from "../../Scheduler";
-import {Profiler} from "../../Profiler";
+import {SpawnGroup} from "../SpawnGroup";
+import {Mission} from "../missions/Mission";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
-import {PowerMission} from "../missions/PowerMission";
+import {helper} from "../../helpers/helper";
+import {empire} from "../Empire";
+import {Scheduler} from "../../Scheduler";
+import {RoomHelper} from "../../helpers/RoomHelper";
+import {LinkMiningMission} from "../missions/LinkMiningMission";
+import {MiningMission} from "../missions/MiningMission";
+import {EarlyMiningMission} from "../missions/EarlyMinerMission";
 
 export interface OperationState {
     hasVision?: boolean;
@@ -57,6 +57,8 @@ export abstract class Operation {
         OperationPriority.Low,
         OperationPriority.VeryLow,
         ];
+
+    public static census: {[opType: string]: { [roomName: string]: { [opName: string]: Operation }}} = {};
 
     /**
      *
@@ -108,28 +110,21 @@ export abstract class Operation {
         }
     }
 
+    private addToCensus() {
+        if (!Operation.census[this.type]) { Operation.census[this.type] = {}; }
+        if (!Operation.census[this.type][this.roomName]) { Operation.census[this.type][this.roomName] = {}; }
+        Operation.census[this.type][this.roomName][this.name] = this;
+    }
+
     /**
      * Global Phase - Runs on init initState ticks - initialize operation variables and instantiate missions
      */
-
-    public static init(priorityMap: OperationPriorityMap) {
-
-        for (let priority of this.priorityOrder) {
-            let operations = priorityMap[priority];
-            if (!operations) { continue; }
-            for (let opName in operations) {
-
-                // init operation
-                let operation = operations[opName];
-                operation.baseInit();
-            }
-        }
-    }
 
     public baseInit() {
         try {
             this.initState();
             this.init();
+            this.addToCensus();
 
             // init missions
             for (let missionName in this.missions) {
@@ -290,8 +285,8 @@ export abstract class Operation {
      * @param mission
      */
     public addMissionLate(mission: Mission) {
-        mission.baseInit();
         this.missions[mission.name] = mission;
+        mission.baseInit();
     }
 
     public removeMission(mission: Mission) {
@@ -322,7 +317,7 @@ export abstract class Operation {
     protected bypassActions() {
     }
 
-    public updateRemoteSpawn(roomDistanceLimit: number, levelRequirement: number, margin = 0, ignoreAvailability = false) {
+    public updateRemoteSpawn(roomDistanceLimit: number, energyRequired: number, margin = 0, ignoreAvailability = false) {
 
         let flag = Game.flags[`${this.name}_spawn`];
         if (flag) {
@@ -336,9 +331,16 @@ export abstract class Operation {
 
         // invalidated periodically
         if (!Scheduler.delay(this.memory.spawnData, "nextSpawnCheck", 10000)) {
-            let spawnGroups = _.filter(_.toArray(empire.spawnGroups),
-                spawnGroup => spawnGroup.room.controller.level >= levelRequirement
-                && spawnGroup.room.name !== this.flag.pos.roomName);
+
+            if (this.spawnGroup) {
+                energyRequired = Math.max(this.spawnGroup.maxSpawnEnergy, energyRequired);
+            }
+
+            let spawnGroups = _.filter(_.toArray(empire.spawnGroups), spawnGroup => {
+                // TODO: filter by maxSpawnEnergy
+                return spawnGroup.maxSpawnEnergy >= energyRequired
+                    && spawnGroup.room.name !== this.flag.pos.roomName;
+            });
             let bestGroups = RoomHelper.findClosest(this.flag, spawnGroups,
                 {margin: margin, linearDistanceLimit: roomDistanceLimit});
 
@@ -426,6 +428,23 @@ export abstract class Operation {
     public wipeMemory() {
         for (let propertyName in this.memory) {
             delete this.memory[propertyName];
+        }
+    }
+
+    public static addMining(operation: Operation, preferLinkMiner: boolean, localStorage: boolean) {
+        if (!operation.state.hasVision) { return; }
+        if (preferLinkMiner && operation.room.controller.level === 8 && operation.room.storage) {
+            LinkMiningMission.Add(operation);
+            return;
+        }
+
+        for (let i = 0; i < operation.state.sources.length; i++) {
+            let source = operation.state.sources[i];
+            if (operation.spawnGroup.maxSpawnEnergy >= 800) {
+                operation.addMission(new MiningMission(operation, i, source.id, localStorage));
+            } else {
+                operation.addMission(new EarlyMiningMission(operation, i, source.id, localStorage));
+            }
         }
     }
 }

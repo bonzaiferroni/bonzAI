@@ -1,6 +1,6 @@
 import {Operation} from "../operations/Operation";
 import {SpawnGroup} from "../SpawnGroup";
-import {HeadCountOptions, TransportAnalysis} from "../../interfaces";
+import {FreelanceOptions, HeadCountOptions, TransportAnalysis} from "../../interfaces";
 import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
@@ -19,7 +19,7 @@ export interface MissionState {
     hasVision?: boolean;
     sources?: Source[];
     mineral?: Mineral;
-    spawnedThisTick?: {[roleName: string]: string}
+    spawnedThisTick?: {[roleName: string]: string};
 }
 
 export interface MissionMemory {
@@ -30,6 +30,8 @@ export interface MissionMemory {
     transportAnalysis?: TransportAnalysis;
     storageId?: string;
     nextStorageCheck?: number;
+    pathCheck?: number;
+    pathDistance?: number;
 }
 
 export abstract class Mission {
@@ -46,6 +48,8 @@ export abstract class Mission {
     protected cache: any;
     protected waypoints: Flag[];
     protected memory: MissionMemory;
+
+    public static census: {[roomName: string]: {[missionName: string]: Mission}} = {};
 
     constructor(operation: Operation, name: string, allowSpawn: boolean = true) {
         this.operation = operation;
@@ -79,6 +83,11 @@ export abstract class Mission {
         this.state.spawnedThisTick = {};
     }
 
+    private addToCensus() {
+        if (!Mission.census[this.roomName]) { Mission.census[this.roomName] = {}; }
+        Mission.census[this.roomName][this.name] = this;
+    }
+
     /**
      * Init Phase - Used to initialize values on global update ticks
      */
@@ -87,6 +96,7 @@ export abstract class Mission {
         try {
             this.initState();
             this.init();
+            this.addToCensus();
         } catch (e) {
             Notifier.reportException(e, "init", this.roomName);
         }
@@ -245,10 +255,12 @@ export abstract class Mission {
                     ticksNeeded += creep.body.length * 3;
                     ticksNeeded += options.prespawn;
                 }
-                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) { count++; }
+                if (!creep.ticksToLive || creep.ticksToLive > ticksNeeded) {
+                    count++;
+                }
             } else {
                 if (options.deathCallback && Memory.creeps[creepName]) {
-                    options.deathCallback(roleName, Game.time - Memory.creeps[creepName].birthTick < CREEP_LIFE_TIME - 10);
+                    options.deathCallback(roleName, Memory.creeps[creepName].oldAge > Game.time);
                 }
                 creepNames.splice(i, 1);
                 delete Memory.creeps[creepName];
@@ -258,20 +270,15 @@ export abstract class Mission {
 
         // manage freelancing
         if (options.freelance) {
-            this.removeHired(roleName, creepArray, creepNames);
-
             if (count < getMax()) {
-                let creep = this.hireFreelance(roleName);
+                let creep = this.findFreelance(options.freelance);
                 if (creep) {
-                    if (creep instanceof Creep) {
-                        this.state.spawnedThisTick[roleName] = creep.name;
-                        creepNames.push(creep.name);
-                        creepArray.push(creep);
-                        return creepArray;
-                    } else if (!options.freelance.urgent) {
-                        return creepArray;
-                    }
+                    creepArray.push(creep);
+                    creepNames.push(creep.name);
+                    count++;
                 }
+            } else if (options.freelance.noNewSpawn) {
+                return creepArray;
             }
         }
 
@@ -291,70 +298,53 @@ export abstract class Mission {
         return creepArray;
     }
 
-    public removeHired(roleName: string, creepArray: Creep[], creepNames: string[]) {
-
-        let employerName = `${this.operation.name}_${this.name}`;
-
-        if (!Memory.freelance[roleName]) { Memory.freelance[roleName] = {}; }
-        for (let i = 0; i < creepArray.length; i++) {
-            let creep = creepArray[i];
-            let ticket = Memory.freelance[roleName][creep.name];
-            if (!ticket) { continue; }
-            if (ticket.employer !== employerName) {
-                console.log(`MISSION: freelance removed ${creep.name} as a ${roleName} in ${this.roomName}`);
-                delete Memory.freelance[roleName][creep.name];
-                _.pull(creepArray, creep);
-                _.pull(creepNames, creep.name);
-                i--;
-            }
+    public findFreelance(options: FreelanceOptions): Creep {
+        if (options.allowedRange === undefined) {
+            options.allowedRange = 3;
         }
-    }
 
-    public hireFreelance(roleName: string): Creep|string {
-
-        let foundBusy;
-        let employerName = `${this.operation.name}_${this.name}`;
-
-        for (let creepName in Memory.freelance[roleName]) {
+        for (let creepName in Memory.freelance) {
+            let roleName = Memory.freelance[creepName];
+            if (roleName !== options.roleName) { continue; }
             let creep = Game.creeps[creepName];
-
             if (creep) {
-
-                // see if it is close enough
-                let distance = Game.map.getRoomLinearDistance(this.roomName, creep.pos.roomName);
-                if (distance > 2) { continue; }
-                let effectiveLifeSpan = creep.ticksToLive - distance * 50;
-                if (effectiveLifeSpan < 200) { continue; }
-
-                // see if it is available
-                let ticket = Memory.freelance[roleName][creepName];
-                if (ticket.employer === employerName) { continue; }
-                if (ticket.status === FreelanceStatus.Hired) { continue; }
-                if (ticket.status === FreelanceStatus.Busy) {
-                    foundBusy = creep.name;
-                    continue;
-                }
-
-                Memory.freelance[roleName][creepName] = {status: FreelanceStatus.Hired, employer: employerName };
-                console.log(`MISSION: freelance hired ${creep.name} to be a ${roleName} in ${this.roomName}`);
+                let distance = Game.map.getRoomLinearDistance(options.roomName, creep.pos.roomName);
+                if (distance > options.allowedRange) { continue; }
+                if (distance * 100 > creep.ticksToLive) { continue; }
+                if (options.requiredRating && CreepHelper.rating(creep) < options.requiredRating) { continue; }
+                delete Memory.freelance[creepName];
+                creep.say("found job", true);
                 return creep;
             } else {
+                delete Memory.freelance[creepName];
                 delete Memory.creeps[creepName];
-                delete Memory.freelance[roleName][creepName];
             }
-        }
-
-        if (foundBusy) {
-            return foundBusy;
         }
     }
 
-    protected updateFreelanceStatus(roleName: string, agent: Agent, status: FreelanceStatus) {
-        let ticket = Memory.freelance[roleName][agent.name];
-        if (ticket && ticket.status === status) { return; }
-        let employerName = `${this.operation.name}_${this.name}`;
-        if (ticket && ticket.employer !== employerName) { return; }
-        Memory.freelance[roleName][agent.name] = {status: status, employer: employerName};
+    public goFreelance(agent: Agent, roleName: string) {
+        let road = agent.pos.lookForStructure(STRUCTURE_ROAD);
+        if (road) {
+            agent.idleOffRoad();
+            return;
+        }
+
+        let ticksLeft = agent.memory.freeTick - Game.time;
+        if (ticksLeft <= 0 && ticksLeft > -10) {
+            agent.say("find job", true);
+            for (let previousRoleName in this.memory.hc) {
+                let creepNames = this.memory.hc[previousRoleName];
+                _.pull(creepNames, agent.name);
+            }
+            Memory.freelance[agent.name] = roleName;
+        } else {
+            if (ticksLeft > 0) {
+                return;
+            } else {
+                agent.say("job done", true);
+                agent.memory.freeTick = Game.time + 20;
+            }
+        }
     }
 
     protected deathNotify = (roleName: string, earlyDeath: boolean) => {
@@ -369,10 +359,22 @@ export abstract class Mission {
         return this.state.spawnedThisTick[roleName];
     }
 
-    protected roleCount(roleName: string, filter?: (creep: Creep) => boolean): number {
+    public roleCount(roleName: string, filter?: (creep: Creep) => boolean): number {
         if (!this.memory.hc || !this.memory.hc[roleName]) { return 0; }
         if (!filter) { return this.memory.hc[roleName].length; }
         return _.filter(this.memory.hc[roleName] as string[], x => filter(Game.creeps[x])).length;
+    }
+
+    public roleCreeps(roleName: string): Creep[] {
+        if (!this.memory.hc) { return []; }
+        let creepNames = this.memory.hc[roleName];
+        if (!creepNames) { return []; }
+        let creeps = [];
+        for (let creepName of creepNames) {
+            let creep = Game.creeps[creepName];
+            if (creep) { creeps.push(creep); }
+        }
+        return creeps;
     }
 
     protected swapRole(agent: Agent, fromRole: string, toRole: string) {
@@ -403,12 +405,12 @@ export abstract class Mission {
         return body;
     }
 
-    protected configBody(config: {[partType: string]: number}, moveLast = false): string[] {
+    protected configBody(config: {[partType: string]: number}, moveLast = false, potency = 1): string[] {
         let body: string[] = [];
 
         if (moveLast) {
             for (let partType in config) {
-                let amount = config[partType];
+                let amount = config[partType] * potency;
                 if (partType === MOVE) {
                     amount--;
                 }
@@ -420,7 +422,7 @@ export abstract class Mission {
             body.push(MOVE);
         } else {
             for (let partType in config) {
-                let amount = config[partType];
+                let amount = config[partType] * potency;
                 for (let i = 0; i < amount; i++) {
                     body.push(partType);
                 }
@@ -440,22 +442,62 @@ export abstract class Mission {
         return body;
     }
 
+    protected unitBody(unit: {[partType: string]: number}, options: UnitBodyOptions = {}): string[] {
+        let additionalCost = 0;
+        let additionalPartCount = 0;
+        if (options.additionalParts) {
+            additionalCost = SpawnGroup.calculateBodyCost(options.additionalParts);
+            additionalPartCount = options.additionalParts.length;
+        }
+        options.potency = this.spawnGroup.maxUnits(this.configBody(unit), options.limit, additionalCost, additionalPartCount);
+        if (options.potency === 0) {
+            return;
+        }
+
+        let body = this.configBody(unit, options.moveLast, options.potency);
+        if (options.additionalParts) {
+            body = body.concat(options.additionalParts);
+        }
+
+        return body;
+    }
+
+    protected segmentBody(segments: string[], limit?: number): string[] {
+        let potency = this.spawnGroup.maxUnits(segments, limit);
+        if (potency <= 0) {
+            return;
+        }
+        let body: string[] = [];
+        let lastMove;
+        for (let segment of segments) {
+            let max = potency;
+            if (segment === MOVE && !lastMove) {
+                lastMove = MOVE;
+                max--;
+            }
+            for (let i = 0; i < max; i++) {
+                body.push(segment);
+            }
+        }
+        if (lastMove) {
+            body.push(lastMove);
+        }
+
+        return body;
+    }
+
     /**
-     * Returns creep body array with the desired ratio of parts, governed by how much spawn energy is possible
-     * @param workRatio
-     * @param carryRatio
-     * @param moveRatio
-     * @param spawnFraction - proportion of spawn energy to be used up to 50 body parts
-     * @param limit - set a limit to the number of units (useful if you know the exact limit, like with miners)
+     * Returns creep body array with desired number of parts per unit in this order: WORK → CARRY → MOVE. Max units
+     * automatically determined by available spawn energy up to limit
+     * @param workCount
+     * @param carryCount
+     * @param moveCount
+     * @param limit
      * @returns {string[]}
      */
-    protected bodyRatio(workRatio: number, carryRatio: number, moveRatio: number, spawnFraction = 1,
-                        limit?: number): string[] {
-        let sum = workRatio * 100 + carryRatio * 50 + moveRatio * 50;
-        let partsPerUnit = workRatio + carryRatio + moveRatio;
-        if (!limit) { limit = Math.floor(50 / partsPerUnit); }
-        let maxUnits = Math.min(Math.floor((this.spawnGroup.maxSpawnEnergy * spawnFraction) / sum), limit);
-        return this.workerBody(workRatio * maxUnits, carryRatio * maxUnits, moveRatio * maxUnits);
+
+    protected workerUnitBody(workCount: number, carryCount: number, moveCount: number, limit?: number) {
+        return this.unitBody({[WORK]: workCount, [CARRY]: carryCount, [MOVE]: moveCount}, { limit: limit } );
     }
 
     /**
@@ -492,6 +534,7 @@ export abstract class Mission {
     // deprecated
     public static analyzeTransport(distance: number, load: number, maxSpawnEnergy: number, offRoad = false): TransportAnalysis {
         // cargo units are just 2 CARRY, 1 MOVE, which has a capacity of 100 and costs 150
+        distance = Math.max(distance, 1);
         let maxUnitsPossible = Math.min(Math.floor(maxSpawnEnergy /
             ((BODYPART_COST[CARRY] * 2) + BODYPART_COST[MOVE])), 16);
         let bandwidthNeeded = distance * load * 2.1;
@@ -552,7 +595,16 @@ export abstract class Mission {
         return objects;
     }
 
-    // deprecated, use similar function on TransportGuru
+    protected cachedStorage(pos: RoomPosition): StructureStorage {
+        if (this.cache.storage) {
+            return this.cache.storage;
+        }
+
+        let storage = this.getStorage(pos);
+        this.cache.storage = storage;
+        return storage;
+    }
+
     protected getStorage(pos: RoomPosition): StructureStorage {
 
         let flag = Game.flags[`${this.operation.name}_storage`];
@@ -562,11 +614,14 @@ export abstract class Mission {
             if (structure) { return structure; }
         }
 
-        if (this.room.storage && this.room.storage.my) { return this.room.storage; }
+        if (this.room.storage && this.room.storage.my && this.room.controller.level >= 4 && !this.room.memory.swap) {
+            return this.room.storage;
+        }
 
         // invalidated periodically
         if (!Scheduler.delay(this.memory, "nextStorageCheck", 10000)) {
-            let bestStorages = RoomHelper.findClosest({pos: pos}, empire.network.storages,
+            let nonSwaps = _.filter(empire.network.storages, x => !x.room.memory.swap);
+            let bestStorages = RoomHelper.findClosest({pos: pos}, nonSwaps,
                 {linearDistanceLimit: MAX_HARVEST_DISTANCE });
 
             bestStorages = _.filter(bestStorages, value => value.distance < MAX_HARVEST_PATH);
@@ -598,7 +653,7 @@ export abstract class Mission {
     private findOrphans(roleName: string) {
         let creepNames = [];
         for (let creepName in Game.creeps) {
-            if (creepName.indexOf(this.operation.name + "_" + roleName + "_") > -1) {
+            if (creepName.indexOf(`${this.operation.name}_${roleName}_`) > -1) {
                 creepNames.push(creepName);
             }
         }
@@ -630,23 +685,22 @@ export abstract class Mission {
             options.allowUnboosted = agent.memory.allowUnboosted;
         }
 
-        if (options.deathCallback && !agent.creep.spawning && !agent.memory.birthTick) {
-            agent.memory.birthTick = Game.time;
+        if (options.deathCallback && !agent.creep.spawning && !agent.memory.oldAge) {
+            agent.memory.oldAge = Game.time + agent.ticksToLive;
         }
 
         let boosted = agent.seekBoost(options.boosts, options.allowUnboosted);
         if (!boosted) { return false; }
         if (agent.creep.spawning) { return false; }
 
+        let waypoints = this.operation.findOperationWaypoints();
+        if (!options.skipWaypoints && waypoints.length > 0) {
+            let waypointsCovered = agent.travelWaypoints(waypoints, {ensurePath: true}, true);
+            if (!waypointsCovered) { return; }
+        }
+
         if (!options.skipMoveToRoom && (agent.pos.roomName !== this.flag.pos.roomName || agent.pos.isNearExit(1))) {
-
-            let waypoints = this.operation.findOperationWaypoints();
-            if (!options.skipWaypoints && waypoints.length > 0) {
-                let waypointsCovered = agent.travelWaypoints(waypoints, undefined, true);
-                if (!waypointsCovered) { return; }
-            }
-
-            agent.avoidSK(this.flag);
+            agent.avoidSK(this.flag, {ensurePath: true});
             return;
         }
         agent.memory.prep = true;
@@ -712,7 +766,7 @@ export abstract class Mission {
         let hurtCreep = this.findHurtCreep(defender);
         if (!hurtCreep) {
             defender.idleNear(this.flag, 5);
-            return;
+            return false;
         }
 
         // move to creep
@@ -730,11 +784,10 @@ export abstract class Mission {
         } else if (range <= 3) {
             defender.rangedHeal(hurtCreep);
         }
+        return true;
     }
 
     protected findHurtCreep(defender: Agent) {
-        if (!this.room) { return; }
-
         if (defender.memory.healId) {
             let creep = Game.getObjectById(defender.memory.healId) as Creep;
             if (creep && creep.room.name === defender.room.name && creep.hits < creep.hitsMax) {
@@ -743,29 +796,36 @@ export abstract class Mission {
                 defender.memory.healId = undefined;
                 return this.findHurtCreep(defender);
             }
-        } else if (!defender.memory.healCheck || Game.time - defender.memory.healCheck > 25) {
-            defender.memory.healCheck = Game.time;
-            let hurtCreep = _(this.room.find<Creep>(FIND_MY_CREEPS))
-                .filter(x => x.hits < x.hitsMax && x.ticksToLive > 100 && x.getActiveBodyparts(HEAL) === 0)
-                .max((c: Creep) => CreepHelper.partCount(c, WORK));
+        } else {
+            if (defender.memory.nextHealCheck > Game.time) { return; }
+
+            let hurtCreep = _(defender.room.find<Creep>(FIND_MY_CREEPS))
+                .filter(x => x.hits < x.hitsMax && x.ticksToLive > 100 && CreepHelper.partCount(x, WORK) > 0)
+                .min(x => x.pos.getRangeTo(defender));
 
             if (_.isObject(hurtCreep)) {
                 defender.memory.healId = hurtCreep.id;
                 return hurtCreep;
+            } else {
+                defender.memory.nextHealCheck = Game.time + 100;
             }
         }
     }
 
     protected standardCartBody = () => {
-        return this.bodyRatio(0, 2, 1);
+        return this.workerUnitBody(0, 2, 1);
     };
+
+    protected notClaimed(obj: {id: string}, propName: string, agents: Agent[]): boolean {
+        return !_.find(agents, x => x.memory[propName] === obj.id);
+    }
 }
 
 export type MissionMap = {[missionName: string]: Mission }
 
-export enum FreelanceStatus {
-    Busy,
-    Available,
-    Hired,
+export interface UnitBodyOptions {
+    additionalParts?: string[];
+    moveLast?: boolean;
+    limit?: number;
+    potency?: number;
 }
-

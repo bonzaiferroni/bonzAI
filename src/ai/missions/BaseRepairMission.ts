@@ -4,8 +4,10 @@ import {Layout} from "../layouts/Layout";
 import {Scheduler, SchedulerPriority} from "../../Scheduler";
 import {Viz} from "../../helpers/Viz";
 import {GrafanaStats} from "../../helpers/GrafanaStats";
+import {NEED_ENERGY_THRESHOLD, POWER_PROCESS_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
 
 interface BaseRepairMemory extends MissionMemory {
+    findRamps: number;
     roadIds: string[];
     rampId: string;
     lowestHits: number;
@@ -44,8 +46,6 @@ export class BaseRepairMission extends Mission {
     public actions() {
         if (this.room.hostiles.length > 0) { return; }
         if (this.room.storage && this.room.storage.store.energy < 10000) { return; }
-        if (this.memory.lowestHits > 100000 && (!this.room.terminal || this.room.controller.level < 6)) { return; }
-
         this.towerActions();
     }
 
@@ -56,11 +56,6 @@ export class BaseRepairMission extends Mission {
     }
 
     private towerActions() {
-        if (this.room.storage && this.room.storage.store.energy < 50000) {
-            // TODO: scale the amount of repair with the amount of energy in storage
-            return;
-        }
-
         let structure = this.getNextRepair();
         if (structure) {
 
@@ -68,6 +63,7 @@ export class BaseRepairMission extends Mission {
                 let towers = this.findTowersByRange(structure.pos);
                 for (let tower of towers) {
                     if (!tower) { continue; }
+                    if (tower.energy < tower.energyCapacity * .5) { continue; }
                     tower.repair(structure);
                 }
             };
@@ -90,15 +86,28 @@ export class BaseRepairMission extends Mission {
     private findRamparts() {
         if (Scheduler.delay(this.memory, "findRamps", 100)) { return; }
 
-        let maxHits = RAMPART_MAX_REPAIR;
-        if (!this.room.terminal) {
-            maxHits = 100000;
+        let maxHits = 100000;
+        if (this.room.storage) {
+            if (this.room.storage.store[RESOURCE_ENERGY] > NEED_ENERGY_THRESHOLD) {
+                maxHits = 10000000;
+            }
+            if (this.room.storage.store[RESOURCE_ENERGY] > POWER_PROCESS_THRESHOLD - 50000) {
+                maxHits = RAMPART_MAX_REPAIR;
+            }
         }
-        let lowest = _(this.layout.findStructures<StructureRampart>(STRUCTURE_RAMPART))
+
+        let ramparts = this.layout.findStructures<StructureRampart>(STRUCTURE_RAMPART);
+        let controllerRamparts = this.findControllerRamparts();
+        if (controllerRamparts) {
+            ramparts = ramparts.concat(controllerRamparts);
+        }
+
+        let lowest = _(ramparts)
             .filter(x => x.hits < maxHits)
             .min(x => x.hits);
         if (!_.isObject(lowest)) {
             console.log(`REPAIR: no ramparts under threshold in ${this.roomName}`);
+            this.memory.findRamps = Game.time + 1000;
             delete this.memory.rampId;
             return;
         }
@@ -121,7 +130,7 @@ export class BaseRepairMission extends Mission {
 
         roads.forEach(x => Viz.animatedPos(x.pos, "cyan"));
 
-        console.log(`found ${roads.length} to repair`);
+        // console.log(`found ${roads.length} to repair`);
 
         this.memory.roadIds = _.map(roads, x => x.id);
     }
@@ -174,6 +183,21 @@ export class BaseRepairMission extends Mission {
         if (closest) {
             return [closest.id];
         }
+    }
+
+    private findControllerRamparts() {
+        if (this.room.controller.level < 8) { return; }
+
+        let ramparts = [];
+        for (let position of this.room.controller.pos.openAdjacentSpots(true)) {
+            let rampart = position.lookForStructure<StructureRampart>(STRUCTURE_RAMPART);
+            if (rampart) {
+                ramparts.push(rampart);
+            } else {
+                position.createConstructionSite(STRUCTURE_RAMPART);
+            }
+        }
+        return ramparts;
     }
 }
 

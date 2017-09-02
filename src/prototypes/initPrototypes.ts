@@ -7,53 +7,6 @@ export function initPrototypes() {
     initRoomPositionPrototype();
 
     // misc prototype modifications
-
-    StructureObserver.prototype._observeRoom = StructureObserver.prototype.observeRoom;
-
-    StructureObserver.prototype.observeRoom = function(roomName: string, purpose = "unknown",
-                                                       override = false): number {
-        let makeObservation = (observation: Observation): number => {
-            if (this.observation) { } // load the current observation before overwriting
-            this.room.memory.observation = observation;
-            this.alreadyObserved = true;
-            return this._observeRoom(observation.roomName);
-        };
-
-        if (override) {
-            return makeObservation({roomName: roomName, purpose: purpose});
-        } else {
-            if (!this.room.memory.obsQueue) { this.room.memory.obsQueue = []; }
-            let queue = this.room.memory.obsQueue as Observation[];
-            if (!_.find(queue, (item) => item.roomName === roomName)) {
-                queue.push({purpose: purpose, roomName: roomName});
-            }
-            if (!this.alreadyObserved) {
-                return makeObservation(queue.shift());
-            } else {
-                return OK;
-            }
-        }
-    };
-
-    Object.defineProperty(StructureObserver.prototype, "observation", {
-        get: function() {
-            if (!this._observation) {
-                let observation = this.room.memory.observation as Observation;
-                if (observation) {
-                    let room = Game.rooms[observation.roomName];
-                    if (room) {
-                        observation.room = room;
-                        this._observation = observation;
-                    } else {
-                        // console.log("bad observation:", JSON.stringify(observation));
-                    }
-                }
-            }
-            return this._observation;
-        },
-        configurable: true,
-    });
-
     StructureTerminal.prototype._send = StructureTerminal.prototype.send;
 
     StructureTerminal.prototype.send = function(resourceType: string, amount: number, roomName: string,

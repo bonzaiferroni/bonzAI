@@ -1,20 +1,19 @@
 import {SpawnGroup} from "./SpawnGroup";
-import {Profiler} from "../Profiler";
-import {Traveler} from "./Traveler";
-import {WorldMap} from "./WorldMap";
-import {MarketTrader} from "./MarketTrader";
-import {BonzaiDiplomat} from "./BonzaiDiplomat";
-import {BonzaiNetwork} from "./BonzaiNetwork";
-import {Scheduler} from "../Scheduler";
-import {MemHelper} from "../helpers/MemHelper";
-import {Notifier} from "../notifier";
-import {Janitor} from "./Janitor";
 import {Diplomat} from "./Diplomat";
+import {WorldMap} from "./WorldMap";
 import {TradeNetwork} from "./TradeNetwork";
+import {MarketTrader} from "./MarketTrader";
+import {Janitor} from "./Janitor";
 import {Archiver} from "./Archiver";
+import {Notifier} from "../notifier";
+import {Scheduler} from "../Scheduler";
 import {AbstractAgent} from "./agents/AbstractAgent";
 import {MatrixHelper} from "../helpers/MatrixHelper";
 import {SignMaker} from "./SignMaker";
+import {Profiler} from "../Profiler";
+import {PosHelper} from "../helpers/PosHelper";
+import {Observationer} from "./Observationer";
+import {RoomPlanter} from "./RoomPlanter";
 
 export class Empire {
 
@@ -40,7 +39,7 @@ export class Empire {
         this.diplomat = new Diplomat();
         this.map = new WorldMap(this.diplomat);
         this.spawnGroups = this.map.init();
-        this.network = new TradeNetwork(this.map);
+        this.network = new TradeNetwork(this.map, this.diplomat);
         this.market = new MarketTrader(this.network);
 
         let blacklist: {[roomName: string]: boolean } = {};
@@ -53,27 +52,31 @@ export class Empire {
         this.janitor.init();
         SpawnGroup.init(this.spawnGroups);
         Archiver.init();
+        SignMaker.init();
+        Observationer.init();
     }
 
     /**
      * Occurs during tick, before operation phases
      */
 
-    public update() {
-        if (this.updateTick === Game.time) { return; }
+    public update(forceUpdate = false) {
+
+        if (!forceUpdate && this.updateTick === Game.time) { return; }
         this.updateTick = Game.time;
 
-        Notifier.update();
         this.diplomat.update();
         this.map.update();
         this.network.update();
         this.market.update();
         this.janitor.update();
+        Notifier.update();
         SpawnGroup.update(this.spawnGroups);
         Archiver.update();
         Scheduler.update();
         AbstractAgent.update();
         MatrixHelper.update();
+        RoomPlanter.update();
     }
 
     /**
@@ -85,20 +88,25 @@ export class Empire {
         this.network.actions();
         this.market.actions();
         this.janitor.actions();
+        Observationer.actions();
         SignMaker.actions();
         SpawnGroup.finalize(this.spawnGroups);
         Archiver.finalize();
     }
 
-    public underCPULimit() {
-        return Profiler.proportionUsed() < .8;
+    public underCPULimit(limit = .9) {
+        return Profiler.proportionUsed() < limit;
+    }
+
+    public cpuAvailable(amount: number) {
+        return Profiler.marginUnused() > amount;
     }
 
     public getSpawnGroup(roomName: string) {
         return this.spawnGroups[roomName];
     }
 
-    public spawnFromClosest(targetRoomName: string, body: string[], name: string) {
+    public spawnFromClosest(targetRoomName: string, body: string[], name: string, forceSpawn = false) {
         let closest: SpawnGroup;
         let bestDistance = Number.MAX_VALUE;
         for (let roomName in this.spawnGroups) {
@@ -108,7 +116,9 @@ export class Empire {
                 closest = this.spawnGroups[roomName];
             }
         }
-        return closest.spawn(body, name);
+        if (closest && (closest.isAvailable || forceSpawn)) {
+            return closest.spawn(body, name);
+        }
     }
 
     public initMemory() {
@@ -135,6 +145,28 @@ export class Empire {
             freelance: {},
             marketTrader: {},
         });
+    }
+
+    public addOperation(type: string, position?: RoomPosition, opName?: string) {
+        let room = Game.rooms[position.roomName];
+        if (!room) {
+            Notifier.log(`OPFACTORY: cannot place operation, no visibility in ${position.roomName}`, 5);
+            return;
+        }
+
+        if (!opName) {
+            opName = this.generateName(type, position.roomName);
+        }
+        let flagName = `${type}_${opName}`;
+        if (Memory.flags) {
+            delete Memory.flags[flagName];
+        }
+        Notifier.log(`EMPIRE: created new operation in ${room.name}: ${flagName}`, 1);
+        position.createFlag(`${flagName}`, COLOR_CYAN, COLOR_GREY);
+    }
+
+    private generateName(opType: string, roomName: string) {
+        return roomName + opType[0];
     }
 }
 

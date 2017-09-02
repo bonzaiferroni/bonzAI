@@ -3,14 +3,17 @@ import {helper} from "../../helpers/helper";
 import {SpawnGroup} from "../SpawnGroup";
 import {Notifier} from "../../notifier";
 import {Mission} from "./Mission";
-import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER} from "../WorldMap";
+import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE} from "../WorldMap";
 import {Traveler} from "../Traveler";
 import {USERNAME} from "../../config/constants";
 import {empire} from "../Empire";
 import {PosHelper} from "../../helpers/PosHelper";
+import {Profiler} from "../../Profiler";
+import {Operation} from "../operations/Operation";
 
 interface SurveyData {
     danger: boolean;
+    chooseAgainDelay?: number;
     mineralType?: string;
     sourceCount?: number;
     averageDistance?: number;
@@ -41,8 +44,16 @@ export class SurveyAnalyzer {
     public run(): string {
 
         // place flag in chosen missionRoom
-        if (Game.time < this.memory.nextAnalysis) { return; }
-        if (this.spawnGroup.averageAvailability < 1) { }
+        if (this.memory.nextAnalysis > Game.time) { return; }
+        if (!empire.underCPULimit()) {
+            this.memory.nextAnalysis = Game.time + 100;
+            return;
+        }
+        if (!this.underMinerLimit()) {
+            this.memory.nextAnalysis = Game.time + 100;
+            return;
+        }
+        if (!this.findOriginPos()) { return; }
 
         if (this.memory.chosenRoom) {
             let room = Game.rooms[this.memory.chosenRoom];
@@ -64,7 +75,7 @@ export class SurveyAnalyzer {
         exploreRoomName = this.completeSurveyData(this.memory.surveyRooms);
         if (exploreRoomName) { return exploreRoomName; }
         exploreRoomName = this.updateOwnershipData();
-        if (exploreRoomName) { return; }
+        if (exploreRoomName) { return exploreRoomName; }
 
         let chosenRoom;
         let readyList = this.checkReady();
@@ -72,6 +83,7 @@ export class SurveyAnalyzer {
             chosenRoom = this.chooseRoom(readyList);
         }
         if (chosenRoom) {
+            this.memory.surveyRooms[chosenRoom].chooseAgainDelay = Game.time + 100000;
             this.memory.chosenRoom = chosenRoom;
         } else if (this.memory.nextAnalysis < Game.time) {
             this.memory.nextAnalysis = Game.time + helper.randomInterval(1000);
@@ -87,8 +99,7 @@ export class SurveyAnalyzer {
         let coreX = "" + Math.floor(roomCoords.x / 10) + 5;
         let coreY = "" + Math.floor(roomCoords.y / 10) + 5;
         let nearestCore = roomCoords.xDir + coreX + roomCoords.yDir + coreY;
-        if (Game.map.getRoomLinearDistance(this.room.name, nearestCore) <= 2 &&
-            this.spawnGroup.averageAvailability > 1.5) {
+        if (Game.map.getRoomLinearDistance(this.room.name, nearestCore)) {
             data[nearestCore] = { danger: true };
         }
 
@@ -160,26 +171,33 @@ export class SurveyAnalyzer {
     private analyzeRoom(room: Room, data: SurveyData) {
 
         // mineral
-        if (!room.controller) {
-            data.mineralType = room.find<Mineral>(FIND_MINERALS)[0].mineralType;
+        let mineral = room.find<Mineral>(FIND_MINERALS)[0];
+        if (mineral) {
+            data.mineralType = mineral.mineralType;
         }
 
         // owner
         data.owner = this.checkOwnership(room);
         data.nextOwnerCheck = Game.time + helper.randomInterval(10000);
         if (data.owner === USERNAME) {
-            delete this.memory.surveyRooms[room.name];
             return;
         }
+
+        // origin
+        let originPos = this.findOriginPos();
 
         // source info
         let roomDistance = Game.map.getRoomLinearDistance(this.room.name, room.name);
         let sources = room.find<Source>(FIND_SOURCES);
-        let roomType = WorldMap.roomType(room.name);
+        if (sources.length === 0) {
+            delete this.memory.surveyRooms[room.name];
+            return;
+        }
         let distances = [];
         data.sourceCount = sources.length;
+
         for (let source of sources) {
-            let ret = PathFinder.search(this.room.storage.pos, { pos: source.pos, range: 1}, {
+            let ret = PathFinder.search(originPos, { pos: source.pos, range: 1}, {
                 swampCost: 1,
                 plainCost: 1,
                 roomCallback: (roomName: string) => {
@@ -189,7 +207,12 @@ export class SurveyAnalyzer {
                 },
             });
             if (ret.incomplete) {
-                Notifier.log(`SURVEY: Incomplete path from ${this.room.storage.pos} to ${source.pos}`);
+                Notifier.log(`SURVEY: Incomplete path from ${originPos} to ${source.pos}`);
+            }
+
+            let pathDanger = this.findPathDanger(ret.path);
+            if (pathDanger) {
+                data.danger = true;
             }
 
             let distance = ret.path.length;
@@ -242,11 +265,6 @@ export class SurveyAnalyzer {
                 let room = Game.rooms[roomName];
                 if (room) {
                     data.owner = this.checkOwnership(room);
-                    if (data.owner === USERNAME) {
-                        delete this.memory.surveyRooms[room.name];
-                    } else {
-                        data.nextOwnerCheck = Game.time + helper.randomInterval(10000);
-                    }
                 } else {
                     return roomName;
                 }
@@ -255,12 +273,6 @@ export class SurveyAnalyzer {
     }
 
     private checkReady(): {[roomName: string]: SurveyData} {
-
-        if (!empire.underCPULimit()) {
-            console.log(`SURVEY: avoiding placement, cpu is over limit`);
-            this.memory.nextAnalysis = Game.time + helper.randomInterval(10000);
-            return;
-        }
 
         if (this.spawnGroup.refillEfficiency < .5) {
             console.log(`SURVEY: poor spawn refill efficiency`);
@@ -275,14 +287,13 @@ export class SurveyAnalyzer {
             // owner
             if (!data.sourceCount ) { continue; }
             // don't claim rooms if any nearby rooms with another owner
-            if (data.owner) {
-                return;
-            }
+            if (data.owner) { continue; }
+            if (data.chooseAgainDelay > Game.time) { continue; }
+            let roomType = WorldMap.roomType(roomName);
+            if (roomType === ROOMTYPE_SOURCEKEEPER && this.room.controller.level < 7) { continue; }
 
-            // spawning availability
-            let availabilityRequired = this.spawnGroup.spawns.length / 3;
-            if (Game.map.getRoomLinearDistance(this.room.name, roomName) > 1) { availabilityRequired = 1.2; }
-            if (this.spawnGroup.averageAvailability < availabilityRequired) { continue; }
+            // TODO: handle core settlement
+            if (Game.map.getRoomLinearDistance(this.room.name, roomName) > 1) { continue; }
             readyList[roomName] = data;
         }
 
@@ -295,7 +306,7 @@ export class SurveyAnalyzer {
         let bestChoice;
         for (let roomName in readySurveyRooms) {
             let data = readySurveyRooms[roomName];
-            let score = data.sourceCount * 1000 - data.averageDistance;
+            let score = data.sourceCount * 50 - data.averageDistance;
             if (score > bestScore) {
                 bestChoice = roomName;
                 bestScore = score;
@@ -306,18 +317,85 @@ export class SurveyAnalyzer {
     }
 
     private placeFlag(room: Room) {
-        let direction = WorldMap.findRelativeRoomDir(this.room.name, room.name);
-        let opName = this.opName.substr(0, this.opName.length - 1) + direction;
-        if (Game.map.getRoomLinearDistance(this.room.name, room.name ) > 1) {
-            opName += direction;
-        }
+
         let opType = "mining";
         if (WorldMap.roomType(room.name) === ROOMTYPE_SOURCEKEEPER) {
             opType = "keeper";
+        } else if (WorldMap.roomType(room.name) === ROOMTYPE_CORE) {
         }
-        let flagName = `${opType}_${opName}`;
-        PosHelper.pathablePosition(room.name).createFlag(flagName, COLOR_GREY);
-        Notifier.log(`SURVEY: created new operation in ${room.name}: ${flagName}`);
-        delete this.memory.surveyRooms[room.name];
+        let position = PosHelper.pathablePosition(room.name);
+        empire.addOperation(opType, position);
+    }
+
+    private underMinerLimit() {
+        let supportCount = this.findSupportedRooms();
+        if (this.room.controller.level < 7) {
+            return supportCount < 4;
+        } else if (this.room.controller.level === 7) {
+            return supportCount < 8;
+        } else {
+            return supportCount < 16;
+        }
+    }
+
+    private findOriginPos(): RoomPosition {
+        let origin: Structure = this.room.storage;
+        if (!origin) {
+            origin = this.room.find<StructureSpawn>(FIND_MY_SPAWNS)[0];
+            if (!origin) {
+                return;
+            }
+        }
+        return origin.pos;
+    }
+
+    private findPathDanger(path: RoomPosition[]) {
+        let roomsChecked: {[roomName: string]: boolean} = {};
+
+        for (let position of path) {
+            if (roomsChecked[position.roomName]) { continue; }
+            roomsChecked[position.roomName] = true;
+            let roomType = WorldMap.roomType(position.roomName);
+            if (roomType === ROOMTYPE_SOURCEKEEPER) {
+                return true;
+            }
+        }
+    }
+
+    private findSupportedRooms() {
+        let supportedCount = 0;
+        let keeperOperations = Operation.census["keeper"];
+        if (keeperOperations) {
+            for (let roomName in keeperOperations) {
+                if (Game.map.getRoomLinearDistance(this.room.name, roomName) > 2) { continue; }
+                let operations = keeperOperations[roomName];
+                for (let opName in operations) {
+                    let operation = operations[opName];
+                    if (operation.spawnGroup.pos.roomName === this.room.name) {
+                        supportedCount += 3;
+                    }
+                }
+            }
+        }
+
+        let miningOperations = Operation.census["mining"];
+        if (miningOperations) {
+            for (let roomName in miningOperations) {
+                if (Game.map.getRoomLinearDistance(this.room.name, roomName) > 2) { continue; }
+                let operations = miningOperations[roomName];
+                for (let opName in operations) {
+                    let operation = operations[opName];
+                    if (operation.spawnGroup.pos.roomName === this.room.name) {
+                        let sourceCount = 2;
+                        let room = Game.rooms[roomName];
+                        if (room) {
+                            sourceCount = room.find(FIND_SOURCES).length;
+                        }
+                        supportedCount += sourceCount;
+                    }
+                }
+            }
+        }
+        return supportedCount;
     }
 }

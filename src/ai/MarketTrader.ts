@@ -3,32 +3,33 @@ import {Notifier} from "../notifier";
 export class MarketTrader {
 
     private network: TradeNetwork;
+    private memory: {
+        standardPrice: number;
+    };
     public prices: {
-        [orderType: string]: {
-            [resourceType: string]: number
-        }
+        [resourceType: string]: number;
     };
 
     /* hardcoded values based on the state of the market when this was written, used as default values for prices
     for best results, write a script that will update prices based on the current state of the market */
-    private resourceValues = {
-        energy: .012,
-        H: .2,
-        O: .2,
-        Z: .15,
-        K: .15,
-        U: .15,
-        L: .15,
-        X: .15,
-        XUH2O: 1.5,
-        XLHO2: 1.5,
-        XKHO2: 1.5,
-        XZHO2: 1.5,
-        XZH2O: 1.5,
-        XLH2O: 1.5,
-        XGH2O: 2,
-        XGHO2: 2,
-        G: 1,
+    private initialValues = {
+        energy: .1,
+        H: 2,
+        O: 2,
+        Z: 1,
+        K: 1,
+        U: 1,
+        L: 1,
+        X: 4,
+        XUH2O: 10,
+        XLHO2: 10,
+        XKHO2: 10,
+        XZHO2: 10,
+        XZH2O: 10,
+        XLH2O: 10,
+        XGH2O: 15,
+        XGHO2: 15,
+        G: 5,
     };
     private blacklist: { [roomName: string]: boolean };
 
@@ -37,13 +38,11 @@ export class MarketTrader {
     }
 
     public update() {
-        if (!Memory.marketTrader.prices) {
-            Memory.marketTrader.prices = {
-                [ORDER_BUY]: {},
-                [ORDER_SELL]: {},
-            };
+        if (!Memory.marketTrader.priceData) {
+            Memory.marketTrader.priceData = {};
         }
-        this.prices = Memory.marketTrader.prices;
+        this.prices = Memory.marketTrader.priceData;
+        this.memory = Memory.marketTrader;
     }
 
     public updateBlacklist(blacklist: {[roomName: string]: boolean}) {
@@ -53,42 +52,36 @@ export class MarketTrader {
     public actions() {
         this.buyShortages();
         // this.sellCompounds();
+        this.displayPrices();
     }
 
-    public getPrice(resourceType: string, orderType: string) {
-        let price = this.resourceValues[resourceType];
-        if (this.prices[orderType][resourceType]) {
-            price = this.prices[orderType][resourceType];
+    public getPrice(resourceType: string) {
+        let price = this.initialValues[resourceType];
+        if (this.prices[resourceType]) {
+            price = this.prices[resourceType];
         }
         return price;
     }
 
-    public setPrice(resourceType: string, orderType: string, price: number) {
-
-        // sanity check
-        let currentPrice = this.getPrice(resourceType, orderType);
-        if (price < currentPrice * .1 || price > currentPrice * 10) {
-            Notifier.log(`TRADER: ${orderType} price for ${resourceType} failed sanity check. current price: ${
-                currentPrice}, failed price: ${price}`);
-            return;
-        }
-
-        this.prices[orderType][resourceType] = _.round(price, 3);
+    public setPrice(resourceType: string, price: number) {
+        this.prices[resourceType] = _.round(price, 3);
     }
 
     public displayPrices() {
-        console.log(JSON.stringify(this.prices, null, 4));
+        if (!Memory.visRoom) { return; }
+        Notifier.addMessage(Memory.visRoom, ``);
+        Notifier.addMessage(Memory.visRoom, `-----MarketTrader-----`);
+        Notifier.addMessage(Memory.visRoom, `prices: ${JSON.stringify(this.prices)}`);
     }
 
     public buyShortages() {
-        if (Game.market.credits < Memory.playerConfig.creditReserveAmount) { return; } // early
+        if (Memory.playerConfig.manual && Game.market.credits < Memory.playerConfig.creditReserveAmount) { return; } // early
 
         // OK - can only happen once per tick
-        if (Game.time % 100 !== 2) { return; }
+        if (Game.time % 256 !== 0) { return; }
 
         // you could use a different constant here if you wanted to limit buying
         for (let mineralType of MINERALS_RAW) {
-
             let abundance = this.network.hasAbundance(mineralType, RESERVE_AMOUNT);
             if (!abundance) {
                 console.log("EMPIRE: theres not enough", mineralType + ", attempting to purchase more");
@@ -113,13 +106,15 @@ export class MarketTrader {
         let lowestExpense = Number.MAX_VALUE;
         for (let order of orders) {
             if (order.remainingAmount < 100) { continue; }
+            // TODO: find a better way to exclude hostile rooms, some might be advantageous to buy from
+            if (this.blacklist[order.roomName]) { continue; }
             let expense = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
-            expense += transferCost * this.getPrice(RESOURCE_ENERGY, ORDER_BUY);
+            expense += transferCost * this.getPrice(RESOURCE_ENERGY);
             if (expense < lowestExpense) {
                 lowestExpense = expense;
                 bestOrder = order;
-                console.log("I could buy from", order.roomName, "for", order.price, "(+" + transferCost + ")");
+                // console.log("I could buy from", order.roomName, "for", order.price, "(+" + transferCost + ")");
             }
         }
 
@@ -160,10 +155,7 @@ export class MarketTrader {
 
         for (let compound of PRODUCT_LIST) {
 
-            let price = this.resourceValues[compound];
-            if (this.prices[ORDER_SELL][compound]) {
-                price = this.prices[ORDER_SELL][compound];
-            }
+            let price = this.getPrice(compound);
 
             if (this.orderCount(ORDER_SELL, compound, price) > 0) { continue; }
 
@@ -206,16 +198,16 @@ export class MarketTrader {
         for (let order of orders) {
             if (order.remainingAmount < 100) { continue; }
             if (this.blacklist[order.roomName]) {
-                Notifier.log(`skipped: ${order.roomName} due to blacklist`, 3);
+                // console.log(`skipped: ${order.roomName} due to blacklist`);
                 continue;
             }
             let gain = order.price;
             let transferCost = Game.market.calcTransactionCost(100, room.name, order.roomName) / 100;
-            gain -= transferCost * this.getPrice(RESOURCE_ENERGY, ORDER_BUY);
+            gain -= transferCost * this.getPrice(RESOURCE_ENERGY);
             if (gain > highestGain) {
                 highestGain = gain;
                 bestOrder = order;
-                console.log("I could sell it to", order.roomName, "for", order.price, "(+" + transferCost + ")");
+                // console.log("I could sell it to", order.roomName, "for", order.price, "(+" + transferCost + ")");
             }
         }
 
@@ -223,15 +215,15 @@ export class MarketTrader {
             let amount = Math.min(bestOrder.remainingAmount, dealAmount);
             let outcome = Game.market.deal(bestOrder.id, amount, room.name);
 
-            let notYetSelling = this.orderCount(ORDER_SELL, resourceType, bestOrder.price) === 0;
+            /*let notYetSelling = this.orderCount(ORDER_SELL, resourceType, bestOrder.price) === 0;
             if (notYetSelling) {
                 Game.market.createOrder(ORDER_SELL, resourceType, bestOrder.price, dealAmount * 2, room.name);
                 console.log("placed ORDER_SELL for", resourceType, "at", bestOrder.price, "Cr, to be sent from",
                     room.name);
-            }
+            }*/
 
             if (outcome === OK) {
-                console.log("sold", amount, resourceType, "to", bestOrder.roomName, "outcome:", outcome);
+                console.log("sold", amount, resourceType, "to", bestOrder.roomName, "for", bestOrder.price, "outcome:", outcome);
 
             } else if (outcome === ERR_INVALID_ARGS) {
                 console.log("invalid deal args:", bestOrder.id, amount, room.name);

@@ -9,6 +9,7 @@ import {empire} from "../Empire";
 import {Traveler} from "../Traveler";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {PosHelper} from "../../helpers/PosHelper";
+import {Observationer} from "../Observationer";
 
 interface PowerMemory extends MissionMemory {
     disabled: boolean;
@@ -37,9 +38,6 @@ export class PowerMission extends Mission {
     }
 
     public update() {
-        let observer = this.room.findStructures(STRUCTURE_OBSERVER)[0] as StructureObserver;
-        if (!observer) { return; }
-
         if (!Memory.powerObservers[this.room.name]) {
             Memory.powerObservers[this.room.name] = this.generateScanData();
             return;
@@ -48,7 +46,7 @@ export class PowerMission extends Mission {
         if (this.memory.currentBank) {
             this.monitorBank(this.memory.currentBank);
         } else {
-            this.scanForBanks(observer);
+            this.scanForBanks();
         }
     }
 
@@ -154,11 +152,11 @@ export class PowerMission extends Mission {
                 let yDir = coords.yDir;
                 if (x < 0) {
                     x = Math.abs(x) - 1;
-                    xDir = WorldMap.negaDirection(xDir);
+                    xDir = WorldMap.oppositeDir(xDir);
                 }
                 if (y < 0) {
                     y = Math.abs(y) - 1;
-                    yDir = WorldMap.negaDirection(yDir);
+                    yDir = WorldMap.oppositeDir(yDir);
                 }
                 let roomName = xDir + x + yDir + y;
                 if ((x % 10 === 0 || y % 10 === 0) && Game.map.isRoomAvailable(roomName)) {
@@ -197,6 +195,9 @@ export class PowerMission extends Mission {
         }
 
         if (clyde.pos.isNearTo(bankPos)) {
+            if (!bonnie.isNearTo(clyde)) {
+                bonnie.travelTo(clyde);
+            }
             clyde.memory.inPosition = true;
             let bank = bankPos.lookForStructure(STRUCTURE_POWER_BANK);
             if (!bank) {
@@ -334,6 +335,11 @@ export class PowerMission extends Mission {
         if (cart.memory.inPosition) {
             cart.memory.inPosition = Game.time % 25 !== 0;
         } else {
+            let clydesPresent = bankPos.findInRange(this.clydes, 10).length;
+            let clydesNearby = bankPos.findInRange(this.clydes, 10).length;
+            if (clydesNearby === 0 || clydesNearby < clydesPresent) {
+                return;
+            }
             if (bankPos.openAdjacentSpots().length > 0) {
                 if (cart.pos.isNearTo(bankPos)) {
                     cart.memory.inPosition = true;
@@ -482,11 +488,20 @@ export class PowerMission extends Mission {
         }
     }
 
-    private scanForBanks(observer: StructureObserver) {
+    private scanForBanks() {
+        let roomNames = Object.keys(Memory.powerObservers[this.room.name]);
+        if (roomNames.length === 0) { return; }
 
-        if (observer.observation && observer.observation.purpose === this.name) {
-            let room = observer.observation.room;
-            let bank = observer.observation.room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
+        if (this.memory.scanIndex === undefined || this.memory.scanIndex >= roomNames.length) {
+            this.memory.scanIndex = 0;
+        }
+
+        let currentRoomName = roomNames[this.memory.scanIndex];
+        let room = Game.rooms[currentRoomName];
+
+        if (room) {
+            this.memory.scanIndex++;
+            let bank = room.findStructures<StructurePowerBank>(STRUCTURE_POWER_BANK)[0];
             if (bank && bank.ticksToDecay > 4500 && bank.power >= Memory.playerConfig.powerMinimum) {
 
                 let ret = Traveler.findTravelPath(this.spawnGroup, bank);
@@ -502,15 +517,11 @@ export class PowerMission extends Mission {
                         wavesLeft: 3,
                     };
                 }
-                return;
             }
+            return;
         }
 
         if (this.spawnGroup.averageAvailability < .5 || Math.random() > .2) { return; }
-
-        let scanData = Memory.powerObservers[this.room.name];
-        if (this.memory.scanIndex >= Object.keys(scanData).length) { this.memory.scanIndex = 0; }
-        let roomName = Object.keys(scanData)[this.memory.scanIndex++];
-        observer.observeRoom(roomName, this.name);
+        Observationer.observeFromRoom(this.roomName, currentRoomName, 10);
     }
 }

@@ -4,7 +4,7 @@ export class TimeoutTracker {
         if (global.timeoutTracker && global.timeoutTracker.phase !== "finished") {
             let data = global.timeoutTracker;
             Notifier.log(`TIMEOUT: operation: ${data.operation}, mission: ${data.mission}, phase: ${data.phase}, ` +
-                `other: ${data.other}, tick: ${data.tick}, current: ${Game.time}, cpu: ${_.round(data.cpu)}`);
+                `other: ${data.other}, tick: ${data.tick}, current: ${Game.time}, cpu: ${_.round(data.cpu)}`, 2);
             delete global.timeoutTracker;
         }
 
@@ -18,12 +18,13 @@ export class TimeoutTracker {
         };
 
         if (Game.time > Memory.gameTimeLastTick + 4) {
-            Notifier.log(`HARD_RESET: tick: ${Memory.gameTimeLastTick}`);
+            Notifier.log(`HARD_RESET: tick: ${Memory.gameTimeLastTick}`, 2);
         }
         Memory.gameTimeLastTick = Game.time;
     }
 
     public static log(phase: string, operation?: string, mission?: string, other?: string) {
+        if (!global.timeoutTracker) { return; }
         global.timeoutTracker.operation = operation;
         global.timeoutTracker.mission = mission;
         global.timeoutTracker.phase = phase;
@@ -32,6 +33,7 @@ export class TimeoutTracker {
     }
 
     public static finalize() {
+        if (!global.timeoutTracker) { return; }
         global.timeoutTracker.phase = "finished";
     }
 }

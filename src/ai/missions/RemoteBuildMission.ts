@@ -1,6 +1,8 @@
 import {Mission} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
+import {ProcureEnergyOptions} from "../agents/interfaces";
+import {helper} from "../../helpers/helper";
 export class RemoteBuildMission extends Mission {
 
     private builders: Agent[];
@@ -36,7 +38,7 @@ export class RemoteBuildMission extends Mission {
     public roleCall() {
         let maxBuilders = () => this.construction && this.construction.length > 0 ? 1 : 0;
         let getBody = () => {
-            return this.bodyRatio(1, 1, 1, .8, 10);
+            return this.workerUnitBody(1, 1, 1, 10);
         };
         let memory;
         if (this.memory.activateBoost) {
@@ -85,6 +87,21 @@ export class RemoteBuildMission extends Mission {
             return; // early
         }
 
+        // repair the rampart you just built
+        if (builder.memory.rampartPos) {
+            let rampart = helper.deserializeRoomPosition(builder.memory.rampartPos).lookForStructure(STRUCTURE_RAMPART);
+            if (rampart && rampart.hits < 100000) {
+                if (rampart.pos.inRangeTo(builder, 3)) {
+                    builder.repair(rampart);
+                } else {
+                    builder.travelTo(rampart);
+                }
+                return;
+            } else {
+                builder.memory.rampartPos = undefined;
+            }
+        }
+
         let closest = this.findConstruction(builder);
         if (!closest) {
             builder.idleNear(this.flag);
@@ -92,8 +109,12 @@ export class RemoteBuildMission extends Mission {
         }
 
         if (builder.pos.inRangeTo(closest, 3)) {
-            builder.build(closest);
+            let outcome = builder.build(closest);
             builder.yieldRoad(closest);
+
+            if (outcome === OK && closest.structureType === STRUCTURE_RAMPART) {
+                builder.memory.rampartPos = closest.pos;
+            }
         } else {
             builder.travelTo(closest);
         }

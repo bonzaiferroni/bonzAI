@@ -7,12 +7,13 @@ import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {Profiler} from "../../Profiler";
+import {ProcureEnergyOptions} from "../agents/interfaces";
 
 interface DefenseMemory extends MissionMemory {
     idlePosition: RoomPosition;
     unleash: boolean;
     disableSafeMode: boolean;
-    wallCount: number;
+    structureCount: number;
     closestWallId: string;
     lastCheckedTowers: number;
     loggedAttack: boolean;
@@ -61,6 +62,8 @@ export class DefenseMission extends Mission {
     }
 
     public update() {
+        if (!this.state.hasVision) { return; }
+
         this.towers = this.room.findStructures<StructureTower>(STRUCTURE_TOWER);
 
         this.analyzePlayerThreat();
@@ -110,7 +113,7 @@ export class DefenseMission extends Mission {
 
     public roleCall() {
 
-        this.refillCarts = this.headCount("towerCart", () => this.bodyRatio(0, 2, 1, 1, 4), this.getMaxRefillers, {
+        this.refillCarts = this.headCount("towerCart", () => this.workerUnitBody(0, 2, 1, 4), this.getMaxRefillers, {
             prespawn: 1,
         });
 
@@ -284,12 +287,16 @@ export class DefenseMission extends Mission {
         }
     }
 
+    private findNext = (cart: Agent) => {
+        return this.findLowestEmpty(cart);
+    };
+
     private towerCartActions(cart: Agent) {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
             let options: ProcureEnergyOptions = {
-                nextDestination: this.findLowestEmpty(cart),
+                nextDestination: this.findNext,
                 highPriority: true,
             };
             cart.procureEnergy(options);
@@ -452,43 +459,44 @@ export class DefenseMission extends Mission {
         }
     }
 
-    /*
-     private towerTargeting(towers: StructureTower[]) {
-     if (!towers || towers.length === 0) { return; }
-
-     for (let tower of this.towers) {
-
-     let target = this.closestHostile;
-
-     // kill jon snows target
-     if (this.attackedCreep) {
-     target = this.attackedCreep;
-     }
-
-     // healing as needed
-     if (this.healedDefender) {
-     tower.heal(this.healedDefender.creep);
-     }
-
-     // the rest attack
-     tower.attack(target);
-     }
-     }
-     */
-
     private triggerSafeMode() {
-        if (this.state.playerThreat && !this.memory.disableSafeMode) {
-            let wallCount = this.room.findStructures(STRUCTURE_WALL)
-                .concat(this.room.findStructures(STRUCTURE_RAMPART)).length;
-            if (this.memory.wallCount && wallCount < this.memory.wallCount) {
-                // TODO: change this back to rcl6
-                if (this.room.controller.level >= 6) {
-                    this.room.controller.activateSafeMode();
-                }
+        let roomFailing = this.isRoomFailing();
+        let strategicalSafeMode = this.findStrategicalSafeMode();
+        if (roomFailing || strategicalSafeMode) {
+            this.room.controller.activateSafeMode();
+            if (this.room.controller.level >= 8 && this.room.memory.layout) {
+                this.room.memory.layout.turtle = true;
             }
-            this.memory.wallCount = wallCount;
+        }
+    }
+
+    private isRoomFailing(): boolean {
+        let roomFailing = false;
+        if (this.state.playerThreat) {
+            let structureCount = this.room.findStructures(STRUCTURE_RAMPART)
+                .concat(this.room.findStructures(STRUCTURE_EXTENSION))
+                .concat(this.room.findStructures(STRUCTURE_SPAWN))
+                .concat(this.room.findStructures(STRUCTURE_STORAGE))
+                .concat(this.room.findStructures(STRUCTURE_TERMINAL))
+                .concat(this.room.findStructures(STRUCTURE_TOWER)).length;
+            if (this.memory.structureCount && structureCount < this.memory.structureCount) {
+                roomFailing = true;
+            }
+            this.memory.structureCount = structureCount;
         } else {
-            this.memory.wallCount = undefined;
+            this.memory.structureCount = undefined;
+        }
+        return roomFailing;
+    }
+
+    private findStrategicalSafeMode() {
+        if (Game.gcl.level > 3) {
+            return false;
+        }
+
+        if (this.state.playerThreat) {
+            let noTowers = this.room.findStructures(STRUCTURE_TOWER).length === 0;
+            return noTowers;
         }
     }
 

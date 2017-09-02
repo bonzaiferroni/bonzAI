@@ -1,15 +1,14 @@
 import {Operation} from "./Operation";
 import {Empire} from "../Empire";
 import {ScoutMission} from "../missions/ScoutMission";
-import {MiningMission} from "../missions/MiningMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
-import {GeologyMission} from "../missions/GeologyMission";
 import {LairMission} from "../missions/LairMission";
 import {EnhancedBodyguardMission} from "../missions/EnhancedBodyguardMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
 import {MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH, OperationPriority} from "../../config/constants";
 import {Mission} from "../missions/Mission";
 import {PaverMission} from "../missions/PaverMission";
+import {KeeperGeologyMission} from "../missions/KeeperGeologyMission";
 export class KeeperOperation extends Operation {
     private invaderGuru: InvaderGuru;
 
@@ -28,7 +27,7 @@ export class KeeperOperation extends Operation {
 
     public init() {
 
-        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 7, 50);
+        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 5600, 50);
         let assignedSpawn = this.assignRemoteSpawn();
         if (!assignedSpawn) { return; }
 
@@ -44,18 +43,18 @@ export class KeeperOperation extends Operation {
         this.invaderGuru.init();
         this.addMission(new LairMission(this, this.invaderGuru));
 
-        MiningMission.Add(this, false);
+        Operation.addMining(this, false, false);
 
         this.addMission(new RemoteBuildMission(this, true));
         this.addMission(new PaverMission(this));
 
         if (this.state.mineral.pos.lookFor(LOOK_FLAGS).length === 0) {
-            this.addMission(new GeologyMission(this));
+            this.addMission(new KeeperGeologyMission(this));
         }
     }
 
     public update() {
-        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 8, 50);
+        this.updateRemoteSpawn(MAX_HARVEST_DISTANCE, 5600, 50);
         if (this.invaderGuru) {
             this.invaderGuru.update();
         }

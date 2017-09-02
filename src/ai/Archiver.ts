@@ -56,9 +56,16 @@ export class Archiver {
         this.writeSegments[segmentId] = true;
     }
 
+    public static writeSegment(segmentId: number) {
+        let str = JSON.stringify(this.segments[segmentId]);
+        RawMemory.segments[segmentId] = str;
+        this.memory.lastUpdated[segmentId] = Game.time;
+    }
+
     // call this at end of tick
     public static finalize() {
         for (let segmentId in this.writeSegments) {
+            // console.log(`ARCHIVER: writing to segment ${segmentId}`);
             if (!this.memory.activeSegments[segmentId]) {
                 this.memory.activeSegments[segmentId] = true;
                 let activeSegments = _.map(Object.keys(this.memory.activeSegments), x => Number.parseInt(x));
@@ -69,9 +76,7 @@ export class Archiver {
                 }
                 RawMemory.setActiveSegments(activeSegments);
             }
-            let str = JSON.stringify(this.segments[segmentId]);
-            RawMemory.segments[segmentId] = str;
-            this.memory.lastUpdated[segmentId] = Game.time;
+            this.writeSegment(Number.parseInt(segmentId));
         }
     }
 }

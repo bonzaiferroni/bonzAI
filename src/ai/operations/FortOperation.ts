@@ -5,17 +5,15 @@ import {DefenseMission} from "../missions/DefenseMission";
 import {PowerMission} from "../missions/PowerMission";
 import {TerminalNetworkMission} from "../missions/TerminalNetworkMission";
 import {IgorMission} from "../missions/IgorMission";
-import {LinkMiningMission} from "../missions/LinkMiningMission";
-import {MiningMission} from "../missions/MiningMission";
 import {BuilderMission} from "../missions/BuilderMission";
 import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
-import {GeologyMission} from "../missions/GeologyMission";
 import {PaverMission} from "../missions/PaverMission";
 import {DefenseGuru} from "../DefenseGuru";
 import {OperationPriority} from "../../config/constants";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "../TradeNetwork";
 import {empire} from "../Empire";
+import {GeologyMission} from "../missions/GeologyMission";
 
 export class FortOperation extends Operation {
 
@@ -59,11 +57,10 @@ export class FortOperation extends Operation {
             }
 
             // harvest energy
-            MiningMission.Add(this, true);
+            Operation.addMining(this, true, true);
 
             // update construction
-            let defenseGuru = new DefenseGuru(this);
-            this.addMission(new BuilderMission(this, defenseGuru));
+            this.addMission(new BuilderMission(this));
 
             // update walls
             // TODO: make MasonMission

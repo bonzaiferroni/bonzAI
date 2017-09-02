@@ -1,4 +1,5 @@
 import {Layout} from "./Layout";
+import {NEED_ENERGY_THRESHOLD} from "../TradeNetwork";
 export class LayoutBuilder {
 
     private layout: Layout;
@@ -16,8 +17,8 @@ export class LayoutBuilder {
     };
 
     private levelRestriction = {
-        [STRUCTURE_ROAD]: 4,
-        [STRUCTURE_RAMPART]: 5,
+        [STRUCTURE_ROAD]: 8,
+        [STRUCTURE_RAMPART]: 6,
     };
 
     private safeTypes = {
@@ -25,9 +26,7 @@ export class LayoutBuilder {
         [STRUCTURE_RAMPART]: true,
     };
 
-    private buildPriority = [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_LINK, STRUCTURE_EXTENSION, STRUCTURE_STORAGE,
-        STRUCTURE_TERMINAL, STRUCTURE_ROAD, STRUCTURE_RAMPART, STRUCTURE_OBSERVER, STRUCTURE_NUKER,
-        STRUCTURE_POWER_SPAWN, STRUCTURE_LAB];
+    private buildPriority: string[];
 
     constructor(layout: Layout, roomName: string) {
         this.layout = layout;
@@ -50,6 +49,8 @@ export class LayoutBuilder {
             this.memory.nextCheck = Game.time + 100 + Math.floor(Math.random() * 10);
             return;
         }
+
+        this.buildPriority = this.findBuildPriority();
 
         let structureTypes = this.buildPriority;
         for (let buildType of structureTypes) {
@@ -78,7 +79,7 @@ export class LayoutBuilder {
                     let errantStructure = this.findErrantStructure(buildType, positions);
                     if (errantStructure) {
                         this.demolishStructure(errantStructure);
-                        return;
+                        continue;
                     }
 
                     let errantSite = this.findErrantSite(buildType, positions);
@@ -165,10 +166,13 @@ export class LayoutBuilder {
             this.memory.nextCheck = Game.time + 100;
             return true;
         }
-        if (this.room.find(FIND_MY_CONSTRUCTION_SITES).length > 5) {
+
+        let nonRoads = _.filter(this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES),
+            x => x.structureType !== STRUCTURE_ROAD && x.structureType !== STRUCTURE_CONTAINER);
+        if (nonRoads.length > 5) {
             return true;
         }
-        return ;
+        return;
     }
 
     protected allowedCount(structureType: string, positions: RoomPosition[]): number {
@@ -206,7 +210,20 @@ export class LayoutBuilder {
             return structure;
         }
     }
+
+    private findBuildPriority(): string[] {
+        let priorityMap = {
+            ["high"]: [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB],
+            ["medium"]: [STRUCTURE_TOWER, STRUCTURE_LINK, STRUCTURE_EXTENSION],
+            ["low"]: [STRUCTURE_ROAD, STRUCTURE_OBSERVER, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN],
+        };
+
+        if (this.room.storage && this.room.storage.store[RESOURCE_ENERGY] > NEED_ENERGY_THRESHOLD) {
+            priorityMap["medium"].unshift(STRUCTURE_RAMPART);
+        }
+        return _.flatten(_.toArray(priorityMap));
+    }
 }
 
-export const BUILDER_MAXCONSTRUCTION = 60;
+export const BUILDER_MAXCONSTRUCTION = 80;
 export const DEMOLISH_SAFELY = false;

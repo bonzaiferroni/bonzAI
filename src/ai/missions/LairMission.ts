@@ -4,13 +4,12 @@ import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {helper} from "../../helpers/helper";
 import {Traveler} from "../Traveler";
-import {HostileAgent} from "../agents/HostileAgent";
 import {Scheduler} from "../../Scheduler";
 import {CreepHelper} from "../../helpers/CreepHelper";
-import {AbstractAgent} from "../agents/AbstractAgent";
 import {Notifier} from "../../notifier";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {PosHelper} from "../../helpers/PosHelper";
+import {PeaceAgent} from "../agents/PeaceAgent";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];
@@ -28,11 +27,10 @@ interface LairMissionState extends MissionState {
 
 export class LairMission extends Mission {
 
-    private trappers: Agent[];
     private scavengers: Agent[];
-    private decoys: Agent[];
+    private trappers: PeaceAgent[];
+    private decoys: PeaceAgent[];
     private invaderGuru: InvaderGuru;
-    private invasionMatrix: CostMatrix;
 
     public state: LairMissionState;
     public memory: LairMissionMemory;
@@ -72,34 +70,24 @@ export class LairMission extends Mission {
     };
 
     public roleCall() {
-        this.trappers = this.headCount("trapper", this.trapperBody, this.maxTrappers, {
+        this.trappers = this.headCountAgents(PeaceAgent, "trapper", this.trapperBody, this.maxTrappers, {
             prespawn: this.state.distanceToSpawn + 100,
             skipMoveToRoom: true,
+        });
+
+        this.decoys = this.headCountAgents(PeaceAgent, "decoy", this.decoyBody, this.maxDecoys, {
+            prespawn: this.state.distanceToSpawn + 50,
         });
 
         this.scavengers = this.headCount("scavenger", this.scavangerBody, this.maxScavangers, {
             prespawn: this.state.distanceToSpawn,
         });
-
-        this.decoys = this.headCount("decoy", this.decoyBody, this.maxDecoys, {
-            prespawn: this.state.distanceToSpawn + 50,
-        });
     }
 
     public actions() {
 
-        if (this.invaderGuru.invadersPresent) {
-            if (!this.memory.invTick) {
-                this.memory .invTick = Game.time;
-                console.log("****** lairmission invader", this.invaderGuru.invaders.length, this.roomName);
-            }
-        } else if (this.memory.invTick) {
-            let defenseTime = Game.time - this.memory.invTick;
-            if (defenseTime > 100) {
-                Notifier.log(`long SK defense time ${defenseTime} in ${this.roomName}`);
-            }
-            delete this.memory.invTick;
-        }
+        // temporary
+        this.trackInvasions();
 
         // needs to come before trapper, detects this.state.invaderDuty
         for (let decoy of this.decoys) {
@@ -121,7 +109,7 @@ export class LairMission extends Mission {
     public invalidateCache() {
     }
 
-    private trapperActions(trapper: Agent) {
+    private trapperActions(trapper: PeaceAgent) {
 
         let invaderDuty = this.invaderDutyActions(trapper);
         if (invaderDuty) { return; }
@@ -146,10 +134,10 @@ export class LairMission extends Mission {
                 range = trapper.pos.getRangeTo(keeper);
                 // stop and heal at range === 4 if needed
                 if (range > 1 && (range !== 4 || trapper.hitsMax === trapper.hits)) {
-                    trapper.travelTo(keeper);
+                    trapper.travelTo(keeper, {pushy: true});
                 }
             } else {
-                trapper.travelTo(this.state.targetLair, {range: 1});
+                trapper.travelTo(this.state.targetLair, {range: 1, pushy: true});
             }
         }
 
@@ -158,7 +146,7 @@ export class LairMission extends Mission {
         }
     }
 
-    private invaderDutyActions(trapper: Agent): boolean {
+    private invaderDutyActions(trapper: PeaceAgent): boolean {
 
         if (!this.invaderGuru.invadersPresent) {
             return false;
@@ -239,7 +227,7 @@ export class LairMission extends Mission {
         return agent.travelTo(destination, options);
     }
 
-    private trapperFlee(trapper: Agent): boolean {
+    private trapperFlee(trapper: PeaceAgent): boolean {
         let spookies = _(this.invaderGuru.invaders)
             .filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0)
             .value();
@@ -255,7 +243,7 @@ export class LairMission extends Mission {
         }
     }
 
-    private decoyActions(decoy: Agent) {
+    private decoyActions(decoy: PeaceAgent) {
         if (!this.invaderGuru.invadersPresent) {
 
             if (decoy.room !== this.room || decoy.pos.isNearExit(0)) {
@@ -265,52 +253,19 @@ export class LairMission extends Mission {
 
             let assisting = this.assistKeeperDuty(decoy);
             if (assisting) { return; }
-            this.medicActions(decoy);
+            let healing = this.medicActions(decoy);
+            if (healing) { return; }
+
+            if (!this.invaderGuru.invaderProbable) {
+                this.goFreelance(decoy, "ranger");
+            }
             return;
         }
 
-        decoy.standardRangedAttack();
-        decoy.standardAgentHealing(this.trappers.concat(this.decoys));
-
-        // assisting
-        let spookies = _(this.invaderGuru.invaders).filter(x => x.getPotential(RANGED_ATTACK) > 0).value();
-        let closest = decoy.pos.findClosestByRange(this.trappers);
-        if (spookies.length <= 3 && decoy.hits > decoy.hitsMax * .9) {
-            this.decoyAttackActions(decoy, closest);
-            return;
-        }
-
-        // decoying
-        let closestSpooky = decoy.pos.findClosestByRange(spookies);
-        let range = decoy.pos.getRangeTo(closestSpooky);
-        if (range > 5) {
-            this.invasionTravel(decoy, closestSpooky);
-            decoy.clearFleeData();
-        } else if (range === 5) {
-            // do nothing
-        } else {
-            // let fleePoint = {pos: new RoomPosition(25, 25, this.roomName)};
-            let fleePoint = {pos: PosHelper.pathablePosition(this.roomName) };
-            let outcome = decoy.fleeByPath([fleePoint], 40, 2, false, true);
-        }
+        decoy.standardAttackActions(this.roomName);
     }
 
-    private decoyAttackActions(decoy: Agent, trapper?: Agent) {
-        let destination: AbstractAgent = trapper;
-        if (!destination || decoy.pos.getRangeTo(trapper) > 5 || trapper.hits > trapper.hitsMax * .5) {
-            // path to invader instead
-            destination = _(this.invaderGuru.invaders)
-                .max(x => x.getPotential(HEAL) - (x.room === decoy.room ? x.pos.getRangeTo(decoy) : 0));
-        }
-
-        if (_.isObject(destination)) {
-            this.invasionTravel(decoy, destination);
-        } else {
-            decoy.travelTo(this.flag);
-        }
-    }
-
-    private assistKeeperDuty(decoy: Agent) {
+    private assistKeeperDuty(decoy: PeaceAgent) {
 
         if (this.state.keepers.length <= 1 && this.trappers.length > 0) {
             if (!this.memory.assistUntil || Game.time > this.memory.assistUntil) {
@@ -380,7 +335,7 @@ export class LairMission extends Mission {
                 scavenger.pickup(closest);
                 scavenger.say("yoink!", true);
             } else {
-                scavenger.travelTo(closest);
+                scavenger.travelTo(closest, {pushy: true});
             }
         } else {
             scavenger.idleNear(this.flag);
@@ -489,5 +444,26 @@ export class LairMission extends Mission {
         }
 
         return _.map(this.memory.bestLairOrder, id => Game.getObjectById<StructureKeeperLair>(id));
+    }
+
+    private trackInvasions() {
+        if (this.invaderGuru.invadersPresent) {
+            if (!this.memory.invTick) {
+                this.memory .invTick = Game.time;
+                console.log("****** lairmission invader", this.invaderGuru.invaders.length, this.roomName);
+            }
+        } else if (this.memory.invTick) {
+            let defenseTime = Game.time - this.memory.invTick;
+            if (defenseTime > 100) {
+                Notifier.log(`long SK defense time ${defenseTime} in ${this.roomName}`, 4);
+            }
+            if (!Memory.temp.invTicks) { Memory.temp.invTicks = []; }
+            Memory.temp.invTicks.push(this.memory.invTick);
+            Memory.stats["temp.invTick"] = Math.ceil(_.sum(Memory.temp.invTicks) / Memory.temp.invTicks.length );
+            while (Memory.temp.invTicks.length > 10) {
+                Memory.temp.invTicks.shift();
+            }
+            delete this.memory.invTick;
+        }
     }
 }

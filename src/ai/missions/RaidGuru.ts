@@ -96,8 +96,7 @@ export class RaidGuru extends Guru {
         let ret = PathFinder.search(this.spawnGroup.pos, {pos: spawns[0].pos, range: 1}, {
             roomCallback: (roomName: string): CostMatrix | boolean => {
                 if (roomName !== this.room.name && Traveler.checkAvoid(roomName)) { return false; }
-                let room = Game.rooms[roomName];
-                if (room) { return Traveler.getStructureMatrix(room); }
+                return Traveler.getStructureMatrix(roomName);
             },
         });
         if (!ret.incomplete) {

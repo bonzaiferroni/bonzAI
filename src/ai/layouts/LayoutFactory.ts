@@ -1,11 +1,13 @@
 import {QuadLayout} from "./QuadLayout";
 import {
-    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_QUAD, LAYOUT_SWAP, LayoutData,
+    Layout, LAYOUT_CUSTOM, LAYOUT_FLEX, LAYOUT_MINI, LAYOUT_PLUS, LAYOUT_QUAD, LAYOUT_SWAP, LAYOUT_TREE, LayoutData,
 } from "./Layout";
 import {MiniLayout} from "./MiniLayout";
 import {FlexLayout} from "./FlexLayout";
 import {CustomLayout} from "./CustomLayout";
 import {SwapLayout} from "./SwapLayout";
+import {PlusLayout} from "./PlusLayout";
+import {TreeLayout} from "./TreeLayout";
 export class LayoutFactory {
 
     public static layoutClasses = {
@@ -13,6 +15,8 @@ export class LayoutFactory {
         [LAYOUT_MINI]: MiniLayout,
         [LAYOUT_FLEX]: FlexLayout,
         [LAYOUT_SWAP]: SwapLayout,
+        [LAYOUT_PLUS]: PlusLayout,
+        [LAYOUT_TREE]: TreeLayout,
         [LAYOUT_CUSTOM]: CustomLayout,
     };
 

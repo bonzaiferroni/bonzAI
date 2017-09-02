@@ -4,6 +4,7 @@ import {helper} from "../../helpers/helper";
 import {SurveyAnalyzer} from "./SurveyAnalyzer";
 import {Agent} from "../agents/Agent";
 import {PosHelper} from "../../helpers/PosHelper";
+import {Observationer} from "../Observationer";
 
 interface SurveyMemory extends MissionMemory {
     surveyComplete: boolean;
@@ -16,7 +17,6 @@ interface SurveyState extends MissionState {
 
 export class SurveyMission extends Mission {
 
-    private surveyors: Agent[];
     public state: SurveyState;
     public memory: SurveyMemory;
 
@@ -32,30 +32,12 @@ export class SurveyMission extends Mission {
         this.state.needsVision = analyzer.run();
     }
 
-    private maxSurveyors = () => {
-        if (this.state.needsVision && !this.room.findStructures(STRUCTURE_OBSERVER)[0] || this.state.chosenRoom) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
-
     public roleCall() {
-        this.surveyors = this.headCount("surveyor", () => this.workerBody(0, 0, 1), this.maxSurveyors);
     }
 
     public actions() {
-
-        for (let surveyor of this.surveyors) {
-            if (this.state.needsVision) {
-                this.explorerActions(surveyor);
-            }
-        }
-
         if (this.state.needsVision) {
-            let observer = this.room.findStructures<StructureObserver>(STRUCTURE_OBSERVER)[0];
-            if (!observer) { return; }
-            observer.observeRoom(this.state.needsVision);
+            Observationer.observeFromRoom(this.roomName, this.state.needsVision, 3);
         }
     }
 
@@ -63,11 +45,5 @@ export class SurveyMission extends Mission {
     }
 
     public invalidateCache() {
-    }
-
-    private explorerActions(explorer: Agent) {
-        if (this.state.needsVision) {
-            explorer.travelTo({pos: PosHelper.pathablePosition(this.state.needsVision)});
-        }
     }
 }

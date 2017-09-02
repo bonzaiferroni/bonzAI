@@ -6,7 +6,7 @@ import {PRIORITY_BUILD} from "../../config/constants";
 import {DefenseGuru} from "../DefenseGuru";
 import {Agent} from "../agents/Agent";
 
-interface BuilderMemory extends MissionMemory {
+export interface BuilderMemory extends MissionMemory {
     max: number;
     transportAnalysis: TransportAnalysis;
     rampartPos: RoomPosition;
@@ -18,55 +18,57 @@ export class BuilderMission extends Mission {
 
     private builders: Agent[];
     private supplyCarts: Agent[];
-    private sites: ConstructionSite[];
+    protected sites: ConstructionSite[];
     private remoteSpawning: boolean;
     private activateBoost: boolean;
-    private defenseGuru: DefenseGuru;
     private boosts: string[];
 
     public memory: BuilderMemory;
     private _analysis: TransportAnalysis;
     private prespawn: number;
 
+    private highPriority = {
+        [STRUCTURE_SPAWN]: true,
+        [STRUCTURE_STORAGE]: true,
+        [STRUCTURE_TERMINAL]: true,
+        [STRUCTURE_EXTENSION]: true,
+        [STRUCTURE_TOWER]: true,
+    };
+
     /**
      * Spawns a creep to update construction and repair walls. Construction will take priority over walls
      * @param operation
-     * @param defenseGuru
      * @param activateBoost
      */
 
-    constructor(operation: Operation, defenseGuru: DefenseGuru, activateBoost = false) {
+    constructor(operation: Operation, activateBoost = false) {
         super(operation, "builder");
-        this.defenseGuru = defenseGuru;
         this.activateBoost = activateBoost;
     }
 
     public init() {
         this.prespawn = 1;
-        let underLeveled = this.room && this.room.controller.level <= 6;
-        if (underLeveled && this.operation.remoteSpawn) {
-            let remoteGroup = this.operation.remoteSpawn.spawnGroup;
-            if (remoteGroup && remoteGroup.room.controller.level >= this.room.controller.level) {
-                this.remoteSpawning = true;
-                this.spawnGroup = remoteGroup;
-                this.prespawn = this.operation.remoteSpawn.distance;
-            }
+        let preferRemote = this.findPreferRemote();
+        if (preferRemote) {
+            this.remoteSpawning = true;
+            this.spawnGroup = this.operation.remoteSpawn.spawnGroup;
+            this.prespawn = this.operation.remoteSpawn.distance;
         }
 
         this.boosts = [RESOURCE_CATALYZED_LEMERGIUM_ACID];
     }
 
     public update() {
-        this.sites = this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+        this.sites = this.findConstructionSites();
         if (this.sites.length > 0 && this.room.controller.level === 8) {
-            let nonRoads = _.filter(this.sites, x => x.structureType !== STRUCTURE_ROAD);
+            let nonRoads = _.filter(this.sites, x => x.structureType !== STRUCTURE_ROAD && x.structureType !== STRUCTURE_CONTAINER);
             if (nonRoads.length === 0) {
                 this.boosts = undefined;
             }
         }
     }
 
-    private maxBuilders = () => {
+    protected maxBuilders = () => {
         if (this.sites.length === 0) {
             return 0;
         }
@@ -76,8 +78,8 @@ export class BuilderMission extends Mission {
         return Math.ceil(builderCost / this.spawnGroup.maxSpawnEnergy);
     };
 
-    private maxCarts = () => {
-        if (this.sites.length === 0 || this.defenseGuru.hostiles.length > 0) {
+    protected maxCarts = () => {
+        if (this.sites.length === 0 || this.room.hostiles.length > 0) {
             return 0;
         }
         let builderCount = this.roleCount("builder");
@@ -88,13 +90,13 @@ export class BuilderMission extends Mission {
         }
     };
 
-    private builderBody = () => {
+    protected builderBody = () => {
 
         let potency = this.findBuilderPotency();
         if (this.remoteSpawning) {
-            return this.bodyRatio(1, 3, 1, 1, potency);
+            return this.workerUnitBody(1, 3, 1, potency);
         } else {
-            return this.bodyRatio(1, 3, .5, 1, potency);
+            return this.workerUnitBody(1, 3, .5, potency);
         }
     };
 
@@ -134,7 +136,30 @@ export class BuilderMission extends Mission {
         this.memory.transportAnalysis = undefined;
     }
 
-    private builderActions(builder: Agent) {
+    private findPreferRemote() {
+        if (!this.operation.remoteSpawn || !this.operation.remoteSpawn.spawnGroup) {
+            return false;
+        }
+        let underLeveled = this.spawnGroup.room === this.room && this.spawnGroup.maxSpawnEnergy < 1300;
+        if (underLeveled) {
+            return true;
+        }
+
+        let remoteGroup = this.operation.remoteSpawn.spawnGroup;
+        let haveLocalBoost = this.room.terminal && this.room.terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ACID] > 1000;
+        let haveRemoteBoost = remoteGroup.room.terminal && remoteGroup.room.terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ACID] > 1000;
+        if (!haveLocalBoost && haveRemoteBoost) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    protected findConstructionSites() {
+        return this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES)
+    }
+
+    protected builderActions(builder: Agent) {
 
         let hasLoad = builder.hasLoad() || this.supplyCarts.length > 0;
         if (!hasLoad) {
@@ -143,8 +168,8 @@ export class BuilderMission extends Mission {
         }
 
         // repair the rampart you just built
-        if (this.memory.rampartPos) {
-            let rampart = helper.deserializeRoomPosition(this.memory.rampartPos).lookForStructure(STRUCTURE_RAMPART);
+        if (builder.memory.rampartPos) {
+            let rampart = helper.deserializeRoomPosition(builder.memory.rampartPos).lookForStructure(STRUCTURE_RAMPART);
             if (rampart && rampart.hits < 100000) {
                 if (rampart.pos.inRangeTo(builder, 3)) {
                     builder.repair(rampart);
@@ -153,12 +178,12 @@ export class BuilderMission extends Mission {
                 }
                 return;
             } else {
-                this.memory.rampartPos = undefined;
+                builder.memory.rampartPos = undefined;
             }
         }
 
         // has energy
-        let target = builder.pos.findClosestByRange(this.sites);
+        let target: ConstructionSite|StructureController = this.findBuilderTarget(builder);
         // manuall override
         let flag = Game.flags[`${this.operation.name}_build`];
         if (flag) {
@@ -168,38 +193,31 @@ export class BuilderMission extends Mission {
             }
         }
 
-        if (!target) {
-            // this.buildWalls(builder);
-            builder.idleOffRoad(this.flag);
-            let rampart = builder.pos.findInRange(
-                builder.room.findStructures<StructureRampart>(STRUCTURE_RAMPART), 3)[0];
-            if (rampart) {
-                let outcome = builder.repair(rampart);
-            }
-            return;
-        }
-
         // has target
         let range = builder.pos.getRangeTo(target);
         if (range <= 3) {
-            let outcome = builder.build(target);
-            if (outcome === OK) {
-                builder.yieldRoad(target);
-            }
-            if (outcome === OK && target.structureType === STRUCTURE_RAMPART) {
-                this.memory.rampartPos = target.pos;
-            }
-
-            // standing on top of target
-            if (range === 0) {
-                builder.travelTo(this.flag);
+            builder.memory.deliverTo = true;
+            if (target instanceof ConstructionSite) {
+                let outcome = builder.build(target);
+                builder.idleNear(target, 3);
+                if (outcome === OK && target.structureType === STRUCTURE_RAMPART) {
+                    builder.memory.rampartPos = target.pos;
+                }
+                // standing on top of target
+                if (range === 0) {
+                    builder.travelTo(this.flag);
+                }
+            } else {
+                builder.upgradeController(target);
+                builder.idleNear(target, 3);
             }
         } else {
-            builder.travelTo(target);
+            builder.memory.deliverTo = false;
+            builder.travelTo(target, { range: 3});
         }
     }
 
-    private findBuilderPotency() {
+    protected findBuilderPotency() {
         let supplyPotency = 1;
         if (this.room.storage) {
             if (this.room.storage.store.energy < 20000) {
@@ -224,7 +242,7 @@ export class BuilderMission extends Mission {
 
         let hasLoad = cart.hasLoad();
         if (!hasLoad) {
-            cart.procureEnergy(suppliedAgent);
+            cart.procureEnergy({nextDestination: agent => suppliedAgent});
             return;
         }
 
@@ -236,7 +254,7 @@ export class BuilderMission extends Mission {
 
         let overCapacity = cart.carry.energy > suppliedAgent.carryCapacity - suppliedAgent.carry.energy;
         if (suppliedAgent.carry.energy > suppliedAgent.carryCapacity * .5 && overCapacity) {
-            cart.yieldRoad(suppliedAgent);
+            cart.idleNear(suppliedAgent, 3);
             return;
         }
 
@@ -269,7 +287,7 @@ export class BuilderMission extends Mission {
     private findBuilder(cart: Agent): Creep {
         if (cart.memory.builderId) {
             let builder = Game.getObjectById<Creep>(cart.memory.builderId);
-            if (builder && (builder.carry.energy < builder.carryCapacity ||
+            if (builder && (builder.carry.energy < builder.carryCapacity - 10 ||
                 (!cart.pos.isNearTo(builder) && Math.random() > .2))) {
                 return builder;
             } else {
@@ -287,4 +305,27 @@ export class BuilderMission extends Mission {
         }
     }
 
+    protected findBuilderTarget(builder: Agent): ConstructionSite|StructureController {
+        if (builder.memory.targetId) {
+            let target = Game.getObjectById<ConstructionSite>(builder.memory.targetId);
+            if (target) {
+                return target;
+            } else {
+                builder.memory.targetId = undefined;
+                return this.findBuilderTarget(builder);
+            }
+        } else {
+            if (this.sites.length === 0 || this.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[this.room.controller.level] * .5) {
+                return this.room.controller;
+            }
+            let target = _.find(this.sites, x => this.highPriority[x.structureType]);
+            if (!target) {
+                target = builder.pos.findClosestByRange(this.sites);
+            }
+            if (target) {
+                builder.memory.targetId = target.id;
+                return target;
+            }
+        }
+    }
 }

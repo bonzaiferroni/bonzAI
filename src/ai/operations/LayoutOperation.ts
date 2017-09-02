@@ -4,8 +4,11 @@ import {ROOMTYPE_ALLEY, WorldMap} from "../WorldMap";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
 import {PosHelper} from "../../helpers/PosHelper";
+import {Observationer} from "../Observationer";
+import {empire} from "../Empire";
 
 interface LayoutOperationMemory extends OperationMemory {
+    blind: boolean;
     data: {
         ready: boolean,
         nearbyRooms: string[],
@@ -32,20 +35,23 @@ export class LayoutOperation extends Operation {
     }
 
     public finalize() {
+        if (!this.room && !this.memory.blind) {
+            Observationer.observeRoom(this.roomName, 0);
+            return;
+        }
+
         if (Memory.rooms[this.flag.pos.roomName].layout) {
             delete this.memory.data;
             let newFlagName = `control_${this.name}`;
             if (!this.room) {
-                let observing = this.observeRoom(this.flag.pos.roomName);
-                if (observing) {
-                    return;
-                } else {
-                    console.log(`LAYOUT: you will need to create a flag manually: ${newFlagName} in ${this.room.name}`);
-                    return;
-                }
+                Observationer.observeRoom(this.flag.pos.roomName, 2);
+                return;
             }
             console.log(`planting new operation: ${newFlagName}`);
-            this.flag.pos.createFlag(newFlagName, COLOR_GREY);
+            empire.addOperation("control", this.flag.pos);
+            if (empire.cpuAvailable(30)) {
+                empire.addOperation("boot", this.flag.pos);
+            }
             this.flag.remove();
             console.log(`finished finding layout in ${this.flag.pos.roomName}, removing operation flag`);
             console.log(`may be some delay due to how flags work in rooms without vision, you can do this manually`);
@@ -71,6 +77,7 @@ export class LayoutOperation extends Operation {
             }
 
             let observing = this.checkRooms();
+            console.log(JSON.stringify(this.memory.data.nearbyRooms));
             if (observing) { return; }
             this.memory.data.ready = true;
         }
@@ -95,7 +102,10 @@ export class LayoutOperation extends Operation {
     }
 
     private findNearbyRooms(): string[] {
-        if (this.flag.pos.roomName === "sim") { return [this.flag.pos.roomName]; }
+        let newRoom = Object.keys(empire.map.controlledRooms).length === 1;
+        // if (this.flag.pos.roomName === "sim" || newRoom) { return [this.flag.pos.roomName]; }
+        // disabled multiroom scanning for now
+        if (this.flag.pos.roomName) { return [this.flag.pos.roomName]; }
         let radius = 1;
         let roomNames = [];
         for (let xDelta = -radius; xDelta <= radius; xDelta++) {
@@ -121,7 +131,6 @@ export class LayoutOperation extends Operation {
     }
 
     private checkRooms(): boolean {
-
         for (let roomName of this.memory.data.nearbyRooms) {
             if (_.includes(this.memory.data.checkedRooms, roomName)) { continue; }
             let room = Game.rooms[roomName];
@@ -140,24 +149,9 @@ export class LayoutOperation extends Operation {
                     this.memory.data.mineralPos = room.find<Source>(FIND_MINERALS)[0].pos;
                 }
             } else {
-                let observing = this.observeRoom(roomName);
-                if (observing) { return true; }
+                Observationer.observeRoom(roomName, 2);
+                return true;
             }
-        }
-    }
-
-    private observeRoom(roomName: string): boolean {
-        for (let spawnName in Game.spawns) {
-            let spawn = Game.spawns[spawnName];
-            if (Game.map.getRoomLinearDistance(roomName, spawn.pos.roomName) > OBSERVER_RANGE) { continue; }
-            if (spawn.room.controller.level < 8) { continue; }
-            let observer = _(spawn.room.find<Structure>(FIND_STRUCTURES))
-                .filter(x => x.structureType === STRUCTURE_OBSERVER)
-                .head() as StructureObserver;
-            if (!observer) { continue; }
-            observer.observeRoom(roomName, "layout", true);
-            console.log(`FINDER: ordering observer vision in ${roomName}`);
-            return true;
         }
     }
 }

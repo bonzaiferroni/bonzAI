@@ -40,18 +40,11 @@ export class FlexLayout extends Layout {
     };
 
     protected generateFlex() {
-        if (Game.cpu.getUsed() > 100) {
-            console.log(`waiting for cpu to generate flex layout in ${this.roomName}`);
-            return true;
-        }
-
         let fixedStructures = this.findFixedMap();
         let generator = new FlexGenerator(this.roomName, this.anchor, fixedStructures);
         let flexMap = generator.generate();
-        LayoutDisplay.showMap(flexMap);
-        let serializedMap = Layout.serializePositionMap(flexMap);
-        Archiver.setSegmentProperty(LAYOUT_SEGMENTID, this.roomName, serializedMap);
-        this.data.flex = true;
+        this.archiveMap(flexMap);
         console.log(`generated and saved flex layout in ${this.roomName}`);
+        return false;
     }
 }

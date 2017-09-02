@@ -1,7 +1,6 @@
 import {Operation} from "./Operation";
 import {RefillMission} from "../missions/RefillMission";
 import {DefenseMission} from "../missions/DefenseMission";
-import {MiningMission} from "../missions/MiningMission";
 import {LinkNetworkMission} from "../missions/LinkNetworkMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
 import {OperationPriority} from "../../config/constants";
@@ -12,8 +11,8 @@ import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {TransportMission} from "../missions/TransportMission";
 import {InvaderGuru} from "../missions/InvaderGuru";
 import {empire} from "../Empire";
+import {EarlyBodyguardMission} from "../missions/EarlyBodyguardMission";
 
-const CONQUEST_MASON_POTENCY = 4;
 const CONQUEST_LOCAL_MIN_SPAWN_ENERGY = 1300;
 
 export class ConquestOperation extends Operation {
@@ -59,7 +58,7 @@ export class ConquestOperation extends Operation {
         if (!this.state.hasVision) { return; } // early
 
         if (this.flag.room.findStructures(STRUCTURE_TOWER).length === 0) {
-            this.addMission(new BodyguardMission(this));
+            this.addMission(new EarlyBodyguardMission(this));
         }
 
         // update construction
@@ -95,7 +94,7 @@ export class ConquestOperation extends Operation {
             this.addMission(new RefillMission(this));
         }
 
-        MiningMission.Add(this, false);
+        Operation.addMining(this, false, true);
 
         // use link array near storage to fire energy at controller link (pre-rcl8)
         this.addMission(new LinkNetworkMission(this));

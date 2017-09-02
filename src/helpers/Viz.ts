@@ -11,12 +11,16 @@ export class Viz {
         }
     }
 
-    public static colorPos(pos: RoomPosition, color: string, opacity = .5) {
+    public static colorPos(pos: RoomPosition, color = "cyan", opacity = .5) {
         new RoomVisual(pos.roomName).rect(pos.x - .5, pos.y - .5, 1, 1, {fill: color, opacity: opacity});
     }
 
-    public static text(pos: RoomPosition, text: string, color = "white", font = "bold .3") {
-        new RoomVisual(pos.roomName).text(text, pos.x, pos.y + .1, {color: color, font: font});
+    public static text(x: number, y: number, roomName: string, text: string, color = "white", font = "bold .3") {
+        new RoomVisual(roomName).text(text, x, y, {color: color, font: font});
+    }
+
+    public static textPos(pos: RoomPosition, text: string, color = "white", font = "bold .3") {
+        this.text(pos.x, pos.y, pos.roomName, text, color, font);
     }
 
     public static animatedPos(pos: RoomPosition, color = "cyan", opacity = .5, radius = .5, frames = 6) {

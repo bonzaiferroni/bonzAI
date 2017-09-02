@@ -20,6 +20,7 @@ interface Memory {
         saverMode: boolean;
         partnerTrade: boolean;
         cpuLimit: number;
+        manual: boolean;
     };
     profiler: {[identifier: string]: ProfilerData };
     notifier: {
@@ -38,18 +39,20 @@ interface Memory {
     version: number;
     flagCount: number;
     archiver: any;
-    freelance: {[roleName: string]: {[creepName: string]: {
-        status: number;
-        employer: string;
-    }} };
+    freelance: {[creepName: string]: string };
     marketTrader: any;
-    signs: {[roomName: string]: string }
+    signs: {[roomName: string]: string };
     signMaker: any;
+    opFactory: any;
+    observ: any;
+    roomPlanter: any;
+    visRoom: string;
 }
 
 interface Room {
     basicMatrix: CostMatrix;
     findStructures<T extends Structure>(structureType: string): T[];
+    friendlies: Creep[];
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
     fleeObjects: (Creep|Structure)[];
@@ -58,14 +61,18 @@ interface Room {
 }
 
 interface RoomMemory {
+    mineral: string;
+    swap: boolean;
     owner: string;
     avoid: number;
     srcPos: string;
     level: number;
     nextTrade: number;
     nextScan: number;
+    nextAvailabilityCheck: number;
+    score: number;
     nextRadar: number;
-    radarData: { x: number, y: number };
+    radarData: { x: number, y: number, radius: number, asc: boolean, tick: number };
     spawnMemory: any;
     boostRequests: {[boostType: string]: {flagName: string, requesterIds: string[]} };
     portal: string;
@@ -76,12 +83,20 @@ interface RoomMemory {
     };
     layout: LayoutData;
     finder: LayoutFinderData;
-    observation: Observation;
     manual: boolean;
+    bounty: {
+        reward: number,
+        danger: number,
+        expire: number,
+    }
 }
 
 type StoreStructure = StructureTerminal|StructureContainer|StructureStorage;
-type EnergyStructure = StructureSpawn|StructureExtension|StructureLab;
+interface EnergyStructure extends Structure {
+    pos: RoomPosition;
+    energy: number;
+    energyCapacity: number;
+}
 
 interface LayoutFinderData {
     sourcePositions: RoomPosition[];
@@ -113,7 +128,13 @@ interface LayoutData {
     flex?: boolean;
     turtle?: boolean;
 }
+
 type Vector2 = {x: number, y: number}
+
+interface Goal {
+    pos: RoomPosition;
+    range: number;
+}
 
 interface RoomCoord {
     x: number;
@@ -137,9 +158,25 @@ interface Creep {
     blindMoveTo(destination: {pos: RoomPosition}, ops?: any, dareDevil?: boolean): number;
     hitsTemp: number;
     expectedDamage: number;
-    shieldHits: number;
-    shieldMax: number;
+    shield: {
+        hits: number;
+        hitsMax: number;
+    };
     averageDamage: number;
+    potentials: {[partType: string]: number };
+    profile: CreepProfile;
+    isCivilian: boolean;
+    rating: number;
+}
+
+interface CreepProfile {
+    [partType: string]: PartProfile;
+}
+
+interface PartProfile {
+    potential: number;
+    count: number;
+    isBoosted: boolean;
 }
 
 interface CreepMemory {
@@ -178,18 +215,6 @@ interface StrangerReport {
 
 interface StructureKeeperLair {
     keeper: Creep;
-}
-
-interface StructureObserver {
-    observation: Observation;
-    _observeRoom(roomName: string): number;
-    observeRoom(roomName: string, purpose?: string, override?: boolean): number;
-}
-
-interface Observation {
-    purpose: string;
-    roomName: string;
-    room?: Room;
 }
 
 interface StructureTerminal extends OwnedStructure {

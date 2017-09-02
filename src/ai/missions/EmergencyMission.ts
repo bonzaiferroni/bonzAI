@@ -2,6 +2,11 @@ import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {CreepHelper} from "../../helpers/CreepHelper";
+
+interface EmergencyMinerMemory extends MissionMemory {
+    lastTick: number;
+}
+
 export class EmergencyMinerMission extends Mission {
 
     private emergencyMiners: Agent[];
@@ -56,7 +61,7 @@ export class EmergencyMinerMission extends Mission {
         miner.memory.scavenger = RESOURCE_ENERGY;
         miner.memory.donatesEnergy = true;
         let best = _(this.state.sources)
-            .min(x => (3 - x.pos.openAdjacentSpots(true).length) * 10 + x.pos.getRangeTo(miner));
+            .min(x => x.pos.getRangeTo(miner));
 
         if (!_.isObject(best)) {
             miner.idleOffRoad();
@@ -64,6 +69,12 @@ export class EmergencyMinerMission extends Mission {
         }
 
         if (miner.pos.isNearTo(best)) {
+            if (miner.carry.energy > 0) {
+                let container = miner.pos.findInRange(this.room.findStructures(STRUCTURE_CONTAINER), 1)[0];
+                if (container) {
+                    miner.transfer(container, RESOURCE_ENERGY);
+                }
+            }
             miner.harvest(best);
         } else {
             miner.travelTo(best);
@@ -78,8 +89,4 @@ export class EmergencyMinerMission extends Mission {
         }
         return false;
     }
-}
-
-interface EmergencyMinerMemory extends MissionMemory {
-    lastTick: number;
 }

@@ -83,7 +83,13 @@ export class Profiler {
     }
 
     public static proportionUsed() {
-        return Memory.cpu.average / (Game.gcl.level * 10 + 20);
+        if (!Memory.cpu.average) { return 0; }
+        return Memory.cpu.average / Game.cpu.limit;
+    }
+
+    public static marginUnused() {
+        if (!Memory.cpu.average) { return Game.cpu.limit; }
+        return Game.cpu.limit - Memory.cpu.average;
     }
 
     public static memoryProfile(memory?: any) {

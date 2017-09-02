@@ -72,8 +72,8 @@ export class Scheduler {
                     console.log(e.stack);
                 }
             }
-            return true;
         }
+        return true;
     }
 }
 

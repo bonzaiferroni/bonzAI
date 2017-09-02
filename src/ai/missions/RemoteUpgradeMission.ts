@@ -83,8 +83,8 @@ export class RemoteUpgradeMission extends Mission {
                 this.positions = this.positions.concat([ this.state.container.pos]);
             }
 
-            PaverMission.updatePath(this.operation.name + this.name, this.state.energySource.pos,
-                this.state.container.pos, 0, this.memory);
+            /*PaverMission.updatePath(this.operation.name + this.name, this.state.energySource.pos,
+                this.state.container.pos, 0, this.memory);*/
         } else {
             this.state.site = this.state.target.pos.lookFor<ConstructionSite>(LOOK_CONSTRUCTION_SITES)[0];
             if (!this.state.site) {
@@ -102,7 +102,7 @@ export class RemoteUpgradeMission extends Mission {
     };
 
     protected getBuilderBody = () => {
-        return this.bodyRatio(1, 3.5, .5);
+        return this.workerUnitBody(1, 3.5, .5);
     };
 
     protected getMaxCarts = () => {
@@ -123,7 +123,7 @@ export class RemoteUpgradeMission extends Mission {
         if (this.longRangeSpawn) {
             return this.workerBody(23, 4, 23);
         } else {
-            return this.bodyRatio(7.5, 1, 4);
+            return this.workerUnitBody(7.5, 1, 4);
         }
     };
 
