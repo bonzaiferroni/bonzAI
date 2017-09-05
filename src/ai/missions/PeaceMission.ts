@@ -1,97 +1,118 @@
-import {Operation} from "../operations/Operation";
-import {PeaceAgent} from "../agents/PeaceAgent";
-import {PosHelper} from "../../helpers/PosHelper";
+import {PeaceCommander, PeaceOperation} from "../operations/PeaceOperation";
+import {CombatMission, CombatMissionMemory} from "./CombatMission";
+import {CombatAgent} from "../agents/CombatAgent";
 import {HostileAgent} from "../agents/HostileAgent";
-import {HeadCountOptions} from "../../interfaces";
-import {AgentManifest, AgentManifestItem, EasyMission} from "./EasyMission";
-import {Profiler} from "../../Profiler";
-import {MissionMemory} from "./Mission";
-import {Notifier} from "../../notifier";
+import {AgentManifest} from "./EasyMission";
 
-export interface PeaceMissionMemory extends MissionMemory {
-    potency: number;
+interface PeaceMissionMemory extends CombatMissionMemory {
+    nextAttempt: number;
 }
 
-export abstract class PeaceMission extends EasyMission {
+export class PeaceMission extends CombatMission {
 
-    protected targetName: string;
+    protected commander: PeaceCommander;
+    protected attackStructures = true;
     public memory: PeaceMissionMemory;
-    protected attackStructures = false;
 
-    constructor(operation: Operation, name: string, targetName: string) {
-        super(operation, name);
-        this.targetName = targetName;
+    constructor(operation: PeaceOperation, commander: PeaceCommander) {
+        super(operation, "Peace", operation.roomName);
+        this.commander = commander;
     }
 
-    public updateTargetRoom(roomName: string) {
-        this.targetName = roomName;
-    }
+    protected buildManifest(): AgentManifest {
 
-    protected rangerBody(potency?: number) {
-        let body = this.segmentBody([RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK,
-            RANGED_ATTACK, HEAL], potency);
-        if (!body) {
-            body = this.unitBody({[RANGED_ATTACK]: 3, [MOVE]: 4, [HEAL]: 1}, { limit: potency });
-            if (!body) {
-                body = this.unitBody({[RANGED_ATTACK]: 1, [MOVE]: 2, [HEAL]: 1});
-                if (!body) {
-                    body = [RANGED_ATTACK, MOVE];
-                }
-            }
+        this.boost = this.findBoost();
+
+        let manifest: AgentManifest = {};
+        manifest["demo"] = {
+            agentClass: CombatAgent,
+            max: this.demoMax,
+            body: this.demoBody,
+            actions: this.demoActions,
+            options: {
+                deathCallback: this.deathDelayCallback,
+            },
+        };
+        manifest["healer"] = {
+            agentClass: CombatAgent,
+            max: this.healerMax,
+            body: this.healBody,
+            actions: this.healerActions,
+            options: {
+                deathCallback: this.deathDelayCallback,
+            },
+        };
+        if (this.boost) {
+            manifest["peace"].options.boosts = [RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+                RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_GHODIUM_ALKALIDE];
+            manifest["peace"].options.allowUnboosted = false;
         }
-        return body;
+        return manifest;
     }
 
-    // DATA
+    // DEMO
 
-    protected findDummies(colorId: number): Flag[] {
-        let dummyCreeps: Flag[] = [];
-        for (let i = 1; i < 100; i++) {
-            let flagName = `Flag${i}`;
-            let flag = Game.flags[flagName];
-            if (flag && flag.color === colorId) {
-                dummyCreeps.push(flag);
-            }
-        }
-        return dummyCreeps;
-    }
+    protected demoBody = () => {
+        return this.demolisherBody();
+    };
 
-    public adjustPotencyCallback = (roleName: string, earlyDeath: boolean) => {
-        if (earlyDeath) {
-            this.adjustPotency(1);
-            Notifier.log(`${roleName} died in his prime in ${this.targetName}, increasing potency`, 4);
+    protected demoMax = () => {
+        if (this.memory.nextAttempt > Game.time) {
+            return 0;
         } else {
-            this.adjustPotency(-1);
+            return 1;
         }
     };
 
-    protected getPotency(min = 1): number {
-        if (this.memory.potency === undefined) {
-            this.memory.potency = min;
+    protected demoActions = (agent: CombatAgent) => {
+        agent.attackStructures(this.roomName);
+        let recovering = agent.recover();
+        if (recovering) { return; }
+        let traveling = agent.standardTravel(this.roomName);
+        if (traveling) { return; }
+        if (agent.pos.roomName === this.roomName) {
+            let structureGoals = agent.structureGoals();
+            agent.maneuver(structureGoals.approach, structureGoals.avoid);
         }
-        return Math.max(this.memory.potency, min);
-    }
-
-    protected adjustPotency(delta: number) {
-        if (this.memory.potency === undefined) {
-            this.memory.potency = 1;
-        }
-
-        this.memory.potency += delta;
-        if (this.memory.potency < 1) {
-            this.memory.potency = 1;
-        }
-    }
-
-    // CREEP BEHAVIOR
-    public peaceActions = (agent: PeaceAgent) => {
-        let busy = agent.standardAttackActions(this.targetName, this.attackStructures);
-        if (busy) { return; }
-
-        this.idleActions(agent);
     };
 
-    protected idleActions(agent: PeaceAgent) {
-        agent.idleOffRoad();
+    // HEALER
+
+    protected healBody = () => {
+        return this.healerBody();
+    };
+
+    protected healerMax = () => {
+        if (this.memory.nextAttempt > Game.time) {
+            return 0;
+        } else {
+            return 1;
+        }
+    };
+
+    protected healerActions = (agent: CombatAgent) => {
+        agent.healCreeps();
+
+        let demo = _.head(this.agentManifest["demo"].agents);
+        if (!demo) {
+            agent.idleOffRoad();
+            return;
+        }
+
+        agent.travelTo(demo);
+    };
+
+    private findBoost(): boolean {
+        let terminal = this.spawnGroup.room.terminal;
+        if (!terminal) { return false; }
+        let moveBoost = terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE];
+        if (!moveBoost || moveBoost < 1000) { return false; }
+        let healBoost = terminal.store[RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE];
+        if (!healBoost || healBoost < 1000) { return false; }
+        let toughBoost = terminal.store[RESOURCE_CATALYZED_GHODIUM_ALKALIDE];
+        if (!toughBoost || toughBoost < 1000) { return false; }
+        let workBoost = terminal.store[RESOURCE_CATALYZED_ZYNTHIUM_ACID];
+        if (!workBoost || workBoost < 1000) { return false; }
+        return true;
     }
 }

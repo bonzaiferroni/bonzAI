@@ -1,7 +1,7 @@
 import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {HostileAgent} from "./HostileAgent";
-import {PeaceAgent} from "./PeaceAgent";
+import {CombatAgent} from "./CombatAgent";
 
 export class AbstractAgent {
 
@@ -22,7 +22,7 @@ export class AbstractAgent {
 
     public static census: {
         hostile: {[roomName: string]: HostileAgent[] }
-        raid: {[roomName: string]: PeaceAgent[] }
+        raid: {[roomName: string]: CombatAgent[] }
     };
 
     constructor(creep: Creep) {

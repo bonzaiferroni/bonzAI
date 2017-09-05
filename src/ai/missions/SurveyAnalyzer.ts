@@ -371,7 +371,7 @@ export class SurveyAnalyzer {
                 let operations = keeperOperations[roomName];
                 for (let opName in operations) {
                     let operation = operations[opName];
-                    if (operation.spawnGroup.pos.roomName === this.room.name) {
+                    if (!operation.spawnGroup || operation.spawnGroup.pos.roomName === this.room.name) {
                         supportedCount += 3;
                     }
                 }
@@ -385,7 +385,7 @@ export class SurveyAnalyzer {
                 let operations = miningOperations[roomName];
                 for (let opName in operations) {
                     let operation = operations[opName];
-                    if (operation.spawnGroup.pos.roomName === this.room.name) {
+                    if (!operation.spawnGroup || operation.spawnGroup.pos.roomName === this.room.name) {
                         let sourceCount = 2;
                         let room = Game.rooms[roomName];
                         if (room) {

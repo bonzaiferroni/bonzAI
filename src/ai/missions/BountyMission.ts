@@ -1,11 +1,11 @@
 import {Mission} from "./Mission";
 import {BountyCommander, BountyOperation} from "../operations/BountyOperation";
-import {PeaceMission} from "./PeaceMission";
-import {PeaceAgent} from "../agents/PeaceAgent";
+import {CombatMission} from "./CombatMission";
+import {CombatAgent} from "../agents/CombatAgent";
 import {HostileAgent} from "../agents/HostileAgent";
 import {AgentManifest} from "./EasyMission";
 
-export class BountyMission extends PeaceMission {
+export class BountyMission extends CombatMission {
 
     protected commander: BountyCommander;
     protected attackStructures = true;
@@ -18,10 +18,10 @@ export class BountyMission extends PeaceMission {
     protected buildManifest(): AgentManifest {
         let manifest: AgentManifest = {
             bounty: {
-                agentClass: PeaceAgent,
+                agentClass: CombatAgent,
                 max: () => 1,
                 body: this.bountyBody,
-                actions: this.peaceActions,
+                actions: this.combatActions,
                 options: {
                     freelance: {
                         roomName: this.targetName,

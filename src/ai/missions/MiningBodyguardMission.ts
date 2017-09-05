@@ -1,7 +1,7 @@
 import {BodyguardMission, BodyguardMissionMemory} from "./BodyguardMission";
 import {InvaderGuru} from "./InvaderGuru";
 import {Operation} from "../operations/Operation";
-import {PeaceAgent} from "../agents/PeaceAgent";
+import {CombatAgent} from "../agents/CombatAgent";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {MissionMemory} from "./Mission";
 
@@ -72,7 +72,7 @@ export class MiningBodyguardMission extends BodyguardMission {
         return additional;
     }
 
-    protected idleActions(bodyguard: PeaceAgent) {
+    protected idleActions(bodyguard: CombatAgent) {
         let healing = this.medicActions(bodyguard);
         if (!healing && !this.invaderGuru.invaderProbable) {
             this.adjustPotency(-1);

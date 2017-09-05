@@ -5,16 +5,17 @@ import {CreepHelper} from "../../helpers/CreepHelper";
 import {empire} from "../Empire";
 import {HostileAgent} from "./HostileAgent";
 import {PosHelper} from "../../helpers/PosHelper";
+import {Notifier} from "../../notifier";
 
-export class PeaceAgent extends Agent {
+export class CombatAgent extends Agent {
 
     public posLastTick: RoomPosition;
     private debug: boolean;
 
     public standardAttackActions(roomName: string, attackStructures = false) {
         this.attackCreeps();
-        if (attackStructures && this.pos.roomName === roomName) {
-            this.attackStructures();
+        if (attackStructures) {
+            this.attackStructures(roomName);
         }
         this.healCreeps();
 
@@ -103,7 +104,10 @@ export class PeaceAgent extends Agent {
         }
     }
 
-    public attackStructures() {
+    public attackStructures(roomName: string) {
+        if (this.pos.roomName !== roomName) {
+            return;
+        }
 
         let structureTargets = _(this.pos.findInRange<Structure>(FIND_STRUCTURES, 3))
             .sortBy(x => x.hits)
@@ -126,16 +130,17 @@ export class PeaceAgent extends Agent {
         }
 
         // melee attack
-        if (this.getPotential(ATTACK) > 0 && !this.isAttacking) {
+        if ((this.getPotential(ATTACK) > 0 || this.getPotential(WORK) > 0) && !this.isAttacking) {
             structureTargets = this.pos.findInRange(structureTargets, 1);
             let best = structureTargets[0];
             if (best) {
                 this.attack(best);
+                this.dismantle(best);
             }
         }
     }
 
-    protected standardTravel(roomName: string) {
+    public standardTravel(roomName: string) {
         if (this.pos.roomName === roomName) {
             if (this.memory.traveled) { return false; }
             if (!this.pos.isNearExit(0)) {
@@ -467,12 +472,17 @@ export class PeaceAgent extends Agent {
         return goals;
     }
 
-    private structureGoals(): {approach: Goal[], avoid: Goal[]} {
+    public structureGoals(): {approach: Goal[], avoid: Goal[]} {
         let approachGoals: Goal[] = [];
 
         let approachRange = 3;
-        if (this.getPotential(ATTACK) > 0) {
+        if (this.getPotential(ATTACK) > 0 || this.getPotential(WORK) > 0) {
             approachRange = 1;
+        }
+
+        let structureTarget = this.findStructureTarget();
+        if (structureTarget) {
+            approachGoals.push({pos: structureTarget.pos, range: approachRange});
         }
 
         for (let structure of this.room.find<Structure>(FIND_STRUCTURES)) {
@@ -480,5 +490,125 @@ export class PeaceAgent extends Agent {
         }
 
         return {approach: approachGoals, avoid: undefined};
+    }
+
+    private findStructureTarget(): Structure {
+        if (this.memory.structureTargetId) {
+            let structure = Game.getObjectById<Structure>(this.memory.structureTargetId);
+            if (structure && structure.pos.roomName === this.pos.roomName) {
+                return structure;
+            } else {
+                delete this.memory.structureTargetId;
+                return this.findStructureTarget();
+            }
+        } else {
+            if (this.memory.nextStructureCheck > Game.time) { return; }
+
+            let target = this.findBestStructure();
+            if (target) {
+                delete this.memory.nextStructureCheck;
+                this.memory.nextStructureCheck = target.id;
+                return target;
+            } else {
+                this.memory.nextStructureCheck = Game.time + 100;
+            }
+        }
+    }
+
+    private findBestStructure(): Structure {
+        let walls: Structure[] = [];
+        let covered: Structure[] = [];
+        let uncovered: Structure[] = [];
+        let approachGoals: Goal[] = [];
+        for (let structure of this.room.find<Structure>(FIND_STRUCTURES)) {
+            if (structure.structureType === STRUCTURE_ROAD || structure.structureType === STRUCTURE_CONTAINER) {
+                continue;
+            }
+            if (structure.structureType === STRUCTURE_WALL || structure.structureType === STRUCTURE_RAMPART) {
+                walls.push(structure);
+                continue;
+            }
+            let rampart = structure.pos.lookForStructure(STRUCTURE_RAMPART);
+            if (rampart && rampart.hits > 10000) {
+                continue;
+            }
+            uncovered.push(structure);
+            approachGoals.push({pos: structure.pos, range: 0});
+        }
+
+        if (walls.length === 0 && uncovered.length === 0) {
+            return;
+        }
+
+        if (approachGoals.length > 0) {
+            let ret = PathFinder.search(this.pos, approachGoals, {
+                maxRooms: 1,
+                roomCallback: roomName => {
+                    if (roomName !== this.pos.roomName) { return false; }
+                    let matrix = new PathFinder.CostMatrix();
+                    for (let wall of walls) {
+                        matrix.set(wall.pos.x, wall.pos.y, 0xff);
+                    }
+                    return matrix;
+                },
+            });
+
+            let lastPos = _.last(ret.path);
+            if (!ret.incomplete && lastPos) {
+                let structure = _.filter(lastPos.lookFor<Structure>(LOOK_STRUCTURES), x => {
+                    if (x.structureType === STRUCTURE_ROAD || x.structureType === STRUCTURE_CONTAINER) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                })[0];
+                if (structure) {
+                    Notifier.log(`found unprotected structure: ${structure.structureType}`, 2);
+                    return structure;
+                }
+            }
+        }
+
+        let targets = this.room.find<Structure>(FIND_HOSTILE_SPAWNS);
+        if (targets.length === 0) {
+            targets = covered;
+        }
+
+        if (targets.length === 0) {
+            return;
+        }
+
+        approachGoals = [];
+        for (let spawn of targets) {
+            approachGoals.push({pos: spawn.pos, range: 0});
+        }
+
+        let maxWallHits = 10000;
+        let highestWall = _.max(walls, x => x.hits);
+        if (_.isObject(highestWall)) {
+            maxWallHits = highestWall.hits;
+        }
+
+        let ret = PathFinder.search(this.pos, approachGoals, {
+            maxRooms: 1,
+            swampCost: 1,
+            roomCallback: roomName => {
+                if (roomName !== this.pos.roomName) { return false; }
+                let matrix = new PathFinder.CostMatrix();
+                for (let wall of walls) {
+                    let cost = ((wall.hits / maxWallHits) * 100) + 100;
+                    matrix.set(wall.pos.x, wall.pos.y, cost);
+                }
+                return matrix;
+            },
+        });
+
+        for (let position of ret.path) {
+            let wall = _.filter(position.lookFor<Structure>(LOOK_STRUCTURES), x => x.structureType !== STRUCTURE_ROAD)[0];
+            if (wall) {
+                Notifier.log(`attacking wall with hits: ${wall.hits}`, 2);
+                return wall;
+            }
+        }
     }
 }

@@ -2,7 +2,7 @@ import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {Profiler} from "../../Profiler";
-import {PeaceAgent} from "../agents/PeaceAgent";
+import {CombatAgent} from "../agents/CombatAgent";
 import {ProcureEnergyOptions} from "../agents/interfaces";
 
 interface RefillMemory extends MissionMemory {

@@ -3,16 +3,16 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {PosHelper} from "../../helpers/PosHelper";
-import {PeaceMission, PeaceMissionMemory} from "./PeaceMission";
-import {PeaceAgent} from "../agents/PeaceAgent";
+import {CombatMission, CombatMissionMemory} from "./CombatMission";
+import {CombatAgent} from "../agents/CombatAgent";
 import {AgentManifest} from "./EasyMission";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {Notifier} from "../../notifier";
 
-export interface BodyguardMissionMemory extends PeaceMissionMemory {
+export interface BodyguardMissionMemory extends CombatMissionMemory {
 }
 
-export class BodyguardMission extends PeaceMission {
+export class BodyguardMission extends CombatMission {
 
     protected prespawn: number;
     protected targetName: string;
@@ -36,20 +36,20 @@ export class BodyguardMission extends PeaceMission {
     protected buildManifest(): AgentManifest {
         let manifest: AgentManifest = {
             leeroy: {
-                agentClass: PeaceAgent,
+                agentClass: CombatAgent,
                 max: this.leeroyMax,
                 body: this.leeroyBody,
-                actions: this.peaceActions,
+                actions: this.combatActions,
                 options: {
                     prespawn: 50,
                     deathCallback: this.adjustPotencyCallback,
                 },
             },
             bigLee: {
-                agentClass: PeaceAgent,
+                agentClass: CombatAgent,
                 max: this.bigLeeMax,
                 body: this.bigLeeBody,
-                actions: this.peaceActions,
+                actions: this.combatActions,
                 options: {
                     freelance: {
                         roleName: "ranger",
@@ -62,10 +62,10 @@ export class BodyguardMission extends PeaceMission {
 
         if (this.spawnGroup.maxSpawnEnergy < 500) {
             manifest.healer = {
-                agentClass: PeaceAgent,
+                agentClass: CombatAgent,
                 max: () => this.leeroyMax(),
                 body: () => [MOVE, HEAL],
-                actions: this.peaceActions,
+                actions: this.combatActions,
             };
             manifest.leeroy.max = () => this.leeroyMax() * 3;
         }
@@ -103,7 +103,7 @@ export class BodyguardMission extends PeaceMission {
 
     // CREEP BEHAVIOR
 
-    protected idleActions(bodyguard: PeaceAgent) {
+    protected idleActions(bodyguard: CombatAgent) {
         this.medicActions(bodyguard);
     }
 

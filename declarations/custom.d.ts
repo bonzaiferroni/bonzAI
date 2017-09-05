@@ -47,6 +47,8 @@ interface Memory {
     observ: any;
     roomPlanter: any;
     visRoom: string;
+    worldMap: any;
+    peaceCommander: any;
 }
 
 interface Room {

@@ -22,26 +22,28 @@ export class WorldMap {
     public foesMap: {[roomName: string]: RoomMemory } = {};
     public foesRooms: Room[];
     public playerMap: {[roomName: string]: RoomMemory } = {};
-
-    public activeNukes: {tick: number; roomName: string}[];
     public portals: {[roomName: string]: string } = {};
     public artRooms = ARTROOMS;
 
     private diplomat: Diplomat;
     private nextUpdate: {[roomName: string]: number } = {};
     public static roomTypeCache: {[roomName: string]: number} = {};
+    private targetRooms: Room[];
+    private memory: {
+        activeNukes: {[roomName: string]: number};
+        nextTargeting: {[roomName: string]: number}
+    };
 
     constructor(diplomat: Diplomat) {
         this.diplomat = diplomat;
-
-        if (!Memory.empire) { Memory.empire = {}; }
-        _.defaults(Memory.empire, {
-            activeNukes: {},
-        });
-        this.activeNukes = Memory.empire.activeNukes;
     }
 
     public init(): {[roomName: string]: SpawnGroup } {
+        if (!Memory.worldMap) { Memory.worldMap = {}; }
+        if (!Memory.worldMap.activeNukes) { Memory.worldMap.activeNukes = {}; }
+        if (!Memory.worldMap.nextTargeting) { Memory.worldMap.nextTargeting = {}; }
+        this.memory = Memory.worldMap;
+
         let spawnGroups = {};
         for (let roomName in Memory.rooms) {
             let memory = Memory.rooms[roomName];
@@ -83,12 +85,13 @@ export class WorldMap {
     }
 
     public update() {
-        this.activeNukes = Memory.empire.activeNukes;
+        this.memory = Memory.worldMap;
         this.controlledRoomCount = 0;
         this.controlledRooms = {};
         this.allyRooms = [];
         this.tradeRooms = [];
         this.foesRooms = [];
+        this.targetRooms = [];
 
         for (let roomName in Game.rooms) {
             let room = Game.rooms[roomName];
@@ -114,17 +117,19 @@ export class WorldMap {
 
     public actions() {
         this.reportNukes();
+        this.initAttacks();
     }
 
     public addNuke(activeNuke: {tick: number; roomName: string}) {
-        this.activeNukes.push(activeNuke);
+        this.memory.activeNukes[activeNuke.roomName] = activeNuke.tick;
     }
 
     public reportNukes() {
         if (Game.time % TICK_FULL_REPORT !== 0) { return; }
 
-        for (let activeNuke of this.activeNukes) {
-            console.log(`EMPIRE: ${Game.time - activeNuke.tick} till our nuke lands in ${activeNuke.roomName}`);
+        for (let roomName in this.memory.activeNukes) {
+            let tick = this.memory.activeNukes[roomName];
+            console.log(`EMPIRE: ${Game.time - tick} till our nuke lands in ${roomName}`);
         }
     }
 
@@ -147,8 +152,9 @@ export class WorldMap {
                 if (owner !== USERNAME) {
                     this.diplomat.foes[owner] = true;
                 }
-
-                this.manageBounty(room, owner);
+                if (this.diplomat.foes[owner]) {
+                    this.targetRooms.push(room);
+                }
             }
 
             if (room.memory.bounty && Game.time > room.memory.bounty.expire) {
@@ -163,44 +169,6 @@ export class WorldMap {
         }
 
         this.nextUpdate[room.name] = Game.time + 50;
-    }
-
-    private manageBounty(room: Room, owner: string) {
-        if (room.controller) {
-            if (room.controller.level > 2) {
-                return;
-            }
-        }
-        if (!this.diplomat.foes[owner]) { return; }
-        if (_.filter(room.find<Flag>(FIND_FLAGS), x => x.name.indexOf("bounty") >= 0).length > 0) {
-            return;
-        }
-
-        let hasTower = room.findStructures(STRUCTURE_TOWER).length > 0;
-        let isSafeModed = room.controller.safeMode;
-        if (hasTower || isSafeModed) { return; }
-
-        let bountyOperations = Operation.census.bounty;
-        if (!bountyOperations) {
-            this.createBounty(room);
-            return;
-        }
-
-        let count = 0;
-        for (let roomName in bountyOperations) {
-            if (roomName === room.name) { return; }
-            count++;
-        }
-
-        if (count < 10) {
-            this.createBounty(room);
-            return;
-        }
-    }
-
-    private createBounty(room: Room) {
-        let position = PosHelper.pathablePosition(room.name);
-        empire.addOperation("bounty", position);
     }
 
     private radar(scanningRoom: Room) {
@@ -609,6 +577,47 @@ export class WorldMap {
         let y = Math.floor(roomCoords.y / 10) + 5;
 
         return roomCoords.xDir + x + roomCoords.yDir + y;
+    }
+
+    private initAttacks() {
+        for (let room of this.targetRooms) {
+            if (room.controller.reservation) {
+                this.manageBounty(room);
+            } else if (room.controller.owner) {
+                this.manageBounty(room);
+                // this.managePeace(room);
+            }
+        }
+    }
+
+    private manageBounty(room: Room) {
+        if (this.memory.nextTargeting[room.name] > Game.time ) { return; }
+        this.memory.nextTargeting[room.name] = Game.time + 1000;
+
+        let bountyOperations = Operation.census["bounty"];
+        if (bountyOperations && bountyOperations[room.name]) {
+            return;
+        }
+
+        this.placeTarget("bounty", room);
+
+    }
+
+    private managePeace(room: Room) {
+        if (this.memory.nextTargeting[room.name] > Game.time ) { return; }
+        this.memory.nextTargeting[room.name] = Game.time + 1000;
+
+        let peaceOperations = Operation.census["peace"];
+        if (peaceOperations && peaceOperations[room.name]) {
+            return;
+        }
+
+        this.placeTarget("peace", room);
+    }
+
+    private placeTarget(type: string, room: Room) {
+        let position = PosHelper.pathablePosition(room.name);
+        empire.addOperation(type, position);
     }
 }
 

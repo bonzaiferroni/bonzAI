@@ -1,5 +1,5 @@
 import {Operation, OperationMemory} from "./Operation";
-import {OperationPriority} from "../../config/constants";
+import {OperationPriority, USERNAME} from "../../config/constants";
 import {BountyMission} from "../missions/BountyMission";
 import {empire} from "../Empire";
 import {Viz} from "../../helpers/Viz";
@@ -42,10 +42,15 @@ export class BountyOperation extends Operation {
             if (hasTower || isSafeModed) {
                 this.flag.remove();
             }
+            if (this.room.controller.my) {
+                this.flag.remove();
+            }
+            if (this.room.controller.reservation && this.room.controller.reservation.username === USERNAME) {
+                this.flag.remove();
+            }
         }
     }
 
     protected invalidateCache() {
     }
-
 }

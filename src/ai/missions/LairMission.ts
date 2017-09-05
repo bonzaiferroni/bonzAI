@@ -9,7 +9,7 @@ import {CreepHelper} from "../../helpers/CreepHelper";
 import {Notifier} from "../../notifier";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {PosHelper} from "../../helpers/PosHelper";
-import {PeaceAgent} from "../agents/PeaceAgent";
+import {CombatAgent} from "../agents/CombatAgent";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];
@@ -28,8 +28,8 @@ interface LairMissionState extends MissionState {
 export class LairMission extends Mission {
 
     private scavengers: Agent[];
-    private trappers: PeaceAgent[];
-    private decoys: PeaceAgent[];
+    private trappers: CombatAgent[];
+    private decoys: CombatAgent[];
     private invaderGuru: InvaderGuru;
 
     public state: LairMissionState;
@@ -70,12 +70,12 @@ export class LairMission extends Mission {
     };
 
     public roleCall() {
-        this.trappers = this.headCountAgents(PeaceAgent, "trapper", this.trapperBody, this.maxTrappers, {
+        this.trappers = this.headCountAgents(CombatAgent, "trapper", this.trapperBody, this.maxTrappers, {
             prespawn: this.state.distanceToSpawn + 100,
             skipMoveToRoom: true,
         });
 
-        this.decoys = this.headCountAgents(PeaceAgent, "decoy", this.decoyBody, this.maxDecoys, {
+        this.decoys = this.headCountAgents(CombatAgent, "decoy", this.decoyBody, this.maxDecoys, {
             prespawn: this.state.distanceToSpawn + 50,
         });
 
@@ -109,7 +109,7 @@ export class LairMission extends Mission {
     public invalidateCache() {
     }
 
-    private trapperActions(trapper: PeaceAgent) {
+    private trapperActions(trapper: CombatAgent) {
 
         let invaderDuty = this.invaderDutyActions(trapper);
         if (invaderDuty) { return; }
@@ -146,7 +146,7 @@ export class LairMission extends Mission {
         }
     }
 
-    private invaderDutyActions(trapper: PeaceAgent): boolean {
+    private invaderDutyActions(trapper: CombatAgent): boolean {
 
         if (!this.invaderGuru.invadersPresent) {
             return false;
@@ -227,7 +227,7 @@ export class LairMission extends Mission {
         return agent.travelTo(destination, options);
     }
 
-    private trapperFlee(trapper: PeaceAgent): boolean {
+    private trapperFlee(trapper: CombatAgent): boolean {
         let spookies = _(this.invaderGuru.invaders)
             .filter(x => x.getActiveBodyparts(RANGED_ATTACK) > 0)
             .value();
@@ -243,7 +243,7 @@ export class LairMission extends Mission {
         }
     }
 
-    private decoyActions(decoy: PeaceAgent) {
+    private decoyActions(decoy: CombatAgent) {
         if (!this.invaderGuru.invadersPresent) {
 
             if (decoy.room !== this.room || decoy.pos.isNearExit(0)) {
@@ -265,7 +265,7 @@ export class LairMission extends Mission {
         decoy.standardAttackActions(this.roomName);
     }
 
-    private assistKeeperDuty(decoy: PeaceAgent) {
+    private assistKeeperDuty(decoy: CombatAgent) {
 
         if (this.state.keepers.length <= 1 && this.trappers.length > 0) {
             if (!this.memory.assistUntil || Game.time > this.memory.assistUntil) {
