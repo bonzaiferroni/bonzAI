@@ -202,7 +202,7 @@ export abstract class RaidMission extends Mission {
             }
         }
         else {
-            Agent.squadTravel(this.attacker, this.healer, target, this.attackRange);
+            Agent.squadTravel(this.attacker, this.healer, target, {range:this.attackRange});
         }
     }
 
