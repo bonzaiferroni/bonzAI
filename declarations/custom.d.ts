@@ -19,6 +19,7 @@ interface Game {
 interface Room {
     basicMatrix: CostMatrix;
     findStructures<T>(structureType: string): T[];
+    findStructures<T>(structureType: string): Structure[];
     getAltBattery(roomObject?: RoomObject): StructureContainer | Creep;
     hostiles: Creep[];
     hostilesAndLairs: RoomObject[];
@@ -96,6 +97,7 @@ interface Memory {
     profiler: {[identifier: string]: ProfilerData };
     notifier: {
         time: number,
+        earthTime: number,
         message: string,
     }[];
     roomAttacks: any;
