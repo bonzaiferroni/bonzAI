@@ -386,10 +386,13 @@ export abstract class ControllerOperation extends Operation {
         }
 
         let coord = coords[this.memory.repairIndices[structureType]++];
-        let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
-        let structure = position.lookForStructure(structureType);
-        if (structure) {
-            this.repairLayout(structure);
+        //FIXME this check is for a room with a failed layout
+        if (this.memory.centerPosition) {
+            let position = helper.coordToPosition(coord, this.memory.centerPosition, this.memory.rotation);
+            let structure = position.lookForStructure(structureType);
+            if (structure) {
+                this.repairLayout(structure);
+            }
         }
     }
 

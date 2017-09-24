@@ -333,6 +333,13 @@ export class MiningMission extends Mission {
 
     private placeContainer() {
 
+        if (this.room.controller.reservation &&
+            /* reserved and not mine */
+            this.room.controller.reservation.username != Game.structures[_.first(Object.keys(Game.structures))].owner.username) {
+            // console.log(`MINER: Unable to place container in ${this.operation.name}, hostile reserved room`);
+            return;
+        }
+
         let startingPosition: {pos: RoomPosition} = this.findMinerStorage();
         if (!startingPosition) {
             startingPosition = this.room.find(FIND_MY_SPAWNS)[0] as StructureSpawn;
