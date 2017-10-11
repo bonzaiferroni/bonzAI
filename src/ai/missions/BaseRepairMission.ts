@@ -3,7 +3,6 @@ import {ControllerOperation} from "../operations/ControllerOperation";
 import {Layout} from "../layouts/Layout";
 import {Scheduler, SchedulerPriority} from "../../Scheduler";
 import {Viz} from "../../helpers/Viz";
-import {GrafanaStats} from "../../helpers/GrafanaStats";
 import {NEED_ENERGY_THRESHOLD, POWER_PROCESS_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
 
 interface BaseRepairMemory extends MissionMemory {

@@ -10,6 +10,7 @@ import {RoomHelper} from "../../helpers/RoomHelper";
 import {LinkMiningMission} from "../missions/LinkMiningMission";
 import {MiningMission} from "../missions/MiningMission";
 import {EarlyMiningMission} from "../missions/EarlyMinerMission";
+import {consoleCommands} from "../../helpers/consoleCommands";
 
 export interface OperationState {
     hasVision?: boolean;
@@ -251,6 +252,8 @@ export abstract class Operation {
 
     public static invalidateCache(priorityMap: OperationPriorityMap) {
         if (Math.random() > .01) { return; }
+
+        consoleCommands.gc();
 
         for (let priority of this.priorityOrder) {
             let operations = priorityMap[priority];
