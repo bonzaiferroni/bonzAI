@@ -83,7 +83,8 @@ export class EmergencyMinerMission extends Mission {
 
     private findMinersBySources() {
         for (let source of this.room.find<Source>(FIND_SOURCES)) {
-            if (source.pos.findInRange(FIND_MY_CREEPS, 1, (c: Creep) => CreepHelper.partCount(c, WORK) > 0).length > 0) {
+            if (source.pos.findInRange(FIND_MY_CREEPS, 1,
+                    {filter: (c: Creep) => CreepHelper.partCount(c, WORK) > 0}).length > 0) {
                 return true;
             }
         }

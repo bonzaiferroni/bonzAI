@@ -1579,6 +1579,9 @@ declare class RoomPosition {
     findInRange(objects: RoomPosition[], range: number, opts?: {
         filter?: any | string;
     }): RoomPosition[];
+    findInRange(type: number, range: number, opts?: {
+        filter?: any | string;
+    }): RoomPosition[];
     findInRange<T extends {pos: RoomPosition}>(objects: T[], range: number, opts?: {
         filter?: any | string;
     }): T[];
