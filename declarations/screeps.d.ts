@@ -1336,7 +1336,7 @@ interface PathFinder {
     search(origin: RoomPosition, goal: RoomPosition | {
         pos: RoomPosition;
         range: number;
-    }, opts?: PathFinderOpts): PathfinderReturn;
+    }, opts?: PathFinderOpts): PathFinderPath;
     /**
      * Find an optimal path between origin and goal.
      *
@@ -1347,7 +1347,7 @@ interface PathFinder {
     search(origin: RoomPosition, goal: RoomPosition[] | {
         pos: RoomPosition;
         range: number;
-    }[], opts?: PathFinderOpts): PathfinderReturn;
+    }[], opts?: PathFinderOpts): PathFinderPath;
     /**
      * Specify whether to use this new experimental pathfinder in game objects methods.
      * This method should be invoked every tick. It affects the following methods behavior:
@@ -1358,12 +1358,13 @@ interface PathFinder {
     use(isEnabled: boolean): any;
 }
 
-interface PathfinderReturn {
-    path: RoomPosition[],
-    ops: number,
-    cost: number,
-    incomplete: boolean,
+interface PathFinderPath {
+    path: RoomPosition[];
+    ops: number;
+    cost: number;
+    incomplete: boolean;
 }
+
 /**
  * An object containing additional pathfinding flags.
  */

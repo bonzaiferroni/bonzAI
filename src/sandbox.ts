@@ -1,7 +1,7 @@
 import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
-import {Traveler} from "./Traveler/Traveler";
+import {Traveler, TravelToOptions, TravelToReturnData} from "./Traveler/Traveler";
 
 export var sandBox = {
     run: function() {
@@ -22,7 +22,7 @@ export var sandBox = {
                     if (bulldozer.pos.inRangeTo(bulldozeFlag, 0)) {
                         bulldozer.claimController(bulldozer.room.controller);
                     } else {
-                        bulldozer.travelTo(bulldozeFlag);
+                        Traveler.travelTo(bulldozer, bulldozeFlag);
                     }
                 } else {
                     empire.spawnFromClosest(bulldozeFlag.pos.roomName, [CLAIM, MOVE], "bulldozer");
@@ -34,7 +34,7 @@ export var sandBox = {
         if (claimerFlag) {
             let creep = Game.creeps["claimer"];
             if (creep) {
-                creep.travelTo(claimerFlag, {offRoad: true});
+                Traveler.travelTo(creep, claimerFlag, {offRoad: true});
                 creep.claimController(creep.room.controller);
             } else {
                 Game.spawns.Spawn1.createCreep([CLAIM, MOVE], "claimer");
@@ -47,7 +47,7 @@ export var sandBox = {
             let creep = Game.creeps["signer"];
             if (creep) {
                 let data = {} as TravelToReturnData;
-                creep.travelTo(signerFlag, {returnData: data});
+                Traveler.travelTo(creep, signerFlag, {returnData: data});
                 if (data.path) { creep.say(`${data.path.length} more!`); }
                 creep.signController(creep.room.controller, sign);
             } else {

@@ -9,7 +9,7 @@ import {empire} from "../Empire";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Observationer} from "../Observationer";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler, TravelToOptions} from "../../Traveler/Traveler";
 
 interface PowerMemory extends MissionMemory {
     disabled: boolean;

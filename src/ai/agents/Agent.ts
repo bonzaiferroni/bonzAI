@@ -11,7 +11,7 @@ import {Viz} from "../../helpers/Viz";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {ProcureEnergyOptions} from "./interfaces";
 import {Tick} from "../../Tick";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler, TravelToOptions, TravelToReturnData, HasPos} from "../../Traveler/Traveler";
 
 export class Agent extends AbstractAgent {
 

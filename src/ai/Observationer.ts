@@ -2,6 +2,7 @@ import {Notifier} from "../notifier";
 import {empire} from "./Empire";
 import {PosHelper} from "../helpers/PosHelper";
 import {CreepHelper} from "../helpers/CreepHelper";
+import {TravelToReturnData} from "../Traveler/Traveler";
 export class Observationer {
 
     public static memory: {
