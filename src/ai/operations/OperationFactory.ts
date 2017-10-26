@@ -21,6 +21,7 @@ import {BootstrapOperation} from "./BootstrapOperation";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {BountyOperation} from "./BountyOperation";
+import {PeaceOperation} from "./PeaceOperation";
 
 export class OperationFactory {
 
@@ -34,9 +35,9 @@ export class OperationFactory {
         // guard: GuardOperation,
         // swap: SwapOperation,
         // rupg: RemoteUpgradeOperation,
-        // raid: RaidOperation,
         // siege: SiegeOperation,
         // sabo: SabotageOperation,
+        raid: RaidOperation,
         demolish: DemolishOperation,
         mining: MiningOperation,
         keeper: KeeperOperation,
@@ -47,6 +48,7 @@ export class OperationFactory {
         boot: BootstrapOperation,
         intel: IntelOperation,
         bounty: BountyOperation,
+        peace: PeaceOperation,
     };
 
     private static scannedFlags: {[flagName: string]: boolean } = {};

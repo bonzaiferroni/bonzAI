@@ -28,6 +28,24 @@ export function initPrototypes() {
             return ERR_BUSY;
         }
     };
+    StructureTower.prototype._attack = StructureTower.prototype.attack;
+    StructureTower.prototype.attack = function (target: Creep): number {
+        if (!this.alreadyFired) {
+            this.alreadyFired = true;
+            return this._attack(target);
+        } else {
+            return ERR_BUSY;
+        }
+    };
+    StructureTower.prototype._heal = StructureTower.prototype.heal;
+    StructureTower.prototype.heal = function (target: Creep): number {
+        if (!this.alreadyFired) {
+            this.alreadyFired = true;
+            return this._heal(target);
+        } else {
+            return ERR_BUSY;
+        }
+    };
 
     /**
      * General-purpose cpu-efficient movement function that uses ignoreCreeps: true, a high reusePath value and

@@ -90,7 +90,7 @@ interface RoomMemory {
         reward: number,
         danger: number,
         expire: number,
-    }
+    };
 }
 
 type StoreStructure = StructureTerminal|StructureContainer|StructureStorage;
@@ -227,4 +227,6 @@ interface StructureTerminal extends OwnedStructure {
 interface StructureTower {
     alreadyFired: boolean;
     _repair(target: Structure | Spawn): number;
+    _attack(target: Creep): number;
+    _heal(target: Creep): number;
 }

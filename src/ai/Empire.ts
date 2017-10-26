@@ -150,7 +150,7 @@ export class Empire {
     public addOperation(type: string, position?: RoomPosition, opName?: string) {
         let room = Game.rooms[position.roomName];
         if (!room) {
-            Notifier.log(`OPFACTORY: cannot place operation, no visibility in ${position.roomName}`, 5);
+            Notifier.log(`EMPIRE: cannot place operation, no visibility in ${position.roomName}`, 5);
             return;
         }
 

@@ -16,7 +16,7 @@ interface DefenseMemory extends MissionMemory {
     structureCount: number;
     closestWallId: string;
     lastCheckedTowers: number;
-    loggedAttack: boolean;
+    loggedAttack: number;
     vulnerableIndex: number;
     targetIds: string[];
     targetHits: number;
@@ -84,7 +84,7 @@ export class DefenseMission extends Mission {
     private getMaxSquadAttackers = () => {
         // if (this.roomName === "E2S12") { return 1; }
         return this.state.playerThreat ? 1 : 0;
-    }
+    };
     private getMaxSquadHealers = () => {
         // if (this.roomName === "E2S12") { return 1; }
         return this.state.playerThreat ? 1 : 0;
@@ -112,7 +112,6 @@ export class DefenseMission extends Mission {
     };
 
     public roleCall() {
-
         this.refillCarts = this.headCount("towerCart", () => this.workerUnitBody(0, 2, 1, 4), this.getMaxRefillers, {
             prespawn: 1,
         });
@@ -266,7 +265,7 @@ export class DefenseMission extends Mission {
         }
 
         if (!target) {
-            if (attacker.room !== this.room || attacker.pos.isNearExit(3)) {
+            if (attacker.room !== this.room || attacker.pos.isNearExit(0)) {
                 Agent.squadTravel(attacker, healer, this.flag);
             } else {
                 attacker.idleOffRoad(this.flag);
@@ -420,7 +419,7 @@ export class DefenseMission extends Mission {
             .min(x => x.hits);
 
         let attackMode = !this.state.playerThreat || this.state.assistTarget || this.state.vulnerableCreep
-            || !this.memory.lastProgress || Game.time < this.memory.lastProgress + 25;
+            || !this.memory.lastProgress || Game.time < this.memory.lastProgress + 10;
 
         for (let i = 0; i < towers.length; i++) {
             let target = targets[i % targets.length];
@@ -607,9 +606,11 @@ export class DefenseMission extends Mission {
         if (this.state.playerThreat && !this.memory.loggedAttack) {
             Notifier.log(`DEFENSE: Attacked: ${this.room.name}, Time:${Game.time}, Player: ${
                 playerCreeps[0].owner.username}`);
-            this.memory.loggedAttack = true;
+            this.memory.loggedAttack = Game.time;
         } else if (!this.state.playerThreat && this.memory.loggedAttack) {
-            this.memory.loggedAttack = false;
+            if (Game.time > this.memory.loggedAttack + 1000) {
+                delete this.memory.loggedAttack;
+            }
         }
     }
 
@@ -698,15 +699,16 @@ export class DefenseMission extends Mission {
             return targets;
         } else {
             if (this.room.hostiles.length > 0) {
-
                 let targets = this.assistTargeting();
 
                 if (!targets) {
                     targets = this.healerTargeting();
                 }
                 if (!targets) {
-                    targets = this.room.hostiles;
+                    targets = _.filter(this.room.hostiles, c => !c.pos.isNearExit(0));
                 }
+
+                if (targets.length === 0) { return; }
 
                 let orientation = this.squadAttackers[0] || this.towers[0];
 
@@ -722,7 +724,8 @@ export class DefenseMission extends Mission {
 
     private healerTargeting(): Creep[] {
         try {
-            let nearbyHealers = this.towers[0].pos.findInRange(this.state.hostileHealers, 10);
+            let healersInRoom = _.filter(this.state.hostileHealers, c => !c.pos.isNearExit(0));
+            let nearbyHealers = this.towers[0].pos.findInRange(healersInRoom, 10);
             if (nearbyHealers.length === 0) { return; }
             if (this.memory.healerTargetIndex >= nearbyHealers.length) {
                 this.memory.healerTargetIndex = 0;

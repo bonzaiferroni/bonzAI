@@ -585,7 +585,7 @@ export class WorldMap {
                 this.manageBounty(room);
             } else if (room.controller.owner) {
                 this.manageBounty(room);
-                // this.managePeace(room);
+                this.managePeace(room);
             }
         }
     }

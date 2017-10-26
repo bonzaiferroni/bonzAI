@@ -2,10 +2,7 @@ import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {DefenseGuru} from "../DefenseGuru";
-import {Guru} from "./Guru";
-import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
-import {helper} from "../../helpers/helper";
 import {RoomHelper} from "../../helpers/RoomHelper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 
@@ -143,14 +140,8 @@ export class MasonMission extends Mission {
         }
 
         // changed this from defenseGuru.hostiles.length to room.hostiles.length
-        if (this.state.nukeRamparts.length > 0 && this.room.hostiles.length === 0) {
-            let lowestRampart = _(this.state.nukeRamparts)
-                .filter(x => !x.pos.lookForStructure(STRUCTURE_EXTENSION))
-                .sortBy(x => x.hits)
-                .head();
-            for (let tower of this.room.findStructures<StructureTower>(STRUCTURE_TOWER)) {
-                this.towerActions(tower, lowestRampart);
-            }
+        if (this.state.nukeRamparts.length > 0) {
+            this.towerRepair();
         }
     }
 
@@ -549,8 +540,14 @@ export class MasonMission extends Mission {
         return true;
     }
 
-    private towerActions(tower: StructureTower, lowestRampart: StructureRampart) {
+    private towerRepair() {
+        let lowestRampart = _(this.state.nukeRamparts)
+            .filter(x => !x.pos.lookForStructure(STRUCTURE_EXTENSION))
+            .sortBy(x => x.hits)
+            .head();
         if (!lowestRampart) { return; }
-        tower.repair(lowestRampart);
+        for (let tower of this.room.findStructures<StructureTower>(STRUCTURE_TOWER)) {
+            tower.repair(lowestRampart);
+        }
     }
 }
