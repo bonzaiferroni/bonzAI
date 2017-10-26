@@ -1,11 +1,11 @@
 import {Agent} from "./Agent";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
-import {Traveler} from "../Traveler";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {empire} from "../Empire";
 import {HostileAgent} from "./HostileAgent";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Notifier} from "../../notifier";
+import {Traveler} from "../../Traveler/Traveler";
 
 export class CombatAgent extends Agent {
 

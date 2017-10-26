@@ -2,15 +2,14 @@ import {Diplomat} from "./Diplomat";
 import {TradeNetwork} from "./TradeNetwork";
 import {SpawnGroup} from "./SpawnGroup";
 import {helper} from "../helpers/helper";
-import {Profiler} from "../Profiler";
 import {USERNAME} from "../config/constants";
 import {Observationer} from "./Observationer";
-import {Notifier} from "../notifier";
 import {MemHelper} from "../helpers/MemHelper";
 import {PosHelper} from "../helpers/PosHelper";
-import {Traveler} from "./Traveler";
 import {Operation} from "./operations/Operation";
 import {empire} from "./Empire";
+import {Traveler} from "../Traveler/Traveler";
+
 export class WorldMap {
 
     public controlledRoomCount: number;

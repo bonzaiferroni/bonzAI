@@ -1,8 +1,6 @@
-import {ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE, ROOMTYPE_CONTROLLER, ROOMTYPE_ALLEY, WorldMap} from "../ai/WorldMap";
-import {Agent} from "../ai/agents/Agent";
+import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../ai/WorldMap";
 import {empire} from "../ai/Empire";
 import {Tick} from "../Tick";
-import {Traveler} from "../ai/Traveler";
 import {CreepHelper} from "../helpers/CreepHelper";
 
 export function initRoomPrototype() {

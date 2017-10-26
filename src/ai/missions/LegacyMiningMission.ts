@@ -4,10 +4,8 @@ import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
 import {LinkMiningMission} from "./LinkMiningMission";
-import {empire} from "../Empire";
-import {Traveler} from "../Traveler";
 import {PaveData, PaverMission} from "./PaverMission";
-import {Profiler} from "../../Profiler";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface MiningState extends MissionState {
     container: StructureContainer;

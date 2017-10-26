@@ -1,15 +1,11 @@
-import {Empire, empire} from "../ai/Empire";
+import {empire} from "../ai/Empire";
 import {Operation} from "../ai/operations/Operation";
-import {helper} from "./helper";
-import {MINERALS_RAW, PRODUCT_LIST, RESERVE_AMOUNT} from "../ai/TradeNetwork";
+import {MINERALS_RAW, PRODUCT_LIST} from "../ai/TradeNetwork";
 import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
 import {Tick} from "../Tick";
-import {Traveler} from "../ai/Traveler";
-import {PosHelper} from "./PosHelper";
 import {PaverMission} from "../ai/missions/PaverMission";
-import {MemHelper} from "./MemHelper";
 
 export var consoleCommands = {
 

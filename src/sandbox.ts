@@ -1,15 +1,7 @@
-import {Operation} from "./ai/operations/Operation";
-import {Mission} from "./ai/missions/Mission";
-import {Agent} from "./ai/agents/Agent";
-import {RoomHelper} from "./helpers/RoomHelper";
 import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
-import {Traveler} from "./ai/Traveler";
-import {Profiler} from "./Profiler";
-import {Viz} from "./helpers/Viz";
-import {WorldMap} from "./ai/WorldMap";
-import {Observationer} from "./ai/Observationer";
+import {Traveler} from "./Traveler/Traveler";
 
 export var sandBox = {
     run: function() {

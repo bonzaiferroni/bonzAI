@@ -1,5 +1,5 @@
 import {HostileAgent} from "../ai/agents/HostileAgent";
-import {Traveler} from "../ai/Traveler";
+import {Traveler} from "../Traveler/Traveler";
 import {Viz} from "./Viz";
 export class MatrixHelper {
 

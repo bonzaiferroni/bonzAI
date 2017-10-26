@@ -1,10 +1,8 @@
 import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {empire} from "../Empire";
 import {Agent} from "../agents/Agent";
-import {Traveler} from "../Traveler";
-import {helper} from "../../helpers/helper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface RemoteUpgradeMemory extends MissionMemory {
 }

@@ -6,10 +6,10 @@ import {Notifier} from "../../notifier";
 import {WorldMap} from "../WorldMap";
 import {Agent} from "../agents/Agent";
 import {empire} from "../Empire";
-import {Traveler} from "../Traveler";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Observationer} from "../Observationer";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface PowerMemory extends MissionMemory {
     disabled: boolean;

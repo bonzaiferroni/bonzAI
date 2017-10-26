@@ -3,13 +3,13 @@ import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {helper} from "../../helpers/helper";
-import {Traveler} from "../Traveler";
 import {Scheduler} from "../../Scheduler";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {Notifier} from "../../notifier";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {PosHelper} from "../../helpers/PosHelper";
 import {CombatAgent} from "../agents/CombatAgent";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];

@@ -1,6 +1,5 @@
 import {Notifier} from "../notifier";
 import {empire} from "./Empire";
-import {Traveler} from "./Traveler";
 import {PosHelper} from "../helpers/PosHelper";
 import {CreepHelper} from "../helpers/CreepHelper";
 export class Observationer {

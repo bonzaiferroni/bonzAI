@@ -4,12 +4,12 @@ import {empire} from "../Empire";
 import {BootstrapMiningData, BootstrapMiningMission} from "../missions/BootstrapMinerMission";
 import {ROOMTYPE_CONTROLLER, WorldMap} from "../WorldMap";
 import {PosHelper} from "../../helpers/PosHelper";
-import {Traveler} from "../Traveler";
 import {BootMiningGuru} from "../missions/BootMiningGuru";
 import {BootstrapBuilderMission} from "../missions/BootstrapBuilderMission";
 import {Mission} from "../missions/Mission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {CreepHelper} from "../../helpers/CreepHelper";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface BootstrapOperationMemory extends OperationMemory {
     addRooms: string[];

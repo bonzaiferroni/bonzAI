@@ -1,12 +1,12 @@
 import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Tick} from "../../Tick";
-import {Traveler} from "../Traveler";
 import {Notifier} from "../../notifier";
 import {MemHelper} from "../../helpers/MemHelper";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "../agents/Agent";
 import {PaveData, PaverMission} from "./PaverMission";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface GeologyMemory extends MissionMemory {
     containerIds: string[];

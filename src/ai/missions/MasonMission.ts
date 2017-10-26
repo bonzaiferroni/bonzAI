@@ -35,7 +35,7 @@ export class MasonMission extends Mission {
     public state: MasonState;
 
     private protectTypes = [STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_NUKER,
-        STRUCTURE_POWER_SPAWN];
+        STRUCTURE_POWER_SPAWN, STRUCTURE_STORAGE];
 
     constructor(operation: Operation, defenseGuru: DefenseGuru) {
         super(operation, "mason");

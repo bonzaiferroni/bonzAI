@@ -1,5 +1,5 @@
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../ai/WorldMap";
-import {Traveler} from "../ai/Traveler";
+import {Traveler} from "../Traveler/Traveler";
 import {PosHelper} from "./PosHelper";
 export class CreepHelper {
 

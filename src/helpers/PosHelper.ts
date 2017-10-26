@@ -1,4 +1,4 @@
-import {Traveler} from "../ai/Traveler";
+import {Traveler} from "../Traveler/Traveler";
 import {WorldMap} from "../ai/WorldMap";
 import {CreepHelper} from "./CreepHelper";
 

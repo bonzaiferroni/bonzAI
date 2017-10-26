@@ -4,15 +4,12 @@ import {TransportAnalysis} from "../../interfaces";
 import {helper} from "../../helpers/helper";
 import {RESERVE_AMOUNT, NEED_ENERGY_THRESHOLD, SUPPLY_ENERGY_THRESHOLD} from "../TradeNetwork";
 import {Agent} from "../agents/Agent";
-import {empire} from "../Empire";
 import {RoomHelper} from "../../helpers/RoomHelper";
-import {MemHelper} from "../../helpers/MemHelper";
-import {Profiler} from "../../Profiler";
-import {Traveler} from "../Traveler";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {PaveData, PaverMission} from "./PaverMission";
 import {Notifier} from "../../notifier";
 import {PosHelper} from "../../helpers/PosHelper";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface UpgradeMemory extends MissionMemory {
     nextAddPotency: number;

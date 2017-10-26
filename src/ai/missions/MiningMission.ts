@@ -2,10 +2,10 @@ import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {TransportAnalysis} from "../../interfaces";
 import {MemHelper} from "../../helpers/MemHelper";
-import {Traveler} from "../Traveler";
 import {Notifier} from "../../notifier";
 import {Agent} from "../agents/Agent";
 import {PaveData, PaverMission} from "./PaverMission";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface MiningMissionMemory extends MissionMemory {
     spawnDistance: number;

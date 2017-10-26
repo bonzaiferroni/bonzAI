@@ -5,11 +5,11 @@ import {Observationer} from "./Observationer";
 import {PosHelper} from "../helpers/PosHelper";
 import {ROOMTYPE_CONTROLLER, WorldMap} from "./WorldMap";
 import {Viz} from "../helpers/Viz";
-import {Traveler} from "./Traveler";
 import {helper} from "../helpers/helper";
 import {MemHelper} from "../helpers/MemHelper";
 import {Tick} from "../Tick";
 import {USERNAME} from "../config/constants";
+import {Traveler} from "../Traveler/Traveler";
 export class RoomPlanter {
     private static memory: {
         checkPlant: number;

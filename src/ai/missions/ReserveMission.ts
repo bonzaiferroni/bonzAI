@@ -4,8 +4,7 @@ import {Notifier} from "../../notifier";
 import {helper} from "../../helpers/helper";
 import {ARTROOMS} from "../WorldMap";
 import {Agent} from "../agents/Agent";
-import {empire} from "../Empire";
-import {Traveler} from "../Traveler";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface ReserveMemory extends MissionMemory {
     wallCheck: boolean;

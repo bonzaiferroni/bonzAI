@@ -3,7 +3,7 @@ import {Operation} from "../operations/Operation";
 import {Notifier} from "../../notifier";
 import {RaidGuru} from "./RaidGuru";
 import {Agent} from "../agents/Agent";
-import {Traveler} from "../Traveler";
+import {Traveler} from "../../Traveler/Traveler";
 
 enum ZombieStatus { Attack, Upgrade, Hold, Complete }
 

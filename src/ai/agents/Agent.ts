@@ -1,19 +1,17 @@
 import {Mission} from "../missions/Mission";
 import {IGOR_CAPACITY} from "../../config/constants";
 import {helper} from "../../helpers/helper";
-import {Traveler} from "../Traveler";
 import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {Notifier} from "../../notifier";
 import {empire} from "../Empire";
 import {AbstractAgent} from "./AbstractAgent";
-import {RESERVE_AMOUNT} from "../TradeNetwork";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Viz} from "../../helpers/Viz";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {ProcureEnergyOptions} from "./interfaces";
-import {PosHelper} from "../../helpers/PosHelper";
 import {Tick} from "../../Tick";
+import {Traveler} from "../../Traveler/Traveler";
 
 export class Agent extends AbstractAgent {
 

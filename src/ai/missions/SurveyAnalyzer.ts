@@ -4,12 +4,11 @@ import {SpawnGroup} from "../SpawnGroup";
 import {Notifier} from "../../notifier";
 import {Mission} from "./Mission";
 import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE} from "../WorldMap";
-import {Traveler} from "../Traveler";
 import {USERNAME} from "../../config/constants";
 import {empire} from "../Empire";
 import {PosHelper} from "../../helpers/PosHelper";
-import {Profiler} from "../../Profiler";
 import {Operation} from "../operations/Operation";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface SurveyData {
     danger: boolean;

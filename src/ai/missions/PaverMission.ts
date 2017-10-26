@@ -5,12 +5,12 @@ import {SpawnGroup} from "../SpawnGroup";
 import {Archiver} from "../Archiver";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Notifier} from "../../notifier";
-import {Traveler} from "../Traveler";
 import {ROOMTYPE_ALLEY, WorldMap} from "../WorldMap";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {Scheduler} from "../../Scheduler";
 import {Layout} from "../layouts/Layout";
 import {helper} from "../../helpers/helper";
+import {Traveler} from "../../Traveler/Traveler";
 
 interface PaverMemory extends MissionMemory {
 }
