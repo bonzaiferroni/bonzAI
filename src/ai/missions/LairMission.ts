@@ -9,7 +9,7 @@ import {Notifier} from "../../notifier";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {PosHelper} from "../../helpers/PosHelper";
 import {CombatAgent} from "../agents/CombatAgent";
-import {Traveler, TravelToOptions} from "../../Traveler/Traveler";
+import {Traveler, TravelToOptions} from "../../Traveler";
 
 interface LairMissionMemory extends MissionMemory {
     bestLairOrder: string[];

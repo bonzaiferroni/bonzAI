@@ -6,7 +6,7 @@ import {MemHelper} from "../../helpers/MemHelper";
 import {TransportAnalysis} from "../../interfaces";
 import {Agent} from "../agents/Agent";
 import {PaveData, PaverMission} from "./PaverMission";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface GeologyMemory extends MissionMemory {
     containerIds: string[];

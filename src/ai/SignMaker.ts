@@ -4,7 +4,7 @@ import {CreepHelper} from "../helpers/CreepHelper";
 import {empire} from "./Empire";
 import {Notifier} from "../notifier";
 import {MemHelper} from "../helpers/MemHelper";
-import {TravelToReturnData} from "../Traveler/Traveler";
+import {TravelToReturnData} from "../Traveler";
 
 export class SignMaker {
 

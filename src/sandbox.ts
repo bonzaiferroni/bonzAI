@@ -1,7 +1,7 @@
 import {Notifier} from "./notifier";
 import {empire} from "./ai/Empire";
 import {helper} from "./helpers/helper";
-import {Traveler, TravelToOptions, TravelToReturnData} from "./Traveler/Traveler";
+import {Traveler, TravelToOptions, TravelToReturnData} from "./Traveler";
 
 export var sandBox = {
     run: function() {

@@ -120,7 +120,7 @@ export class DefenseMission extends Mission {
             RESOURCE_CATALYZED_UTRIUM_ACID], allowUnboosted: !this.state.enhancedBoost };
 
         if (this.state.enhancedBoost) {
-            memory.boosts.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE);
+            memory.boosts.push(RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE as any);
         }
 
         if (this.spawnGroup.maxSpawnEnergy < 8000 && this.operation.remoteSpawn && this.operation.remoteSpawn.spawnGroup

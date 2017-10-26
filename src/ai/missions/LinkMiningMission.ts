@@ -1,7 +1,7 @@
 import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface LinkMiningMemory extends MissionMemory {
     linkId: string;

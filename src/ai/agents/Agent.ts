@@ -11,7 +11,7 @@ import {Viz} from "../../helpers/Viz";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {ProcureEnergyOptions} from "./interfaces";
 import {Tick} from "../../Tick";
-import {Traveler, TravelToOptions, TravelToReturnData, HasPos} from "../../Traveler/Traveler";
+import {Traveler, TravelToOptions, TravelToReturnData, HasPos} from "../../Traveler";
 
 export class Agent extends AbstractAgent {
 
@@ -895,7 +895,7 @@ export class Agent extends AbstractAgent {
             return options.supply;
         }
 
-        let structures = _.filter(this.room.findStructures<StructureContainer>(STRUCTURE_CONTAINER),
+        let structures = _.filter(this.room.findStructures<StoreStructure>(STRUCTURE_CONTAINER),
             x => x.store.energy >= minEnergy &&
             (!x.room.controller || x.pos.getRangeTo(x.room.controller) > 3 || x.pos.findInRange(FIND_SOURCES, 1).length > 0));
         if (this.room.terminal && this.room.terminal.store.energy >= minEnergy) {

@@ -254,7 +254,7 @@ export class LayoutFinder {
 
     private findSourceScore(sourcePos: RoomPosition, anchor: Vector2): number {
         let anchorPos = new RoomPosition(anchor.x, anchor.y, this.roomName);
-        let score = SOURCE_ENERGY_CAPACITY;
+        let score = SOURCE_ENERGY_CAPACITY as number;
         if (WorldMap.roomType(sourcePos.roomName) === ROOMTYPE_SOURCEKEEPER) {
             score = SOURCE_ENERGY_KEEPER_CAPACITY;
         }

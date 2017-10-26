@@ -9,7 +9,7 @@ import {helper} from "../helpers/helper";
 import {MemHelper} from "../helpers/MemHelper";
 import {Tick} from "../Tick";
 import {USERNAME} from "../config/constants";
-import {Traveler} from "../Traveler/Traveler";
+import {Traveler} from "../Traveler";
 export class RoomPlanter {
     private static memory: {
         checkPlant: number;

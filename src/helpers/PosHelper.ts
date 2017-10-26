@@ -1,4 +1,4 @@
-import {Traveler} from "../Traveler/Traveler";
+import {Traveler} from "../Traveler";
 import {WorldMap} from "../ai/WorldMap";
 import {CreepHelper} from "./CreepHelper";
 
@@ -94,7 +94,7 @@ export class PosHelper {
         let room = Game.rooms[pos.roomName];
         if (!room) { return 0; }
 
-        let searchType = FIND_MY_CREEPS;
+        let searchType: number = FIND_MY_CREEPS;
         if (!friendly) {
             searchType = FIND_HOSTILE_CREEPS;
         }
@@ -117,7 +117,7 @@ export class PosHelper {
         let room = Game.rooms[pos.roomName];
         if (!room) { return 0; }
 
-        let searchType = FIND_MY_CREEPS;
+        let searchType: number = FIND_MY_CREEPS;
         if (!friendly) {
             searchType = FIND_HOSTILE_CREEPS;
         }

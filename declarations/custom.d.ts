@@ -2,7 +2,7 @@ declare var module: any;
 declare var global: any;
 
 interface Memory {
-    rooms: {[roomName: string]: RoomMemory };
+    rooms: {[name: string]: RoomMemory };
     temp: any;
     stats: any;
     roomAttacks: any;

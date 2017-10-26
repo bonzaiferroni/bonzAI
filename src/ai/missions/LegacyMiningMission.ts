@@ -5,7 +5,7 @@ import {Agent} from "../agents/Agent";
 import {Notifier} from "../../notifier";
 import {LinkMiningMission} from "./LinkMiningMission";
 import {PaveData, PaverMission} from "./PaverMission";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface MiningState extends MissionState {
     container: StructureContainer;

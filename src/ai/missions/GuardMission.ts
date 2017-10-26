@@ -5,7 +5,7 @@ import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface GuardMissionState extends MissionState {
     guardedFlags: Flag[];

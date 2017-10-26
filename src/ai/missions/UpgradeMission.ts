@@ -9,7 +9,7 @@ import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {PaveData, PaverMission} from "./PaverMission";
 import {Notifier} from "../../notifier";
 import {PosHelper} from "../../helpers/PosHelper";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface UpgradeMemory extends MissionMemory {
     nextAddPotency: number;
@@ -315,7 +315,7 @@ export class UpgradeMission extends Mission {
 
         if (!battery) {
             if (this.room.hostiles.length > 0) { return; }
-            let structureType = STRUCTURE_LINK;
+            let structureType: string = STRUCTURE_LINK;
             if (this.room.controller.level < 5) {
                 structureType = STRUCTURE_CONTAINER;
             }

@@ -4,7 +4,7 @@ import {LayoutDisplay} from "./LayoutDisplay";
 import {empire} from "../Empire";
 import {Archiver} from "../Archiver";
 import {Notifier} from "../../notifier";
-import {Coord} from "../../Traveler/Traveler";
+import {Coord} from "../../Traveler";
 
 export abstract class Layout {
 

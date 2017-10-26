@@ -8,7 +8,7 @@ import {MemHelper} from "../helpers/MemHelper";
 import {PosHelper} from "../helpers/PosHelper";
 import {Operation} from "./operations/Operation";
 import {empire} from "./Empire";
-import {Traveler} from "../Traveler/Traveler";
+import {Traveler} from "../Traveler";
 
 export class WorldMap {
 
@@ -355,7 +355,7 @@ export class WorldMap {
             let positions = map[roomName];
             let valid = true;
             let roomType = WorldMap.roomType(roomName);
-            let energyPerSource = SOURCE_ENERGY_CAPACITY;
+            let energyPerSource = SOURCE_ENERGY_CAPACITY as number;
             if (roomType === ROOMTYPE_SOURCEKEEPER) {
                 energyPerSource = SOURCE_ENERGY_KEEPER_CAPACITY;
             }

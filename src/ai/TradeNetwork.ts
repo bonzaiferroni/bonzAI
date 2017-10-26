@@ -501,6 +501,6 @@ export const IGNORE_TRADE_DISTANCE = {
 };
 export const MINERALS_RAW = ["H", "O", "Z", "U", "K", "L", "X"];
 export const PRODUCT_LIST = ["XUH2O", "XLHO2", "XLH2O", "XKHO2", "XGHO2", "XZHO2", "XZH2O", "G", "XGH2O"];
-export const TRADE_WITH_SELF = [RESOURCE_ENERGY].concat(PRODUCT_LIST).concat(MINERALS_RAW).concat(RESOURCE_POWER);
-export const TRADE_WITH_PARTNERS = [RESOURCE_ENERGY].concat(PRODUCT_LIST).concat(MINERALS_RAW);
+export const TRADE_WITH_SELF = [RESOURCE_ENERGY as any].concat(PRODUCT_LIST).concat(MINERALS_RAW).concat(RESOURCE_POWER);
+export const TRADE_WITH_PARTNERS = [RESOURCE_ENERGY as any].concat(PRODUCT_LIST).concat(MINERALS_RAW);
 export const TRADE_ENERGY_AMOUNT = 10000;

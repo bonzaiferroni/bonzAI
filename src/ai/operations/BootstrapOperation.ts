@@ -9,7 +9,7 @@ import {BootstrapBuilderMission} from "../missions/BootstrapBuilderMission";
 import {Mission} from "../missions/Mission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {CreepHelper} from "../../helpers/CreepHelper";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface BootstrapOperationMemory extends OperationMemory {
     addRooms: string[];

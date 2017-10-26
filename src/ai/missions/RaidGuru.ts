@@ -7,7 +7,7 @@ import {WorldMap} from "../WorldMap";
 import {Operation} from "../operations/Operation";
 import {PosHelper} from "../../helpers/PosHelper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 export class RaidGuru extends Guru {
 
     public raidRoom: Room;

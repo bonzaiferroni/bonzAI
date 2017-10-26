@@ -5,7 +5,7 @@ import {MemHelper} from "../../helpers/MemHelper";
 import {Notifier} from "../../notifier";
 import {Agent} from "../agents/Agent";
 import {PaveData, PaverMission} from "./PaverMission";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface MiningMissionMemory extends MissionMemory {
     spawnDistance: number;

@@ -212,7 +212,7 @@ export class LayoutBuilder {
     }
 
     private findBuildPriority(): string[] {
-        let priorityMap = {
+        let priorityMap: {[priority: string]: string[] } = {
             ["high"]: [STRUCTURE_STORAGE, STRUCTURE_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_LAB],
             ["medium"]: [STRUCTURE_TOWER, STRUCTURE_LINK, STRUCTURE_EXTENSION],
             ["low"]: [STRUCTURE_ROAD, STRUCTURE_OBSERVER, STRUCTURE_NUKER, STRUCTURE_POWER_SPAWN],

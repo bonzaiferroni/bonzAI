@@ -2,7 +2,7 @@ import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
-import {Traveler, TravelToReturnData} from "../../Traveler/Traveler";
+import {Traveler, TravelToReturnData} from "../../Traveler";
 
 interface RemoteUpgradeState extends MissionState {
     inboundEnergy: number;

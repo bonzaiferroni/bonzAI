@@ -8,7 +8,7 @@ import {USERNAME} from "../../config/constants";
 import {empire} from "../Empire";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Operation} from "../operations/Operation";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface SurveyData {
     danger: boolean;

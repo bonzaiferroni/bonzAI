@@ -5,7 +5,7 @@ import {helper} from "../../helpers/helper";
 import {Agent} from "../agents/Agent";
 import {InvaderGuru} from "./InvaderGuru";
 import {CreepHelper} from "../../helpers/CreepHelper";
-import {TravelToOptions} from "../../Traveler/Traveler";
+import {TravelToOptions} from "../../Traveler";
 export class EnhancedBodyguardMission extends Mission {
 
     private squadAttackers: Agent[];

@@ -5,7 +5,7 @@ import {empire} from "../Empire";
 import {HostileAgent} from "./HostileAgent";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Notifier} from "../../notifier";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 export class CombatAgent extends Agent {
 

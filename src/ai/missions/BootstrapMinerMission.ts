@@ -134,7 +134,7 @@ export class BootstrapMiningMission extends Mission {
     }
 
     protected findEnergyPerTick() {
-        let capacity = SOURCE_ENERGY_NEUTRAL_CAPACITY;
+        let capacity = SOURCE_ENERGY_NEUTRAL_CAPACITY as number;
         if (this.bootRoom && (this.bootRoom.controller.my || this.bootRoom.controller.reservation)) {
             capacity = SOURCE_ENERGY_CAPACITY;
         }

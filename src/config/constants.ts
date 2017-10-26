@@ -16,7 +16,7 @@ export const PRIORITY_BUILD: string[] = [
 ];
 export const LOADAMOUNT_MINERAL = Math.ceil(33 / 6);
 
-export const USERNAME = _.first(_.toArray(Game.structures)).owner.username;
+export const USERNAME = _.first(_.toArray(Game.spawns)).owner.username;
 
 export enum OperationPriority { Emergency, OwnedRoom, VeryHigh, High, Medium, Low, VeryLow }
 

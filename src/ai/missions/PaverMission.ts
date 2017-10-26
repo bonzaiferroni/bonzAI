@@ -10,7 +10,7 @@ import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {Scheduler} from "../../Scheduler";
 import {Layout} from "../layouts/Layout";
 import {helper} from "../../helpers/helper";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 interface PaverMemory extends MissionMemory {
 }

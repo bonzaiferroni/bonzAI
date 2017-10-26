@@ -8,7 +8,7 @@ import {empire} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {CreepHelper} from "../../helpers/CreepHelper";
-import {Traveler} from "../../Traveler/Traveler";
+import {Traveler} from "../../Traveler";
 
 export interface MissionState {
     hasVision?: boolean;

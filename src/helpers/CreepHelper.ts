@@ -1,5 +1,5 @@
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../ai/WorldMap";
-import {Traveler, TravelToOptions} from "../Traveler/Traveler";
+import {Traveler, TravelToOptions} from "../Traveler";
 import {PosHelper} from "./PosHelper";
 export class CreepHelper {
 
@@ -108,9 +108,9 @@ export class CreepHelper {
             let profile = this.getProfile(creep);
             creep.rating = profile[RANGED_ATTACK].potential + profile[ATTACK].potential / 3;
             if (profile[TOUGH].count > 0 && profile[TOUGH].isBoosted) {
-                creep.rating += creep[HEAL] * 4;
+                creep.rating += profile[HEAL].potential * 3;
             } else {
-                creep.rating += creep[HEAL];
+                creep.rating += profile[HEAL].potential;
             }
         }
         return creep.rating;
