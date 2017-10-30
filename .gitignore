@@ -1,9 +1,6 @@
 .DS_Store
-/typings
 /node_modules
 /dist
-Gruntfile.js
 /.idea
 config.json
-/src/submodules
-/src/submodules.ts
+/src/private
