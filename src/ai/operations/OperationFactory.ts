@@ -3,25 +3,17 @@ import {KeeperOperation} from "./KeeperOperation";
 import {ControllerOperation} from "./ControllerOperation";
 import {EvacOperation} from "./EvacOperation";
 import {LayoutOperation} from "./LayoutOperation";
-import {GuardOperation} from "./GuardOperation";
-import {SwapOperation} from "./SwapOperation";
 import {Operation, OperationMap, OperationPriorityMap} from "./Operation";
-import {TransportOperation} from "./TransportOperation";
-import {ZombieOperation} from "./ZombieOperation";
 import {DemolishOperation} from "./DemolishOperation";
-import {RemoteUpgradeOperation} from "./RemoteUpgradeOperation";
 import {SandboxOperation} from "./SandboxOperation";
-import {RaidOperation} from "../../submodules/RaidOperation/RaidOperation";
-import {IntelOperation} from "../../submodules/RaidOperation/IntelOperation";
-import {SiegeOperation} from "../../submodules/RaidOperation/SiegeOperation";
-import {SabotageOperation} from "../../submodules/RaidOperation/SabotageOperation";
-import {Notifier} from "../../notifier";
 import {PosHelper} from "../../helpers/PosHelper";
 import {BootstrapOperation} from "./BootstrapOperation";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {BountyOperation} from "./BountyOperation";
 import {PeaceOperation} from "./PeaceOperation";
+import {RaidOperation} from "../../private/RaidOperation/RaidOperation";
+import {IntelOperation} from "../../private/RaidOperation/IntelOperation";
 
 export class OperationFactory {
 
