@@ -163,7 +163,7 @@ export class TradeNetwork {
     private registerMyRooms() {
         for (let roomName in this.map.controlledRooms) {
             let room = this.map.controlledRooms[roomName];
-            if (room.hostiles.length > 0) { continue; }
+            // if (room.hostiles.length > 0) { continue; }
             if (room.memory.swap) { continue; }
             if (room.terminal && room.terminal.my && room.controller.level >= 6) {
                 this.terminals.push(room.terminal);

@@ -401,7 +401,7 @@ export class CombatAgent extends Agent {
                 return false;
             }
         } else {
-            if (this.hits <= this.hitsMax * .6) {
+            if (this.hits <= this.hitsMax * .7) {
                 this.memory.recovering = true;
             } else {
                 return false;

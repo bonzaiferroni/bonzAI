@@ -106,11 +106,10 @@ export class Observationer {
                     let ret = {} as TravelToReturnData;
                     CreepHelper.avoidSK(creepObserver, {pos: PosHelper.pathablePosition(data.toName) }, {
                         offRoad: true,
-                        ensurePath: true,
                         returnData: ret,
                     } );
 
-                    if (ret.pathfinderReturn && ret.pathfinderReturn.incomplete && Math.random() > .9) {
+                    if (ret.pathfinderReturn && ret.pathfinderReturn.incomplete) {
                         delete this.memory.observing[fromName];
                         this.memory.unavailable[data.toName] = Game.time + 1000;
                     }

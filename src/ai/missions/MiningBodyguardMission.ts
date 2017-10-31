@@ -19,7 +19,7 @@ export class MiningBodyguardMission extends BodyguardMission {
         this.invaderGuru = invaderGuru;
     }
 
-    protected maxBodyguards = () => {
+    protected leeroyMax = () => {
         if (!this.state.hasVision) { return 1; }
 
         if (this.room.hostiles.length > 0) {
@@ -62,7 +62,7 @@ export class MiningBodyguardMission extends BodyguardMission {
         if (this.room.hostiles.length > 0) {
             if (this.memory.invasionStart) {
                 let ticksSince = Game.time - this.memory.invasionStart;
-                additional = Math.floor(ticksSince / 200);
+                additional = Math.floor(ticksSince / 100);
             } else {
                 this.memory.invasionStart = Game.time;
             }

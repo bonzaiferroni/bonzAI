@@ -280,13 +280,17 @@ export abstract class Mission {
         // manage spawning
         let allowSpawn = (this.spawnGroup.isAvailable || options.forceSpawn) && this.allowSpawn
             && (this.state.hasVision || options.blindSpawn);
-        if (allowSpawn && count < getMax()) {
-            let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
-            let body = getBody();
-            let outcome = this.spawnGroup.spawn(body, creepName, options.memory, options.reservation);
-            if (_.isString(outcome)) {
-                this.state.spawnedThisTick[roleName] = outcome;
-                creepNames.push(creepName);
+        if (allowSpawn) {
+            let doSpawn = count < getMax();
+            if (doSpawn) {
+                Notifier.addMessage(this.roomName, `+${roleName}`)
+                let creepName = `${this.operation.name}_${roleName}_${Math.floor(Math.random() * 100)}`;
+                let body = getBody();
+                let outcome = this.spawnGroup.spawn(body, creepName, options.memory, options.reservation);
+                if (_.isString(outcome)) {
+                    this.state.spawnedThisTick[roleName] = outcome;
+                    creepNames.push(creepName);
+                }
             }
         }
 

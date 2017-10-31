@@ -14,6 +14,7 @@ import {BountyOperation} from "./BountyOperation";
 import {PeaceOperation} from "./PeaceOperation";
 import {RaidOperation} from "../../private/RaidOperation/RaidOperation";
 import {IntelOperation} from "../../private/RaidOperation/IntelOperation";
+import {StumpOperation} from "./HealStumpOperation";
 
 export class OperationFactory {
 
@@ -41,6 +42,7 @@ export class OperationFactory {
         intel: IntelOperation,
         bounty: BountyOperation,
         peace: PeaceOperation,
+        stump: StumpOperation,
     };
 
     private static scannedFlags: {[flagName: string]: boolean } = {};

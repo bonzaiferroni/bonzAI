@@ -84,7 +84,7 @@ export class BodyguardMission extends CombatMission {
     };
 
     protected leeroyBody = (): string[] => {
-        return this.rangerBody(this.getPotency(2));
+        return this.rangerBody(this.getPotency(4));
     };
 
     // BIG LEE

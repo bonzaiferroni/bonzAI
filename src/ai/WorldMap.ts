@@ -148,7 +148,7 @@ export class WorldMap {
             room.memory.owner = owner;
 
             if (!Memory.playerConfig.manual && owner) {
-                if (owner !== USERNAME) {
+                if (owner !== USERNAME && !this.diplomat.allies[owner]) {
                     this.diplomat.foes[owner] = true;
                 }
                 if (this.diplomat.foes[owner]) {
@@ -227,6 +227,7 @@ export class WorldMap {
     private analyzeRoom(scanningRoom: Room, roomName: string, nextScanInterval: number, passive: boolean) {
         if (!Memory.rooms[roomName]) { Memory.rooms[roomName] = {} as RoomMemory; }
         let roomMemory = Memory.rooms[roomName];
+        // console.log(roomMemory.nextScan, Game.time, roomName, "ey!");
         if (roomMemory.nextScan > Game.time) { return; }
         if (roomMemory.nextScan === undefined) {
             if (roomMemory.nextAvailabilityCheck > Game.time) { return; }
