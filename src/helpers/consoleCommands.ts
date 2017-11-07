@@ -1,10 +1,9 @@
-import {empire} from "../ai/Empire";
-import {Operation} from "../ai/operations/Operation";
 import {MINERALS_RAW, PRODUCT_LIST} from "../ai/TradeNetwork";
 import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
 import {Tick} from "../Tick";
+import {empire} from "../ai/Empire";
 import {PaverMission} from "../ai/missions/PaverMission";
 
 export var consoleCommands = {
@@ -217,7 +216,7 @@ export var consoleCommands = {
      */
 
     changeOpName(opName: string, newOpName: string) {
-        let operation = Tick.operations[opName] as Operation;
+        let operation = Tick.operations[opName] as any;
         if (!operation) { return "you don't have an operation by that name"; }
 
         let newFlagName = operation.type + "_" + newOpName;
@@ -334,41 +333,6 @@ export var consoleCommands = {
         }
 
         return `all flags consistent`;
-    },
-
-    testCPU() {
-        let position = Game.spawns["Spawn1"].pos;
-        let dirs = [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8];
-        let test1 = () => {
-            for (let dir of dirs) {
-                position.getPositionAtDirection(dir);
-            }
-        };
-
-        let test2 = () => {
-            for (let dir of dirs) {
-            }
-        };
-
-        let tests = [test1, test2];
-        if (Math.random() < .5) {
-            tests = [test2, test1];
-        }
-
-        for (let test of tests) {
-            let cpu = Game.cpu.getUsed();
-            test();
-            cpu = Game.cpu.getUsed() - cpu;
-            console.log(`${test.name} ${_.round(cpu, 5)}`);
-        }
-
-        /* output
-         [2:11:09 PM]TRAVELER: path failed without findroute, trying with options.useFindRoute = true
-         [2:11:09 PM]from: [room E7S8 pos 27,14], destination: [room E5S6 pos 36,30]
-         [2:11:09 PM]TRAVELER: second attempt was  successful
-         [2:11:09 PM]test: new, cpu: 15.518756000000053, incomplete = false
-         [2:11:09 PM]test: old, cpu: 9.348324999999988, incomplete = true
-         */
     },
 
     roads(roomName: string) {

@@ -14,6 +14,7 @@ import {Profiler} from "../Profiler";
 import {PosHelper} from "../helpers/PosHelper";
 import {Observationer} from "./Observationer";
 import {RoomPlanter} from "./RoomPlanter";
+import {AutoNuker} from "./AutoNuker";
 
 export class Empire {
 
@@ -54,6 +55,7 @@ export class Empire {
         Archiver.init();
         SignMaker.init();
         Observationer.init();
+        AutoNuker.init();
     }
 
     /**
@@ -90,6 +92,8 @@ export class Empire {
         this.janitor.actions();
         Observationer.actions();
         SignMaker.actions();
+        AutoNuker.actions();
+
         SpawnGroup.finalize(this.spawnGroups);
         Archiver.finalize();
     }

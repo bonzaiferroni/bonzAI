@@ -9,6 +9,7 @@ import {PosHelper} from "../helpers/PosHelper";
 import {Operation} from "./operations/Operation";
 import {empire} from "./Empire";
 import {Traveler} from "../Traveler";
+import {AutoNuker} from "./AutoNuker";
 
 export class WorldMap {
 
@@ -257,6 +258,7 @@ export class WorldMap {
         this.evaluateTrade(scannedRoom);
         this.evaluatePortal(scannedRoom);
         this.evaluateScore(scanningRoom, scannedRoom);
+        AutoNuker.evaluateRoom(scannedRoom);
         // this.evaluateSign(scanningRoom, scannedRoom);
         // console.log(`RADAR: analyzed ${roomName}`);
         // TODO: room selection code

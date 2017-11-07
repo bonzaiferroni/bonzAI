@@ -91,6 +91,9 @@ interface RoomMemory {
         danger: number,
         expire: number,
     };
+    nextNukeEval: number;
+    nukePos: number;
+    nukeScore: number;
 }
 
 type StoreStructure = StructureTerminal|StructureContainer|StructureStorage;
