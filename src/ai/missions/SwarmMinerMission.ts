@@ -1,24 +1,21 @@
 import {Agent} from "../agents/Agent";
-import {MiningMission, MiningMissionState} from "./MiningMission";
 import {Mission, MissionMemory} from "./Mission";
 import {Operation} from "../operations/Operation";
-import {PaveData} from "./PaverMission";
 import {helper} from "../../helpers/helper";
 import {TransportAnalysis} from "../../interfaces";
-import {BootMiningGuru} from "./BootMiningGuru";
-import {Tick} from "../../Tick";
+import {SwarmMiningGuru} from "./SwarmMiningGuru";
 
-interface BootstrapMiningMemory extends MissionMemory {
+interface SwarmMiningMemory extends MissionMemory {
 }
 
-interface BootstrapMiningAnalysis {
+interface SwarmMiningAnalysis {
     workCount: number;
     carryCount: number;
     moveCount: number;
     minerCount: number;
 }
 
-export interface BootstrapMiningData {
+export interface SwarmMiningData {
     sourceId: string;
     containerPos: RoomPosition;
     posCount: number;
@@ -26,14 +23,14 @@ export interface BootstrapMiningData {
     spawnDelay: number;
 }
 
-export class BootstrapMiningMission extends Mission {
+export class SwarmMiningMission extends Mission {
 
-    public memory: BootstrapMiningMemory;
+    public memory: SwarmMiningMemory;
     private sourceId: string;
     private containerPos: RoomPosition;
     private posCount: number;
     private source: Source;
-    private bootRoom: Room;
+    private swarmRoom: Room;
     private distance: number;
     private dibs: {[id: string]: boolean} = {};
     private smallCarts: boolean;
@@ -42,10 +39,10 @@ export class BootstrapMiningMission extends Mission {
     private miners: Agent[];
     private site: ConstructionSite;
     private container: StructureContainer;
-    private guru: BootMiningGuru;
+    private guru: SwarmMiningGuru;
 
-    constructor(operation: Operation, index: number, data: BootstrapMiningData, guru: BootMiningGuru) {
-        super(operation, `${data.containerPos.roomName}_bootMiner${index}`);
+    constructor(operation: Operation, index: number, data: SwarmMiningData, guru: SwarmMiningGuru) {
+        super(operation, `${data.containerPos.roomName}_swarmMiner${index}`);
         this.sourceId = data.sourceId;
         this.containerPos = helper.deserializeRoomPosition(data.containerPos);
         this.posCount = data.posCount;
@@ -57,7 +54,7 @@ export class BootstrapMiningMission extends Mission {
     }
 
     protected update() {
-        this.bootRoom = Game.rooms[this.containerPos.roomName];
+        this.swarmRoom = Game.rooms[this.containerPos.roomName];
 
         let addDistance = 10;
         if (this.room.storage) {
@@ -72,12 +69,12 @@ export class BootstrapMiningMission extends Mission {
     }
 
     protected minerBody = () => {
-        let analysis = this.BootstrapMiningAnalysis();
+        let analysis = this.SwarmMiningAnalysis();
         return this.workerBody(analysis.workCount, analysis.carryCount, analysis.moveCount);
     };
 
     protected maxMiners = () => {
-        let analysis = this.BootstrapMiningAnalysis();
+        let analysis = this.SwarmMiningAnalysis();
         return analysis.minerCount;
     };
 
@@ -135,14 +132,14 @@ export class BootstrapMiningMission extends Mission {
 
     protected findEnergyPerTick() {
         let capacity = SOURCE_ENERGY_NEUTRAL_CAPACITY as number;
-        if (this.bootRoom && (this.bootRoom.controller.my || this.bootRoom.controller.reservation)) {
+        if (this.swarmRoom && (this.swarmRoom.controller.my || this.swarmRoom.controller.reservation)) {
             capacity = SOURCE_ENERGY_CAPACITY;
         }
         return Math.ceil(capacity / 300);
     }
 
     private findContainer(): StructureContainer {
-        if (!this.bootRoom) { return; }
+        if (!this.swarmRoom) { return; }
         let container = this.containerPos.lookForStructure<StructureContainer>(STRUCTURE_CONTAINER);
         if (container) {
             return container;
@@ -156,8 +153,8 @@ export class BootstrapMiningMission extends Mission {
         }
     }
 
-    private BootstrapMiningAnalysis(): BootstrapMiningAnalysis {
-        if (!this.cache.BootstrapMiningAnalysis) {
+    private SwarmMiningAnalysis(): SwarmMiningAnalysis {
+        if (!this.cache.SwarmMiningAnalysis) {
             let carryPerUnit = 2;
             let additionalCost = 0;
             let additionalCarry = 0;
@@ -176,14 +173,14 @@ export class BootstrapMiningMission extends Mission {
             let workCount = this.spawnGroup.maxUnitsPerCost(unitCost, maxWork, additionalCost);
 
             let minerCount = Math.min(Math.ceil(maxWork / workCount), this.posCount);
-            this.cache.BootstrapMiningAnalysis = {
+            this.cache.SwarmMiningAnalysis = {
                 workCount: workCount,
                 carryCount: carryPerUnit + additionalCarry,
                 moveCount: Math.ceil(workCount / 2),
                 minerCount: minerCount,
-            } as BootstrapMiningAnalysis;
+            } as SwarmMiningAnalysis;
         }
-        return this.cache.BootstrapMiningAnalysis;
+        return this.cache.SwarmMiningAnalysis;
     }
 
     // CREEP BEHAVIOR

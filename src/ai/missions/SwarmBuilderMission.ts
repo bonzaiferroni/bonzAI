@@ -3,14 +3,14 @@ import {Agent} from "../agents/Agent";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Operation} from "../operations/Operation";
 
-export interface BootstrapBuilderMissionMemory extends BuilderMemory {
+export interface SwarmBuilderMissionMemory extends BuilderMemory {
     containerId: string;
     nextBuilder: number;
 }
 
-export class BootstrapBuilderMission extends BuilderMission {
+export class SwarmBuilderMission extends BuilderMission {
 
-    public memory: BootstrapBuilderMissionMemory;
+    public memory: SwarmBuilderMissionMemory;
     private container: StructureContainer;
 
     protected maxCarts = () => {

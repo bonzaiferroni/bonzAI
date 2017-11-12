@@ -1,28 +1,28 @@
 import {Operation, OperationMemory} from "./Operation";
 import {OperationPriority, USERNAME} from "../../config/constants";
 import {empire} from "../Empire";
-import {BootstrapMiningData, BootstrapMiningMission} from "../missions/BootstrapMinerMission";
+import {SwarmMiningData, SwarmMiningMission} from "../missions/SwarmMinerMission";
 import {ROOMTYPE_CONTROLLER, WorldMap} from "../WorldMap";
 import {PosHelper} from "../../helpers/PosHelper";
-import {BootMiningGuru} from "../missions/BootMiningGuru";
-import {BootstrapBuilderMission} from "../missions/BootstrapBuilderMission";
+import {SwarmMiningGuru} from "../missions/SwarmMiningGuru";
+import {SwarmBuilderMission} from "../missions/SwarmBuilderMission";
 import {Mission} from "../missions/Mission";
 import {BodyguardMission} from "../missions/BodyguardMission";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {Traveler} from "../../Traveler";
 
-interface BootstrapOperationMemory extends OperationMemory {
+interface SwarmOperationMemory extends OperationMemory {
     addRooms: string[];
-    roomData: {[roomName: string]: BootstrapMiningData[] };
-    bootGuru: any;
+    roomData: {[roomName: string]: SwarmMiningData[] };
+    swarmGuru: any;
     spawnDelay: {[roomName: string]: number};
     dangerDelay: {[roomName: string]: number};
 }
 
-export class BootstrapOperation extends Operation {
+export class SwarmOperation extends Operation {
 
-    public memory: BootstrapOperationMemory;
-    private static bootCensus: {[roomName: string]: string } = {};
+    public memory: SwarmOperationMemory;
+    private static swarmCensus: {[roomName: string]: string } = {};
 
     constructor(flag: Flag, name: string, type: string) {
         super(flag, name, type);
@@ -46,12 +46,12 @@ export class BootstrapOperation extends Operation {
         this.spawnGroup = empire.getSpawnGroup(this.roomName);
         if (!this.spawnGroup) { return; }
 
-        let guru = new BootMiningGuru(this);
+        let guru = new SwarmMiningGuru(this);
 
         let bodyguardMission = new BodyguardMission(this, this.roomName);
         this.addMissionLate(bodyguardMission);
 
-        let builderMission = new BootstrapBuilderMission(this);
+        let builderMission = new SwarmBuilderMission(this);
         this.addMissionLate(builderMission);
         builderMission.allowSpawn = guru.spawnSaturated() && this.room.storage === undefined;
 
@@ -71,7 +71,7 @@ export class BootstrapOperation extends Operation {
             let roomData = this.memory.roomData[roomName];
             if (!roomData) { continue; }
             for (let data of roomData) {
-                let mission = new BootstrapMiningMission(this, index, data, guru);
+                let mission = new SwarmMiningMission(this, index, data, guru);
                 this.addMissionLate(mission);
                 mission.allowSpawn = allowSpawn;
                 index++;
@@ -137,16 +137,16 @@ export class BootstrapOperation extends Operation {
         }
     }
 
-    private exploreRoom(roomName: string): BootstrapMiningData[] {
+    private exploreRoom(roomName: string): SwarmMiningData[] {
         let room = Game.rooms[roomName];
         if (room) {
             let originPos = this.room.findStructures(STRUCTURE_SPAWN)[0].pos;
-            let array: BootstrapMiningData[] = [];
+            let array: SwarmMiningData[] = [];
             let sources = room.find<Source>(FIND_SOURCES);
             for (let source of sources) {
                 let ret = Traveler.findTravelPath(originPos, source, {range: 1});
                 if (ret.incomplete) {
-                    console.log(`BOOTSTRAP: unable to reach source at ${source.pos}`);
+                    console.log(`SWARM: unable to reach source at ${source.pos}`);
                     continue;
                 }
                 let containerPos = this.findContainerPos(source, _.last(ret.path));
@@ -160,7 +160,7 @@ export class BootstrapOperation extends Operation {
             }
             return array;
         } else {
-            let creepName = `${this.name}_bootExplorer`;
+            let creepName = `${this.name}_swarmExplorer`;
             let creep = Game.creeps[creepName];
             if (creep) {
                 let position = PosHelper.pathablePosition(roomName);
@@ -204,12 +204,12 @@ export class BootstrapOperation extends Operation {
             return false;
         }
 
-        let currentBootOp = BootstrapOperation.bootCensus[roomName];
-        if (currentBootOp && currentBootOp !== this.name) {
+        let currentSwarmOp = SwarmOperation.swarmCensus[roomName];
+        if (currentSwarmOp && currentSwarmOp !== this.name) {
             this.memory.spawnDelay[roomName] = Game.time + 3000;
             return false;
         }
-        BootstrapOperation.bootCensus[roomName] = this.name;
+        SwarmOperation.swarmCensus[roomName] = this.name;
 
         let room = Game.rooms[roomName];
         if (!room) {

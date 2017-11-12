@@ -3,11 +3,11 @@ import {KeeperOperation} from "./KeeperOperation";
 import {ControllerOperation} from "./ControllerOperation";
 import {EvacOperation} from "./EvacOperation";
 import {LayoutOperation} from "./LayoutOperation";
-import {Operation, OperationMap, OperationPriorityMap} from "./Operation";
+import {Operation, OperationPriorityMap} from "./Operation";
 import {DemolishOperation} from "./DemolishOperation";
 import {SandboxOperation} from "./SandboxOperation";
 import {PosHelper} from "../../helpers/PosHelper";
-import {BootstrapOperation} from "./BootstrapOperation";
+import {SwarmOperation} from "./BootstrapOperation";
 import {empire} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {BountyOperation} from "./BountyOperation";
@@ -38,7 +38,7 @@ export class OperationFactory {
         evac: EvacOperation,
         layout: LayoutOperation,
         sand: SandboxOperation,
-        boot: BootstrapOperation,
+        swarm: SwarmOperation,
         intel: IntelOperation,
         bounty: BountyOperation,
         peace: PeaceOperation,
@@ -136,7 +136,7 @@ export class OperationFactory {
 
         let pos = PosHelper.pathablePosition(spawn1.pos.roomName);
         empire.addOperation("layout", pos);
-        empire.addOperation("boot", pos);
+        empire.addOperation("swarm", pos);
         empire.addOperation("intel", pos, "nsa");
     }
 }

@@ -1,15 +1,15 @@
-import {BootstrapOperation} from "../operations/BootstrapOperation";
-export class BootMiningGuru {
-    private operation: BootstrapOperation;
+import {SwarmOperation} from "../operations/BootstrapOperation";
+export class SwarmMiningGuru {
+    private operation: SwarmOperation;
     private memory: {
         energyWaiting: number;
         energyHistory: number[];
     };
 
-    constructor(operation: BootstrapOperation) {
+    constructor(operation: SwarmOperation) {
         this.operation = operation;
-        if (!operation.memory.bootGuru) { operation.memory.bootGuru = {}; }
-        this.memory = operation.memory.bootGuru;
+        if (!operation.memory.swarmGuru) { operation.memory.swarmGuru = {}; }
+        this.memory = operation.memory.swarmGuru;
     }
 
     public spawnSaturated(): boolean {
