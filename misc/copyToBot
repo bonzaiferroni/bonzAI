@@ -1,0 +1,2 @@
+#!/bin/bash
+cp dist/prod/main.js ~/Programs/screeps_server/bonzAI/src/
