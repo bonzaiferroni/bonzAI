@@ -1,7 +1,7 @@
 import {Mission, MissionMemory, MissionState} from "./Mission";
 import {Operation} from "../operations/Operation";
 import {Agent} from "../agents/Agent";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
@@ -162,7 +162,7 @@ export class GuardMission extends Mission {
         }
 
         if (guard.room.controller && guard.room.controller.owner
-            && !empire.diplomat.allies[guard.room.controller.owner.username]) {
+            && !core.diplomat.allies[guard.room.controller.owner.username]) {
             let structureTarget = guard.pos.findClosestByRange<Structure>(FIND_HOSTILE_SPAWNS);
             if (!structureTarget && this.memory.minPotency >= 5) {
                 structureTarget = guard.pos.findClosestByRange<Structure>(FIND_HOSTILE_STRUCTURES);

@@ -4,7 +4,7 @@ import {FreelanceOptions, HeadCountOptions, TransportAnalysis} from "../../inter
 import {DESTINATION_REACHED, MAX_HARVEST_DISTANCE, MAX_HARVEST_PATH} from "../../config/constants";
 import {Agent} from "../agents/Agent";
 import {RoomHelper} from "../../helpers/RoomHelper";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
 import {CreepHelper} from "../../helpers/CreepHelper";
@@ -619,7 +619,7 @@ export abstract class Mission {
 
         // invalidated periodically
         if (!Scheduler.delay(this.memory, "nextStorageCheck", 10000)) {
-            let nonSwaps = _.filter(empire.network.storages, x => !x.room.memory.swap);
+            let nonSwaps = _.filter(core.network.storages, x => !x.room.memory.swap);
             let bestStorages = RoomHelper.findClosest({pos: pos}, nonSwaps,
                 {linearDistanceLimit: MAX_HARVEST_DISTANCE });
 

@@ -1,9 +1,9 @@
-import {Empire} from "../ai/Empire";
+import {Core} from "../ai/Empire";
 import {MINERALS_RAW, PRODUCT_LIST} from "../ai/TradeNetwork";
 import {Tick} from "../Tick";
 export class GrafanaStats {
 
-    public static run(emp: Empire) {
+    public static run(emp: Core) {
 
         if (!Memory.playerConfig.enableStats) { return; }
 
@@ -17,23 +17,23 @@ export class GrafanaStats {
         });
 
         for (let resourceType of MINERALS_RAW) {
-            Memory.stats["empire.rawMinerals." + resourceType] = emp.network.inventory[resourceType];
+            Memory.stats["core.rawMinerals." + resourceType] = emp.network.inventory[resourceType];
             if (!Tick.cache.mineralCount[resourceType]) { continue; }
-            Memory.stats["empire.mineralCount." + resourceType] = Tick.cache.mineralCount[resourceType];
+            Memory.stats["core.mineralCount." + resourceType] = Tick.cache.mineralCount[resourceType];
         }
 
         for (let resourceType of PRODUCT_LIST) {
-            Memory.stats["empire.compounds." + resourceType] = emp.network.inventory[resourceType];
-            Memory.stats["empire.processCount." + resourceType] = Tick.cache.labProcesses[resourceType] || 0;
+            Memory.stats["core.compounds." + resourceType] = emp.network.inventory[resourceType];
+            Memory.stats["core.processCount." + resourceType] = Tick.cache.labProcesses[resourceType] || 0;
         }
 
-        Memory.stats["empire.activeLabCount"] = Tick.cache.activeLabCount;
+        Memory.stats["core.activeLabCount"] = Tick.cache.activeLabCount;
 
-        Memory.stats["empire.energy"] = emp.network.inventory[RESOURCE_ENERGY];
+        Memory.stats["core.energy"] = emp.network.inventory[RESOURCE_ENERGY];
         Memory.stats["market.credits"] = Game.market.credits;
 
         for (let storage of emp.network.storages) {
-            Memory.stats["empire.power." + storage.room.name] = storage.store.power ? storage.store.power : 0;
+            Memory.stats["core.power." + storage.room.name] = storage.store.power ? storage.store.power : 0;
         }
 
         // Profiler check

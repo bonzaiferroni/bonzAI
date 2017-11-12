@@ -5,7 +5,7 @@ import {Notifier} from "../../notifier";
 import {Mission} from "./Mission";
 import {WorldMap, ROOMTYPE_ALLEY, ROOMTYPE_SOURCEKEEPER, ROOMTYPE_CORE} from "../WorldMap";
 import {USERNAME} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Operation} from "../operations/Operation";
 import {Traveler} from "../../Traveler";
@@ -44,7 +44,7 @@ export class SurveyAnalyzer {
 
         // place flag in chosen missionRoom
         if (this.memory.nextAnalysis > Game.time) { return; }
-        if (!empire.underCPULimit()) {
+        if (!core.underCPULimit()) {
             this.memory.nextAnalysis = Game.time + 100;
             return;
         }
@@ -323,7 +323,7 @@ export class SurveyAnalyzer {
         } else if (WorldMap.roomType(room.name) === ROOMTYPE_CORE) {
         }
         let position = PosHelper.pathablePosition(room.name);
-        empire.addOperation(opType, position);
+        core.addOperation(opType, position);
     }
 
     private underMinerLimit() {

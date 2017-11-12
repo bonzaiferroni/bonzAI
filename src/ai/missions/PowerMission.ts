@@ -5,7 +5,7 @@ import {helper} from "../../helpers/helper";
 import {Notifier} from "../../notifier";
 import {WorldMap} from "../WorldMap";
 import {Agent} from "../agents/Agent";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {CreepHelper} from "../../helpers/CreepHelper";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Observationer} from "../Observationer";
@@ -372,7 +372,7 @@ export class PowerMission extends Mission {
         if (!bank) { return; }
 
         let allyClyde = bank.room.find(FIND_HOSTILE_CREEPS, {
-            filter: (c: Creep) => CreepHelper.partCount(c, ATTACK) === 20 && empire.diplomat.allies[c.owner.username] &&
+            filter: (c: Creep) => CreepHelper.partCount(c, ATTACK) === 20 && core.diplomat.allies[c.owner.username] &&
             !c.pos.isNearExit(1),
         })[0] as Creep;
 

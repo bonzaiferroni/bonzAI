@@ -1,5 +1,5 @@
 import {ROOMTYPE_SOURCEKEEPER, WorldMap} from "../ai/WorldMap";
-import {empire} from "../ai/Empire";
+import {core} from "../ai/Empire";
 import {Tick} from "../Tick";
 import {CreepHelper} from "../helpers/CreepHelper";
 
@@ -22,7 +22,7 @@ export function initRoomPrototype() {
                 let hostiles = this.find(FIND_HOSTILE_CREEPS) as Creep[];
                 let filteredHostiles = [];
                 for (let hostile of hostiles) {
-                    let isEnemy = empire.diplomat.checkEnemy(hostile);
+                    let isEnemy = core.diplomat.checkEnemy(hostile);
                     if (isEnemy) {
                         filteredHostiles.push(hostile);
                     }

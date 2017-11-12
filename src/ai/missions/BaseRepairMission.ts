@@ -111,7 +111,7 @@ export class BaseRepairMission extends Mission {
             return;
         }
 
-        Memory.stats["empire.walls." + this.roomName] = lowest.hits;
+        Memory.stats["core.walls." + this.roomName] = lowest.hits;
         this.memory.lowestHits = lowest.hits;
         this.memory.rampId = lowest.id;
     }

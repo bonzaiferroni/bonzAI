@@ -1,6 +1,6 @@
 import {Operation, OperationMemory} from "./Operation";
 import {Notifier} from "../../notifier";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
 import {PosHelper} from "../../helpers/PosHelper";

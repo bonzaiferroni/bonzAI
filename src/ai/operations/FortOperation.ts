@@ -12,7 +12,7 @@ import {PaverMission} from "../missions/PaverMission";
 import {DefenseGuru} from "../DefenseGuru";
 import {OperationPriority} from "../../config/constants";
 import {NEED_ENERGY_THRESHOLD, ENERGYSINK_THRESHOLD} from "../TradeNetwork";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {GeologyMission} from "../missions/GeologyMission";
 
 export class FortOperation extends Operation {
@@ -34,7 +34,7 @@ export class FortOperation extends Operation {
     public init() {
         if (this.flag.room) {
             // init FortOperation variables
-            this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
+            this.spawnGroup = core.getSpawnGroup(this.flag.room.name);
 
             // spawn emergency miner if needed
             this.addMission(new EmergencyMinerMission(this));
@@ -126,7 +126,7 @@ export class FortOperation extends Operation {
             {filter: {structureType: STRUCTURE_NUKER}})) as StructureNuker;
         let outcome = nuker.launchNuke(new RoomPosition(x, y, roomName));
         if (outcome === OK) {
-            empire.map.addNuke({tick: Game.time, roomName: roomName});
+            core.map.addNuke({tick: Game.time, roomName: roomName});
             return "NUKER: Bombs away! \\o/";
         } else {
             return `NUKER: error: ${outcome}`;

@@ -8,7 +8,7 @@ import {LayoutDisplay} from "../layouts/LayoutDisplay";
 import {ClaimMission} from "../missions/ClaimMission";
 import {UpgradeMission} from "../missions/UpgradeMission";
 import {RefillMission} from "../missions/RefillMission";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {SwapUpgradeMission} from "../missions/SwapUpgradeMission";
 import {SwapMission} from "../missions/SwapMission";
 import {SwapGeologyMission} from "../missions/SwapGeologyMission";

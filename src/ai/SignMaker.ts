@@ -1,7 +1,7 @@
 import {helper} from "../helpers/helper";
 import {PosHelper} from "../helpers/PosHelper";
 import {CreepHelper} from "../helpers/CreepHelper";
-import {empire} from "./Empire";
+import {core} from "./Empire";
 import {Notifier} from "../notifier";
 import {MemHelper} from "../helpers/MemHelper";
 import {TravelToReturnData} from "../Traveler";
@@ -72,9 +72,9 @@ export class SignMaker {
             Memory.creeps["signMaker"] = undefined;
 
             if (this.memory.nextSpawn > Game.time) { return; }
-            if (empire.map.controlledRoomCount <= 3) { return; }
+            if (core.map.controlledRoomCount <= 3) { return; }
             Notifier.log("spawning signMaker for " + roomName, 1);
-            let outcome = empire.spawnFromClosest(roomName, [MOVE], "signMaker");
+            let outcome = core.spawnFromClosest(roomName, [MOVE], "signMaker");
             if (_.isString(outcome)) {
                 this.memory.nextSpawn = Game.time + 1000;
             }

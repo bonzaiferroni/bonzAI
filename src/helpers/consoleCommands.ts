@@ -3,7 +3,7 @@ import {WorldMap} from "../ai/WorldMap";
 import {BuildingPlannerData} from "../interfaces";
 import {Viz} from "./Viz";
 import {Tick} from "../Tick";
-import {empire} from "../ai/Empire";
+import {core} from "../ai/Empire";
 import {PaverMission} from "../ai/missions/PaverMission";
 
 export var consoleCommands = {
@@ -52,7 +52,7 @@ export var consoleCommands = {
 
     minv() {
         for (let mineralType of MINERALS_RAW) {
-            console.log(mineralType + ":", empire.network.inventory[mineralType]);
+            console.log(mineralType + ":", core.network.inventory[mineralType]);
         }
 
     },
@@ -63,19 +63,19 @@ export var consoleCommands = {
 
     pinv() {
         for (let mineralType of PRODUCT_LIST) {
-            console.log(mineralType + ":", empire.network.inventory[mineralType]);
+            console.log(mineralType + ":", core.network.inventory[mineralType]);
         }
     },
 
     boostReport(boostType: string) {
-        for (let terminal of empire.network.terminals) {
+        for (let terminal of core.network.terminals) {
             console.log(`${terminal.store[boostType]} in ${terminal.room.name}`);
         }
 
     },
 
     sendBoost(boostType: string, roomName: string) {
-        empire.network.sendBoost(boostType, roomName);
+        core.network.sendBoost(boostType, roomName);
     },
 
     /**
@@ -160,7 +160,7 @@ export var consoleCommands = {
      */
 
     findResource(resourceType: string) {
-        for (let terminal of empire.network.terminals) {
+        for (let terminal of core.network.terminals) {
             let amount = 0;
             if (terminal.store[resourceType]) {
                 amount += terminal.store[resourceType];
@@ -361,7 +361,7 @@ export var consoleCommands = {
         if (room && room.controller && room.controller.my) {
             return "that is your room silly";
         }
-        let nuker = _(empire.network.terminals)
+        let nuker = _(core.network.terminals)
             .filter(x => Game.map.getRoomLinearDistance(x.room.name, roomName) <= 10)
             .filter(x => x.room.findStructures(STRUCTURE_NUKER)[0])
             .map(x => x.room.findStructures<StructureNuker>(STRUCTURE_NUKER)[0])
@@ -400,11 +400,11 @@ export var consoleCommands = {
         let hits = [];
 
         for (let targetRoomName of roomNames) {
-            for (let portalRoomName in empire.map.portals) {
-                let farRoomName = empire.map.portals[portalRoomName];
+            for (let portalRoomName in core.map.portals) {
+                let farRoomName = core.map.portals[portalRoomName];
                 let farSideDistance = Game.map.getRoomLinearDistance(targetRoomName, farRoomName);
                 if (farSideDistance > 20) { continue; }
-                for (let ownedRoomName in empire.map.controlledRooms) {
+                for (let ownedRoomName in core.map.controlledRooms) {
                     let nearSideDistance = Game.map.getRoomLinearDistance(portalRoomName, ownedRoomName);
                     let totalDistance = nearSideDistance + farSideDistance;
                     if (totalDistance > 25) { continue; }

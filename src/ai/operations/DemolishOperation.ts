@@ -1,6 +1,6 @@
 import {Operation} from "./Operation";
 import {OperationPriority} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Mission} from "../missions/Mission";
 import {Agent} from "../agents/Agent";
 export class DemolishOperation extends Operation {
@@ -21,7 +21,7 @@ export class DemolishOperation extends Operation {
     }
 
     public init() {
-        this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = core.getSpawnGroup(this.flag.room.name);
 
         this.addMission(new DemolishMission(this));
     }

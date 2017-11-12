@@ -1,6 +1,6 @@
 import {Operation, OperationMemory} from "./Operation";
 import {OperationPriority, USERNAME} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {SwarmMiningData, SwarmMiningMission} from "../missions/SwarmMinerMission";
 import {ROOMTYPE_CONTROLLER, WorldMap} from "../WorldMap";
 import {PosHelper} from "../../helpers/PosHelper";
@@ -43,7 +43,7 @@ export class SwarmOperation extends Operation {
     private addMissions() {
         if (!this.memory.roomData) { return; }
 
-        this.spawnGroup = empire.getSpawnGroup(this.roomName);
+        this.spawnGroup = core.getSpawnGroup(this.roomName);
         if (!this.spawnGroup) { return; }
 
         let guru = new SwarmMiningGuru(this);
@@ -167,7 +167,7 @@ export class SwarmOperation extends Operation {
                 Traveler.travelTo(creep, position, {offRoad: true});
             } else {
                 if (Object.keys(Game.creeps).length < 6) { return; }
-                empire.spawnFromClosest(this.roomName, [MOVE], creepName, true);
+                core.spawnFromClosest(this.roomName, [MOVE], creepName, true);
             }
         }
     }

@@ -9,7 +9,7 @@ import {InvaderGuru} from "../missions/InvaderGuru";
 import {Mission} from "../missions/Mission";
 import {PaverMission} from "../missions/PaverMission";
 import {GeologyMission} from "../missions/GeologyMission";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {ClaimMission} from "../missions/ClaimMission";
 import {MiningBodyguardMission} from "../missions/MiningBodyguardMission";
 

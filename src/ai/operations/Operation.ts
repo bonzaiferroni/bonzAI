@@ -4,7 +4,7 @@ import {Mission} from "../missions/Mission";
 import {Notifier} from "../../notifier";
 import {Tick} from "../../Tick";
 import {helper} from "../../helpers/helper";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Scheduler} from "../../Scheduler";
 import {RoomHelper} from "../../helpers/RoomHelper";
 import {LinkMiningMission} from "../missions/LinkMiningMission";
@@ -325,7 +325,7 @@ export abstract class Operation {
         let flag = Game.flags[`${this.name}_spawn`];
         if (flag) {
             let estimatedDistance = Game.map.getRoomLinearDistance(this.flag.pos.roomName, flag.pos.roomName) * 50;
-            let spawnGroup = empire.spawnGroups[flag.pos.roomName];
+            let spawnGroup = core.spawnGroups[flag.pos.roomName];
             if (spawnGroup) {
                 this.remoteSpawn = { distance: estimatedDistance, spawnGroup: spawnGroup};
                 return;
@@ -339,7 +339,7 @@ export abstract class Operation {
                 energyRequired = Math.max(this.spawnGroup.maxSpawnEnergy, energyRequired);
             }
 
-            let spawnGroups = _.filter(_.toArray(empire.spawnGroups), spawnGroup => {
+            let spawnGroups = _.filter(_.toArray(core.spawnGroups), spawnGroup => {
                 // TODO: filter by maxSpawnEnergy
                 return spawnGroup.maxSpawnEnergy >= energyRequired
                     && spawnGroup.room.name !== this.flag.pos.roomName;
@@ -362,7 +362,7 @@ export abstract class Operation {
             let bestAvailability = 0;
             let bestSpawn: {distance: number, roomName: string };
             for (let data of this.memory.spawnData.spawnRooms) {
-                let spawnGroup = empire.spawnGroups[data.roomName];
+                let spawnGroup = core.spawnGroups[data.roomName];
                 if (!spawnGroup) { continue; }
                 if (spawnGroup.averageAvailability >= 1) {
                     bestSpawn = data;
@@ -374,7 +374,7 @@ export abstract class Operation {
                 }
             }
             if (bestSpawn) {
-                this.remoteSpawn = {distance: bestSpawn.distance, spawnGroup: empire.spawnGroups[bestSpawn.roomName]};
+                this.remoteSpawn = {distance: bestSpawn.distance, spawnGroup: core.spawnGroups[bestSpawn.roomName]};
             }
         }
     }

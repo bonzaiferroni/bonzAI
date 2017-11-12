@@ -1,6 +1,6 @@
 import {Layout, LAYOUT_SEGMENTID, PositionMap} from "./Layout";
 import {BuildingPlannerData} from "../../interfaces";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Archiver} from "../Archiver";
 
 export class CustomLayout extends Layout {

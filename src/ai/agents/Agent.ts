@@ -4,7 +4,7 @@ import {helper} from "../../helpers/helper";
 import {ROOMTYPE_CORE, ROOMTYPE_SOURCEKEEPER, WorldMap} from "../WorldMap";
 import {FleeData} from "../../interfaces";
 import {Notifier} from "../../notifier";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {AbstractAgent} from "./AbstractAgent";
 import {MemHelper} from "../../helpers/MemHelper";
 import {Viz} from "../../helpers/Viz";
@@ -367,7 +367,7 @@ export class Agent extends AbstractAgent {
                     console.log(`BOOST: no ${boost} for ${this.creep.name}, it will wait (allowUnboosted = false)`);
                 }
                 if (!this.creep.room.terminal.store[boost] || this.creep.room.terminal.store[boost] < 1000) {
-                    empire.network.sendBoost(boost, this.room.name);
+                    core.network.sendBoost(boost, this.room.name);
                 }
                 this.idleOffRoad(this.missionRoom.storage);
                 return false;
@@ -943,8 +943,8 @@ export class Agent extends AbstractAgent {
             }
 
             if (nonEssential) {
-                let spawnGroup = empire.getSpawnGroup(roomName);
-                if (empire && Math.random() > ((spawnGroup.currentSpawnEnergy / spawnGroup.maxSpawnEnergy) * .2) + .8) {
+                let spawnGroup = core.getSpawnGroup(roomName);
+                if (core && Math.random() > ((spawnGroup.currentSpawnEnergy / spawnGroup.maxSpawnEnergy) * .2) + .8) {
                     this.memory.deliverId = undefined;
                 }
             }

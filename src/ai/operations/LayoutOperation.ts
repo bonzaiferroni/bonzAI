@@ -5,7 +5,7 @@ import {helper} from "../../helpers/helper";
 import {OperationPriority} from "../../config/constants";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Observationer} from "../Observationer";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 
 interface LayoutOperationMemory extends OperationMemory {
     blind: boolean;
@@ -48,9 +48,9 @@ export class LayoutOperation extends Operation {
                 return;
             }
             console.log(`planting new operation: ${newFlagName}`);
-            empire.addOperation("control", this.flag.pos);
-            if (empire.cpuAvailable(30)) {
-                empire.addOperation("swarm", this.flag.pos, undefined, false);
+            core.addOperation("control", this.flag.pos);
+            if (core.cpuAvailable(30)) {
+                core.addOperation("swarm", this.flag.pos, undefined, false);
             }
             this.flag.remove();
             console.log(`finished finding layout in ${this.flag.pos.roomName}, removing operation flag`);
@@ -102,7 +102,7 @@ export class LayoutOperation extends Operation {
     }
 
     private findNearbyRooms(): string[] {
-        let newRoom = Object.keys(empire.map.controlledRooms).length === 1;
+        let newRoom = Object.keys(core.map.controlledRooms).length === 1;
         // if (this.flag.pos.roomName === "sim" || newRoom) { return [this.flag.pos.roomName]; }
         // disabled multiroom scanning for now
         if (this.flag.pos.roomName) { return [this.flag.pos.roomName]; }

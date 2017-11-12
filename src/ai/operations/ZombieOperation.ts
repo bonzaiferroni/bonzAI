@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
+import {Core} from "../Empire";
 import {OperationPriority} from "../../config/constants";
 import {ZombieMission} from "../missions/ZombieMission";
 import {RaidGuru} from "../missions/RaidGuru";

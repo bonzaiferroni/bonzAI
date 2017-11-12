@@ -1,6 +1,6 @@
 import {Operation} from "./Operation";
 import {Mission, MissionMemory} from "../missions/Mission";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Agent} from "../agents/Agent";
 import {OperationPriority} from "../../config/constants";
 export class SandboxOperation extends Operation {
@@ -11,7 +11,7 @@ export class SandboxOperation extends Operation {
     }
 
     public init() {
-        this.spawnGroup = empire.getSpawnGroup(this.roomName);
+        this.spawnGroup = core.getSpawnGroup(this.roomName);
         this.addMission(new SandboxMission(this));
     }
     public update() {

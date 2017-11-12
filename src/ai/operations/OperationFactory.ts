@@ -8,7 +8,7 @@ import {DemolishOperation} from "./DemolishOperation";
 import {SandboxOperation} from "./SandboxOperation";
 import {PosHelper} from "../../helpers/PosHelper";
 import {SwarmOperation} from "./BootstrapOperation";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {BountyOperation} from "./BountyOperation";
 import {PeaceOperation} from "./PeaceOperation";
@@ -135,8 +135,8 @@ export class OperationFactory {
         }
 
         let pos = PosHelper.pathablePosition(spawn1.pos.roomName);
-        empire.addOperation("layout", pos);
-        empire.addOperation("swarm", pos);
-        empire.addOperation("intel", pos, "nsa");
+        core.addOperation("layout", pos);
+        core.addOperation("swarm", pos);
+        core.addOperation("intel", pos, "nsa");
     }
 }

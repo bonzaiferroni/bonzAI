@@ -3,7 +3,7 @@ import {BuildingPlannerData} from "../../interfaces";
 import {FlexGenerator} from "../FlexGenerator";
 import {LayoutDisplay} from "./LayoutDisplay";
 import {MemHelper} from "../../helpers/MemHelper";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Archiver} from "../Archiver";
 export class FlexLayout extends Layout {
 

@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Mission} from "../missions/Mission";
 import {OperationPriority} from "../../config/constants";
 import {CombatAgent} from "../agents/CombatAgent";
@@ -13,7 +13,7 @@ export class StumpOperation extends Operation {
     }
 
     protected init() {
-        this.spawnGroup = empire.getSpawnGroup(this.roomName);
+        this.spawnGroup = core.getSpawnGroup(this.roomName);
         this.addMission(new StumpMission(this))
     }
 

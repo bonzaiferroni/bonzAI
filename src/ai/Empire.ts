@@ -16,7 +16,7 @@ import {Observationer} from "./Observationer";
 import {RoomPlanter} from "./RoomPlanter";
 import {AutoNuker} from "./AutoNuker";
 
-export class Empire {
+export class Core {
 
     public spawnGroups: {[roomName: string]: SpawnGroup};
     public diplomat: Diplomat;
@@ -26,9 +26,9 @@ export class Empire {
     public janitor: Janitor;
     private updateTick: number;
 
-    public static get(): Empire {
-        global.root = empire;
-        return empire;
+    public static get(): Core {
+        global.core = core;
+        return core;
     }
 
     /**
@@ -174,5 +174,5 @@ export class Empire {
     }
 }
 
-export let empire: Empire = new Empire();
-global["empire"] = empire;
+export let core: Core = new Core();
+global["core"] = core;

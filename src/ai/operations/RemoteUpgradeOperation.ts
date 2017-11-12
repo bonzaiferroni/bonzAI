@@ -1,7 +1,7 @@
 import {Operation, OperationMemory} from "./Operation";
 import {VeryRemoteUpgradeMission} from "../missions/VeryRemoteUpgradeMission";
 import {OperationPriority} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {RemoteUpgradeMission} from "../missions/RemoteUpgradeMission";
 
 interface RemoteUpgradeOperationMemory extends OperationMemory {
@@ -18,7 +18,7 @@ export class RemoteUpgradeOperation extends Operation {
     }
 
     protected init() {
-        this.spawnGroup = empire.getSpawnGroup(this.roomName);
+        this.spawnGroup = core.getSpawnGroup(this.roomName);
         if (this.memory.very) {
             this.addMission(new VeryRemoteUpgradeMission(this));
         } else {

@@ -1,4 +1,4 @@
-import {empire} from "./Empire";
+import {core} from "./Empire";
 import {Notifier} from "../notifier";
 import {MemHelper} from "../helpers/MemHelper";
 import {Scheduler} from "../Scheduler";
@@ -26,15 +26,15 @@ export class AutoNuker {
     public static actions() {
         this.memory = Memory.autoNuker;
         if (Scheduler.delay(this.memory, "nextCheck", 1000)) {return; }
-        for (let roomName in empire.map.controlledRooms) {
-            let room = empire.map.controlledRooms[roomName];
+        for (let roomName in core.map.controlledRooms) {
+            let room = core.map.controlledRooms[roomName];
             this.findNukingSolution(room);
         }
     }
 
     public static validNukeTarget(room: Room) {
         return room.controller && room.controller.level >= 8 && room.controller.owner
-            && empire.diplomat.foes[room.controller.owner.username];
+            && core.diplomat.foes[room.controller.owner.username];
     }
 
     public static evaluateRoom(room: Room) {
@@ -86,7 +86,7 @@ export class AutoNuker {
         for (let roomName in Memory.rooms) {
             let memory = Memory.rooms[roomName];
             if (!memory.nukeScore) { continue; }
-            if (!empire.map.foesMap[roomName]) { continue; }
+            if (!core.map.foesMap[roomName]) { continue; }
             if (Game.map.getRoomLinearDistance(launchRoom.name, roomName) > 10) { continue; }
             if (memory.nukeScore > bestScore) {
                 bestScore = memory.nukeScore;

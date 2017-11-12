@@ -1,5 +1,5 @@
 import {Notifier} from "../notifier";
-import {empire} from "./Empire";
+import {core} from "./Empire";
 import {PosHelper} from "../helpers/PosHelper";
 import {CreepHelper} from "../helpers/CreepHelper";
 import {TravelToReturnData} from "../Traveler";
@@ -45,10 +45,10 @@ export class Observationer {
         let observer: Structure;
         let shortestDistance = Number.MAX_VALUE;
         let best: string;
-        for (let observingRoomName in empire.map.controlledRooms) {
+        for (let observingRoomName in core.map.controlledRooms) {
             let rangeToRoom = Game.map.getRoomLinearDistance(observedRoomName, observingRoomName);
             if (rangeToRoom > 10) { continue; }
-            let room = empire.map.controlledRooms[observingRoomName];
+            let room = core.map.controlledRooms[observingRoomName];
             if (room.controller.level >= 8) {
                 observer = room.findStructures(STRUCTURE_OBSERVER)[0];
                 if (observer) {
@@ -118,7 +118,7 @@ export class Observationer {
                 if (Memory.creeps) { delete Memory.creeps[creepName]; }
                 if (this.memory.spawnDelay[creepName] > Game.time) { continue; }
                 delete this.memory.spawnDelay[creepName];
-                let outcome = empire.spawnFromClosest(fromName, [MOVE], creepName, true);
+                let outcome = core.spawnFromClosest(fromName, [MOVE], creepName, true);
                 if (_.isString(outcome)) {
                     this.memory.spawnDelay[creepName] = Game.time + 500;
                 }

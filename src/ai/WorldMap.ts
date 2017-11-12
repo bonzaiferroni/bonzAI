@@ -7,7 +7,7 @@ import {Observationer} from "./Observationer";
 import {MemHelper} from "../helpers/MemHelper";
 import {PosHelper} from "../helpers/PosHelper";
 import {Operation} from "./operations/Operation";
-import {empire} from "./Empire";
+import {core} from "./Empire";
 import {Traveler} from "../Traveler";
 import {AutoNuker} from "./AutoNuker";
 
@@ -619,7 +619,7 @@ export class WorldMap {
 
     private placeTarget(type: string, room: Room) {
         let position = PosHelper.pathablePosition(room.name);
-        empire.addOperation(type, position);
+        core.addOperation(type, position);
     }
 }
 

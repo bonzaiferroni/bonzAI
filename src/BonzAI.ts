@@ -2,7 +2,7 @@ import {Operation, OperationPriorityMap} from "./ai/operations/Operation";
 import {initPrototypes} from "./prototypes/initPrototypes";
 import {Tick} from "./Tick";
 import {OperationFactory} from "./ai/operations/OperationFactory";
-import {Empire} from "./ai/Empire";
+import {Core} from "./ai/Empire";
 import {Profiler} from "./Profiler";
 import {Patcher} from "./Patcher";
 import {TimeoutTracker} from "./TimeoutTracker";
@@ -14,10 +14,10 @@ import {Scheduler} from "./Scheduler";
 
 export class BonzAI {
     private static operations: OperationPriorityMap;
-    private static empire: Empire;
+    private static empire: Core;
 
     /**
-     * init phase - initialize empire and instantiate operations
+     * init phase - initialize core and instantiate operations
      */
 
     public static init() {
@@ -26,7 +26,7 @@ export class BonzAI {
                 return;
             }
 
-            this.empire = Empire.get();
+            this.empire = Core.get();
             OperationFactory.init();
 
             Tick.init();

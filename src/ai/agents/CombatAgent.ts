@@ -1,7 +1,7 @@
 import {Agent} from "./Agent";
 import {MatrixHelper} from "../../helpers/MatrixHelper";
 import {CreepHelper} from "../../helpers/CreepHelper";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {HostileAgent} from "./HostileAgent";
 import {PosHelper} from "../../helpers/PosHelper";
 import {Notifier} from "../../notifier";
@@ -218,7 +218,7 @@ export class CombatAgent extends Agent {
 
     private findHealScore(creep: Creep, conserveRanged: boolean, conserveHeal: boolean) {
         // heal allies
-        if (!empire.diplomat.allies[creep.owner.username]) {
+        if (!core.diplomat.allies[creep.owner.username]) {
             return;
         }
 

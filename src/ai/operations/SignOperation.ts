@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {OperationPriority, Direction} from "../../config/constants";
 import {SignMission} from "../missions/SignMission";
 export class SignerOperation extends Operation {

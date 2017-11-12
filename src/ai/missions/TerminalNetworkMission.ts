@@ -4,7 +4,7 @@ import {
     MINERALS_RAW, NEED_ENERGY_THRESHOLD, RESERVE_AMOUNT, SUPPLY_ENERGY_THRESHOLD, SURPLUS_AMOUNT,
 } from "../TradeNetwork";
 import {MINERAL_STORAGE_TARGET} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {helper} from "../../helpers/helper";
 import {Scheduler} from "../../Scheduler";
 import {Notifier} from "../../notifier";
@@ -43,7 +43,7 @@ export class TerminalNetworkMission extends Mission {
         this.checkOverstock();
         this.checkEnergy();
         this.emptyRoom();
-        // empire.network.registerRoom(this.room);
+        // core.network.registerRoom(this.room);
     }
 
     public finalize() {
@@ -60,13 +60,13 @@ export class TerminalNetworkMission extends Mission {
                 && this.storage.room.terminal.store[mineralType] >= RESERVE_AMOUNT) {
                 console.log("TRADE: have too much", mineralType, "in", this.storage.room,
                     this.storage.store[mineralType]);
-                empire.market.sellExcess(this.room, mineralType, RESERVE_AMOUNT);
+                core.market.sellExcess(this.room, mineralType, RESERVE_AMOUNT);
             }
         }
 
         if (_.sum(this.storage.store) >= 940000) {
             console.log("TRADE: have too much energy in", this.storage.room, this.storage.store.energy);
-            empire.market.sellExcess(this.room, RESOURCE_ENERGY, RESERVE_AMOUNT);
+            core.market.sellExcess(this.room, RESOURCE_ENERGY, RESERVE_AMOUNT);
         }
     }
 
@@ -83,7 +83,7 @@ export class TerminalNetworkMission extends Mission {
             mostStockedResource = resourceType;
         }
 
-        let leastStockedTerminal = _(empire.network.terminals)
+        let leastStockedTerminal = _(core.network.terminals)
             .filter(x => !x.room.controller.sign || x.room.controller.sign.text !== "noTrade")
             .min(x => _.sum(x.store));
         if (!_.isObject(leastStockedTerminal)) {
@@ -130,6 +130,6 @@ export class TerminalNetworkMission extends Mission {
             return;
         }
 
-        empire.network.emptyTerminal(this.roomName);
+        core.network.emptyTerminal(this.roomName);
     }
 }

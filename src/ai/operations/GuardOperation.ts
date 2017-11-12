@@ -1,6 +1,6 @@
 import {Operation} from "./Operation";
 import {OperationPriority} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {GuardMission} from "../missions/GuardMission";
 export class GuardOperation extends Operation {
 
@@ -10,7 +10,7 @@ export class GuardOperation extends Operation {
     }
 
     public init() {
-        this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = core.getSpawnGroup(this.flag.room.name);
         this.addMission(new GuardMission(this));
     }
 

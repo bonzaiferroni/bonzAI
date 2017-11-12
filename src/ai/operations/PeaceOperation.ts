@@ -1,7 +1,7 @@
 import {Operation, OperationMemory} from "./Operation";
 import {OperationPriority, USERNAME} from "../../config/constants";
 import {CombatMission} from "../missions/CombatMission";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Viz} from "../../helpers/Viz";
 import {PeaceMission} from "../missions/PeaceMission";
 

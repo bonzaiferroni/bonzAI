@@ -2,7 +2,7 @@
 import {Operation} from "./Operation";
 import {TransportMission} from "../missions/TransportMission";
 import {OperationPriority} from "../../config/constants";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 
 export class TransportOperation extends Operation {
 
@@ -14,7 +14,7 @@ export class TransportOperation extends Operation {
     }
 
     public init() {
-        this.spawnGroup = empire.getSpawnGroup(this.flag.room.name);
+        this.spawnGroup = core.getSpawnGroup(this.flag.room.name);
 
         let max = this.memory.max !== undefined ? this.memory.max : 1;
         this.addMission(new TransportMission(this, max, undefined, undefined, this.memory.resourceType,

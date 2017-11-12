@@ -4,7 +4,7 @@ import {DefenseGuru} from "../DefenseGuru";
 import {LayoutBuilder} from "../layouts/LayoutBuilder";
 import {OperationPriority} from "../../config/constants";
 import {LayoutFactory} from "../layouts/LayoutFactory";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {ScoutMission} from "../missions/ScoutMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {ClaimMission} from "../missions/ClaimMission";
@@ -63,7 +63,7 @@ export class ControllerOperation extends Operation {
         this.layout.init();
         this.builder = new LayoutBuilder(this.layout, this.roomName);
         this.builder.init();
-        this.spawnGroup = empire.getSpawnGroup(this.roomName);
+        this.spawnGroup = core.getSpawnGroup(this.roomName);
 
         let remoteSpawning = false;
         if (!this.spawnGroup) {
@@ -137,7 +137,7 @@ export class ControllerOperation extends Operation {
     }
 
     public update() {
-        this.spawnGroup = empire.spawnGroups[this.flag.pos.roomName];
+        this.spawnGroup = core.spawnGroups[this.flag.pos.roomName];
         this.updateRemoteSpawn(8, 800);
         if (!this.spawnGroup && this.remoteSpawn) {
             this.spawnGroup = this.remoteSpawn.spawnGroup;
@@ -181,7 +181,7 @@ export class ControllerOperation extends Operation {
             {filter: {structureType: STRUCTURE_NUKER}})) as StructureNuker;
         let outcome = nuker.launchNuke(new RoomPosition(x, y, roomName));
         if (outcome === OK) {
-            empire.map.addNuke({tick: Game.time, roomName: roomName});
+            core.map.addNuke({tick: Game.time, roomName: roomName});
             return "NUKER: Bombs away! \\o/";
         } else {
             return `NUKER: error: ${outcome}`;

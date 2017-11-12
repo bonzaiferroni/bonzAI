@@ -1,5 +1,5 @@
 import {Scheduler} from "../Scheduler";
-import {empire} from "./Empire";
+import {core} from "./Empire";
 import {Notifier} from "../notifier";
 import {Observationer} from "./Observationer";
 import {PosHelper} from "../helpers/PosHelper";
@@ -54,7 +54,7 @@ export class RoomPlanter {
             let room = Game.rooms[this.memory.chosen];
             if (room) {
                 let position = PosHelper.pathablePosition(this.memory.chosen);
-                empire.addOperation("layout", position);
+                core.addOperation("layout", position);
                 this.memory.growing = this.memory.chosen;
                 this.memory.abortPlant = Game.time + 5000;
                 delete this.memory.chosen;
@@ -87,7 +87,7 @@ export class RoomPlanter {
 
     private static chooseRoom() {
         if (Memory.playerConfig.manual) { return; }
-        let controlledCount = empire.map.controlledRoomCount;
+        let controlledCount = core.map.controlledRoomCount;
         if (controlledCount === 0 || controlledCount >= Game.gcl.level) { return; }
         if (Scheduler.delay(this.memory, "checkPlant", 1000)) { return; }
 
@@ -108,7 +108,7 @@ export class RoomPlanter {
             if (room && room.controller && room.controller.my) {
                 continue;
             }
-            if (empire.map.playerMap[roomName]) {
+            if (core.map.playerMap[roomName]) {
                 continue;
             }
 
@@ -170,7 +170,7 @@ export class RoomPlanter {
                     this.visCache.push({pos: pos, color: "green"});
                     continue;
                 }
-                if (empire.map.playerMap[roomName]) {
+                if (core.map.playerMap[roomName]) {
                     this.visCache.push({pos: pos, color: "red"});
                     continue;
                 }
@@ -216,12 +216,12 @@ export class RoomPlanter {
     }
 
     private static findClosestControlled(roomName: string): string {
-        return _.min(Object.keys(empire.map.controlledRooms), x => Game.map.getRoomLinearDistance(x, roomName));
+        return _.min(Object.keys(core.map.controlledRooms), x => Game.map.getRoomLinearDistance(x, roomName));
     }
 
     private static findAdjacentUsername(roomName: string): string {
-        for (let otherRoomName in empire.map.playerMap) {
-            let data = empire.map.playerMap[otherRoomName];
+        for (let otherRoomName in core.map.playerMap) {
+            let data = core.map.playerMap[otherRoomName];
             if (Game.map.getRoomLinearDistance(roomName, otherRoomName) > 1) { continue; }
 
             let exits = Game.map.describeExits(otherRoomName);
@@ -235,9 +235,9 @@ export class RoomPlanter {
     }
 
     private static findClosestSpawn(roomName: string): string {
-        let closestControlled = _(Object.keys(empire.map.controlledRooms))
+        let closestControlled = _(Object.keys(core.map.controlledRooms))
             .filter( x => {
-                let spawnGroup = empire.getSpawnGroup(x);
+                let spawnGroup = core.getSpawnGroup(x);
                 if (!spawnGroup) { return false; }
                 return spawnGroup.maxSpawnEnergy >= 950;
             })

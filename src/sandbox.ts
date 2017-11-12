@@ -1,5 +1,5 @@
 import {Notifier} from "./notifier";
-import {empire} from "./ai/Empire";
+import {core} from "./ai/Empire";
 import {helper} from "./helpers/helper";
 import {Traveler, TravelToOptions, TravelToReturnData} from "./Traveler";
 
@@ -25,7 +25,7 @@ export var sandBox = {
                         Traveler.travelTo(bulldozer, bulldozeFlag);
                     }
                 } else {
-                    empire.spawnFromClosest(bulldozeFlag.pos.roomName, [CLAIM, MOVE], "bulldozer");
+                    core.spawnFromClosest(bulldozeFlag.pos.roomName, [CLAIM, MOVE], "bulldozer");
                 }
             }
         }
@@ -51,7 +51,7 @@ export var sandBox = {
                 if (data.path) { creep.say(`${data.path.length} more!`); }
                 creep.signController(creep.room.controller, sign);
             } else {
-                empire.spawnFromClosest(signerFlag.pos.roomName, [MOVE], "signer");
+                core.spawnFromClosest(signerFlag.pos.roomName, [MOVE], "signer");
             }
         }
 
@@ -70,7 +70,7 @@ function nukePos() {
     if (Game.time < Memory.temp.nextNuke) { return; }
     if (!Memory.temp.nukeDelay) { Memory.temp.nukeDelay = 248; }
     let position = helper.deserializeRoomPosition(Memory.temp.nukePos);
-    for (let roomName in empire.spawnGroups) {
+    for (let roomName in core.spawnGroups) {
         if (Game.map.getRoomLinearDistance(position.roomName, roomName) > 10) { continue; }
         let room = Game.rooms[roomName];
         let nuker = room.findStructures<StructureNuker>(STRUCTURE_NUKER)[0];
@@ -116,7 +116,7 @@ function pathTest() {
 
     let creep = Game.creeps["pathTester"];
     if (!creep) {
-        empire.spawnFromClosest(pathTargets[0].pos.roomName, [MOVE], "pathTester", true);
+        core.spawnFromClosest(pathTargets[0].pos.roomName, [MOVE], "pathTester", true);
         return;
     }
 

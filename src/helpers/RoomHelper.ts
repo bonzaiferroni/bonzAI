@@ -1,4 +1,4 @@
-import {empire} from "../ai/Empire";
+import {core} from "../ai/Empire";
 import {Traveler} from "../Traveler";
 export interface FindClosestOptions {
     linearDistanceLimit?: number;

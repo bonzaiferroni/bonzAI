@@ -1,5 +1,5 @@
 import {Operation} from "./Operation";
-import {Empire} from "../Empire";
+import {Core} from "../Empire";
 import {ScoutMission} from "../missions/ScoutMission";
 import {RemoteBuildMission} from "../missions/RemoteBuildMission";
 import {LairMission} from "../missions/LairMission";

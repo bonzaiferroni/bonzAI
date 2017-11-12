@@ -1,7 +1,7 @@
 import {Operation, OperationMemory} from "./Operation";
 import {OperationPriority, USERNAME} from "../../config/constants";
 import {BountyMission} from "../missions/BountyMission";
-import {empire} from "../Empire";
+import {core} from "../Empire";
 import {Viz} from "../../helpers/Viz";
 
 export interface BountyCommander {
