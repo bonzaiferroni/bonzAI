@@ -50,7 +50,7 @@ export class LayoutOperation extends Operation {
             console.log(`planting new operation: ${newFlagName}`);
             empire.addOperation("control", this.flag.pos);
             if (empire.cpuAvailable(30)) {
-                empire.addOperation("boot", this.flag.pos);
+                empire.addOperation("boot", this.flag.pos, undefined, false);
             }
             this.flag.remove();
             console.log(`finished finding layout in ${this.flag.pos.roomName}, removing operation flag`);

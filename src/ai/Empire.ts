@@ -151,7 +151,7 @@ export class Empire {
         });
     }
 
-    public addOperation(type: string, position?: RoomPosition, opName?: string) {
+    public addOperation(type: string, position?: RoomPosition, opName?: string, overwrite = true) {
         let room = Game.rooms[position.roomName];
         if (!room) {
             Notifier.log(`EMPIRE: cannot place operation, no visibility in ${position.roomName}`, 5);
@@ -162,7 +162,7 @@ export class Empire {
             opName = this.generateName(type, position.roomName);
         }
         let flagName = `${type}_${opName}`;
-        if (Memory.flags) {
+        if (overwrite && Memory.flags) {
             delete Memory.flags[flagName];
         }
         Notifier.log(`EMPIRE: created new operation in ${room.name}: ${flagName}`, 1);
