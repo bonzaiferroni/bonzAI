@@ -410,7 +410,6 @@ export class DefenseMission extends Mission {
 
         // reini targeting works most of the time
         let targets = this.reiniTargeting();
-        let healedAmount = 0;
         if (!targets || targets.length === 0) { return; }
         let lowestRampart = _(this.room.findStructures<StructureRampart>(STRUCTURE_RAMPART))
             .sortBy(x => x.hits).head();
@@ -419,8 +418,9 @@ export class DefenseMission extends Mission {
             .min(x => x.hits);
 
         let attackMode = !this.state.playerThreat || this.state.assistTarget || this.state.vulnerableCreep
-            || !this.memory.lastProgress || Game.time < this.memory.lastProgress + 10;
+            || !this.memory.lastProgress || Game.time < this.memory.lastProgress + 25;
 
+        let healedAmount = 0;
         for (let i = 0; i < towers.length; i++) {
             let target = targets[i % targets.length];
             let tower = towers[i];
@@ -482,6 +482,14 @@ export class DefenseMission extends Mission {
                 roomFailing = true;
             }
             this.memory.structureCount = structureCount;
+
+            // damaged spawn
+            let spawns = this.room.findStructures(STRUCTURE_SPAWN);
+            if (spawns.length > 0 && spawns[0].hits < spawns[0].hitsMax &&
+                spawns[0].pos.findInRange(this.room.hostiles, 3).length > 0 &&
+                !spawns[0].pos.lookForStructure(STRUCTURE_RAMPART)) {
+                roomFailing = true;
+            }
         } else {
             this.memory.structureCount = undefined;
         }
